@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/ulatest3-modified.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/btime.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -292,16 +292,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int inPort(int port) {
         int res = port >>> 8;
         int keys = 0xff;
-        contendedIO(port);
 
-        if ((port & 0xff) == 0xff) {
+        //if ((port & 0xff) == 0xff) {
             System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
                     z80.tEstados, z80.getRegPC()));
-        }
-
-//        if( (port & 0xC000) == 0x4000 )
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        z80.tEstados++;
+        //}
+        //int tstates = z80.tEstados;
+        preIO(port);
 
         //System.out.println(String.format("%5d PR %04x %02x", z80.tEstados, port, res));
         if( (port & 0xff) == 0xfe ) {
@@ -339,20 +336,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                         }
                     }
             }
-            //contendedIO(port);
-            if( (port & 0xC000) == 0x4000 )
-                z80.tEstados += delayTstates[z80.tEstados];
-            z80.tEstados++;
+            postIO(port);
             return keys;
         }
 
         if( (port & 0xff) == 0xff ) {
             int tstates = z80.tEstados;
             if( tstates < 14338 || tstates > 57344 ) {
-                if( (port & 0xC000) == 0x4000 )
-                z80.tEstados += delayTstates[z80.tEstados];
-                    z80.tEstados++;
-                //contendedIO(port);
+                postIO(port);
                 return 0xff;
             }
 
@@ -360,53 +351,35 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             int col = (tstates % 224) - 2;
             
             if( col > 124 ) {
-                //contendedIO(port);
-                if( (port & 0xC000) == 0x4000 )
-                z80.tEstados += delayTstates[z80.tEstados];
-                    z80.tEstados++;
+                postIO(port);
                 return 0xff;
             }
 
             int mod = col % 8;
             switch( mod ) {
                 case 0:
-                    //contendedIO(port);
-                    if( (port & 0xC000) == 0x4000 )
-                        z80.tEstados += delayTstates[z80.tEstados];
-                        z80.tEstados++;
+                    postIO(port);
                     System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
                         tstates, row, col, jscr.scrAddr[row] + col / 4));
                     return z80Ram[jscr.scrAddr[row] + col / 4];
                 case 1:
-                    //contendedIO(port);
-                    if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
+                    postIO(port);
                     System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
                         tstates, row, col, jscr.scr2attr[row] + col / 4));
                     return z80Ram[jscr.scr2attr[row] + col / 4];
                 case 2:
-                    //contendedIO(port);
-                    if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
+                    postIO(port);
                     System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
                         tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
                     return z80Ram[jscr.scrAddr[row] + col / 4 + 1];
                 case 3:
-                    if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
-                    //contendedIO(port);
+                    postIO(port);
                     System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
                         tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
                     return z80Ram[jscr.scr2attr[row] + col / 4 + 1];
             }
         }
-        //contendedIO(port);
-        if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
+        postIO(port);
         return 0xff;
     }
 
@@ -417,9 +390,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                    System.currentTimeMillis(), tEstados, port, value,
 //                    (tEstados < oldstate ? (tEstados+69888-oldstate) : (tEstados-oldstate))));
 //        oldstate = tEstados;
-        if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
+        preIO(port);
 
         if( (port & 0xff) == 0xfe ) {
             if( (portMap[0xfe] & 0x07) != (value & 0x07) && nTimesBorderChg < 1024 ) {
@@ -427,22 +398,33 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 valueBorderChg[nTimesBorderChg] = value & 0x07;
                 nTimesBorderChg++;
             }
-            portMap[0xfe] = value;   
+            portMap[0xfe] = value;
         }
-        contendedIO(port);
+        postIO(port);
     }
 
-//    private void preIO(int port) {
-//        if( ( port & 0xc000 ) == 0x4000 ) {
-//            //System.out.println(String.format(strPC, z80.getTEstados(), port));
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        }
-//        z80.tEstados++;
-//    }
-
-        private void contendedIO(int port) {
-        if( (port & 0x0001) != 0 ) {
-            if( ( port & 0xc000 ) == 0x4000 ) {
+    /*
+     * Las operaciones de I/O se producen entre los estados T3 y T4 de la CPU,
+     * y justo ahí es donde podemos encontrar la contención en los accesos. Los
+     * ciclos de contención son exactamente iguales a los de la memoria, con los
+     * siguientes condicionantes dependiendo del estado del bit A0 y de si el
+     * puerto accedido se encuentra entre las direcciones 0x4000-0x7FFF:
+     *
+     * High byte in 0x40 (0xc0) to 0x7f (0xff)? 	Low bit  Contention pattern
+     *                                      No      Reset    N:1, C:3
+     *                                      No      Set      N:4
+     *                                      Yes     Reset    C:1, C:3
+     *                                      Yes 	Set      C:1, C:1, C:1, C:1
+     *
+     * La columna 'Contention Pattern' se lee 'N:x', no contención x ciclos
+     * 'C:n' se lee contención seguido de n ciclos sin contención.
+     * Así pues se necesitan dos rutinas, la que añade los primeros 3 t-estados
+     * con sus contenciones cuando procede y la que añade el estado final con
+     * la contención correspondiente.
+     */
+    private void preIO(int port) {
+        if ((port & 0x0001) != 0) {
+            if ((port & 0xc000) == 0x4000) {
                 // A0 == 1 y es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados];
                 z80.tEstados++;
@@ -457,51 +439,28 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 z80.tEstados += 3;
             }
         } else {
-            if( ( port & 0xc000 ) == 0x4000 ) {
+            if ((port & 0xc000) == 0x4000) {
                 // A0 == 0 y es contended RAM
-//                z80.tEstados += delayTstates[z80.tEstados];
-//                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
+                z80.tEstados++;
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados += 2;
             } else {
                 // A0 == 0 y no es contended RAM
-//                z80.tEstados++;
+                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
+                z80.tEstados += 2;
             }
         }
     }
 
-    private void postContendedIO(int port) {
-        if( (port & 0x0001) != 0 ) {
-            if( ( port & 0xc000 ) == 0x4000 ) {
+    private void postIO(int port) {
+       
+            if ((port & 0xc001) == 0x4001 ) {
                 // A0 == 1 y es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-//                z80.tEstados += delayTstates[z80.tEstados];
-//                z80.tEstados++;
-            } else {
-                // A0 == 1 y no es contended RAM
-                z80.tEstados += 3;
             }
-        } else {
-            if( ( port & 0xc000 ) == 0x4000 ) {
-                // A0 == 0 y es contended RAM
-//                z80.tEstados += delayTstates[z80.tEstados];
-//                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
-            } else {
-                // A0 == 0 y no es contended RAM
-//                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
-            }
-        }
+            z80.tEstados++;
     }
 
     public void keyPressed(KeyEvent evt) {
