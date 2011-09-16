@@ -27,12 +27,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE;
-    // veces que ha cambiado el borde en el último frame
-    // tEstados cuando cambió la N vez el borde
-    // valor del borde en el cambio N
-    public int nTimesBorderChg;
-    public int statesBorderChg[] = new int[2048];
-    public int valueBorderChg[] = new int[2048];
 
     private FileInputStream fIn;
 
@@ -61,29 +55,21 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private Timer timerFrame;
     private SpectrumTimer taskFrame;
     JSpeccyScreen jscr;
-    //private final Clock clk;
 
     public Spectrum() {
-        //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        //frameStart = 0;
         nFrame = 0;
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
-        nTimesBorderChg = 1;
-        statesBorderChg[0] = 0;
-        valueBorderChg[0] = 7;
-        //loadSNA("/home/jsanchez/src/JSpeccy/dist/Uridium.sna");
-        //taskFrame = new SpectrumTimer(this);
         timerFrame = new Timer("SpectrumClock", true);
-        startEmulation();
     }
 
     public void startEmulation() {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
+        jscr.updateBorder(0);
     }
 
     public void stopEmulation() {
@@ -101,21 +87,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.setINTLine(true);
         z80.execute();
         z80.setINTLine(false);
-        z80.statesLimit = 14240; // 63 * 224 + 199
+        z80.statesLimit = 14311; // 63 * 224 + 199
         z80.execute();
         //System.out.println(String.format("t-states: %d", z80.tEstados));
         int fromTstates;
-        while (z80.statesLimit < 57250) {
+        while (z80.statesLimit < 57248) {
             fromTstates = z80.tEstados + 1;
             z80.statesLimit = fromTstates + 12;
             z80.execute();
-            if( fromTstates % 224 < 128 || z80.tEstados % 224 < 128 )
-                jscr.updateInterval(fromTstates, z80.tEstados);
+            jscr.updateInterval(fromTstates, z80.tEstados);
         }
         
-        if ( jscr.scrRedraw  || nTimesBorderChg != 0 )
-            jscr.repaint();
-
         z80.statesLimit = 69888;
         z80.execute();
 
@@ -128,8 +110,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             jscr.toggleFlash();
         }
 
-//        if ( jscr.scrRedraw  || nTimesBorderChg != 0 )
-//            jscr.repaint();
+        jscr.repaint();
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -139,7 +120,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        jscr.toggleDoubleSize();
+        //jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
@@ -172,10 +153,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         return z80Ram;
     }
 
-//    public void run() {
-//        throw new UnsupportedOperationException("Not supported yet.");
-//    }
-
     public int fetchOpcode(int address) {
 
         if( (address & 0xC000) == 0x4000 ) {
@@ -185,6 +162,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
         
         z80.tEstados += 4;
+
+        if( (z80.getRegI() & 0xC0) == 0x40 ) {
+            jscr.m1contended = z80.tEstados;
+            jscr.m1regR = z80.getRegR();
+        }
 
         return z80Ram[address];
     }
@@ -202,24 +184,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void poke8(int address, int value) {
         
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados] + 3;
-
-            // Area de pixeles
-            if (address > 0x3FFF && address < 0x5800) {
-                jscr.updateScreenByte(address, value);
-                //System.out.println("updateScreen");
-            }
-
-            // Area de atributos
-            if (address > 0x57FF && address < 0x5B00) {
-                jscr.updateAttrChar(address, value);
-                //System.out.println("updateAttr");
-            }
+            z80.tEstados += delayTstates[z80.tEstados];
         }
-        else
-            z80.tEstados += 3;
+        z80.tEstados += 3;
 
-        if (address > 0x3fff && value != z80Ram[address])
+        if (address > 0x3fff)
             z80Ram[address] = value;
     }
 
@@ -243,32 +212,26 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void poke16(int address, int word) {
-        poke8(address, word & 0xff);
-        poke8((address + 1) & 0xffff, word >>> 8);
+//        poke8(address, word & 0xff);
+//        poke8((address + 1) & 0xffff, word >>> 8);
 
-//        if( (address & 0xC000) == 0x4000 ) {
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        }
-//
-//        if( address < 0x5B00 )
-//            scrMod = true;
-//
-//        z80.tEstados += 3;
-//        if( address > 0x3fff )
-//            z80Ram[address] = word & 0xff;
-//
-//        address = (address + 1) & 0xffff;
-//
-//        if( (address & 0xC000) == 0x4000 ) {
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        }
-//
-//        if( address < 0x5B00 )
-//            scrMod = true;
-//
-//        z80.tEstados += 3;
-//        if( address > 0x3fff )
-//            z80Ram[address] = word >>> 8;
+        if( (address & 0xC000) == 0x4000 ) {
+            z80.tEstados += delayTstates[z80.tEstados];
+        }
+        z80.tEstados += 3;
+
+        if( address > 0x3fff )
+            z80Ram[address] = word & 0xff;
+
+        address = (address + 1) & 0xffff;
+
+        if( (address & 0xC000) == 0x4000 ) {
+            z80.tEstados += delayTstates[z80.tEstados];
+        }
+        z80.tEstados += 3;
+
+        if( address > 0x3fff )
+            z80Ram[address] = word >>> 8;
     }
 
     public void contendedStates(int address, int tstates) {
@@ -354,13 +317,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //postIO(port);
 
         if( (port & 0x0001) == 0 ) {
-            if( (portFE & 0x07) != (value & 0x07) && nTimesBorderChg < 2048 ) {
-                statesBorderChg[nTimesBorderChg] = z80.tEstados;
-                valueBorderChg[nTimesBorderChg] = value & 0x07;
-                nTimesBorderChg++;
-            }
-            //System.out.println(String.format("outPort: %04X %02x", port, value));
-            
+            if( (portFE & 0x07) != (value & 0x07) )
+                jscr.updateBorder(z80.tEstados);
+
+            //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
         //preIO(port);
@@ -817,9 +777,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             int border = fIn.read() & 0x07;
             portFE &= 0xf8;
             portFE |= border;
-            nTimesBorderChg = 1;
-            statesBorderChg[0] = 0;
-            valueBorderChg[0] = border;
 
             int count;
             for (count = 0x4000; count < 0x10000; count++) {

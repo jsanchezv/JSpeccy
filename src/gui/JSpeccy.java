@@ -26,11 +26,10 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum = new Spectrum();
         jscr = new JSpeccyScreen(spectrum);
         spectrum.setScreen(jscr);
-        jscr.invalidateScreen();
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum);
-        //spectrum.startEmulation();
+        spectrum.startEmulation();
     }
     
     /** This method is called from within the constructor to
@@ -78,15 +77,17 @@ public class JSpeccy extends javax.swing.JFrame {
         }
         else
             jFile.setCurrentDirectory(currentDir);
-        
+
+        spectrum.stopEmulation();
         int status = jFile.showOpenDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
-            spectrum.stopEmulation();
+            //spectrum.stopEmulation();
             currentDir = jFile.getCurrentDirectory();
             spectrum.loadSNA(jFile.getSelectedFile());
-            jscr.invalidateScreen();
-            spectrum.startEmulation();
+//            jscr.invalidateScreen();
+//            spectrum.startEmulation();
         }
+        spectrum.startEmulation();
     }//GEN-LAST:event_fileOpenSnapshotActionPerformed
     
     /**

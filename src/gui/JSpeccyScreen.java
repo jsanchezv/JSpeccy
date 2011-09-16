@@ -67,9 +67,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // carácter en la columna cero.
     public static final int scrAddr[] = new int[192];
 
-    public final boolean dirtyLine[] = new boolean[192];
-    public final boolean dirtyByte[] = new boolean[0x1800];
-
+    // Tabla de traslación entre t-states y la dirección de la pantalla del
+    // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[70000];
     
     static {
@@ -112,15 +111,18 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int imgData[];
     private BufferedImage bImgScr;
     private int imgDataScr[];
-    private int imgBuffer[];
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    //private Timer timerFrame;
-    //private Clock taskFrame;
     private Spectrum speccy;
-    private boolean fullRedraw;
-    public boolean scrRedraw;
+    // t-states del último cambio de border
+    private int lastChgBorder;
+    // veces que ha cambiado el borde en el último frame
+    private int nBorderChanges;
+    // t-states del ciclo contended por I=0x40-0x7F o -1
+    public int m1contended;
+    // valor del registro R cuando se produjo el ciclo m1
+    public int m1regR;
         
     /** Creates new form JScreen */
     public JSpeccyScreen(Spectrum spectrum) {
@@ -130,7 +132,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt)bImgScr.getRaster().getDataBuffer()).getBankData()[0];
-        imgBuffer = new int[256 * 192];
         buildScreenTables();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
@@ -145,21 +146,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //speccy = new Spectrum();
         this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
-        scrRedraw = true;
-        //System.out.println("imgData.length = " + imgData.length);
-        //timerFrame = new Timer();
-        //taskFrame = new Clock(this);
-        //startEmulation();
-        //addKeyListener(this);
-        //requestFocus();
+        lastChgBorder = 0;
+        m1contended = -1;
     }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
-        for( int addr = 0x5800; addr < 0x5b00; addr++ )
-            if( pScrn[addr] > 0x7f ) {
-                updateAttrChar(addr, pScrn[addr]);
-            }
     }
     
     public void toggleDoubleSize() {
@@ -183,22 +175,20 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //long start = System.currentTimeMillis();
         
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
-        //pScrn = SpectrumRam;
-        fullRedraw = false;
-        if( speccy.nTimesBorderChg != 0 ) {
-            //long start = System.currentTimeMillis();
-            updateBorder();
-            fullRedraw = true;
-            //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
-        }
     
-
         // Rejilla horizontal de test
 //        for( int idx = 0; idx < 36; idx ++ )
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if ( fullRedraw ) {
+        if ( nBorderChanges > 0 ) {
+
+            if( nBorderChanges == 1 ) {
+                intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+                nBorderChanges = 0;
+            } else
+                nBorderChanges = 1;
+
             if (doubleSize) {
                 gc2.drawImage(bImg, escalaOp, 0, 0);
             } else {
@@ -206,13 +196,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
 
-        if( scrRedraw )
-            if (doubleSize) {
-                gc2.drawImage(bImgScr, escalaOp, 96, 96);
-            } else {
-                gc2.drawImage(bImgScr, 48, 48, this);
-            }
-        scrRedraw = false;
+        if (doubleSize) {
+            gc2.drawImage(bImgScr, escalaOp, 96, 96);
+        } else {
+            gc2.drawImage(bImgScr, 48, 48, this);
+        }
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -265,198 +253,73 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
     }
 
-    private void updateBorder() {
-        int nBorderChg = speccy.nTimesBorderChg;
-        int startPix, endPix;
+    public void updateBorder(int tstates) {
+        int startPix, endPix, color;
 
-//        System.out.println("Cambios de border: " + nBorderChg);
-//        for( int idx = 0; idx < nBorderChg; idx++ )
-//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
-//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
-
-        if (nBorderChg == 1) {
-            speccy.nTimesBorderChg = 0;
-            intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
-        } else {
-            int color;
-            for (int idx = 0; idx < (nBorderChg - 1); idx++) {
-                if( speccy.statesBorderChg[idx + 1] < 3584 )
-                    continue;
-
-                startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
-                if( startPix > imgData.length - 1)
-                    continue;
-
-                endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
-                if( endPix > imgData.length - 1)
-                    endPix = imgData.length - 1;
-
-                color = Paleta[speccy.valueBorderChg[idx]];
-                for (int count = startPix; count < endPix; count++)
-                    imgData[count] = color;
-            }
-
-            // Pinta desde el último cambio hasta el final
-            startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
+        if( tstates < lastChgBorder ) {
+            startPix = tStatesToScrPix(lastChgBorder);
             if( startPix < imgData.length - 1) {
-                color = Paleta[speccy.valueBorderChg[nBorderChg - 1]];
+                color = Paleta[speccy.portFE & 0x07];
                 for( int count = startPix; count < imgData.length - 1; count++ )
                     imgData[count] = color;
             }
-
-            // Y encola para el siguiente frame el primer cambio
-            speccy.statesBorderChg[0] = 0;
-            speccy.valueBorderChg[0] = speccy.portFE & 0x07;
-            speccy.nTimesBorderChg = 1;
+            lastChgBorder = 3584;
         }
-    }
 
-    public void invalidateScreen() {
-//        int paper, ink;
-//        int addr, nAttr;
-//        int pixel, attr;
-//        int posIni;
-//
-//        for( int cordy = 0; cordy < 192; cordy++ ) {
-//            posIni = 256 * cordy;
-//            // Ahora dibujamos la línea de pantalla
-//            addr = scrAddr[cordy];
-//            nAttr = scr2attr[cordy];
-//            for( int cordx = 0; cordx < 32; cordx++ ) {
-//                attr = pScrn[nAttr++];
-//                if( attr > 0x7f )
-//                    attr &= flash;
-//                ink = Ink[attr];
-//                paper = Paper[attr];
-//                pixel = pScrn[addr++];
-//                for( int mask = 0x80; mask != 0; mask >>= 1 ) {
-//                    if( (pixel & mask) != 0 )
-//                        imgBuffer[posIni++] = ink;
-//                    else
-//                        imgBuffer[posIni++] = paper;
-//                }
-//            }
-//        }
-        Arrays.fill(dirtyLine, true);
-        Arrays.fill(dirtyByte, true);
-        scrRedraw = true;
-    }
-
-    public void updateScreenByte(int address, int value) {
-
-//        int addrPtr = bufAddr[address & 0x1fff];
-//        int attr = pScrn[scr2attr[address & 0x1fff]];
-//        if( attr > 0x7f )
-//            attr &= flash;
-//        int ink = Ink[attr];
-//        int paper = Paper[attr];
-//        for (int mask = 0x80; mask != 0; mask >>= 1) {
-//            if ((value & mask) != 0) {
-//                imgBuffer[addrPtr++] = ink;
-//            } else {
-//                imgBuffer[addrPtr++] = paper;
-//            }
-//        }
-
-        int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
-        int scan = (address & 0x700) >>> 8;
-        dirtyLine[(row << 3) + scan] = true;
-        dirtyByte[address & 0x1fff] = true;
-        scrRedraw = true;
-//        System.out.println(String.format("ScrAddr: %04x\tByte: %02x\tt-states: %d",
-//                address, attr, tstates));
-    }
-
-    public void updateAttrChar(int address, int attr) {
-
-        int row = ((address >>> 5) & 0x1f) * 8;
-        //int col = address & 0x1f;
-        int scrAddress = attr2scr[address & 0x3ff];
-        for (int idx = 0; idx < 8; idx++) {
-            dirtyLine[row + idx] = true;
-            dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
+        startPix = tStatesToScrPix(lastChgBorder);
+        if (startPix > imgData.length - 1) {
+            return;
         }
-        scrRedraw = true;
 
-//        int scanline = tstates / 224;
-//        if (scanline > 255) {
-//            for (int idx = 0; idx < 8; idx++) {
-//                dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
-//            }
-//            return;
-//        }
-//        scanline -= 64;
-//        if( scanline < row )
-//            scanline = 0;
-//        else
-//            scanline = (scanline % 8) + 1;
-//
-//        if( attr > 0x7f )
-//            attr &= flash;
-//        int ink = Ink[attr];
-//        int paper = Paper[attr];
-//
-//        for ( int scan = 0; scan < 8; scan++) {
-//            int addr = attr2scr[address & 0x3ff] + scan * 256;
-//            if( scan < scanline) {
-//                dirtyByte[addr & 0x1fff] = true;
-//                continue;
-//            }
-//            int scrByte = pScrn[addr];
-//            int addrPtr = bufAddr[addr & 0x1fff];
-//            for (int mask = 0x80; mask != 0; mask >>= 1) {
-//                if ((scrByte & mask) != 0) {
-//                    imgBuffer[addrPtr++] = ink;
-//                } else {
-//                    imgBuffer[addrPtr++] = paper;
-//                }
-//            }
-//            dirtyByte[addr & 0x1fff] = false;
-//        }
-    }
+        endPix = tStatesToScrPix(tstates);
+        if (endPix > imgData.length - 1) {
+            endPix = imgData.length - 1;
+        }
 
-    public void updateScanline(int scanline) {
-        
-//        for (int offset = 0; offset < 32; offset++) {
-//            int addr = scrAddr[scanline] + offset;
-//            if( !dirtyByte[addr & 0x1fff] )
-//                continue;
-//
-//            int scrByte = pScrn[addr];
-//            addr &= 0x1fff;
-//            int addrBuf = bufAddr[addr];
-//            int attr = pScrn[scr2attr[addr]];
-//            if (attr > 0x7f) {
-//                attr &= flash;
-//            }
-//            int ink = Ink[attr];
-//            int paper = Paper[attr];
-//            for (int mask = 0x80; mask != 0; mask >>= 1) {
-//                if ((scrByte & mask) != 0) {
-//                    imgBuffer[addrBuf++] = ink;
-//                } else {
-//                    imgBuffer[addrBuf++] = paper;
-//                }
-//            }
-//            dirtyByte[addr] = false;
-//        }
-        System.arraycopy(imgBuffer, scanline * 256, imgDataScr, scanline * 256, 256);
-        dirtyLine[scanline] = false;
+        color = Paleta[speccy.portFE & 0x07];
+        for (int count = startPix; count < endPix; count++) {
+            imgData[count] = color;
+        }
+        lastChgBorder = tstates;
+        nBorderChanges++;
     }
 
     public void updateInterval(int fromTstates, int toTstates) {
 
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
         while (fromTstates <= toTstates) {
+            int scrByte = 0, attr = 0;
             int fromAddr = states2scr[fromTstates];
-            if ( fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
+            if ( fromAddr == -1 ) {
                 fromTstates++;
                 continue;
             }
-            int scrByte = pScrn[fromAddr];
-            fromAddr &= 0x1fff;
+
+            // si m1contended es != -1 es que hay que emular el efecto snow.
+            if (m1contended == -1 ) {
+                scrByte = pScrn[fromAddr];
+                fromAddr &= 0x1fff;
+                attr = pScrn[scr2attr[fromAddr]];
+            } else {
+                int addr;
+                int mod = m1contended % 8;
+                if( mod == 0 || mod == 1 ) {
+                    addr = (fromAddr & 0xff00) | m1regR;
+                    scrByte = pScrn[addr];
+                    attr = pScrn[scr2attr[fromAddr & 0x1fff]];
+                    //System.out.println("Snow even");
+                }
+                if( mod == 2 || mod == 3 ) {
+                    addr = (scr2attr[fromAddr & 0x1fff] & 0xff00) | m1regR;
+                    scrByte = pScrn[fromAddr];
+                    attr = pScrn[addr & 0x1fff];
+                    //System.out.println("Snow odd");
+                }
+                fromAddr &= 0x1fff;
+                m1contended = -1;
+            }
+
             int addrBuf = bufAddr[fromAddr];
-            int attr = pScrn[scr2attr[fromAddr]];
             if (attr > 0x7f) {
                 attr &= flash;
             }
@@ -469,25 +332,20 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                     imgDataScr[addrBuf++] = paper;
                 }
             }
-            dirtyByte[fromAddr] = false;
             fromTstates++;
         }
    }
 
-    public void intArrayFill(int[] array, int value) {
-        int len = array.length;
-        if (len > 0) {
-            array[0] = value;
-        }
+   public void intArrayFill(int[] array, int value) {
+       int len = array.length;
+       if (len > 0) {
+           array[0] = value;
+       }
 
-        for (int idx = 1; idx < len; idx += idx) {
-            System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
-        }
-    }
-
-    public void bufferToImage() {
-        System.arraycopy(imgBuffer, 0, imgDataScr, 0, imgBuffer.length);
-    }
+       for (int idx = 1; idx < len; idx += idx) {
+           System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
+       }
+   }
 
     private void buildScreenTables() {
         int row, col, scan;
@@ -507,14 +365,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         Arrays.fill(states2scr, -1);
         for(int tstates = 14336; tstates < 57344; tstates += 4 ) {
-            //tstates -= (tstates % 4);
             int fromScan = tstates / 224 - 64;
             int fromCol = (tstates % 224) / 4;
             if( fromCol > 31 )
                 continue;
 
-            //states2scr[tstates] = scrAddr[fromScan] + fromCol;
-            states2scr[tstates + 1] = scrAddr[fromScan] + fromCol;
+            states2scr[tstates - 8] = scrAddr[fromScan] + fromCol;
+            //states2scr[tstates + 1] = scrAddr[fromScan] + fromCol;
             //states2scr[tstates + 2] = scrAddr[fromScan] + fromCol;
             //states2scr[tstates + 3] = scrAddr[fromScan] + fromCol;
         }
