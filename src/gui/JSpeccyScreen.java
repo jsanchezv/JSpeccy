@@ -58,11 +58,16 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     public final int scrAddr[] = new int[192];
-
+    // Tabla que indica si un byte de la pantalla ha sido modificado y habrá que
+    // redibujarlo.
     private final boolean dirtyByte[] = new boolean[0x1800];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[70000];
+
+    private static final int BORDER_WIDTH = 32;
+    private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+    private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -106,7 +111,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public JSpeccyScreen(Spectrum spectrum) {
         initComponents();
 
-        bImg = new BufferedImage(352, 288, BufferedImage.TYPE_INT_RGB);
+        bImg = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         imgData = ((DataBufferInt) bImg.getRaster().getDataBuffer()).getBankData()[0];
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt) bImgScr.getRaster().getDataBuffer()).getBankData()[0];
@@ -128,6 +133,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         m1contended = -1;
         Arrays.fill(dirtyByte, true);
         screenUpdated = false;
+        setMaximumSize(new java.awt.Dimension(SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2));
+        setMinimumSize(new java.awt.Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
+        setPreferredSize(new java.awt.Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
     }
 
     public synchronized void toggleFlash() {
@@ -147,9 +155,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
         if (doubleSize) {
-            this.setPreferredSize(new Dimension(704, 576));
+            this.setPreferredSize(new Dimension(SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2));
         } else {
-            this.setPreferredSize(new Dimension(352, 288));
+            this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         }
     }
 
@@ -178,8 +186,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         // no queda otra que dibujarlo todo.
         if (nBorderChanges > 0 || (nBorderChanges == 0 && !screenUpdated)) {
             if (nBorderChanges == 1) {
-                //intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
-                updateBorder(lastChgBorder - 1);
+                intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+                //updateBorder(lastChgBorder - 1);
                 nBorderChanges = 0;
             } else {
                 nBorderChanges = 1;
@@ -194,9 +202,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
 
         if (doubleSize) {
-            gc2.drawImage(bImgScr, escalaOp, 96, 96);
+            gc2.drawImage(bImgScr, escalaOp, BORDER_WIDTH * 2, BORDER_WIDTH * 2);
         } else {
-            gc2.drawImage(bImgScr, 48, 48, this);
+            gc2.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, this);
         }
         screenUpdated = false;
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
@@ -219,16 +227,16 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int tStatesToScrPix(int tstates) {
 
         // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
-        if (tstates < 3584) {
+        if (tstates < (3584 + ((48 - BORDER_WIDTH) * 224))) {
             return 0;
         }
 
-        // Si son mayores que 68095 (304 * 224), es la zona no visible inferior
-        if (tstates > 68095) {
+        // Se evita la zona no visible inferior
+        if (tstates > (256 + BORDER_WIDTH) * 224) {
             return imgData.length - 1;
         }
 
-        tstates -= 3584;
+        tstates -= 3584 + ((48 - BORDER_WIDTH) * 224);
 
         int row = tstates / 224;
         int col = tstates % 224;
@@ -242,15 +250,15 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
 
-        int pix = row * 352;
+        int pix = row * SCREEN_WIDTH;
 
-        if (col < 153) {
-            return pix += col * 2 + 48;
+        if (col < (128 + BORDER_WIDTH / 2)) {
+            return pix += col * 2 + BORDER_WIDTH;
         }
-        if (col > 199) {
-            return pix += (col - 200) * 2 + 352;
+        if (col > (199 + (48 - BORDER_WIDTH) / 2)) {
+            return pix += (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
         } else {
-            return pix + 352;
+            return pix + SCREEN_WIDTH;
         }
     }
 
@@ -426,9 +434,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private void initComponents() {
 
         setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        setMaximumSize(new java.awt.Dimension(704, 576));
-        setMinimumSize(new java.awt.Dimension(352, 288));
-        setPreferredSize(new java.awt.Dimension(352, 288));
+        setDoubleBuffered(false);
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
