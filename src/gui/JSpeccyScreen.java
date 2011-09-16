@@ -93,7 +93,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int imgData[];
     private BufferedImage bImgScr;
     private int imgDataScr[];
-    //private Graphics2D gcScr;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
@@ -110,7 +109,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt)bImgScr.getRaster().getDataBuffer()).getBankData()[0];
-        //gcScr = bImg.createGraphics();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
                                          RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -134,6 +132,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
+        for( int addr = 0x5800; addr < 0x5b00; addr++ )
+            if( pScrn[addr] > 0x7f ) {
+                updateAttrChar(addr, pScrn[addr]);
+                speccy.scrMod = true;
+            }
     }
     
     public void toggleDoubleSize() {
@@ -161,14 +164,14 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if( speccy.nTimesBorderChg != 0 ) {
             //long start = System.currentTimeMillis();
             updateBorder();
-            //speccy.scrMod = true;
+            speccy.fullRedraw = true;
             //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
         }
         
-        if( speccy.scrMod ) {
+        if( speccy.fullRedraw ) {
             updateScreen();
             //System.out.println("updateScreen()");
-        } else {
+//        } else {
             //System.out.println("NOT updateScreen()");
         }
 //        else {
@@ -184,7 +187,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if ( speccy.nTimesBorderChg != 0 ) {
+        if ( speccy.fullRedraw ) {
             if (doubleSize) {
                 gc2.drawImage(bImg, escalaOp, 0, 0);
             } else {
@@ -192,11 +195,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
 
-        if (doubleSize) {
-            gc2.drawImage(bImgScr, escalaOp, 96, 96);
-        } else {
-            gc2.drawImage(bImgScr, 48, 48, this);
-        }
+        //if( speccy.scrMod || speccy.attrMod ) {
+            if (doubleSize) {
+                gc2.drawImage(bImgScr, escalaOp, 96, 96);
+            } else {
+                gc2.drawImage(bImgScr, 48, 48, this);
+            }
+        //}
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -295,7 +300,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
     }
 
-    private void updateScreen() {
+    public void updateScreen() {
         int paper, ink;
         int addr, nAttr;
         int pixel, attr;
@@ -340,6 +345,29 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 imgDataScr[addrPtr++] = ink;
             } else {
                 imgDataScr[addrPtr++] = paper;
+            }
+        }
+    }
+
+    public void updateAttrChar(int address, int attr) {
+        int row = (address >>> 5)  & 0x1f;
+        int col = address & 0x1f;
+        if( attr > 0x7f )
+            attr &= flash;
+        int ink = Ink[attr];
+        int paper = Paper[attr];
+
+        for (int scan = 0; scan < 8; scan++) {
+            int addrPtr = row * 2048 + scan * 256 + col * 8;
+            int scrByte = pScrn[scrAddr[row << 3] + col + scan * 256];
+//            System.out.println(String.format("Fila :%d\t Col: %d\t scan: %d\taddress %04X",
+//                                row, col, scan, scrAddr[row << 3] + col));
+            for (int mask = 0x80; mask != 0; mask >>= 1) {
+                if ((scrByte & mask) != 0) {
+                    imgDataScr[addrPtr++] = ink;
+                } else {
+                    imgDataScr[addrPtr++] = paper;
+                }
             }
         }
     }

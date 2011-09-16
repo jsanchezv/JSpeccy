@@ -1430,7 +1430,7 @@ public class Z80 {
             opCode = MemIoImpl.fetchOpcode(regPC);
             //System.out.println(String.format("%04X %02X\t%d", regPC, opCode, tEstados-4));
             regPC = (regPC + 1) & 0xffff;
-            fetchOpcode(opCode);
+            decodeOpcode(opCode);
 
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
@@ -1442,7 +1442,7 @@ public class Z80 {
         return tEstados;
     }
 
-    private final void fetchOpcode(int opCode ) {
+    private final void decodeOpcode(int opCode ) {
         int work8, work16;
         byte salto;
         switch (opCode) {
@@ -2664,6 +2664,7 @@ public class Z80 {
                 }
                 break;
             case 0xF9:       /*LD SP,HL*/
+                //System.out.println(String.format("PC: %04x\tt-states: %d",regPC-1, tEstados));
                 regSP = getRegHL();
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
