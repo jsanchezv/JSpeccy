@@ -3,7 +3,6 @@
  *
  * Created on 15 de enero de 2008, 12:50
  */
-
 package gui;
 
 import java.awt.Dimension;
@@ -23,7 +22,7 @@ import machine.Spectrum;
  * @author  jsanchez
  */
 public class JSpeccyScreen extends javax.swing.JPanel {
-    
+
     //Vector con los valores correspondientes a lo colores anteriores
     public static final int[] Paleta = {
         0x000000, /* negro */
@@ -41,69 +40,46 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         0x00ff00, /* verde brillante */
         0x00ffff, /* cyan brillante */
         0xffff00, /* amarillo brillante */
-        0xffffff  /* blanco brillante */
-
-    };
-
+        0xffffff /* blanco brillante */};
     // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
     // corresponde una entrada en la tabla que hace referencia al color
     // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
     // ya están cambiados, lo que facilita el tratamiento del FLASH.
     private static final int Paper[] = new int[256];
     private static final int Ink[] = new int[256];
-
     // Tabla de correspondencia entre la dirección de pantalla y su atributo
-    public static final int scr2attr[] = new int[0x1800];
-
+    public final int scr2attr[] = new int[0x1800];
     // Tabla de correspondencia entre cada atributo y el primer byte del carácter
     // en la pantalla del Spectrum (la contraria de la anterior)
-    private static final int attr2scr [] = new int [768];
-
+    private final int attr2scr[] = new int[768];
     // Tabla de correspondencia entre la dirección de pantalla del Spectrum
     // y la dirección que le corresponde en el BufferedImage.
-    private static final int bufAddr[] = new int [0x1800];
-
+    private final int bufAddr[] = new int[0x1800];
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
-    public static final int scrAddr[] = new int[192];
-
+    public final int scrAddr[] = new int[192];
+    private final boolean dirtyByte[] = new boolean[0x1800];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[70000];
-    
+
     static {
         // Inicialización de las tablas de Paper/Ink
         /* Para cada valor de atributo, hay dos tablas, donde cada una
          * ya tiene el color que le corresponde, para no tener que extraerlo
          */
-        for( int idx = 0; idx < 256; idx++ ) {
+        for (int idx = 0; idx < 256; idx++) {
             int ink = (idx & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
             int paper = ((idx >>> 3) & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
-            if( idx < 128 ) {
-                Ink[idx]   = Paleta[ink];
+            if (idx < 128) {
+                Ink[idx] = Paleta[ink];
                 Paper[idx] = Paleta[paper];
             } else {
-                Ink[idx]   = Paleta[paper];
+                Ink[idx] = Paleta[paper];
                 Paper[idx] = Paleta[ink];
             }
         }
-
-        //Inicialización de la tabla de direcciones de pantalla
-        /* Hay una entrada en la tabla con la dirección del primer byte
-         * de cada fila de la pantalla.
-         */
-        for (int linea = 0; linea < 24; linea++) {
-            int idx, lsb, msb, addr;
-            lsb = ((linea & 0x07) << 5);
-            msb = linea & 0x18;
-            addr = (msb << 8) + lsb;
-            idx = linea << 3;
-            for (int scan = 0; scan < 8; scan++, addr += 256) {
-                scrAddr[scan + idx] = 0x4000 + addr;
-            }
-        }
     }
-    
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
     private boolean doubleSize = false;
     private int pScrn[];
@@ -123,71 +99,72 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
     public int m1regR;
-        
+
     /** Creates new form JScreen */
     public JSpeccyScreen(Spectrum spectrum) {
         initComponents();
-        
+
         bImg = new BufferedImage(352, 288, BufferedImage.TYPE_INT_RGB);
-        imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
+        imgData = ((DataBufferInt) bImg.getRaster().getDataBuffer()).getBankData()[0];
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
-        imgDataScr = ((DataBufferInt)bImgScr.getRaster().getDataBuffer()).getBankData()[0];
+        imgDataScr = ((DataBufferInt) bImgScr.getRaster().getDataBuffer()).getBankData()[0];
         buildScreenTables();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
-                                         RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         renderHints.put(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_SPEED);
+            RenderingHints.VALUE_RENDER_SPEED);
         renderHints.put(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_OFF);
+            RenderingHints.VALUE_ANTIALIAS_OFF);
         renderHints.put(RenderingHints.KEY_COLOR_RENDERING,
-                        RenderingHints.VALUE_COLOR_RENDER_SPEED);
+            RenderingHints.VALUE_COLOR_RENDER_SPEED);
         escalaOp = new AffineTransformOp(escala, renderHints);
         //speccy = new Spectrum();
         this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
         lastChgBorder = 0;
         m1contended = -1;
+        Arrays.fill(dirtyByte, true);
     }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
+        Arrays.fill(dirtyByte, true);
     }
-    
+
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
-        if( doubleSize ) {
+        if (doubleSize) {
             this.setPreferredSize(new Dimension(704, 576));
-        }
-        else {
+        } else {
             this.setPreferredSize(new Dimension(352, 288));
         }
     }
-    
+
     @Override
     public void paintComponent(Graphics gc) {
         //super.paintComponent(gc);
         paintScreen((Graphics2D) gc);
     }
-    
+
     private void paintScreen(Graphics2D gc2) {
-        
+
         //long start = System.currentTimeMillis();
-        
+
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
-    
+
         // Rejilla horizontal de test
 //        for( int idx = 0; idx < 36; idx ++ )
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
-        
-        //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if ( nBorderChanges > 0 ) {
 
-            if( nBorderChanges == 1 ) {
+        //System.out.println("Decode: " + (System.currentTimeMillis() - start));
+        if (nBorderChanges > 0) {
+            if (nBorderChanges == 1) {
                 intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
                 nBorderChanges = 0;
-            } else
+            } else {
                 nBorderChanges = 1;
+            }
 
             if (doubleSize) {
                 gc2.drawImage(bImg, escalaOp, 0, 0);
@@ -204,7 +181,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
-    
+
     /*
      * Cada línea completa de imagen dura 224 T-Estados, divididos en:
      * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
@@ -221,26 +198,29 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int tStatesToScrPix(int tstates) {
 
         // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
-        if( tstates < 3584 )
+        if (tstates < 3584) {
             return 0;
+        }
 
         // Si son mayores que 68095 (304 * 224), es la zona no visible inferior
-        if( tstates > 68095 )
+        if (tstates > 68095) {
             return imgData.length - 1;
+        }
 
         tstates -= 3584;
-        
+
         int row = tstates / 224;
         int col = tstates % 224;
 
         int mod = col % 8;
         col -= mod;
-        if( mod > 3 )
+        if (mod > 3) {
             col += 4;
+        }
 
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
-        
+
         int pix = row * 352;
 
         if (col < 153) {
@@ -256,14 +236,15 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public void updateBorder(int tstates) {
         int startPix, endPix, color;
 
-        if( tstates < lastChgBorder ) {
+        if (tstates < lastChgBorder) {
             startPix = tStatesToScrPix(lastChgBorder);
-            if( startPix < imgData.length - 1) {
+            if (startPix < imgData.length - 1) {
                 color = Paleta[speccy.portFE & 0x07];
-                for( int count = startPix; count < imgData.length - 1; count++ )
+                for (int count = startPix; count < imgData.length - 1; count++) {
                     imgData[count] = color;
+                }
             }
-            lastChgBorder = 3584;
+            lastChgBorder = 0;
         }
 
         startPix = tStatesToScrPix(lastChgBorder);
@@ -288,28 +269,28 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
         while (fromTstates <= toTstates) {
-            int scrByte = 0, attr = 0;
             int fromAddr = states2scr[fromTstates];
-            if ( fromAddr == -1 ) {
+            if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
                 fromTstates++;
                 continue;
             }
 
+            int scrByte = 0, attr = 0;
             // si m1contended es != -1 es que hay que emular el efecto snow.
-            if (m1contended == -1 ) {
+            if (m1contended == -1) {
                 scrByte = pScrn[fromAddr];
                 fromAddr &= 0x1fff;
                 attr = pScrn[scr2attr[fromAddr]];
             } else {
                 int addr;
                 int mod = m1contended % 8;
-                if( mod == 0 || mod == 1 ) {
+                if (mod == 0 || mod == 1) {
                     addr = (fromAddr & 0xff00) | m1regR;
                     scrByte = pScrn[addr];
                     attr = pScrn[scr2attr[fromAddr & 0x1fff]];
                     //System.out.println("Snow even");
                 }
-                if( mod == 2 || mod == 3 ) {
+                if (mod == 2 || mod == 3) {
                     addr = (scr2attr[fromAddr & 0x1fff] & 0xff00) | m1regR;
                     scrByte = pScrn[fromAddr];
                     attr = pScrn[addr & 0x1fff];
@@ -332,23 +313,52 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                     imgDataScr[addrBuf++] = paper;
                 }
             }
+            dirtyByte[fromAddr] = false;
             fromTstates++;
         }
-   }
+    }
 
-   public void intArrayFill(int[] array, int value) {
-       int len = array.length;
-       if (len > 0) {
-           array[0] = value;
-       }
+    public void screenUpdated(int address) {
+        if (address < 0x5800) {
+            dirtyByte[address & 0x1fff] = true;
+        } else {
+            int addr = attr2scr[address & 0x3ff] & 0x1fff;
+            for (int scan = 0; scan < 8; scan++) {
+                dirtyByte[addr] = true;
+                addr += 256;
+            }
+        }
 
-       for (int idx = 1; idx < len; idx += idx) {
-           System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
-       }
-   }
+    }
+
+    public void intArrayFill(int[] array, int value) {
+        int len = array.length;
+        if (len > 0) {
+            array[0] = value;
+        }
+
+        for (int idx = 1; idx < len; idx += idx) {
+            System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
+        }
+    }
 
     private void buildScreenTables() {
         int row, col, scan;
+
+        //Inicialización de la tabla de direcciones de pantalla
+        /* Hay una entrada en la tabla con la dirección del primer byte
+         * de cada fila de la pantalla.
+         */
+        for (int linea = 0; linea < 24; linea++) {
+            int idx, lsb, msb, addr;
+            lsb = ((linea & 0x07) << 5);
+            msb = linea & 0x18;
+            addr = (msb << 8) + lsb;
+            idx = linea << 3;
+            for (scan = 0; scan < 8; scan++, addr += 256) {
+                scrAddr[scan + idx] = 0x4000 + addr;
+            }
+        }
 
         for (int address = 0x4000; address < 0x5800; address++) {
             row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
@@ -360,20 +370,19 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
         }
 
-        for( int address = 0x5800; address < 0x5B00; address++ )
+        for (int address = 0x5800; address < 0x5B00; address++) {
             attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
+        }
 
         Arrays.fill(states2scr, -1);
-        for(int tstates = 14336; tstates < 57344; tstates += 4 ) {
+        for (int tstates = 14336; tstates < 57344; tstates += 4) {
             int fromScan = tstates / 224 - 64;
             int fromCol = (tstates % 224) / 4;
-            if( fromCol > 31 )
+            if (fromCol > 31) {
                 continue;
+            }
 
             states2scr[tstates - 8] = scrAddr[fromScan] + fromCol;
-            //states2scr[tstates + 1] = scrAddr[fromScan] + fromCol;
-            //states2scr[tstates + 2] = scrAddr[fromScan] + fromCol;
-            //states2scr[tstates + 3] = scrAddr[fromScan] + fromCol;
         }
     }
 
@@ -390,9 +399,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         setMinimumSize(new java.awt.Dimension(352, 288));
         setPreferredSize(new java.awt.Dimension(352, 288));
     }// </editor-fold>//GEN-END:initComponents
-    
-    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
-    
 }

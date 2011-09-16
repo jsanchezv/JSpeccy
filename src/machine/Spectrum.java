@@ -70,6 +70,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
         jscr.updateBorder(0);
+        jscr.toggleFlash(); // fuerza el redibujado de la pantalla
     }
 
     public void stopEmulation() {
@@ -185,6 +186,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
+            if( address < 0x5b00 )
+                jscr.screenUpdated(address);
         }
         z80.tEstados += 3;
 
@@ -212,26 +215,26 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void poke16(int address, int word) {
-//        poke8(address, word & 0xff);
-//        poke8((address + 1) & 0xffff, word >>> 8);
+        poke8(address, word & 0xff);
+        poke8((address + 1) & 0xffff, word >>> 8);
 
-        if( (address & 0xC000) == 0x4000 ) {
-            z80.tEstados += delayTstates[z80.tEstados];
-        }
-        z80.tEstados += 3;
-
-        if( address > 0x3fff )
-            z80Ram[address] = word & 0xff;
-
-        address = (address + 1) & 0xffff;
-
-        if( (address & 0xC000) == 0x4000 ) {
-            z80.tEstados += delayTstates[z80.tEstados];
-        }
-        z80.tEstados += 3;
-
-        if( address > 0x3fff )
-            z80Ram[address] = word >>> 8;
+//        if( (address & 0xC000) == 0x4000 ) {
+//            z80.tEstados += delayTstates[z80.tEstados];
+//        }
+//        z80.tEstados += 3;
+//
+//        if( address > 0x3fff )
+//            z80Ram[address] = word & 0xff;
+//
+//        address = (address + 1) & 0xffff;
+//
+//        if( (address & 0xC000) == 0x4000 ) {
+//            z80.tEstados += delayTstates[z80.tEstados];
+//        }
+//        z80.tEstados += 3;
+//
+//        if( address > 0x3fff )
+//            z80Ram[address] = word >>> 8;
     }
 
     public void contendedStates(int address, int tstates) {
