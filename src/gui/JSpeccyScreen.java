@@ -65,7 +65,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[70000];
 
-    private static final int BORDER_WIDTH = 32;
+    private static final int BORDER_WIDTH = 40;
     private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
     private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
 

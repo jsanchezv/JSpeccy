@@ -16,12 +16,11 @@ import javax.sound.sampled.SourceDataLine;
  */
 public class Audio {
 
-    private byte buf[] = new byte[4096];
+    private byte buf[] = new byte[16384];
     public int bufp;
-    private int oldFrame, oldStates;
-    static final int FREQ = 22050;
+    private int fromTstates, tstatesRem, oldFrame;
+    static final int FREQ = 48000;
     SourceDataLine line;
-    int cntSamples;
 
     Audio() {
         try {
@@ -34,49 +33,96 @@ public class Audio {
             lineOut.start();
             line = lineOut;
             bufp = 0;
-            oldFrame = oldStates = cntSamples = 0;
+            fromTstates = tstatesRem = oldFrame = 0;
         } catch (Exception e) {
             System.out.println(e);
         }
     }
 
-    synchronized void generateSample(int frame, int tstates) {
+    synchronized void generateSample(int nFrame, int tstates, int value) {
         byte POS_SIGNAL_MSB = (byte)0x7f;
         byte POS_SIGNAL_LSB = (byte)0xf8;
         byte NEG_SIGNAL_MSB = (byte)0x80;
         byte NEG_SIGNAL_LSB = (byte)0x08;
 
-        if( frame - oldFrame > 1 ) {
-            oldFrame = frame;
-            oldStates = tstates;
+//        if( (value & 0x10) != 0 ) {
+//            fromTstates = tstates;
+//            return;
+//        }
+
+        if( nFrame - oldFrame > 1 ) {
+            fromTstates = tstates;
+            oldFrame = nFrame;
+            tstatesRem = 0;
+            if( bufp > 0 )
+                bufp = flush(bufp);
             return;
         }
+        
+        int longSample = (tstates < fromTstates ? (tstates + (69888 - fromTstates)) :
+                                                (tstates - fromTstates)) + tstatesRem;
 
-        int longSample = (tstates < oldStates ? (tstates + (69888 - oldStates)) :
-                                                (tstates - oldStates));
-        int nSamples = longSample / 157;
-        int rem = longSample % 157;
-        if( rem > 78 )
-            nSamples++;
+//        if( tstatesRem > 0 ) {
+////            int sample;
+//            int mix = 72 - tstatesRem;
+//            if( mix > tstatesRem ) {
+//                if( (value & 0x10) != 0 ) {
+////                    sample = mix * 455 + tstatesRem * -455;
+//                    buf[bufp++] = POS_SIGNAL_LSB;
+//                    buf[bufp++] = POS_SIGNAL_MSB;
+//                } else {
+////                    sample = mix * -455 + tstatesRem * 455;
+//                    buf[bufp++] = NEG_SIGNAL_LSB;
+//                    buf[bufp++] = NEG_SIGNAL_MSB;
+//                }
+//            } else {
+//                if( (value & 0x10) != 0 ) {
+////                    sample = mix * -455 + tstatesRem * 455;
+//                    buf[bufp++] = NEG_SIGNAL_LSB;
+//                    buf[bufp++] = NEG_SIGNAL_MSB;
+//                } else {
+////                    sample = mix * 455 + tstatesRem * -455;
+//                    buf[bufp++] = POS_SIGNAL_LSB;
+//                    buf[bufp++] = POS_SIGNAL_MSB;
+//                }
+//            }
+////            buf[bufp++] = (byte) sample;
+////            buf[bufp++] = (byte) (sample >>> 8);
+//            if( longSample > mix)
+//                longSample -= mix;
+//            else
+//                longSample += tstatesRem;
+//        }
+        int nSamples = longSample / 72;
+        tstatesRem = longSample % 72;
+//        if( tstatesRem > 35 ) {
+//            nSamples++;
+//            //tstatesRem = 0;
+//        }
 
+//        nSamples <<= 1;
         for( int count = 0; count < nSamples; count++ ) {
-            if( count < nSamples / 2 ) {
+            if( (value & 0x10) != 0 ) {
                 buf[bufp++] = POS_SIGNAL_LSB;
                 buf[bufp++] = POS_SIGNAL_MSB;
             } else {
                 buf[bufp++] = NEG_SIGNAL_LSB;
                 buf[bufp++] = NEG_SIGNAL_MSB;
             }
-            cntSamples++;
             if( bufp == buf.length )
                 bufp = flush(bufp);
         }
-        System.out.println(String.format("time: %d\tlongSample: %d\tnSamples: %d\tTotal: %d",
-                System.currentTimeMillis(), longSample, nSamples, cntSamples));
-        oldStates = tstates;
-        oldFrame = frame;
+        //bufp = flush(bufp);
+//        System.out.println(String.format("longSample: %d\tnSamples: %d\tRemain: %d",
+//                longSample, nSamples, tstatesRem));
+        fromTstates = tstates;
+        oldFrame = nFrame;
     }
+
     synchronized int flush(int p) {
+        while (bufp < 1920 )
+            buf[bufp++] = 0;
+        System.out.println(String.format("Samples: %d", bufp/2));
         SourceDataLine lineOut = line;
         if (lineOut != null) {
             lineOut.write(buf, 0, p);

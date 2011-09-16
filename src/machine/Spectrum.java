@@ -73,6 +73,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
         jscr.invalidateScreen();
+        if( audio.bufp > 0 )
+            audio.bufp = audio.flush(0);
     }
 
     public void stopEmulation() {
@@ -118,8 +120,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if( jscr.screenUpdated )
             jscr.repaint();
 
-//        if( audio.bufp > 0 )
-//            audio.flush(audio.bufp);
+//        if( audio.bufp > 9600 )
+//            audio.bufp = audio.flush(audio.bufp);
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -323,11 +325,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void outPort(int port, int value) {
         preIO(port);
-        int tEstados = z80.tEstados;
+//        int tEstados = z80.tEstados;
         //contendedIO(port);
 //        if( (port & 0x0001) == 0 ){
-//            System.out.println(String.format("%5d PW %04x %02x %d",
-//                    tEstados, port, value,
+//            System.out.println(String.format("%07d %5d PW %04x %02x %d",
+//                    nFrame, tEstados, port, value,
 //                   (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
 //            oldstate = tEstados;
 //        }
@@ -338,7 +340,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
 
             if( (portFE & 0x18) != (value & 0x18) )
-                audio.generateSample(nFrame, z80.tEstados);
+                audio.generateSample(nFrame, z80.tEstados, value);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
