@@ -45,6 +45,14 @@
  *          nos llevaba claramente por encima de los 8000 bytecodes. Ahora un
  *          método procesa los opcodes entre 0x00-0x7f y otro entre 0x80-0xff.
  *
+ *          25/09/2009 (Más tarde... :) ). Se completa la emulación del registro
+ *          interno MEMPTR. Ahora el core-Z80 supera todos los test de MEMPTR
+ *          del z80tests.tap.
+ *          (http://homepage.ntlworld.com/mark.woodmass/z80tests.tap)
+ *          Mis agradecimientos a Mark Woodmass por el programa, a Boo-boo que
+ *          investigo el funcionamiento de MEMPTR y a Vladimir Kladov por
+ *          traducir al inglés el documento original.
+ *
  */
 package z80core;
 
@@ -154,8 +162,16 @@ public class Z80 {
      *
      * 04/12/2008     No se vayan todavía, aún hay más. Con lo que se ha
      *                implementado hasta ahora parece que funciona. El resto de
-     *                la historia está contada (pero no se emula) en:
+     *                la historia está contada en:
      *                http://zx.pk.ru/attachment.php?attachmentid=2989
+     *
+     * 25/09/2009     Se ha completado la emulación de MEMPTR. A señalar que
+     *                no se puede comprobar si MEMPTR se ha emulado bien hasta
+     *                que no se emula el comportamiento del registro en las
+     *                instrucciones CPI y CPD. Sin ello, todos los tests de
+     *                z80tests.tap fallarán aunque se haya emulado bien al
+     *                registro en TODAS las otras instrucciones.
+     *                Shit you, little parrot.
      */
     private int memptr;
 
@@ -474,7 +490,7 @@ public class Z80 {
         regRbit7 = (valor > 0x7f);
     }
 
-    private final int getPairIR() {
+    public final int getPairIR() {
         if( regRbit7 )
             return (regI << 8) | (regR | SIGN_MASK);
         return (regI << 8) | (regR & 0x7f);
@@ -779,10 +795,10 @@ public class Z80 {
         int regHL = getRegHL();
         int memHL = MemIoImpl.peek8(regHL);
         regA = (regA & 0xf0) | (memHL & 0x0f);
-        tEstados += MemIoImpl.MREQstates(regHL, 4);
+        MemIoImpl.contendedStates(regHL, 4);
         MemIoImpl.poke8(regHL, (memHL >>> 4) | aux);
         sz5h3pnFlags = sz53pn_addTable[regA];
-        memptr = ++regHL & 0xffff;
+        memptr = (regHL + 1) & 0xffff;
     }
 
     // A = A7 A6 A5 A4 (HL)7 (HL)6 (HL)5 (HL)4
@@ -796,10 +812,10 @@ public class Z80 {
         int regHL = getRegHL();
         int memHL = MemIoImpl.peek8(regHL);
         regA = (regA & 0xf0) | (memHL >>> 4);
-        tEstados += MemIoImpl.MREQstates(regHL, 4);
+        MemIoImpl.contendedStates(regHL, 4);
         MemIoImpl.poke8(regHL, ((memHL << 4) | aux) & 0xff);
         sz5h3pnFlags = sz53pn_addTable[regA];
-        memptr = ++regHL & 0xffff;
+        memptr = (regHL + 1) & 0xffff;
     }
 
     // Rota a la derecha 1 bit el valor del argumento
@@ -1042,7 +1058,7 @@ public class Z80 {
     private final void ldi() {
         int work8 = MemIoImpl.peek8(getRegHL());
         MemIoImpl.poke8(getRegDE(), work8);
-        tEstados += MemIoImpl.MREQstates(getRegDE(), 2);
+        MemIoImpl.contendedStates(getRegDE(), 2);
         incRegHL();
         incRegDE();
         decRegBC();
@@ -1060,7 +1076,7 @@ public class Z80 {
     private final void ldd() {
         int work8 = MemIoImpl.peek8(getRegHL());
         MemIoImpl.poke8(getRegDE(), work8);
-        tEstados += MemIoImpl.MREQstates(getRegDE(), 2);
+        MemIoImpl.contendedStates(getRegDE(), 2);
         decRegHL();
         decRegDE();
         decRegBC();
@@ -1080,7 +1096,7 @@ public class Z80 {
         int memHL = MemIoImpl.peek8(regHL);
         boolean carry = carryFlag; // lo guardo porque cp lo toca
         cp(memHL);
-        tEstados += MemIoImpl.MREQstates(regHL, 5);
+        MemIoImpl.contendedStates(regHL, 5);
         carryFlag = carry;
         incRegHL();
         decRegBC();
@@ -1092,6 +1108,8 @@ public class Z80 {
 
         if( getRegBC() != 0 )
             sz5h3pnFlags |= PARITY_MASK;
+
+        memptr = (memptr + 1) & 0xffff;
     }
 
     // CPD
@@ -1100,7 +1118,7 @@ public class Z80 {
         int memHL = MemIoImpl.peek8(regHL);
         boolean carry = carryFlag; // lo guardo porque cp lo toca
         cp(memHL);
-        tEstados += MemIoImpl.MREQstates(regHL, 5);
+        MemIoImpl.contendedStates(regHL, 5);
         carryFlag = carry;
         decRegHL();
         decRegBC();
@@ -1112,27 +1130,29 @@ public class Z80 {
 
         if( getRegBC() != 0 )
             sz5h3pnFlags |= PARITY_MASK;
+
+        memptr = (memptr - 1) & 0xffff;
     }
 
     // INI
     private final void ini() {
-        tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+        MemIoImpl.contendedStates(getPairIR(), 1);
         int work8 = MemIoImpl.inPort(getRegBC());
         MemIoImpl.poke8(getRegHL(), work8);
 
+        memptr = (getRegBC() + 1) & 0xffff;
         regB--;
         regB &= 0xff;
 
         incRegHL();
-        carryFlag = false;
 
+        sz5h3pnFlags = sz53pn_addTable[regB];
         if (work8 > 0x7f)
-            sz5h3pnFlags = sz53n_subTable[regB];
-        else
-            sz5h3pnFlags = sz53n_addTable[regB];
+            sz5h3pnFlags |= ADDSUB_MASK;
 
-        int tmp = work8 + regC + 1;
-        if( tmp < work8 ) {
+        carryFlag = false;
+        int tmp = work8 + ((regC + 1) & 0xff);
+        if( tmp > 0xff ) {
             sz5h3pnFlags |= HALFCARRY_MASK;
             carryFlag = true;
         }
@@ -1140,25 +1160,29 @@ public class Z80 {
         if( (sz53pn_addTable[((tmp & 0x07) ^ regB)] &
                 PARITY_MASK) == PARITY_MASK )
             sz5h3pnFlags |= PARITY_MASK;
+        else
+            sz5h3pnFlags &= ~PARITY_MASK;
     }
 
     // IND
     private final void ind() {
-        tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+        MemIoImpl.contendedStates(getPairIR(), 1);
         int work8 = MemIoImpl.inPort(getRegBC());
         MemIoImpl.poke8(getRegHL(), work8);
+
+        memptr = (getRegBC() - 1) & 0xffff;
         regB--;
         regB &= 0xff;
+
         decRegHL();
-        carryFlag = false;
+
+        sz5h3pnFlags = sz53pn_addTable[regB];
         if (work8 > 0x7f)
-            sz5h3pnFlags = sz53n_subTable[regB];
-        else
-            sz5h3pnFlags = sz53n_addTable[regB];
+            sz5h3pnFlags |= ADDSUB_MASK;
 
-
-        int tmp = work8 + regC - 1;
-        if( tmp < work8 ) {
+        carryFlag = false;
+        int tmp = work8 + ((regC - 1) & 0xff);
+        if( tmp > 0xff ) {
             sz5h3pnFlags |= HALFCARRY_MASK;
             carryFlag = true;
         }
@@ -1166,13 +1190,18 @@ public class Z80 {
         if( (sz53pn_addTable[((tmp & 0x07) ^ regB)] &
                 PARITY_MASK) == PARITY_MASK )
             sz5h3pnFlags |= PARITY_MASK;
+        else
+            sz5h3pnFlags &= ~PARITY_MASK;
     }
 
     // OUTI
     private final void outi() {
-        tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+        MemIoImpl.contendedStates(getPairIR(), 1);
+
         regB--;
         regB &= 0xff;
+        memptr = (getRegBC() + 1) & 0xffff;
+
         int work8 = MemIoImpl.peek8(getRegHL());
         MemIoImpl.outPort(getRegBC(), work8);
         incRegHL();
@@ -1194,9 +1223,12 @@ public class Z80 {
 
     // OUTD
     private final void outd() {
-        tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+        MemIoImpl.contendedStates(getPairIR(), 1);
+        
         regB--;
         regB &= 0xff;
+        memptr = (getRegBC() - 1) & 0xffff;
+        
         int work8 = MemIoImpl.peek8(getRegHL());
         MemIoImpl.outPort(getRegBC(), work8);
         decRegHL();
@@ -1301,7 +1333,11 @@ public class Z80 {
      *      M4: 3 T-Estados -> leer byte bajo del vector de INT
      *      M5: 3 T-Estados -> leer byte alto y saltar a la rutina de INT
      */
-    private final void interrupcion() {
+    public final void interrupcion() {
+
+        if( !ffIFF1 )
+            return;
+        
         int tmp = tEstados; // peek8 modifica los tEstados
         // Si estaba en un HALT esperando una INT, lo saca de la espera
         if (MemIoImpl.peek8(regPC) == 0x76) {
@@ -1318,7 +1354,7 @@ public class Z80 {
         ffIFF2 = false;
         push(regPC);  // el push añadirá 6 t-estados (+contended si toca)
         if (modeINT == IM2) {
-            regPC = MemIoImpl.peek16((getRegI() << 8) | 0xff); // +6 t-estados
+            regPC = MemIoImpl.peek16((regI << 8) | 0xff); // +6 t-estados
         } else {
             regPC = 0x0038;
         }
@@ -1381,14 +1417,14 @@ public class Z80 {
 
             // Ahora se comprueba si al final de la instrucción anterior se
             // encontró una interrupción enmascarable y, de ser así, se procesa.
-            if (ackINT) {
-                ackINT = false;
-                activeINT = false;
-                if (ffIFF1) {
-                    interrupcion();
-                    continue;
-                }
-            }
+//            if (ackINT) {
+//                ackINT = false;
+//                activeINT = false;
+//                if (ffIFF1) {
+//                    interrupcion();
+//                    continue;
+//                }
+//            }
 
             regR++;
             opCode = MemIoImpl.getOpcode(regPC);
@@ -1402,9 +1438,9 @@ public class Z80 {
             regPC &= 0xffff;
             
             //Mirar si hay solicitada una interrupción enmascarable
-            if (activeINT && !pendingEI) {
-                ackINT = true;
-            }
+//            if (activeINT && !pendingEI) {
+//                ackINT = true;
+//            }
 
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
@@ -1433,7 +1469,7 @@ public class Z80 {
                 break;
             case 0x03:       /*INC BC*/
                 incRegBC();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             case 0x04:       /*INC B*/
                 regB = inc8(regB);
@@ -1463,7 +1499,7 @@ public class Z80 {
                 break;
             case 0x09:       /*ADD HL,BC*/
                 setRegHL(add16(getRegHL(), getRegBC()));
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             case 0x0A:       /*LD A,(BC)*/
                 memptr = getRegBC();
@@ -1472,7 +1508,7 @@ public class Z80 {
                 break;
             case 0x0B:       /*DEC BC*/
                 decRegBC();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             case 0x0C:       /*INC C*/
                 regC = inc8(regC);
@@ -1492,16 +1528,17 @@ public class Z80 {
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | (regA & FLAG_53_MASK);
                 break;
             case 0x10:       /*DJNZ e*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
+                salto = (byte) MemIoImpl.peek8(regPC);
                 regB--;
                 regB &= 0xff;
-                salto = (byte) MemIoImpl.peek8(regPC);
                 if (regB != 0) {
-                    tEstados += MemIoImpl.MREQstates(regPC, 5);
-                    regPC = (regPC + salto) & 0xffff;
+                    MemIoImpl.contendedStates(regPC, 5);
+                    memptr = (regPC + salto + 1) & 0xffff;
+                    regPC = memptr;
                 }
-                regPC = (regPC + 1) & 0xffff;
-                memptr = regPC;
+                else
+                    regPC = (regPC + 1) & 0xffff;
                 break;
             case 0x11:       /*LD DE,nn*/
                 setRegDE(MemIoImpl.peek16(regPC));
@@ -1510,11 +1547,11 @@ public class Z80 {
             case 0x12:       /*LD (DE),A*/
                 memptr = getRegDE();
                 MemIoImpl.poke8(memptr, regA);
-                memptr = (regA << 8) | (++memptr & 0xff);
+                memptr = (regA << 8) | ((memptr + 1) & 0xff);
                 break;
             case 0x13: {     /*INC DE*/
                 incRegDE();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x14: {     /*INC D*/
@@ -1542,14 +1579,14 @@ public class Z80 {
             }
             case 0x18: {     /*JR e*/
                 salto = (byte) MemIoImpl.peek8(regPC);
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regPC = (regPC + salto + 1) & 0xffff;
                 memptr = regPC;
                 break;
             }
             case 0x19: {     /*ADD HL,DE*/
                 setRegHL(add16(getRegHL(), getRegDE()));
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x1A: {     /*LD A,(DE)*/
@@ -1560,7 +1597,7 @@ public class Z80 {
             }
             case 0x1B: {     /*DEC DE*/
                 decRegDE();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x1C: {     /*INC E*/
@@ -1588,7 +1625,7 @@ public class Z80 {
             case 0x20: {     /*JR NZ,e*/
                 salto = (byte) MemIoImpl.peek8(regPC);
                 if( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC, 5);
+                    MemIoImpl.contendedStates(regPC, 5);
                     regPC = (regPC + salto) & 0xffff;
                 }
                 regPC++;
@@ -1608,7 +1645,7 @@ public class Z80 {
             }
             case 0x23: {     /*INC HL*/
                 incRegHL();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x24: {     /*INC H*/
@@ -1631,7 +1668,7 @@ public class Z80 {
             case 0x28: {     /*JR Z,e*/
                 salto = (byte) MemIoImpl.peek8(regPC);
                 if( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC, 5);
+                    MemIoImpl.contendedStates(regPC, 5);
                     regPC = (regPC + salto) & 0xffff;
                 }
                 regPC++;
@@ -1640,17 +1677,19 @@ public class Z80 {
             case 0x29: {     /*ADD HL,HL*/
                 work16 = getRegHL();
                 setRegHL(add16(work16, work16));
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x2A: {     /*LD HL,(nn)*/
-                setRegHL(MemIoImpl.peek16(MemIoImpl.peek16(regPC)));
+                memptr = MemIoImpl.peek16(regPC);
+                setRegHL(MemIoImpl.peek16(memptr));
+                memptr = (memptr + 1) & 0xffff;
                 regPC += 2;
                 break;
             }
             case 0x2B: {     /*DEC HL*/
                 decRegHL();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x2C: {     /*INC L*/
@@ -1675,7 +1714,7 @@ public class Z80 {
             case 0x30: {     /*JR NC,e*/
                 salto = (byte) MemIoImpl.peek8(regPC);
                 if (!carryFlag) {
-                    tEstados += MemIoImpl.MREQstates(regPC, 5);
+                    MemIoImpl.contendedStates(regPC, 5);
                     regPC = (regPC + salto) & 0xffff;
                 }
                 regPC++;
@@ -1695,20 +1734,20 @@ public class Z80 {
             }
             case 0x33: {     /*INC SP*/
                 regSP = (regSP + 1) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x34: {     /*INC (HL)*/
                 work16 = getRegHL();
                 work8 = inc8(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
             case 0x35: {     /*DEC (HL)*/
                 work16 = getRegHL();
                 work8 = dec8(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -1725,7 +1764,7 @@ public class Z80 {
             case 0x38: {     /*JR C,e*/
                 salto = (byte) MemIoImpl.peek8(regPC);
                 if (carryFlag) {
-                    tEstados += MemIoImpl.MREQstates(regPC, 5);
+                    MemIoImpl.contendedStates(regPC, 5);
                     regPC = (regPC + salto) & 0xffff;
                 }
                 regPC++;
@@ -1733,7 +1772,7 @@ public class Z80 {
             }
             case 0x39: {     /*ADD HL,SP*/
                 setRegHL(add16(getRegHL(), regSP));
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x3A: {     /*LD A,(nn)*/
@@ -1745,7 +1784,7 @@ public class Z80 {
             }
             case 0x3B: {     /*DEC SP*/
                 regSP = (regSP - 1) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x3C: {     /*INC A*/
@@ -2280,7 +2319,7 @@ public class Z80 {
                 break;
             }
             case 0xC0: {     /*RET NZ*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
                     regPC = memptr = pop();
                 }
@@ -2300,13 +2339,13 @@ public class Z80 {
                 break;
             }
             case 0xC3: {     /*JP nn*/
-                regPC = MemIoImpl.peek16(regPC);
+                memptr = regPC = MemIoImpl.peek16(regPC);
                 break;
             }
             case 0xC4: {     /*CALL NZ,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2315,7 +2354,7 @@ public class Z80 {
                 break;
             }
             case 0xC5: {     /*PUSH BC*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(getRegBC());
                 break;
             }
@@ -2325,13 +2364,13 @@ public class Z80 {
                 break;
             }
             case 0xC7: {     /*RST 00H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x00;
                 break;
             }
             case 0xC8: {     /*RET Z*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
                     regPC = memptr = pop();
                 }
@@ -2357,7 +2396,7 @@ public class Z80 {
             case 0xCC: {     /*CALL Z,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2367,7 +2406,7 @@ public class Z80 {
             }
             case 0xCD: {     /*CALL nn*/
                 memptr = MemIoImpl.peek16(regPC);
-                tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                MemIoImpl.contendedStates(regPC + 1, 1);
                 push(regPC + 2);
                 regPC = memptr;
                 break;
@@ -2378,13 +2417,13 @@ public class Z80 {
                 break;
             }
             case 0xCF: {     /*RST 08H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x08;
                 break;
             }
             case 0xD0: {     /*RET NC*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if (!carryFlag) {
                     regPC = memptr = pop();
                 }
@@ -2413,7 +2452,7 @@ public class Z80 {
             case 0xD4: {     /*CALL NC,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if (!carryFlag) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2422,7 +2461,7 @@ public class Z80 {
                 break;
             }
             case 0xD5: {     /*PUSH DE*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(getRegDE());
                 break;
             }
@@ -2432,13 +2471,13 @@ public class Z80 {
                 break;
             }
             case 0xD7: {     /*RST 10H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x10;
                 break;
             }
             case 0xD8: {     /*RET C*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if (carryFlag) {
                     regPC = memptr = pop();
                 }
@@ -2467,7 +2506,7 @@ public class Z80 {
             case 0xDC: {     /*CALL C,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if (carryFlag) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2485,13 +2524,13 @@ public class Z80 {
                 break;
             }
             case 0xDF: {     /*RST 18 H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x18;
                 break;
             }
             case 0xE0:       /*RET PO*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & PARITY_MASK) == 0 ) {
                     regPC = memptr = pop();
                 }
@@ -2511,17 +2550,17 @@ public class Z80 {
                 // Instrucción de ejecución sutil.
                 work16 = getRegHL();
                 setRegHL(MemIoImpl.peek16(regSP));
-                tEstados += MemIoImpl.MREQstates(regSP + 1, 1);
+                MemIoImpl.contendedStates(regSP + 1, 1);
                 // No se usa poke16 porque el Z80 escribe los bytes AL REVES
                 MemIoImpl.poke8((regSP + 1) & 0xffff, (work16 >>> 8));
                 MemIoImpl.poke8(regSP, work16);
-                tEstados += MemIoImpl.MREQstates(regSP, 2);
+                MemIoImpl.contendedStates(regSP, 2);
                 memptr = getRegHL();
                 break;
             case 0xE4:       /*CALL PO,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) == 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1 , 1);
+                    MemIoImpl.contendedStates(regPC + 1 , 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2529,7 +2568,7 @@ public class Z80 {
                 regPC += 2;
                 break;
             case 0xE5:       /*PUSH HL*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(getRegHL());
                 break;
             case 0xE6:       /*AND n*/
@@ -2537,12 +2576,12 @@ public class Z80 {
                 regPC++;
                 break;
             case 0xE7:       /*RST 20H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x20;
                 break;
             case 0xE8:       /*RET PE*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & PARITY_MASK) != 0 ) {
                     regPC = memptr = pop();
                 }
@@ -2569,7 +2608,7 @@ public class Z80 {
             case 0xEC:       /*CALL PE,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) != 0 ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2584,12 +2623,12 @@ public class Z80 {
                 regPC++;
                 break;
             case 0xEF:       /*RST 28H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x28;
                 break;
             case 0xF0:       /*RET P*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( sz5h3pnFlags < SIGN_MASK ) {
                     regPC = memptr = pop();
                 }
@@ -2614,7 +2653,7 @@ public class Z80 {
             case 0xF4:       /*CALL P,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags < SIGN_MASK ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2622,7 +2661,7 @@ public class Z80 {
                 regPC += 2;
                 break;
             case 0xF5:       /*PUSH AF*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push((regA << 8) | getFlags());
                 break;
             case 0xF6:       /*OR n*/
@@ -2630,19 +2669,19 @@ public class Z80 {
                 regPC++;
                 break;
             case 0xF7:       /*RST 30H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x30;
                 break;
             case 0xF8:       /*RET M*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 if ( sz5h3pnFlags > 0x7f ) {
                     regPC = memptr = pop();
                 }
                 break;
             case 0xF9:       /*LD SP,HL*/
                 regSP = getRegHL();
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             case 0xFA:       /*JP M,nn*/
                 memptr = MemIoImpl.peek16(regPC);
@@ -2660,7 +2699,7 @@ public class Z80 {
             case 0xFC:       /*CALL M,nn*/
                 memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags > 0x7f ) {
-                    tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
+                    MemIoImpl.contendedStates(regPC + 1, 1);
                     push(regPC + 2);
                     regPC = memptr;
                     break;
@@ -2675,7 +2714,7 @@ public class Z80 {
                 regPC++;
                 break;
             case 0xFF:       /*RST 38H*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x38;
                 break;
@@ -2718,7 +2757,7 @@ public class Z80 {
             case 0x06: {     /*RLC (HL)*/
                 work16 = getRegHL();
                 work8 = rlc(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2753,7 +2792,7 @@ public class Z80 {
             case 0x0E: {     /*RRC (HL)*/
                 work16 = getRegHL();
                 work8 = rrc(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2788,7 +2827,7 @@ public class Z80 {
             case 0x16: {     /*RL (HL)*/
                 work16 = getRegHL();
                 work8 = rl(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2823,7 +2862,7 @@ public class Z80 {
             case 0x1E: {     /*RR (HL)*/
                 work16 = getRegHL();
                 work8 = rr(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2858,7 +2897,7 @@ public class Z80 {
             case 0x26: {     /*SLA (HL)*/
                 work16 = getRegHL();
                 work8 = sla(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2893,7 +2932,7 @@ public class Z80 {
             case 0x2E: {     /*SRA (HL)*/
                 work16 = getRegHL();
                 work8 = sra(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2928,7 +2967,7 @@ public class Z80 {
             case 0x36: {     /*SLL (HL)*/
                 work16 = getRegHL();
                 work8 = sll(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -2963,7 +3002,7 @@ public class Z80 {
             case 0x3E: {     /*SRL (HL)*/
                 work16 = getRegHL();
                 work8 = srl(MemIoImpl.peek8(work16));
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -3000,7 +3039,7 @@ public class Z80 {
                 bit(0x01, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x47: {     /*BIT 0,A*/
@@ -3036,7 +3075,7 @@ public class Z80 {
                 bit(0x02, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x4F: {     /*BIT 1,A*/
@@ -3072,7 +3111,7 @@ public class Z80 {
                 bit(0x04, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x57: {     /*BIT 2,A*/
@@ -3108,7 +3147,7 @@ public class Z80 {
                 bit(0x08, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x5F: {     /*BIT 3,A*/
@@ -3144,7 +3183,7 @@ public class Z80 {
                 bit(0x10, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x67: {     /*BIT 4,A*/
@@ -3180,7 +3219,7 @@ public class Z80 {
                 bit(0x20, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x6F: {     /*BIT 5,A*/
@@ -3216,7 +3255,7 @@ public class Z80 {
                 bit(0x40, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x77: {     /*BIT 6,A*/
@@ -3252,7 +3291,7 @@ public class Z80 {
                 bit(0x80, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                     ((memptr >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 break;
             }
             case 0x7F: {     /*BIT 7,A*/
@@ -3286,7 +3325,7 @@ public class Z80 {
             case 0x86: {     /*RES 0,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x01, work8));
                 break;
             }
@@ -3321,7 +3360,7 @@ public class Z80 {
             case 0x8E: {     /*RES 1,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x02, work8));
                 break;
             }
@@ -3356,7 +3395,7 @@ public class Z80 {
             case 0x96: {     /*RES 2,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x04, work8));
                 break;
             }
@@ -3391,7 +3430,7 @@ public class Z80 {
             case 0x9E: {     /*RES 3,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x08, work8));
                 break;
             }
@@ -3426,7 +3465,7 @@ public class Z80 {
             case 0xA6: {     /*RES 4,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x10, work8));
                 break;
             }
@@ -3461,7 +3500,7 @@ public class Z80 {
             case 0xAE: {     /*RES 5,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x20, work8));
                 break;
             }
@@ -3496,7 +3535,7 @@ public class Z80 {
             case 0xB6: {     /*RES 6,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x40, work8));
                 break;
             }
@@ -3531,7 +3570,7 @@ public class Z80 {
             case 0xBE: {     /*RES 7,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, res(0x80, work8));
                 break;
             }
@@ -3566,7 +3605,7 @@ public class Z80 {
             case 0xC6: {     /*SET 0,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x01, work8));
                 break;
             }
@@ -3601,7 +3640,7 @@ public class Z80 {
             case 0xCE: {     /*SET 1,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x02, work8));
                 break;
             }
@@ -3636,7 +3675,7 @@ public class Z80 {
             case 0xD6: {     /*SET 2,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x04, work8));
                 break;
             }
@@ -3671,7 +3710,7 @@ public class Z80 {
             case 0xDE: {     /*SET 3,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x08, work8));
                 break;
             }
@@ -3706,7 +3745,7 @@ public class Z80 {
             case 0xE6: {     /*SET 4,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x10, work8));
                 break;
             }
@@ -3741,7 +3780,7 @@ public class Z80 {
             case 0xEE: {     /*SET 5,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x20, work8));
                 break;
             }
@@ -3776,7 +3815,7 @@ public class Z80 {
             case 0xF6: {     /*SET 6,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x40, work8));
                 break;
             }
@@ -3811,7 +3850,7 @@ public class Z80 {
             case 0xFE: {     /*SET 7,(HL)*/
                 work16 = getRegHL();
                 work8 = MemIoImpl.peek8(work16);
-                tEstados += MemIoImpl.MREQstates(work16, 1);
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, set(0x80, work8));
                 break;
             }
@@ -3841,19 +3880,19 @@ public class Z80 {
      * interrupciones entre cada prefijo.
      */
     private final int decodeDDFD(int regIXY) {
-        int work8;
+        int work8 = tEstados;
         regR++;
         opCode = MemIoImpl.getOpcode(regPC);
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x09: {     /* ADD IX,BC */
                 regIXY = add16(regIXY, getRegBC());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x19: {     /* ADD IX,DE */
                 regIXY = add16(regIXY, getRegDE());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x21: {     /*LD IX,nn*/
@@ -3870,7 +3909,7 @@ public class Z80 {
             }
             case 0x23: {     /*INC IX*/
                 regIXY = (regIXY + 1) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x24: {     /*INC IXh*/
@@ -3888,7 +3927,7 @@ public class Z80 {
             }
             case 0x29: {     /*ADD IX,IX*/
                 regIXY = add16(regIXY, regIXY);
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x2A: {     /*LD IX,(nn)*/
@@ -3900,7 +3939,7 @@ public class Z80 {
             }
             case 0x2B: {     /*DEC IX*/
                 regIXY = (regIXY - 1) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 break;
             }
             case 0x2C: {     /*INC IXl*/
@@ -3918,17 +3957,17 @@ public class Z80 {
             }
             case 0x34:       /*INC (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 work8 = MemIoImpl.peek8(memptr);
-                tEstados += MemIoImpl.MREQstates(memptr, 1);
+                MemIoImpl.contendedStates(memptr, 1);
                 MemIoImpl.poke8(memptr, inc8(work8));
                 regPC++;
                 break;
             case 0x35: {     /*DEC (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 work8 = MemIoImpl.peek8(memptr);
-                tEstados += MemIoImpl.MREQstates(memptr, 1);
+                MemIoImpl.contendedStates(memptr, 1);
                 MemIoImpl.poke8(memptr, dec8(work8));
                 regPC++;
                 break;
@@ -3937,14 +3976,14 @@ public class Z80 {
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC++;
                 work8 = MemIoImpl.peek8(regPC);
-                tEstados += MemIoImpl.MREQstates(regPC, 2);
+                MemIoImpl.contendedStates(regPC, 2);
                 regPC++;
                 MemIoImpl.poke8(memptr, work8);
                 break;
             }
             case 0x39: {     /*ADD IX,SP*/
                 regIXY = add16(regIXY, regSP);
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x44: {     /*LD B,IXh*/
@@ -3957,7 +3996,7 @@ public class Z80 {
             }
             case 0x46: {     /*LD B,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regB = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -3972,7 +4011,7 @@ public class Z80 {
             }
             case 0x4E: {     /*LD C,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regC = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -3987,7 +4026,7 @@ public class Z80 {
             }
             case 0x56: {     /*LD D,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regD = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -4002,7 +4041,7 @@ public class Z80 {
             }
             case 0x5E: {     /*LD E,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regE = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -4033,7 +4072,7 @@ public class Z80 {
             }
             case 0x66: {     /*LD H,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regH = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -4068,7 +4107,7 @@ public class Z80 {
             }
             case 0x6E: {     /*LD L,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regL = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -4079,49 +4118,49 @@ public class Z80 {
             }
             case 0x70: {     /*LD (IX+d),B*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regB);
                 regPC++;
                 break;
             }
             case 0x71: {     /*LD (IX+d),C*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regC);
                 regPC++;
                 break;
             }
             case 0x72: {     /*LD (IX+d),D*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regD);
                 regPC++;
                 break;
             }
             case 0x73: {     /*LD (IX+d),E*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regE);
                 regPC++;
                 break;
             }
             case 0x74: {     /*LD (IX+d),H*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regH);
                 regPC++;
                 break;
             }
             case 0x75: {     /*LD (IX+d),L*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regL);
                 regPC++;
                 break;
             }
             case 0x77: {     /*LD (IX+d),A*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regA);
                 regPC++;
                 break;
@@ -4136,7 +4175,7 @@ public class Z80 {
             }
             case 0x7E: {     /*LD A,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 regA = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
@@ -4151,7 +4190,7 @@ public class Z80 {
             }
             case 0x86: {     /*ADD A,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 add(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4166,7 +4205,7 @@ public class Z80 {
             }
             case 0x8E: {     /*ADC A,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 adc(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4181,7 +4220,7 @@ public class Z80 {
             }
             case 0x96: {     /*SUB (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 sub(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4196,7 +4235,7 @@ public class Z80 {
             }
             case 0x9E: {     /*SBC A,(IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 sbc(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4211,7 +4250,7 @@ public class Z80 {
             }
             case 0xA6: {     /*AND (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 and(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4226,7 +4265,7 @@ public class Z80 {
             }
             case 0xAE: {     /*XOR (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 xor(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4241,7 +4280,7 @@ public class Z80 {
             }
             case 0xB6: {     /*OR (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 or(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4256,7 +4295,7 @@ public class Z80 {
             }
             case 0xBE: {     /*CP (IX+d)*/
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-                tEstados += MemIoImpl.MREQstates(regPC, 5);
+                MemIoImpl.contendedStates(regPC, 5);
                 cp(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
@@ -4265,7 +4304,7 @@ public class Z80 {
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC = (regPC + 1) & 0xffff;
                 opCode = MemIoImpl.peek8(regPC);
-                tEstados += MemIoImpl.MREQstates(regPC, 2);
+                MemIoImpl.contendedStates(regPC, 2);
                 regPC = (regPC + 1) & 0xffff;
                 if( opCode < 0x40 ) {
                     decodeDDFDCBto3F(opCode, memptr);
@@ -4290,15 +4329,15 @@ public class Z80 {
                 // Instrucción de ejecución sutil como pocas... atento al dato.
                 int work16 = regIXY;
                 regIXY = MemIoImpl.peek16(regSP);
-                tEstados += MemIoImpl.MREQstates(regSP + 1, 1);
+                MemIoImpl.contendedStates(regSP + 1, 1);
                 MemIoImpl.poke8((regSP + 1) & 0xffff, (work16 >>> 8));
                 MemIoImpl.poke8(regSP, work16 & 0x00ff);
-                tEstados += MemIoImpl.MREQstates(regSP, 2);
+                MemIoImpl.contendedStates(regSP, 2);
                 memptr = regIXY;
                 break;
             }
             case 0xE5: {     /*PUSH IX*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regIXY);
                 break;
             }
@@ -4308,11 +4347,17 @@ public class Z80 {
             }
             case 0xF9: {     /*LD SP,IX*/
                 regSP = regIXY;
-                tEstados += MemIoImpl.MREQstates(regPC, 2);
+                MemIoImpl.contendedStates(regPC, 2);
                 break;
             }
             default: {
-                // Código no válido. Continuamos para bingo.
+                // Código no válido. Deshacemos la faena para reprocesar la
+                // instrucción. Sin esto, además de emular mal, falla el test
+                // ld <bcdexya>,<bcdexya> de ZEXALL.
+                tEstados = work8;
+                regR--;
+                regPC = (regPC - 1) & 0xffff;
+                //System.out.println("Error instrucción DD/FD" + Integer.toHexString(opCode));
                 break;
             }
         }
@@ -4325,385 +4370,385 @@ public class Z80 {
         switch (opCode) {
             case 0x00: {     /*RLC (IX+d),B*/
                 regB = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x01: {     /*RLC (IX+d),C*/
                 regC = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x02: {     /*RLC (IX+d),D*/
                 regD = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x03: {     /*RLC (IX+d),E*/
                 regE = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x04: {     /*RLC (IX+d),H*/
                 regH = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x05: {     /*RLC (IX+d),L*/
                 regL = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x06: {     /*RLC (IX+d)*/
                 work8 = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x07: {     /*RLC (IX+d),A*/
                 regA = rlc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x08: {     /*RRC (IX+d),B*/
                 regB = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x09: {     /*RRC (IX+d),C*/
                 regC = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x0A: {     /*RRC (IX+d),D*/
                 regD = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x0B: {     /*RRC (IX+d),E*/
                 regE = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x0C: {     /*RRC (IX+d),H*/
                 regH = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x0D: {     /*RRC (IX+d),L*/
                 regL = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x0E: {     /*RRC (IX+d)*/
                 work8 = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x0F: {     /*RRC (IX+d),A*/
                 regA = rrc(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x10: {     /*RL (IX+d),B*/
                 regB = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x11: {     /*RL (IX+d),C*/
                 regC = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x12: {     /*RL (IX+d),D*/
                 regD = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x13: {     /*RL (IX+d),E*/
                 regE = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x14: {     /*RL (IX+d),H*/
                 regH = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x15: {     /*RL (IX+d),L*/
                 regL = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x16: {     /*RL (IX+d)*/
                 work8 = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x17: {     /*RL (IX+d),A*/
                 regA = rl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x18: {     /*RR (IX+d),B*/
                 regB = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x19: {     /*RR (IX+d),C*/
                 regC = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x1A: {     /*RR (IX+d),D*/
                 regD = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x1B: {     /*RR (IX+d),E*/
                 regE = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x1C: {     /*RR (IX+d),H*/
                 regH = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x1D: {     /*RR (IX+d),L*/
                 regL = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x1E: {     /*RR (IX+d)*/
                 work8 = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x1F: {     /*RR (IX+d),A*/
                 regA = rr(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x20: {     /*SLA (IX+d),B*/
                 regB = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x21: {     /*SLA (IX+d),C*/
                 regC = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x22: {     /*SLA (IX+d),D*/
                 regD = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x23: {     /*SLA (IX+d),E*/
                 regE = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x24: {     /*SLA (IX+d),H*/
                 regH = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x25: {     /*SLA (IX+d),L*/
                 regL = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x26: {     /*SLA (IX+d)*/
                 work8 = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x27: {     /*SLA (IX+d),A*/
                 regA = sla(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x28: {     /*SRA (IX+d),B*/
                 regB = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x29: {     /*SRA (IX+d),C*/
                 regC = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x2A: {     /*SRA (IX+d),D*/
                 regD = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x2B: {     /*SRA (IX+d),E*/
                 regE = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x2C: {     /*SRA (IX+d),H*/
                 regH = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x2D: {     /*SRA (IX+d),L*/
                 regL = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x2E: {     /*SRA (IX+d)*/
                 work8 = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x2F: {     /*SRA (IX+d),A*/
                 regA = sra(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x30: {     /*SLL (IX+d),B*/
                 regB = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x31: {     /*SLL (IX+d),C*/
                 regC = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x32: {     /*SLL (IX+d),D*/
                 regD = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x33: {     /*SLL (IX+d),E*/
                 regE = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x34: {     /*SLL (IX+d),H*/
                 regH = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x35: {     /*SLL (IX+d),L*/
                 regL = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x36: {     /*SLL (IX+d)*/
                 work8 = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x37: {     /*SLL (IX+d),A*/
                 regA = sll(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x38: {     /*SRL (IX+d),B*/
                 regB = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x39: {     /*SRL (IX+d),C*/
                 regC = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x3A: {     /*SRL (IX+d),D*/
                 regD = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x3B: {     /*SRL (IX+d),E*/
                 regE = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x3C: {     /*SRL (IX+d),H*/
                 regH = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x3D: {     /*SRL (IX+d),L*/
                 regL = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x3E: {     /*SRL (IX+d)*/
                 work8 = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
             case 0x3F: {     /*SRL (IX+d),A*/
                 regA = srl(MemIoImpl.peek8(address));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
@@ -4729,7 +4774,7 @@ public class Z80 {
                 bit(0x01, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x48:
@@ -4743,7 +4788,7 @@ public class Z80 {
                 bit(0x02, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x50:
@@ -4757,7 +4802,7 @@ public class Z80 {
                 bit(0x04, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x58:
@@ -4771,7 +4816,7 @@ public class Z80 {
                 bit(0x08, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x60:
@@ -4785,7 +4830,7 @@ public class Z80 {
                 bit(0x10, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x68:
@@ -4799,7 +4844,7 @@ public class Z80 {
                 bit(0x20, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x70:
@@ -4813,7 +4858,7 @@ public class Z80 {
                 bit(0x40, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
             case 0x78:
@@ -4827,7 +4872,7 @@ public class Z80 {
                 bit(0x80, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
                         ((address >>> 8) & FLAG_53_MASK);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 break;
             }
         }
@@ -4839,385 +4884,385 @@ public class Z80 {
         switch (opCode) {
             case 0x80: {     /*RES 0,(IX+d),B*/
                 regB = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x81: {     /*RES 0,(IX+d),C*/
                 regC = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x82: {     /*RES 0,(IX+d),D*/
                 regD = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x83: {     /*RES 0,(IX+d),E*/
                 regE = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x84: {     /*RES 0,(IX+d),H*/
                 regH = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x85: {     /*RES 0,(IX+d),L*/
                 regL = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x86: {     /*RES 0,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x01, work8));
                 break;
             }
             case 0x87: {     /*RES 0,(IX+d),A*/
                 regA = res(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x88: {     /*RES 1,(IX+d),B*/
                 regB = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x89: {     /*RES 1,(IX+d),C*/
                 regC = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x8A: {     /*RES 1,(IX+d),D*/
                 regD = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x8B: {     /*RES 1,(IX+d),E*/
                 regE = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x8C: {     /*RES 1,(IX+d),H*/
                 regH = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x8D: {     /*RES 1,(IX+d),L*/
                 regL = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x8E: {     /*RES 1,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x02, work8));
                 break;
             }
             case 0x8F: {     /*RES 1,(IX+d),A*/
                 regA = res(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x90: {     /*RES 2,(IX+d),B*/
                 regB = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x91: {     /*RES 2,(IX+d),C*/
                 regC = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x92: {     /*RES 2,(IX+d),D*/
                 regD = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x93: {     /*RES 2,(IX+d),E*/
                 regE = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x94: {     /*RES 2,(IX+d),H*/
                 regH = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x95: {     /*RES 2,(IX+d),L*/
                 regL = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x96: {     /*RES 2,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x04, work8));
                 break;
             }
             case 0x97: {     /*RES 2,(IX+d),A*/
                 regA = res(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0x98: {     /*RES 3,(IX+d),B*/
                 regB = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0x99: {     /*RES 3,(IX+d),C*/
                 regC = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0x9A: {     /*RES 3,(IX+d),D*/
                 regD = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0x9B: {     /*RES 3,(IX+d),E*/
                 regE = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0x9C: {     /*RES 3,(IX+d),H*/
                 regH = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0x9D: {     /*RES 3,(IX+d),L*/
                 regL = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0x9E: {     /*RES 3,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x08, work8));
                 break;
             }
             case 0x9F: {     /*RES 3,(IX+d),A*/
                 regA = res(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xA0: {     /*RES 4,(IX+d),B*/
                 regB = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xA1: {     /*RES 4,(IX+d),C*/
                 regC = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xA2: {     /*RES 4,(IX+d),D*/
                 regD = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xA3: {     /*RES 4,(IX+d),E*/
                 regE = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xA4: {     /*RES 4,(IX+d),H*/
                 regH = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xA5: {     /*RES 4,(IX+d),L*/
                 regL = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xA6: {     /*RES 4,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x10, work8));
                 break;
             }
             case 0xA7: {     /*RES 4,(IX+d),A*/
                 regA = res(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xA8: {     /*RES 5,(IX+d),B*/
                 regB = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xA9: {     /*RES 5,(IX+d),C*/
                 regC = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xAA: {     /*RES 5,(IX+d),D*/
                 regD = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xAB: {     /*RES 5,(IX+d),E*/
                 regE = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xAC: {     /*RES 5,(IX+d),H*/
                 regH = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xAD: {     /*RES 5,(IX+d),L*/
                 regL = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xAE: {     /*RES 5,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x20, work8));
                 break;
             }
             case 0xAF: {     /*RES 5,(IX+d),A*/
                 regA = res(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xB0: {     /*RES 6,(IX+d),B*/
                 regB = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xB1: {     /*RES 6,(IX+d),C*/
                 regC = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xB2: {     /*RES 6,(IX+d),D*/
                 regD = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xB3: {     /*RES 6,(IX+d),E*/
                 regE = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xB4: {     /*RES 6,(IX+d),H*/
                 regH = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xB5: {     /*RES 6,(IX+d),L*/
                 regL = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xB6: {     /*RES 6,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x40, work8));
                 break;
             }
             case 0xB7: {     /*RES 6,(IX+d),A*/
                 regA = res(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xB8: {     /*RES 7,(IX+d),B*/
                 regB = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xB9: {     /*RES 7,(IX+d),C*/
                 regC = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xBA: {     /*RES 7,(IX+d),D*/
                 regD = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xBB: {     /*RES 7,(IX+d),E*/
                 regE = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xBC: {     /*RES 7,(IX+d),H*/
                 regH = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xBD: {     /*RES 7,(IX+d),L*/
                 regL = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xBE: {     /*RES 7,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, res(0x80, work8));
                 break;
             }
             case 0xBF: {     /*RES 7,(IX+d),A*/
                 regA = res(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
@@ -5230,385 +5275,385 @@ public class Z80 {
         switch (opCode) {
             case 0xC0: {     /*SET 0,(IX+d),B*/
                 regB = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xC1: {     /*SET 0,(IX+d),C*/
                 regC = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xC2: {     /*SET 0,(IX+d),D*/
                 regD = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xC3: {     /*SET 0,(IX+d),E*/
                 regE = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xC4: {     /*SET 0,(IX+d),H*/
                 regH = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xC5: {     /*SET 0,(IX+d),L*/
                 regL = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xC6: {     /*SET 0,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x01, work8));
                 break;
             }
             case 0xC7: {     /*SET 0,(IX+d),A*/
                 regA = set(0x01, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xC8: {     /*SET 1,(IX+d),B*/
                 regB = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xC9: {     /*SET 1,(IX+d),C*/
                 regC = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xCA: {     /*SET 1,(IX+d),D*/
                 regD = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xCB: {     /*SET 1,(IX+d),E*/
                 regE = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xCC: {     /*SET 1,(IX+d),H*/
                 regH = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xCD: {     /*SET 1,(IX+d),L*/
                 regL = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xCE: {     /*SET 1,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x02, work8));
                 break;
             }
             case 0xCF: {     /*SET 1,(IX+d),A*/
                 regA = set(0x02, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xD0: {     /*SET 2,(IX+d),B*/
                 regB = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xD1: {     /*SET 2,(IX+d),C*/
                 regC = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xD2: {     /*SET 2,(IX+d),D*/
                 regD = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xD3: {     /*SET 2,(IX+d),E*/
                 regE = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xD4: {     /*SET 2,(IX+d),H*/
                 regH = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xD5: {     /*SET 2,(IX+d),L*/
                 regL = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xD6: {     /*SET 2,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x04, work8));
                 break;
             }
             case 0xD7: {     /*SET 2,(IX+d),A*/
                 regA = set(0x04, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xD8: {     /*SET 3,(IX+d),B*/
                 regB = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xD9: {     /*SET 3,(IX+d),C*/
                 regC = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xDA: {     /*SET 3,(IX+d),D*/
                 regD = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xDB: {     /*SET 3,(IX+d),E*/
                 regE = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xDC: {     /*SET 3,(IX+d),H*/
                 regH = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xDD: {     /*SET 3,(IX+d),L*/
                 regL = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xDE: {     /*SET 3,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x08, work8));
                 break;
             }
             case 0xDF: {     /*SET 3,(IX+d),A*/
                 regA = set(0x08, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xE0: {     /*SET 4,(IX+d),B*/
                 regB = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xE1: {     /*SET 4,(IX+d),C*/
                 regC = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xE2: {     /*SET 4,(IX+d),D*/
                 regD = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xE3: {     /*SET 4,(IX+d),E*/
                 regE = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xE4: {     /*SET 4,(IX+d),H*/
                 regH = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xE5: {     /*SET 4,(IX+d),L*/
                 regL = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xE6: {     /*SET 4,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x10, work8));
                 break;
             }
             case 0xE7: {     /*SET 4,(IX+d),A*/
                 regA = set(0x10, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xE8: {     /*SET 5,(IX+d),B*/
                 regB = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xE9: {     /*SET 5,(IX+d),C*/
                 regC = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xEA: {     /*SET 5,(IX+d),D*/
                 regD = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xEB: {     /*SET 5,(IX+d),E*/
                 regE = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xEC: {     /*SET 5,(IX+d),H*/
                 regH = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xED: {     /*SET 5,(IX+d),L*/
                 regL = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xEE: {     /*SET 5,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x20, work8));
                 break;
             }
             case 0xEF: {     /*SET 5,(IX+d),A*/
                 regA = set(0x20, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xF0: {     /*SET 6,(IX+d),B*/
                 regB = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xF1: {     /*SET 6,(IX+d),C*/
                 regC = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xF2: {     /*SET 6,(IX+d),D*/
                 regD = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xF3: {     /*SET 6,(IX+d),E*/
                 regE = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xF4: {     /*SET 6,(IX+d),H*/
                 regH = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xF5: {     /*SET 6,(IX+d),L*/
                 regL = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xF6: {     /*SET 6,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x40, work8));
                 break;
             }
             case 0xF7: {     /*SET 6,(IX+d),A*/
                 regA = set(0x40, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
             case 0xF8: {     /*SET 7,(IX+d),B*/
                 regB = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
             case 0xF9: {     /*SET 7,(IX+d),C*/
                 regC = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
             case 0xFA: {     /*SET 7,(IX+d),D*/
                 regD = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
             case 0xFB: {     /*SET 7,(IX+d),E*/
                 regE = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
             case 0xFC: {     /*SET 7,(IX+d),H*/
                 regH = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
             case 0xFD: {     /*SET 7,(IX+d),L*/
                 regL = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
             case 0xFE: {     /*SET 7,(IX+d)*/
                 work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, set(0x80, work8));
                 break;
             }
             case 0xFF: {     /*SET 7,(IX+d),A*/
                 regA = set(0x80, (MemIoImpl.peek8(address)));
-                tEstados += MemIoImpl.MREQstates(address, 1);
+                MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
@@ -5635,7 +5680,7 @@ public class Z80 {
             }
             case 0x42: {     /*SBC HL,BC*/
                 sbc16(getRegBC());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x43: {     /*LD (nn),BC*/
@@ -5677,7 +5722,7 @@ public class Z80 {
                 break;
             }
             case 0x47: {     /*LD I,A*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 regI = regA;
                 break;
             }
@@ -5691,7 +5736,7 @@ public class Z80 {
             }
             case 0x4A: {     /*ADC HL,BC*/
                 adc16(getRegBC());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x4B: {     /*LD BC,(nn)*/
@@ -5706,9 +5751,8 @@ public class Z80 {
                 break;
             }
             case 0x4F: {     /*LD R,A*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
-                regR = regA;
-                regRbit7 = (regA > 0x7f);
+                MemIoImpl.contendedStates(getPairIR(), 1);
+                setRegR(regA);
                 break;
             }
             case 0x50: {     /*IN D,(C)*/
@@ -5721,7 +5765,7 @@ public class Z80 {
             }
             case 0x52: {     /*SBC HL,DE*/
                 sbc16(getRegDE());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x53: {     /*LD (nn),DE*/
@@ -5737,7 +5781,7 @@ public class Z80 {
                 break;
             }
             case 0x57: {     /*LD A,I*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 regA = regI;
                 sz5h3pnFlags = sz53n_addTable[regA];
                 if( ffIFF2 )
@@ -5754,7 +5798,7 @@ public class Z80 {
             }
             case 0x5A: {     /*ADC HL,DE*/
                 adc16(getRegDE());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x5B: {     /*LD DE,(nn)*/
@@ -5770,7 +5814,7 @@ public class Z80 {
                 break;
             }
             case 0x5F: {     /*LD A,R*/
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
+                MemIoImpl.contendedStates(getPairIR(), 1);
                 regA = getRegR();
                 sz5h3pnFlags = sz53n_addTable[regA];
                 if( ffIFF2 )
@@ -5787,7 +5831,7 @@ public class Z80 {
             }
             case 0x62: {     /*SBC HL,HL*/
                 sbc16(getRegHL());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x63: {     /*LD (nn),HL*/
@@ -5811,7 +5855,7 @@ public class Z80 {
             }
             case 0x6A: {     /*ADC HL,HL*/
                 adc16(getRegHL());
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x6B: {     /*LD HL,(nn)*/
@@ -5835,7 +5879,7 @@ public class Z80 {
             }
             case 0x72: {     /*SBC HL,SP*/
                 sbc16(regSP);
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x73: {     /*LD (nn),SP*/
@@ -5847,15 +5891,18 @@ public class Z80 {
             }
             case 0x78: {     /*IN A,(C)*/
                 regA = inPort();
+                memptr = (getRegBC() + 1) & 0xffff;
                 break;
             }
             case 0x79: {     /*OUT (C),A*/
-                MemIoImpl.outPort(getRegBC(), regA);
+                memptr = getRegBC();
+                MemIoImpl.outPort(memptr, regA);
+                memptr = (memptr + 1) & 0xffff;
                 break;
             }
             case 0x7A: {     /*ADC HL,SP*/
                 adc16(regSP);
-                tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x7B: {     /*LD SP,(nn)*/
@@ -5902,7 +5949,7 @@ public class Z80 {
                 if ( (sz5h3pnFlags & PARITY_MASK) == PARITY_MASK ) {
                     regPC = (regPC - 2) & 0xffff;
                     memptr = (regPC + 1) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegDE()-1, 5);
+                    MemIoImpl.contendedStates(getRegDE()-1, 5);
                 }
                 break;
             }
@@ -5911,7 +5958,8 @@ public class Z80 {
                 if( (sz5h3pnFlags & PARITY_MASK) == PARITY_MASK &&
                        (sz5h3pnFlags & ZERO_MASK) == 0 ) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegHL()-1, 5);
+                    memptr = (regPC + 1) & 0xffff;
+                    MemIoImpl.contendedStates(getRegHL()-1, 5);
                 }
                 break;
             }
@@ -5919,7 +5967,7 @@ public class Z80 {
                 ini();
                 if (regB != 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegHL()-1, 5);
+                    MemIoImpl.contendedStates(getRegHL()-1, 5);
                 }
                 break;
             }
@@ -5927,7 +5975,7 @@ public class Z80 {
                 outi();
                 if (regB != 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegBC(), 5);
+                    MemIoImpl.contendedStates(getRegBC(), 5);
                 }
                 break;
             }
@@ -5936,7 +5984,7 @@ public class Z80 {
                 if ( (sz5h3pnFlags & PARITY_MASK) == PARITY_MASK ) {
                     regPC = (regPC - 2) & 0xffff;
                     memptr = (regPC + 1) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegDE()+1, 5);
+                    MemIoImpl.contendedStates(getRegDE()+1, 5);
                 }
                 break;
             }
@@ -5945,7 +5993,8 @@ public class Z80 {
                 if ( (sz5h3pnFlags & PARITY_MASK) == PARITY_MASK &&
                         (sz5h3pnFlags & ZERO_MASK) == 0 ) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegHL()+1, 5);
+                    memptr = (regPC + 1) & 0xffff;
+                    MemIoImpl.contendedStates(getRegHL()+1, 5);
                 }
                 break;
             }
@@ -5953,7 +6002,7 @@ public class Z80 {
                 ind();
                 if (regB != 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegHL()+1, 5);
+                    MemIoImpl.contendedStates(getRegHL()+1, 5);
                 }
                 break;
             }
@@ -5961,7 +6010,7 @@ public class Z80 {
                 outd();
                 if (regB != 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    tEstados += MemIoImpl.MREQstates(getRegBC(), 5);
+                    MemIoImpl.contendedStates(getRegBC(), 5);
                 }
                 break;
             }

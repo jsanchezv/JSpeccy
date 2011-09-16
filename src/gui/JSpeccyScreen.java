@@ -10,12 +10,12 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
+import java.util.Arrays;
 import machine.Spectrum;
 
 /**
@@ -90,7 +90,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
     private boolean doubleSize = false;
     private int pScrn[];
-    private int borderColor[] = new int[256];
     private BufferedImage bImg;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
@@ -104,7 +103,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public JSpeccyScreen(Spectrum spectrum) {
         initComponents();
         
-        bImg = new BufferedImage(320, 256, BufferedImage.TYPE_INT_RGB);
+        bImg = new BufferedImage(352, 296, BufferedImage.TYPE_INT_RGB);
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
@@ -119,11 +118,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //speccy = new Spectrum();
         this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
+        System.out.println("imgData.length = " + imgData.length);
         //timerFrame = new Timer();
         //taskFrame = new Clock(this);
         //startEmulation();
         //addKeyListener(this);
-        requestFocus();
+        //requestFocus();
     }
 
 
@@ -155,15 +155,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
         if( doubleSize ) {
-            this.setPreferredSize(new Dimension(640,512));
+            this.setPreferredSize(new Dimension(704, 592));
         }
         else {
-            this.setPreferredSize(new Dimension(320,256));
+            this.setPreferredSize(new Dimension(352, 296));
         }
-    }
-    
-    public void changeBorderColor(int linea, int color) {
-        borderColor[linea] = color;
     }
     
     @Override
@@ -179,24 +175,14 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int border, posIni;
         
         //long start = System.currentTimeMillis();
-
-        border = Paleta[speccy.portMap[0xfe] & 0x07];
-        posIni = 0;
-        for(int idx = 0; idx < 32; idx++) {
-            //border = Paleta[borderColor[idx]];
-            for( int pix = 0; pix < 320; pix++ )
-                imgData[posIni++] = border;
-        }
         
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
         //pScrn = SpectrumRam;
-        //int posIni = 10272;  // 10272 = 32 * 352 + 32
+        if( speccy.nTimesBorderChg != 0 )
+            updateBorder();
+
         for( int cordy = 0; cordy < 192; cordy++ ) {
-            // Poner el borde izquierdo
-            //border = Paleta[borderColor[cordy+32]];
-            for( int leftBorder = 0; leftBorder < 32; leftBorder++ )
-                imgData[posIni++] = border;
-            
+            posIni = 352 * cordy + 16944; // 16944 = 48 * 352 + 48
             // Ahora dibujamos la línea de pantalla
             addr = scrAddr[cordy];
             nAttr = scr2attr[cordy];
@@ -214,26 +200,84 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                         imgData[posIni++] = paper;
                 }
             }
-            
-            // Pone el borde derecho
-            for( int rightBorder = 0; rightBorder < 32; rightBorder++ )
-                imgData[posIni++] = border;
         }
+
+        for( int idx = 0; idx < 37; idx ++ )
+            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
-        for (int idx = 0; idx < 32; idx++) {
-            //border = Paleta[borderColor[idx]];
-            for (int pix = 0; pix < 320; pix++) {
-                imgData[posIni++] = border;
-            }
-        }
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if( doubleSize ) {
+        if (doubleSize) {
             gc2.drawImage(bImg, escalaOp, 0, 0);
         } else {
             gc2.drawImage(bImg, 0, 0, null);
-        }       
+        }
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
+    }
+    
+    /*
+     * Cada línea completa de imagen dura 224 T-Estados, divididos en:
+     * 48 T-Estados iniciales de H-Sync y blanking
+     * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
+     * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
+     * 24 T-Estados en los que se dibujan los 48 pixeles del borde derecho
+     *
+     * Cada pantalla consta de 312 líneas divididas en:
+     * 16 líneas en las cuales el haz vuelve a la parte superior de la pantalla
+     * 48 líneas de borde superior
+     * 192 líneas de pantalla
+     * 56 líneas de borde inferior
+     */
+    private int tStatesToScrPix(int tstates) {
+
+        // Si los tstates son < 3632 (16 * 224 + 48), no estamos en la zona visible
+        if( tstates < 3584 )
+            return 0;
+
+        int linea = tstates / 224;
+        int pix = (tstates % 224);
+//        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
+//                tstates,linea, pix, (linea*352+pix)));
+        return linea * 352 + pix;
+    }
+
+    private void updateBorder() {
+        int nBorderChg = speccy.nTimesBorderChg;
+        int startPix, endPix;
+
+//        System.out.println("Cambios de border: " + nBorderChg);
+//        for( int idx = 0; idx < nBorderChg; idx++ )
+//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
+//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
+
+        for( int idx = 0; idx < (nBorderChg - 1); idx++ ) {
+            startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
+            endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
+            if( startPix >= imgData.length )
+                startPix = imgData.length - 1;
+            if( endPix >= imgData.length )
+                endPix = imgData.length - 1;
+            //System.out.println(String.format("startPix: %d\tendPix %d", startPix, endPix));
+            if( endPix > startPix )
+                Arrays.fill(imgData, startPix, endPix -1,
+                            Paleta[speccy.valueBorderChg[idx]]);
+        }
+
+        startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
+        if( startPix >= imgData.length )
+            startPix = imgData.length - 1;
+        //System.out.println("startPix final: " + startPix);
+
+        Arrays.fill(imgData, startPix, imgData.length - 1,
+                    Paleta[speccy.valueBorderChg[nBorderChg - 1]]);
+
+        if( speccy.statesBorderChg[0] > 0 ) {
+            speccy.statesBorderChg[0] = 0;
+            speccy.valueBorderChg[0] = speccy.valueBorderChg[nBorderChg - 1];
+            speccy.nTimesBorderChg = 1;
+        }
+        else
+            speccy.nTimesBorderChg = 0;
     }
 
     /** This method is called from within the constructor to
@@ -245,9 +289,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private void initComponents() {
 
         setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        setMaximumSize(new java.awt.Dimension(640, 512));
-        setMinimumSize(new java.awt.Dimension(320, 256));
-        setPreferredSize(new java.awt.Dimension(320, 256));
+        setMaximumSize(new java.awt.Dimension(704, 592));
+        setMinimumSize(new java.awt.Dimension(352, 296));
+        setPreferredSize(new java.awt.Dimension(352, 296));
     }// </editor-fold>//GEN-END:initComponents
     
     
