@@ -8,13 +8,13 @@
       </Border>
     </Property>
     <Property name="maximumSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-      <Dimension value="[704, 592]"/>
+      <Dimension value="[704, 576]"/>
     </Property>
     <Property name="minimumSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-      <Dimension value="[352, 296]"/>
+      <Dimension value="[352, 288]"/>
     </Property>
     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-      <Dimension value="[352, 296]"/>
+      <Dimension value="[352, 288]"/>
     </Property>
   </Properties>
   <AuxValues>

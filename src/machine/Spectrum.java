@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/ulatest3-modified.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/btime.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -334,7 +334,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             if( tstates < 14347 || tstates > 57343 )
                 return 0xff;
 
-            int row = tstates / 224;
+            int row = tstates / 224 - 64;
             int col = tstates % 224;
             if( col < 11 || col > 139 )
                 return 0xff;
@@ -343,13 +343,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             col = col % 8;
             switch( col ) {
                 case 3:
-                    return z80Ram[jscr.scrAddr[row]];
+                    return z80Ram[jscr.scrAddr[row] + col];
                 case 4:
-                    return z80Ram[jscr.scr2attr[row]];
+                    return z80Ram[jscr.scr2attr[row] + col];
                 case 5:
-                    return z80Ram[jscr.scrAddr[row] + 1];
+                    return z80Ram[jscr.scrAddr[row] + col + 1];
                 case 6:
-                    return z80Ram[jscr.scr2attr[row + 1]];
+                    return z80Ram[jscr.scr2attr[row] + col + 1];
             }
         }
         return 0xff;

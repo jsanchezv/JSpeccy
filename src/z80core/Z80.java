@@ -473,7 +473,7 @@ public class Z80 {
 
     public final int getRegR() {
         if( regRbit7 )
-            return (regR | SIGN_MASK);
+            return ((regR & 0x7f) | SIGN_MASK);
         return (regR & 0x7f);
     }
 
@@ -485,7 +485,7 @@ public class Z80 {
 
     public final int getPairIR() {
         if( regRbit7 )
-            return (regI << 8) | (regR | SIGN_MASK);
+            return (regI << 8) | ((regR & 0x7f) | SIGN_MASK);
         return (regI << 8) | (regR & 0x7f);
     }
 

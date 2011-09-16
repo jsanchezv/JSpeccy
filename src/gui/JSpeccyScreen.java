@@ -103,7 +103,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public JSpeccyScreen(Spectrum spectrum) {
         initComponents();
         
-        bImg = new BufferedImage(352, 296, BufferedImage.TYPE_INT_RGB);
+        bImg = new BufferedImage(352, 288, BufferedImage.TYPE_INT_RGB);
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
@@ -155,10 +155,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
         if( doubleSize ) {
-            this.setPreferredSize(new Dimension(704, 592));
+            this.setPreferredSize(new Dimension(704, 576));
         }
         else {
-            this.setPreferredSize(new Dimension(352, 296));
+            this.setPreferredSize(new Dimension(352, 288));
         }
     }
     
@@ -203,7 +203,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
 
         // Rejilla horizontal de test
-//        for( int idx = 0; idx < 37; idx ++ )
+//        for( int idx = 0; idx < 36; idx ++ )
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
@@ -231,19 +231,19 @@ public class JSpeccyScreen extends javax.swing.JPanel {
      */
     private int tStatesToScrPix(int tstates) {
 
-        // Si los tstates son < 3632 (16 * 224 + 38), no estamos en la zona visible
-        if( tstates < 3632 )
+        // Si los tstates son > 3584 (16 * 224), no estamos en la zona visible
+        if( tstates < 3584 )
             return 0;
 
         int linea = tstates / 224;
         int pix = (tstates % 224);
 //        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
 //                tstates,linea, pix, (linea*352+pix)));
-        if( pix < 48 )
-            pix = 0;
-        else
-            pix -= 48;
-        return linea * 352 + pix;
+//        if( pix < 48 )
+//            pix = 0;
+//        else
+//            pix -= 48;
+        return (linea - 16) * 352;
     }
 
     private void updateBorder() {
@@ -305,9 +305,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private void initComponents() {
 
         setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        setMaximumSize(new java.awt.Dimension(704, 592));
-        setMinimumSize(new java.awt.Dimension(352, 296));
-        setPreferredSize(new java.awt.Dimension(352, 296));
+        setMaximumSize(new java.awt.Dimension(704, 576));
+        setMinimumSize(new java.awt.Dimension(352, 288));
+        setPreferredSize(new java.awt.Dimension(352, 288));
     }// </editor-fold>//GEN-END:initComponents
     
     
