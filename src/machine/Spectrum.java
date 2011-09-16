@@ -77,7 +77,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         nTimesBorderChg = 1;
         statesBorderChg[0] = 0;
         valueBorderChg[0] = 7;
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/Paperboy.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/aquaplane.sna");
         //startEmulation();
     }
 
@@ -120,10 +120,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //            System.out.println("El borde cambió " + nTimesBorderChg+ " veces");
 
         //System.out.println(String.format("Scr: %d\tAttr: %d", nChgScr, nChgAttr));
-        if ( nTimesBorderChg != 0 || scrMod ) {
+//        if ( nTimesBorderChg != 0 || scrMod ) {
             if( jscr != null )
                 jscr.repaint();
-        }
+//        }
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -133,7 +133,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        jscr.toggleDoubleSize();
+        //jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
@@ -198,19 +198,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void poke8(int address, int value) {
         
         if( (address & 0xC000) == 0x4000 ) {
-            if( address < 0x5800 )
-                nChgScr++;
-            if( address > 0x57ff && address < 0x5b00)
-                nChgAttr++;
-            
             z80.tEstados += delayTstates[z80.tEstados];
-                //System.out.println("R(" + dire +"): ");
         }
-        
-        if( address < 0x5B00 )
+        z80.tEstados += 3;
+
+        if( !scrMod && address > 0x3FFF && address < 0x5800  && value != z80Ram[address] )
+            jscr.updateScreenByte(address, value);
+
+        if( address > 0x57ff && address < 0x5B00 )
             scrMod = true;
 
-        z80.tEstados += 3;
 
         if( address > 0x3fff )
             z80Ram[address] = value & 0xff;
@@ -297,7 +294,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 if( (res & mask) != 0 )
                     keys &= rowKey[row];
             }
-            //postIO(port);
             if ( (portFE & 0x10) == 0 )
                 keys &= 0xbf;
 
@@ -306,44 +302,41 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         if( (port & 0xff) == 0xff ) {
             int tstates = z80.tEstados;
-            if( tstates < 14324 || tstates > 57332 ) {
-                //postIO(port);
+            if( tstates < 14324 || tstates > 57332 )
                 return 0xff;
-            }
 
             int row = tstates / 224 - 64;
             int col = (tstates % 224) - 3;
             
-            if( col > 124 ) {
-                //postIO(port);
+            if( col > 124 )
                 return 0xff;
-            }
 
             int mod = col % 8;
             switch( mod ) {
                 case 0:
-                    //postIO(port);
-//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-//                      tstates, row, col, jscr.scrAddr[row] + col / 4));
+//              System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
+//                  tstates, jscr.scrAddr[row] + col / 4, z80Ram[jscr.scrAddr[row] + col / 4]));
                     return z80Ram[jscr.scrAddr[row] + col / 4];
                 case 1:
-                    //postIO(port);
-//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-//                      tstates, row, col, jscr.scr2attr[row] + col / 4));
+//                 System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+//                     tstates, row, col, jscr.scr2attr[row] + col / 4));
+//                 System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
+//                   tstates, jscr.scrAddr[row] + col / 4, z80Ram[jscr.scrAddr[row] + col / 4]));
                     return z80Ram[jscr.scr2attr[row] + col / 4];
                 case 2:
-                    //postIO(port);
 //                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
 //                      tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
+//           System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
+//           tstates, jscr.scrAddr[row] + col / 4 + 1, z80Ram[jscr.scrAddr[row] + col / 4 + 1]));
                     return z80Ram[jscr.scrAddr[row] + col / 4 + 1];
                 case 3:
-                    //postIO(port);
 //                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
 //                      tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
+//         System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
+//        states, jscr.scrAddr[row] + col / 4 + 1, z80Ram[jscr.scrAddr[row] + col / 4 + 1]));
                     return z80Ram[jscr.scr2attr[row] + col / 4 + 1];
             }
         }
-        //postIO(port);
         return 0xff;
     }
 

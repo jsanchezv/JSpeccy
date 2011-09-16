@@ -49,7 +49,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     public static int scrAddr[] = new int[192];
     public static int scr2attr[] = new int[192];
     //private static int scrData[] = new int[352 * 288 * 3];
-    private static int imgData[];
+    
     static {
         // Inicialización de las tablas de Paper/Ink
         /* Para cada valor de atributo, hay dos tablas, donde cada una
@@ -90,6 +90,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private boolean doubleSize = false;
     private int pScrn[];
     private BufferedImage bImg;
+    private int imgData[];
+    private BufferedImage bImgScr;
+    private int imgDataScr[];
+    //private Graphics2D gcScr;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
@@ -104,6 +108,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         
         bImg = new BufferedImage(352, 288, BufferedImage.TYPE_INT_RGB);
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
+        bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
+        imgDataScr = ((DataBufferInt)bImgScr.getRaster().getDataBuffer()).getBankData()[0];
+        //gcScr = bImg.createGraphics();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
                                          RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -154,19 +161,41 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if( speccy.nTimesBorderChg != 0 ) {
             //long start = System.currentTimeMillis();
             updateBorder();
+            //speccy.scrMod = true;
             //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
         }
+        
+        if( speccy.scrMod ) {
             updateScreen();
+            //System.out.println("updateScreen()");
+        } else {
+            //System.out.println("NOT updateScreen()");
+        }
+//        else {
+//            Graphics2D gcScr = bImg.createGraphics();
+//            gcScr.drawImage(bImgScr, 48, 48, this);
+//            gcScr.dispose();
+//            //System.out.println("update chars");
+//        }
+    
 
         // Rejilla horizontal de test
 //        for( int idx = 0; idx < 36; idx ++ )
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
+        if ( speccy.nTimesBorderChg != 0 ) {
+            if (doubleSize) {
+                gc2.drawImage(bImg, escalaOp, 0, 0);
+            } else {
+                gc2.drawImage(bImg, 0, 0, this);
+            }
+        }
+
         if (doubleSize) {
-            gc2.drawImage(bImg, escalaOp, 0, 0);
+            gc2.drawImage(bImgScr, escalaOp, 96, 96);
         } else {
-            gc2.drawImage(bImg, 0, 0, this);
+            gc2.drawImage(bImgScr, 48, 48, this);
         }
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
@@ -210,33 +239,14 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         
         int pix = row * 352;
 
-        // Estamos en la parte superior o inferior del borde
-        //if( row < 48 || row > 239 ) {
-            if( col < 153 )
-                return pix += col * 2 + 48;
-            if( col > 199)
-                return pix += (col - 200) * 2 + 352;
-            else
-                return pix + 352;
-        //}
-
-        // El borde cambió durante la zona de video. Lo llevamos a la derecha
-//        if( col < 128 )
-//            pix += 304;
-
-        // El borde cambió en la franja derecha. Cada T-State == 2 píxeles
-//        if( col > 127 && col < 152 )
-//            pix += col * 2 + 48;
-
-        // El borde cambió durante el HSync-Blank, se verá en la línea siguente
-//        if( col > 151 && col < 200 )
-//            pix += 352;
-
-        // El borde cambió en la franja izquierda de la siguiente línea
-//        if( col > 199 )
-//            pix += (col - 200) * 2 + 352;
-
-        //return pix;
+        if (col < 153) {
+            return pix += col * 2 + 48;
+        }
+        if (col > 199) {
+            return pix += (col - 200) * 2 + 352;
+        } else {
+            return pix + 352;
+        }
     }
 
     private void updateBorder() {
@@ -254,12 +264,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         } else {
             int color;
             for (int idx = 0; idx < (nBorderChg - 1); idx++) {
-//                if( speccy.statesBorderChg[idx + 1] < 3584 )
-//                    continue;
+                if( speccy.statesBorderChg[idx + 1] < 3584 )
+                    continue;
 
                 startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
-//                if( startPix > imgData.length - 1)
-//                    continue;
+                if( startPix > imgData.length - 1)
+                    continue;
 
                 endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
                 if( endPix > imgData.length - 1)
@@ -272,7 +282,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
             // Pinta desde el último cambio hasta el final
             startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
-            if( startPix > imgData.length - 1) {
+            if( startPix < imgData.length - 1) {
                 color = Paleta[speccy.valueBorderChg[nBorderChg - 1]];
                 for( int count = startPix; count < imgData.length - 1; count++ )
                     imgData[count] = color;
@@ -292,7 +302,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int posIni;
 
         for( int cordy = 0; cordy < 192; cordy++ ) {
-            posIni = 352 * cordy + 16944; // 16944 = 48 * 352 + 48
+            posIni = 256 * cordy;
             // Ahora dibujamos la línea de pantalla
             addr = scrAddr[cordy];
             nAttr = scr2attr[cordy];
@@ -305,10 +315,31 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 pixel = pScrn[addr++];
                 for( int mask = 0x80; mask != 0; mask >>= 1 ) {
                     if( (pixel & mask) != 0 )
-                        imgData[posIni++] = ink;
+                        imgDataScr[posIni++] = ink;
                     else
-                        imgData[posIni++] = paper;
+                        imgDataScr[posIni++] = paper;
                 }
+            }
+        }
+    }
+
+    public void updateScreenByte(int address, int value) {
+        int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+        int col = address & 0x1f;
+        int scan = (address & 0x700) >>> 8;
+        //System.out.println(String.format("Fila :%d\t Col: %d\t scan: %d", row, col, scan));
+
+        int addrPtr = row * 2048 + scan * 256 + col * 8;
+        int attr = pScrn[scr2attr[row << 3] + col];
+        if( attr > 0x7f )
+            attr &= flash;
+        int ink = Ink[attr];
+        int paper = Paper[attr];
+        for (int mask = 0x80; mask != 0; mask >>= 1) {
+            if ((value & mask) != 0) {
+                imgDataScr[addrPtr++] = ink;
+            } else {
+                imgDataScr[addrPtr++] = paper;
             }
         }
     }
