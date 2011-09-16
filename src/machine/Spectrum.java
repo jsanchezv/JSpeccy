@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/btime.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/aquaplane.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);

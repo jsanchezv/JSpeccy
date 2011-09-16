@@ -218,10 +218,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     
     /*
      * Cada línea completa de imagen dura 224 T-Estados, divididos en:
-     * 48 T-Estados iniciales de H-Sync y blanking
-     * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
      * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
      * 24 T-Estados en los que se dibujan los 48 pixeles del borde derecho
+     * 48 T-Estados iniciales de H-Sync y blanking
+     * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
      *
      * Cada pantalla consta de 312 líneas divididas en:
      * 16 líneas en las cuales el haz vuelve a la parte superior de la pantalla
@@ -231,8 +231,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
      */
     private int tStatesToScrPix(int tstates) {
 
-        // Si los tstates son > 3584 (16 * 224), no estamos en la zona visible
-        if( tstates < 3584 )
+        // Si los tstates son > 3536 (16 * 224 - 48), no estamos en la zona visible
+        if( tstates < 3536 )
             return 0;
 
         int linea = tstates / 224;
@@ -243,7 +243,32 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //            pix = 0;
 //        else
 //            pix -= 48;
-        return (linea - 16) * 352;
+        pix = (linea - 15) * 352 - 176;
+        return pix > 0 ? pix : 0;
+    }
+
+    private void updateBorder2() {
+        int nBorderChg = speccy.nTimesBorderChg;
+        int startRow, endRow;
+        int startCol, endCol;
+        int nDrawPix;
+
+        if (nBorderChg == 1) {
+            Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
+            speccy.nTimesBorderChg = 0;
+        } else {
+            Graphics2D gc2 = bImg.createGraphics();
+            for( int idx = 0; idx < (nBorderChg - 1); idx ++ ) {
+                if( speccy.statesBorderChg[idx + 1] < 3536 ) // la zona que no se ve
+                    continue;
+                startRow = speccy.statesBorderChg[idx] / 224;
+                endRow  = speccy.statesBorderChg[idx + 1] / 224;
+                startCol = speccy.statesBorderChg[idx] % 224;
+                endCol  = speccy.statesBorderChg[idx + 1] % 224;
+
+            }
+        }
+
     }
 
     private void updateBorder() {
