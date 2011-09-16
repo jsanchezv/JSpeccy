@@ -8,6 +8,7 @@ package machine;
 import gui.JSpeccyScreen;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,9 +36,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     private FileInputStream fIn;
 
-    private int frameStart;
+    //private int frameStart;
     private int nFrame;
-    public boolean fullRedraw, scrMod;
+    //public boolean fullRedraw;
 
     public static final int FRAMES48k = 70000;
     private static final byte delayTstates[] = new byte[FRAMES48k];
@@ -66,68 +67,75 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        frameStart = 0;
+        //frameStart = 0;
         nFrame = 0;
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
-        taskFrame = new SpectrumTimer(this);
         nTimesBorderChg = 1;
         statesBorderChg[0] = 0;
         valueBorderChg[0] = 7;
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/Babaliba.sna");
+        //loadSNA("/home/jsanchez/src/JSpeccy/dist/Uridium.sna");
+        //taskFrame = new SpectrumTimer(this);
+        timerFrame = new Timer("SpectrumClock", true);
         startEmulation();
     }
 
     public void startEmulation() {
-        timerFrame = new Timer();
-        timerFrame.scheduleAtFixedRate(taskFrame, 100, 20);
+        taskFrame = new SpectrumTimer(this);
+        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
     }
 
     public void stopEmulation() {
-        if( timerFrame != null )
-            timerFrame.cancel();
-        timerFrame = null;
+        taskFrame.cancel();
     }
 
     public void generateFrame() {
         //long startFrame, endFrame, sleepTime;
         //startFrame = System.currentTimeMillis();
         //System.out.println("Start frame: " + startFrame);
-        //fullRedraw = scrMod = false;
-
-        z80.tEstados = frameStart;
-        z80.statesLimit = 57344; // (16 + 48 + 192) * 224
-
+             
+        //z80.tEstados = frameStart;
+        //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
+        z80.statesLimit = 32;
         z80.setINTLine(true);
         z80.execute();
-        jscr.bufferToImage();
-        fullRedraw = scrMod = false;
+        z80.statesLimit = 14175; // 63 * 224 + 63
+        z80.setINTLine(false);
+        z80.execute();
+        //System.out.println(String.format("t-states: %d", z80.tEstados));
+        int nChangedLines = 0;
+        for(int line = 0; line < 192; line++ ) {
+            z80.statesLimit += 224;
+            z80.execute();
+            if (jscr.dirtyLine[line]) {
+                jscr.updateScanline(line);
+                nChangedLines++;
+            }
+            //z80.statesLimit += 224;
+        }
+
+        //System.out.println("nLines " + nChangedLines);
         z80.statesLimit = 69888;
         z80.execute();
 
-        //System.out.println("execFrame: ejecutados " + z80.getTEstados());
-        //System.out.println("PC: " + z80.getRegPC());
-        frameStart = z80.tEstados - 69888;
+        //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
+        z80.tEstados -= 69888;
+        if( z80.tEstados < 0 )
+            z80.tEstados = 0;
 
         if (++nFrame % 16 == 0) {
             jscr.toggleFlash();
-            //fullRedraw = true;
         }
         
 //        if( nTimesBorderChg > 0)
 //            System.out.println("El borde cambió " + nTimesBorderChg+ " veces");
-
-        //System.out.println(String.format("Scr: %d\tAttr: %d", nChgScr, nChgAttr));
-        //if ( nTimesBorderChg != 0 || scrMod || fullRedraw ) {
+        
+        if ( nChangedLines != 0  || nTimesBorderChg != 0 ) {
             if (jscr != null) {
                 jscr.repaint();
-            } else {
-                jscr.updateScreen();
-                jscr.bufferToImage();
-                fullRedraw = scrMod = true;
             }
-        //}
+        }
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -137,7 +145,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        //jscr.toggleDoubleSize();
+        jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
@@ -204,18 +212,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
             // Area de pixeles
             if (address > 0x3FFF && address < 0x5800) {
-                jscr.updateScreenByte(address, value);
+                jscr.updateScreenByte(address, value, z80.tEstados);
                 //System.out.println("updateScreen");
-                scrMod = true;
             }
 
             // Area de atributos
             if (address > 0x57FF && address < 0x5B00) {
-                jscr.updateAttrChar(address, value);
+                jscr.updateAttrChar(address, value, z80.tEstados);
                 //System.out.println("updateAttr");
-                scrMod = true;
             }
-        } else
+        }
+        else
             z80.tEstados += 3;
 
         if (address > 0x3fff && value != z80Ram[address])
@@ -778,7 +785,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         // TODO add your handling code here:
     }
 
-    public void loadSNA(String filename) {
+    public void loadSNA(File filename) {
         //stopEmulation();
         z80.reset();
         try {

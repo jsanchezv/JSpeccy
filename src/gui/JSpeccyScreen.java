@@ -65,6 +65,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     public static final int scrAddr[] = new int[192];
+
+    public final boolean dirtyLine[] = new boolean[192];
+    public final boolean dirtyByte[] = new boolean[0x1800];
     
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -113,7 +116,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     //private Timer timerFrame;
     //private Clock taskFrame;
     private Spectrum speccy;
-    //private int nFrame;
+    private boolean fullRedraw;
         
     /** Creates new form JScreen */
     public JSpeccyScreen(Spectrum spectrum) {
@@ -150,8 +153,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for( int addr = 0x5800; addr < 0x5b00; addr++ )
             if( pScrn[addr] > 0x7f ) {
-                updateAttrChar(addr, pScrn[addr]);
-                speccy.scrMod = true;
+                updateAttrChar(addr, pScrn[addr], 0);
             }
     }
     
@@ -177,25 +179,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
         //pScrn = SpectrumRam;
+        fullRedraw = false;
         if( speccy.nTimesBorderChg != 0 ) {
             //long start = System.currentTimeMillis();
             updateBorder();
-            speccy.fullRedraw = true;
+            fullRedraw = true;
             //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
         }
-        
-//        if( speccy.fullRedraw ) {
-//            updateScreen();
-            //System.out.println("updateScreen()");
-//        } else {
-            //System.out.println("NOT updateScreen()");
-//        }
-//        else {
-//            Graphics2D gcScr = bImg.createGraphics();
-//            gcScr.drawImage(bImgScr, 48, 48, this);
-//            gcScr.dispose();
-//            //System.out.println("update chars");
-//        }
     
 
         // Rejilla horizontal de test
@@ -203,7 +193,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if ( speccy.fullRedraw ) {
+        if ( fullRedraw ) {
             if (doubleSize) {
                 gc2.drawImage(bImg, escalaOp, 0, 0);
             } else {
@@ -211,13 +201,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
 
-        //if( speccy.scrMod || speccy.attrMod ) {
-            if (doubleSize) {
-                gc2.drawImage(bImgScr, escalaOp, 96, 96);
-            } else {
-                gc2.drawImage(bImgScr, 48, 48, this);
-            }
-        //}
+        if (doubleSize) {
+            gc2.drawImage(bImgScr, escalaOp, 96, 96);
+        } else {
+            gc2.drawImage(bImgScr, 48, 48, this);
+        }
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -316,12 +304,38 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
     }
 
-    public void updateScreen() {
-        for( int address = 0x5800; address < 0x5B00; address++ )
-            updateAttrChar(address, pScrn[address]);
+    public void invalidateScreen() {
+//        int paper, ink;
+//        int addr, nAttr;
+//        int pixel, attr;
+//        int posIni;
+//
+//        for( int cordy = 0; cordy < 192; cordy++ ) {
+//            posIni = 256 * cordy;
+//            // Ahora dibujamos la línea de pantalla
+//            addr = scrAddr[cordy];
+//            nAttr = scr2attr[cordy];
+//            for( int cordx = 0; cordx < 32; cordx++ ) {
+//                attr = pScrn[nAttr++];
+//                if( attr > 0x7f )
+//                    attr &= flash;
+//                ink = Ink[attr];
+//                paper = Paper[attr];
+//                pixel = pScrn[addr++];
+//                for( int mask = 0x80; mask != 0; mask >>= 1 ) {
+//                    if( (pixel & mask) != 0 )
+//                        imgBuffer[posIni++] = ink;
+//                    else
+//                        imgBuffer[posIni++] = paper;
+//                }
+//            }
+//        }
+        java.util.Arrays.fill(dirtyLine, true);
+        java.util.Arrays.fill(dirtyByte, true);
     }
 
-    public void updateScreenByte(int address, int value) {
+    public void updateScreenByte(int address, int value, int tstates) {
+
         int addrPtr = bufAddr[address & 0x1fff];
         int attr = pScrn[scr2attr[address & 0x1fff]];
         if( attr > 0x7f )
@@ -335,9 +349,38 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 imgBuffer[addrPtr++] = paper;
             }
         }
+
+        int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+        int scan = (address & 0x700) >>> 8;
+        dirtyLine[(row << 3) + scan] = true;
+        dirtyByte[address & 0x1fff] = false;
+//        System.out.println(String.format("ScrAddr: %04x\tByte: %02x\tt-states: %d",
+//                address, attr, tstates));
     }
 
-    public void updateAttrChar(int address, int attr) {
+    public void updateAttrChar(int address, int attr, int tstates) {
+
+        int row = ((address >>> 5) & 0x1f) * 8;
+        //int col = address & 0x1f;
+        int scrAddress = attr2scr[address & 0x3ff];
+        for (int idx = 0; idx < 8; idx++) {
+            dirtyLine[row + idx] = true;
+            //dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
+        }
+
+        int scanline = tstates / 224;
+        if (scanline > 255) {
+            for (int idx = 0; idx < 8; idx++) {
+                dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
+            }
+            return;
+        }
+        scanline -= 64;
+        if( scanline < row )
+            scanline = 0;
+        else
+            scanline = (scanline % 8) + 1;
+
         if( attr > 0x7f )
             attr &= flash;
         int ink = Ink[attr];
@@ -345,6 +388,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         for ( int scan = 0; scan < 8; scan++) {
             int addr = attr2scr[address & 0x3ff] + scan * 256;
+            if( scan < scanline) {
+                dirtyByte[addr & 0x1fff] = true;
+                continue;
+            }
             int scrByte = pScrn[addr];
             int addrPtr = bufAddr[addr & 0x1fff];
             for (int mask = 0x80; mask != 0; mask >>= 1) {
@@ -354,7 +401,37 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                     imgBuffer[addrPtr++] = paper;
                 }
             }
+            dirtyByte[addr & 0x1fff] = false;
         }
+    }
+
+    public void updateScanline(int scanline) {
+        
+        for (int offset = 0; offset < 32; offset++) {
+            int addr = scrAddr[scanline] + offset;
+            if( !dirtyByte[addr & 0x1fff] )
+                continue;
+
+            int scrByte = pScrn[addr];
+            addr &= 0x1fff;
+            int addrBuf = bufAddr[addr];
+            int attr = pScrn[scr2attr[addr]];
+            if (attr > 0x7f) {
+                attr &= flash;
+            }
+            int ink = Ink[attr];
+            int paper = Paper[attr];
+            for (int mask = 0x80; mask != 0; mask >>= 1) {
+                if ((scrByte & mask) != 0) {
+                    imgBuffer[addrBuf++] = ink;
+                } else {
+                    imgBuffer[addrBuf++] = paper;
+                }
+            }
+            dirtyByte[addr] = false;
+        }
+        System.arraycopy(imgBuffer, scanline * 256, imgDataScr, scanline * 256, 256);
+        dirtyLine[scanline] = false;
     }
 
     public void intArrayFill(int[] array, int value) {

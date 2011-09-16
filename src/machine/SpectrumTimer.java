@@ -19,8 +19,6 @@ public class SpectrumTimer extends TimerTask {
     }
 
     public void run() {
-        //System.out.println(System.currentTimeMillis());
         spectrum.generateFrame();
     }
-
 }
