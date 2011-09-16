@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/aquaplane.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/IR_Contention.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -170,9 +170,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 //System.out.println("R(" + dire +"): ");
         }
 
-        if( (z80.getPairIR() & 0xC000) == 0x4000 )
-            z80.tEstados += 8;
-        else
+//        if( (z80.getPairIR() & 0xC000) == 0x4000 )
+//            z80.tEstados += 4;
+        
             z80.tEstados += 4;
         //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         return z80Ram[address];

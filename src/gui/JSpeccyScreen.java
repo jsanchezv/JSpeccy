@@ -169,10 +169,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     }
     
     private void paintScreen(Graphics2D gc2) {
-        int paper, ink;
-        int addr, nAttr;
-        int pixel, attr;
-        int border, posIni;
         
         //long start = System.currentTimeMillis();
         
@@ -181,26 +177,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if( speccy.nTimesBorderChg != 0 )
             updateBorder();
 
-        for( int cordy = 0; cordy < 192; cordy++ ) {
-            posIni = 352 * cordy + 16944; // 16944 = 48 * 352 + 48
-            // Ahora dibujamos la línea de pantalla
-            addr = scrAddr[cordy];
-            nAttr = scr2attr[cordy];
-            for( int cordx = 0; cordx < 32; cordx++ ) {
-                attr = pScrn[nAttr++];
-                if( attr > 0x7f )
-                    attr &= flash;
-                ink = Ink[attr];
-                paper = Paper[attr];
-                pixel = pScrn[addr++];
-                for( int mask = 0x80; mask != 0; mask >>= 1 ) {
-                    if( (pixel & mask) != 0 )
-                        imgData[posIni++] = ink;
-                    else
-                        imgData[posIni++] = paper;
-                }
-            }
-        }
+            updateScreen();
 
         // Rejilla horizontal de test
 //        for( int idx = 0; idx < 36; idx ++ )
@@ -210,7 +187,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if (doubleSize) {
             gc2.drawImage(bImg, escalaOp, 0, 0);
         } else {
-            gc2.drawImage(bImg, 0, 0, null);
+            gc2.drawImage(bImg, 0, 0, this);
         }
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
@@ -227,64 +204,72 @@ public class JSpeccyScreen extends javax.swing.JPanel {
      * 16 líneas en las cuales el haz vuelve a la parte superior de la pantalla
      * 48 líneas de borde superior
      * 192 líneas de pantalla
-     * 56 líneas de borde inferior
+     * 56 líneas de borde inferior de las cuales se ven solo 48
      */
     private int tStatesToScrPix(int tstates) {
 
-        // Si los tstates son > 3536 (16 * 224 - 48), no estamos en la zona visible
-        if( tstates < 3536 )
+        // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
+        if( tstates < 3584 )
             return 0;
 
-        int linea = tstates / 224;
-        int pix = (tstates % 224);
+        tstates -= 3584;
+        //tstates &= 0xffff0;
+
+        int row = tstates / 224;
+        int col = (tstates % 224);
+        if( (col % 8) > 3 )
+            col &= 0xf8;
+        
 //        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
 //                tstates,linea, pix, (linea*352+pix)));
-//        if( pix < 48 )
-//            pix = 0;
-//        else
-//            pix -= 48;
-        pix = (linea - 15) * 352 - 176;
-        return pix > 0 ? pix : 0;
-    }
 
-    private void updateBorder2() {
-        int nBorderChg = speccy.nTimesBorderChg;
-        int startRow, endRow;
-        int startCol, endCol;
-        int nDrawPix;
+        if( row < 48 || row > 239 )
+            return row * 352 + col;
 
-        if (nBorderChg == 1) {
-            Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
-            speccy.nTimesBorderChg = 0;
-        } else {
-            Graphics2D gc2 = bImg.createGraphics();
-            for( int idx = 0; idx < (nBorderChg - 1); idx ++ ) {
-                if( speccy.statesBorderChg[idx + 1] < 3536 ) // la zona que no se ve
-                    continue;
-                startRow = speccy.statesBorderChg[idx] / 224;
-                endRow  = speccy.statesBorderChg[idx + 1] / 224;
-                startCol = speccy.statesBorderChg[idx] % 224;
-                endCol  = speccy.statesBorderChg[idx + 1] % 224;
+        int pix = row * 352;
+        // El borde cambió antes de la zona visible
+        if( pix < 0 )
+            pix = 0;
 
-            }
-        }
+        // El borde cambió durante la zona de video. Lo llevamos a la derecha
+        if( col < 128 )
+            pix += 304;
 
+        // El borde cambió en la franja derecha. Cada T-State == 2 píxeles
+        if( col > 127 && col < 152 )
+            pix += col * 2;
+
+        if( col > 151 && col < 200 )
+            pix += 352;
+
+        // El borde cambió en la franja izquierda
+        if( col > 199 )
+            pix += (col - 200) * 2 + 352;
+
+//        if( (pix % 16) != 0 ) {
+//            pix &= 0xf0;
+//        }
+
+        return pix;
     }
 
     private void updateBorder() {
         int nBorderChg = speccy.nTimesBorderChg;
         int startPix, endPix;
 
-        System.out.println("Cambios de border: " + nBorderChg);
-        for( int idx = 0; idx < nBorderChg; idx++ )
-            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
-                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
+//        System.out.println("Cambios de border: " + nBorderChg);
+//        for( int idx = 0; idx < nBorderChg; idx++ )
+//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
+//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
 
         if (nBorderChg == 1) {
             Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
             speccy.nTimesBorderChg = 0;
         } else {
             for (int idx = 0; idx < (nBorderChg - 1); idx++) {
+                if( speccy.statesBorderChg[idx + 1] < 3584 )
+                    continue;
+
                 startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
                 endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
 
@@ -321,6 +306,33 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
     }
 
+    private void updateScreen() {
+        int paper, ink;
+        int addr, nAttr;
+        int pixel, attr;
+        int posIni;
+
+        for( int cordy = 0; cordy < 192; cordy++ ) {
+            posIni = 352 * cordy + 16944; // 16944 = 48 * 352 + 48
+            // Ahora dibujamos la línea de pantalla
+            addr = scrAddr[cordy];
+            nAttr = scr2attr[cordy];
+            for( int cordx = 0; cordx < 32; cordx++ ) {
+                attr = pScrn[nAttr++];
+                if( attr > 0x7f )
+                    attr &= flash;
+                ink = Ink[attr];
+                paper = Paper[attr];
+                pixel = pScrn[addr++];
+                for( int mask = 0x80; mask != 0; mask >>= 1 ) {
+                    if( (pixel & mask) != 0 )
+                        imgData[posIni++] = ink;
+                    else
+                        imgData[posIni++] = paper;
+                }
+            }
+        }
+    }
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
