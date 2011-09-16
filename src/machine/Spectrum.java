@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/aquaplane.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/ulatest3-modified.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -121,7 +121,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        jscr.toggleDoubleSize();
+        //jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
@@ -292,10 +292,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int inPort(int port) {
         int res = port >>> 8;
         int keys = 0xff;
-        //contendedIO(port);
-        if( (port & 0xC000) == 0x4000 )
-            z80.tEstados += delayTstates[z80.tEstados];
-        z80.tEstados++;
+        contendedIO(port);
+
+        if ((port & 0xff) == 0xff) {
+            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
+                    z80.tEstados, z80.getRegPC()));
+        }
+
+//        if( (port & 0xC000) == 0x4000 )
+//            z80.tEstados += delayTstates[z80.tEstados];
+//        z80.tEstados++;
+
         //System.out.println(String.format("%5d PR %04x %02x", z80.tEstados, port, res));
         if( (port & 0xff) == 0xfe ) {
             switch (res) {
@@ -332,42 +339,74 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                         }
                     }
             }
-            contendedIO(port);
+            //contendedIO(port);
+            if( (port & 0xC000) == 0x4000 )
+                z80.tEstados += delayTstates[z80.tEstados];
+            z80.tEstados++;
             return keys;
         }
 
         if( (port & 0xff) == 0xff ) {
             int tstates = z80.tEstados;
-            if( tstates < 14347 || tstates > 57343 ) {
-                contendedIO(port);
+            if( tstates < 14338 || tstates > 57344 ) {
+                if( (port & 0xC000) == 0x4000 )
+                z80.tEstados += delayTstates[z80.tEstados];
+                    z80.tEstados++;
+                //contendedIO(port);
                 return 0xff;
             }
 
             int row = tstates / 224 - 64;
-            int col = tstates % 224;
-            if( col < 11 || col > 139 ) {
-                contendedIO(port);
+            int col = (tstates % 224) - 2;
+            
+            if( col > 124 ) {
+                //contendedIO(port);
+                if( (port & 0xC000) == 0x4000 )
+                z80.tEstados += delayTstates[z80.tEstados];
+                    z80.tEstados++;
                 return 0xff;
             }
 
-
-            col = col % 8;
-            switch( col ) {
+            int mod = col % 8;
+            switch( mod ) {
+                case 0:
+                    //contendedIO(port);
+                    if( (port & 0xC000) == 0x4000 )
+                        z80.tEstados += delayTstates[z80.tEstados];
+                        z80.tEstados++;
+                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+                        tstates, row, col, jscr.scrAddr[row] + col / 4));
+                    return z80Ram[jscr.scrAddr[row] + col / 4];
+                case 1:
+                    //contendedIO(port);
+                    if( (port & 0xC000) == 0x4000 )
+            z80.tEstados += delayTstates[z80.tEstados];
+        z80.tEstados++;
+                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+                        tstates, row, col, jscr.scr2attr[row] + col / 4));
+                    return z80Ram[jscr.scr2attr[row] + col / 4];
+                case 2:
+                    //contendedIO(port);
+                    if( (port & 0xC000) == 0x4000 )
+            z80.tEstados += delayTstates[z80.tEstados];
+        z80.tEstados++;
+                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+                        tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
+                    return z80Ram[jscr.scrAddr[row] + col / 4 + 1];
                 case 3:
-                    contendedIO(port);
-                    return z80Ram[jscr.scrAddr[row] + col];
-                case 4:
-                    contendedIO(port);
-                    return z80Ram[jscr.scr2attr[row] + col];
-                case 5:
-                    contendedIO(port);
-                    return z80Ram[jscr.scrAddr[row] + col + 1];
-                case 6:
-                    contendedIO(port);
-                    return z80Ram[jscr.scr2attr[row] + col + 1];
+                    if( (port & 0xC000) == 0x4000 )
+            z80.tEstados += delayTstates[z80.tEstados];
+        z80.tEstados++;
+                    //contendedIO(port);
+                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+                        tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
+                    return z80Ram[jscr.scr2attr[row] + col / 4 + 1];
             }
         }
-        contendedIO(port);
+        //contendedIO(port);
+        if( (port & 0xC000) == 0x4000 )
+            z80.tEstados += delayTstates[z80.tEstados];
+        z80.tEstados++;
         return 0xff;
     }
 
@@ -383,7 +422,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.tEstados++;
 
         if( (port & 0xff) == 0xfe ) {
-            if( (portMap[0xfe] & 0x07) != (value & 0x07) ) {
+            if( (portMap[0xfe] & 0x07) != (value & 0x07) && nTimesBorderChg < 1024 ) {
                 statesBorderChg[nTimesBorderChg] = z80.tEstados;
                 valueBorderChg[nTimesBorderChg] = value & 0x07;
                 nTimesBorderChg++;
@@ -401,7 +440,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        z80.tEstados++;
 //    }
 
-    private void contendedIO(int port) {
+        private void contendedIO(int port) {
         if( (port & 0x0001) != 0 ) {
             if( ( port & 0xc000 ) == 0x4000 ) {
                 // A0 == 1 y es contended RAM
@@ -431,21 +470,38 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 z80.tEstados += 3;
             }
         }
-//        if( (port & 0x0001) != 0 ) {
-//            if( ( port & 0xc000 ) == 0x4000 ) {
-//                //System.out.println(String.format(strPC, z80.getTEstados(), port));
+    }
+
+    private void postContendedIO(int port) {
+        if( (port & 0x0001) != 0 ) {
+            if( ( port & 0xc000 ) == 0x4000 ) {
+                // A0 == 1 y es contended RAM
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados++;
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados++;
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados++;
+//                z80.tEstados += delayTstates[z80.tEstados];
 //                z80.tEstados++;
-//                //System.out.println(String.format(strPC, z80.getTEstados(), port));
+            } else {
+                // A0 == 1 y no es contended RAM
+                z80.tEstados += 3;
+            }
+        } else {
+            if( ( port & 0xc000 ) == 0x4000 ) {
+                // A0 == 0 y es contended RAM
+//                z80.tEstados += delayTstates[z80.tEstados];
 //                z80.tEstados++;
-//                //System.out.println(String.format(strPC, z80.getTEstados(), port));
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados += 3;
+            } else {
+                // A0 == 0 y no es contended RAM
 //                z80.tEstados++;
-//            } else {
-//                z80.tEstados += 3;
-//            }
-//        } else {
-//            //System.out.println(String.format(strPC, z80.getTEstados(), port));
-//            z80.tEstados += 3;
-//        }
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados += 3;
+            }
+        }
     }
 
     public void keyPressed(KeyEvent evt) {

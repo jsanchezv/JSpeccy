@@ -15,7 +15,6 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-import java.util.Arrays;
 import machine.Spectrum;
 
 /**
@@ -174,9 +173,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
         //pScrn = SpectrumRam;
-        if( speccy.nTimesBorderChg != 0 )
+        if( speccy.nTimesBorderChg != 0 ) {
+            //long start = System.currentTimeMillis();
             updateBorder();
-
+            //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
+        }
             updateScreen();
 
         // Rejilla horizontal de test
@@ -208,12 +209,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
      */
     private int tStatesToScrPix(int tstates) {
 
-        // Si los tstates son < 3584 (16 * 224 - 72), no estamos en la zona visible
+        // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
         if( tstates < 3584 )
             return 0;
 
         tstates -= 3584;
-        //tstates &= 0xffff0;
         
         int row = tstates / 224;
         int col = tstates % 224;
@@ -222,65 +222,36 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         col -= mod;
         if( mod > 3 )
             col += 4;
-        
-        
-//        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
-//                tstates,linea, pix, (linea*352+pix)));
-
-//        if( row < 48 || row > 239 ) {
-//            if( col > 199 )
-//                return row * 352 + (col - 200) * 2;
-//            return row * 352 + (col * 2) + 48;
-//        }
 
         int pix = row * 352;
-        // El borde cambió antes de la zona visible
-//        if( pix < 0 )
-//            pix = 0;
+
+        // Estamos en la parte superior o inferior del borde
+        //if( row < 48 || row > 239 ) {
+            if( col < 153 )
+                return pix += col * 2 + 48;
+            if( col > 199)
+                return pix += (col - 200) * 2 + 352;
+            else
+                return pix + 352;
+        //}
 
         // El borde cambió durante la zona de video. Lo llevamos a la derecha
-        if( col < 128 ) {
-            if( row < 48 || row > 239 ) {
-//                System.out.println(String.format("row: %d, col %d, offset: %d",
-//                    row, col, col * 2 + 48));
-                pix += col * 2 + 48;
-            }
-            else
-                pix += 304;
-        }
+//        if( col < 128 )
+//            pix += 304;
 
         // El borde cambió en la franja derecha. Cada T-State == 2 píxeles
-        if( col > 127 && col < 152 ) {
-            if( row < 48 || row > 239 ) {
-//                System.out.println(String.format("row: %d, col %d, offset: %d",
-//                    row, col, col * 2 + 48));
-            }
-            pix += col * 2 + 48;
-        }
+//        if( col > 127 && col < 152 )
+//            pix += col * 2 + 48;
 
         // El borde cambió durante el HSync-Blank, se verá en la línea siguente
-        if( col > 151 && col < 200 ) {
-            if( (row < 48 || row > 239) && col == 152 ) {
-//                System.out.println(String.format("row: %d, col %d, offset: %d",
-//                    row, col, col * 2 + 48));
-                pix += col * 2 + 48;
-            }
-            else
-                pix += 352;
-        }
+//        if( col > 151 && col < 200 )
+//            pix += 352;
 
         // El borde cambió en la franja izquierda de la siguiente línea
-        if( col > 199 ) {
-//            System.out.println(String.format("row: %d, col %d, offset: %d",
-//                    row, col, (col - 200) * 2 + 352));
-            pix += (col - 200) * 2 + 352;
-        }
+//        if( col > 199 )
+//            pix += (col - 200) * 2 + 352;
 
-//        if( (pix % 16) != 0 ) {
-//            pix &= 0xf0;
-//        }
-
-        return pix;
+        //return pix;
     }
 
     private void updateBorder() {
@@ -293,9 +264,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
 
         if (nBorderChg == 1) {
-            Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
+            //Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
             speccy.nTimesBorderChg = 0;
+            intArrayFill(imgData, Paleta[speccy.portMap[0xfe] & 0x07]);
         } else {
+//            int color;
             for (int idx = 0; idx < (nBorderChg - 1); idx++) {
                 if( speccy.statesBorderChg[idx + 1] < 3584 )
                     continue;
@@ -303,31 +276,19 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
                 endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
 
-                if( startPix == endPix )
-                    continue;
-
-                if (startPix >= imgData.length) {
-                    startPix = imgData.length - 1;
-                }
-                if (endPix >= imgData.length) {
-                    endPix = imgData.length - 1;
-                }
-                //System.out.println(String.format("startPix: %d\tendPix %d", startPix, endPix));
-                if (endPix > startPix) {
-                    Arrays.fill(imgData, startPix, endPix,
-                        Paleta[speccy.valueBorderChg[idx]]);
-                }
+//                color = Paleta[speccy.valueBorderChg[idx]];
+//                for (int count = startPix; count < endPix; count++)
+//                    imgData[count] = color;
+                fill(imgData, startPix, endPix, Paleta[speccy.valueBorderChg[idx]]);
             }
-
-            startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
-            if (startPix >= imgData.length) {
-                startPix = imgData.length - 1;
-            }
-            //System.out.println("startPix final: " + startPix);
 
             // Pinta desde el último cambio hasta el final
-            Arrays.fill(imgData, startPix, imgData.length - 1,
+            startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
+            fill(imgData, startPix, imgData.length - 1,
                 Paleta[speccy.valueBorderChg[nBorderChg - 1]]);
+//            color = Paleta[speccy.valueBorderChg[nBorderChg - 1]];
+//            for( int count = startPix; count < imgData.length - 1; count++ )
+//                imgData[count] = color;
 
             // Y encola para el siguiente frame el primer cambio
             speccy.statesBorderChg[0] = 0;
@@ -363,6 +324,52 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
     }
+
+    public void intArrayFill(int[] array, int value) {
+        int len = array.length;
+        if (len > 0) {
+            array[0] = value;
+        }
+
+        for (int idx = 1; idx < len; idx += idx) {
+            System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
+        }
+    }
+
+    public void fill(int[] arr, int fromIndex, int toIndex, int obj) {
+		int arrayLen=arr.length;
+
+        if (fromIndex > toIndex)
+            throw new IllegalArgumentException("fromIndex(" + fromIndex +
+                       ") > toIndex(" + toIndex+")");
+        if (fromIndex < 0)
+            throw new ArrayIndexOutOfBoundsException(fromIndex);
+        if (toIndex > arrayLen)
+            throw new ArrayIndexOutOfBoundsException(toIndex);
+
+		int size=toIndex-fromIndex;
+		int blockSize=1<<5;
+
+		if (size > (blockSize << 1) - blockSize) {
+			int j=fromIndex+blockSize;
+			for(int hh=fromIndex;hh<j;hh++) {
+			 arr[hh]=obj;
+			}
+			while (j+blockSize<toIndex) {
+					System.arraycopy(arr,fromIndex,arr,j,blockSize);
+					j+=blockSize;
+					blockSize <<= 1;
+			}
+			if (j<=toIndex) {
+					System.arraycopy(arr,fromIndex,arr,j,toIndex-j);
+			}
+		} else {
+			for(int hh=fromIndex;hh<toIndex;hh++) {
+				 arr[hh]=obj;
+			}
+		}
+	}
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
