@@ -69,7 +69,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void startEmulation() {
         timerFrame = new Timer();
-        timerFrame.scheduleAtFixedRate(taskFrame, 0, 5);
+        timerFrame.scheduleAtFixedRate(taskFrame, 0, 1);
     }
 
     public void stopEmulation() {
@@ -101,19 +101,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void execFrame() {
         //long start = System.currentTimeMillis();
-        boolean intREQ = false;
 
         z80.tEstados = frameStart;
         z80.setINTLine(true);
-        intREQ = true;
-        //z80.statesLimit = 69888;
-        while( z80.tEstados < 69888 ) {
-            z80.execInstruction();
-            if( intREQ ) {
-                z80.setINTLine(false);
-                intREQ = false;
-            }
-        }
+        z80.statesLimit = 69888;
+        
+        z80.execute();
+
         //System.out.println("execFrame: ejecutados " + z80.getTEstados());
         //System.out.println("PC: " + z80.getRegPC());
         frameStart = z80.tEstados - 69888;
@@ -123,7 +117,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private void loadRom() {
         try {
             try {
-                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+                fIn = new FileInputStream("spectrum.rom");
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero spectrum.rom");
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -316,7 +310,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int MREQstates(int address, int tstates) {
         int delay = 0;
 
-        //address &= 0xffff;
+        address &= 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
             int tEstados = z80.tEstados;
             for( int idx = 0; idx < tstates; idx++ ) {
