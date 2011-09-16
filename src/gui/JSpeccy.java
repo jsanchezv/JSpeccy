@@ -24,6 +24,7 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreen(jscr);
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
+        addKeyListener(jscr);
         spectrum.startEmulation();
     }
     

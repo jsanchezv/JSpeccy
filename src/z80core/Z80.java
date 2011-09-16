@@ -9,29 +9,37 @@
 //				las instrucciones del repertorio del mismo.
 //-----------------------------------------------------------------------------
 /*
- * Versión:     2.0
- * Autor:       José Luis Sánchez Villanueva
+ * Versión: 2.0
+ * Autor:   José Luis Sánchez Villanueva
  *
- * Notas:       09/01/2008 pasa los 68 tests de ZEXALL, con lo que se supone
- *              que realiza una implementación correcta de la Z80.
+ * Notas:   09/01/2008 pasa los 68 tests de ZEXALL, con lo que se supone
+ *          que realiza una implementación correcta de la Z80.
  * 
- *              14/01/2008 pasa también los tests de fuse 0.10, exceptuando
- *              los que fuse no implementa bien (BIT n,(HL)).
- *              Del resto, cumple con los contenidos de los registros, flags,
- *              y t-estados.
+ *          14/01/2008 pasa también los tests de fuse 0.10, exceptuando
+ *          los que fuse no implementa bien (BIT n,(HL)).
+ *          Del resto, cumple con los contenidos de los registros, flags,
+ *          y t-estados.
  * 
- *              15/01/2008 faltaban los flags de las instrucciones IN r,(C).
+ *          15/01/2008 faltaban los flags de las instrucciones IN r,(C).
  *
- *              03/12/2008 se descomponen las instrucciones para poder
- *                         implementar la contended-memory del Spectrum.
+ *          03/12/2008 se descomponen las instrucciones para poder
+ *          implementar la contended-memory del Spectrum.
  *
- *              21/09/2009 modificación a lo bestia del emulador. Los flags
- *                         se convierten de boolean a bits en un int. El único
- *                         que se deja como estaba es el carryFlag. Ahora los
- *                         flags se sacan de tablas precalculadas.
+ *          21/09/2009 modificación a lo bestia del emulador. Los flags
+ *          se convierten de boolean a bits en un int. El único
+ *          que se deja como estaba es el carryFlag. Ahora los
+ *          flags se sacan de tablas precalculadas.
  *
- *              22/09/2009 Optimizado el tratamiento del HALFCARRY_FLAG en los
- *                         métodos add16/add/adc/adc16/sub/sbc/sbc16/cp.
+ *          22/09/2009 Optimizado el tratamiento del HALFCARRY_FLAG en los
+ *          métodos add16/add/adc/adc16/sub/sbc/sbc16/cp.
+ *
+ *          23/09/2009 Los métodos de más 8000 bytecodes no son compilados
+ *          por el JIT a menos que se obliguemos a ello, cosa poco aconsejable.
+ *          El método decodeDDFDCD original tenía más de 12000 bytecodes, así que
+ *          se subdivide en 4 métodos que procesan los códigos por rangos:
+ *          0x00-0x3F, 0x40-0x7F, 0x80-0xBF y 0xC0-0xFF quedando todos por debajo
+ *          de los 5000 bytecodes.
+ *
  */
 package z80core;
 
@@ -42,7 +50,7 @@ public class Z80 {
     private final MemIoOps MemIoImpl;
 
     //Número de estados T que se llevan ejecutados
-    private int tEstados;
+    public int tEstados;
 
     //Código de la instrucción a ejecutar
     private int opCode;
@@ -285,10 +293,6 @@ public class Z80 {
     }
 
     private final void incRegBC() {
-//        int word = ((regB << 8) | regC);
-//        word++;
-//        regB = (word >>> 8) & 0xff;
-//        regC = word & 0xff;
         regC++;
         if( regC < 0x100 )
             return;
@@ -300,10 +304,6 @@ public class Z80 {
     }
 
     private final void decRegBC() {
-//        int word = ((regB << 8) | regC);
-//        word--;
-//        regB = (word >>> 8) & 0xff;
-//        regC = word & 0xff;
         regC--;
         if( regC >= 0 )
             return;
@@ -333,10 +333,6 @@ public class Z80 {
     }
 
     private final void incRegDE() {
-//        int word  = ((regD << 8) | regE);
-//        word++;
-//        regD = (word >>> 8) & 0xff;
-//        regE = word & 0xff;
         regE++;
         if( regE < 0x100 )
             return;
@@ -348,10 +344,6 @@ public class Z80 {
     }
 
     private final void decRegDE() {
-//        int word  = ((regD << 8) | regE);
-//        word--;
-//        regD = (word >>> 8) & 0xff;
-//        regE = word & 0xff;
         regE--;
         if( regE >= 0 )
             return;
@@ -4216,7 +4208,24 @@ public class Z80 {
                 break;
             }
             case 0xCB: {     /*Subconjunto de instrucciones*/
-                decodeDDFDCB(regIXY);
+                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                regPC++;
+                opCode = MemIoImpl.peek8(regPC);
+                tEstados += MemIoImpl.MREQstates(regPC, 2);
+                regPC++;
+                if( opCode < 0x40 ) {
+                    decodeDDFDCBto3F(opCode, address);
+                    break;
+                }
+                if( opCode < 0x80 ) {
+                    decodeDDFDCBto7F(opCode, address);
+                    break;
+                }
+                if( opCode < 0xC0 ) {
+                    decodeDDFDCBtoBF(opCode, address);
+                    break;
+                }
+                decodeDDFDCBtoFF(opCode, address);
                 break;
             }
             case 0xE1: {     /*POP IX*/
@@ -4255,14 +4264,9 @@ public class Z80 {
         return regIXY;
     }
 
-    //Subconjunto de instrucciones 0xDDCB
-    private final void decodeDDFDCB(int regIXY) {
+    //Subconjunto de instrucciones 0xDDCB desde el código 0x00 hasta el 0x3F
+    private final void decodeDDFDCBto3F(int opCode, int address) {
         int work8;
-        int address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
-        regPC++;
-        opCode = MemIoImpl.peek8(regPC);
-        tEstados += MemIoImpl.MREQstates(regPC, 2);
-        regPC++;
         switch (opCode) {
             case 0x00: {     /*RLC (IX+d),B*/
                 regB = rlc(MemIoImpl.peek8(address));
@@ -4648,6 +4652,17 @@ public class Z80 {
                 MemIoImpl.poke8(address, regA);
                 break;
             }
+//            default: {
+//                System.out.println("Error instrucción DDCB " + Integer.toHexString(opCode));
+//                break;
+//            }
+        }
+    }
+
+    //Subconjunto de instrucciones 0xDDCB desde el código 0x40 hasta el 0x7F
+    private final void decodeDDFDCBto7F(int opCode, int address) {
+        switch (opCode) {
+
             case 0x40:
             case 0x41:
             case 0x42:
@@ -4760,6 +4775,13 @@ public class Z80 {
                 tEstados += MemIoImpl.MREQstates(address, 1);
                 break;
             }
+        }
+    }
+
+    //Subconjunto de instrucciones 0xDDCB desde el código 0x80 hasta el 0xBF
+    private final void decodeDDFDCBtoBF(int opCode, int address) {
+        int work8;
+        switch (opCode) {
             case 0x80: {     /*RES 0,(IX+d),B*/
                 regB = res(0x01, (MemIoImpl.peek8(address)));
                 tEstados += MemIoImpl.MREQstates(address, 1);
@@ -5144,6 +5166,13 @@ public class Z80 {
                 MemIoImpl.poke8(address, regA);
                 break;
             }
+        }
+    }
+
+    //Subconjunto de instrucciones 0xDDCB desde el código 0x00 hasta el 0x3F
+    private final void decodeDDFDCBtoFF(int opCode, int address) {
+        int work8;
+        switch (opCode) {
             case 0xC0: {     /*SET 0,(IX+d),B*/
                 regB = set(0x01, (MemIoImpl.peek8(address)));
                 tEstados += MemIoImpl.MREQstates(address, 1);
@@ -5654,7 +5683,7 @@ public class Z80 {
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 regA = regI;
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if( isIFF2() )
+                if( ffIFF2 )
                     sz5h3pnFlags |= PARITY_MASK;
                 break;
             }
@@ -5686,7 +5715,7 @@ public class Z80 {
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 regA = getRegR();
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if( isIFF2() )
+                if( ffIFF2 )
                     sz5h3pnFlags |= PARITY_MASK;
                 break;
             }

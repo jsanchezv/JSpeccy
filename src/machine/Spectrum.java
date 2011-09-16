@@ -6,6 +6,7 @@
 package machine;
 
 import gui.JSpeccyScreen;
+import java.awt.event.KeyEvent;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -29,7 +30,6 @@ public class Spectrum implements z80core.MemIoOps {
     private int frameStart;
     private int nFrame;
     public boolean scrMod;
-    static int nShot;
 
     public static final int FRAMES48k = 70000;
     private static final byte delayTstates[] = new byte[FRAMES48k];
@@ -60,7 +60,7 @@ public class Spectrum implements z80core.MemIoOps {
         loadRom();
         frameStart = 0;
         nFrame = 0;
-        nShot = 0;
+        Arrays.fill(portMap, 0xff);
         taskFrame = new SpectrumTimer(this);
     }
 
@@ -264,12 +264,36 @@ public class Spectrum implements z80core.MemIoOps {
         int res = port >>> 8;
         preIO(port);
         //System.out.println(String.format("%5d PR %04x %02x", z80.tEstados, port, res));
+        if( (port & 0xff) == 0xfe ) {
+            switch (res) {
+                case 0x7f:
+                    res = portMap[0x7ffe];
+                    break;
+                case 0xbf:
+                    res = portMap[0xbffe];
+                    break;
+                case 0xdf:
+                    res = portMap[0xdffe];
+                    break;
+                case 0xef:
+                    res = portMap[0xeffe];
+                    break;
+                case 0xf7:
+                    res = portMap[0xf7fe];
+                    break;
+                case 0xfb:
+                    res = portMap[0xfbfe];
+                    break;
+                case 0xfd:
+                    res = portMap[0xfdfe];
+                    break;
+                case 0xfe:
+                    res = portMap[0xfefe];
+                    break;
+            }
+        }
         postIO(port);
-        if( nShot < 50 && port == 0xbffe ) {
-            nShot++;
-            return 0xfe;
-        } else
-            return 0xff;
+        return res;
     }
 
     public void outPort(int port, int value) {
@@ -320,6 +344,354 @@ public class Spectrum implements z80core.MemIoOps {
         } else {
             //System.out.println(String.format(strPC, z80.getTEstados(), port));
             z80.tEstados += 3;
+        }
+    }
+
+    public void keyPressed(KeyEvent evt) {
+        int key = evt.getKeyCode();
+        switch( key ) {
+            // Fila B - SPACE
+            case KeyEvent.VK_SPACE:
+                portMap[0x7ffe] &= 0xfe;
+                System.out.println("keyPressed: Spacebar");
+                break;
+            case KeyEvent.VK_ALT_GRAPH:
+                portMap[0x7ffe] &= 0xfd;
+                System.out.println("keyPressed: L");
+                break;
+            case KeyEvent.VK_M:
+                portMap[0x7ffe] &= 0xfb;
+                System.out.println("keyPressed: M");
+                break;
+            case KeyEvent.VK_N:
+                portMap[0x7ffe] &= 0xf7;
+                System.out.println("keyPressed: N");
+                break;
+            case KeyEvent.VK_B:
+                portMap[0x7ffe] &= 0x0f;
+                System.out.println("keyPressed: B");
+                break;
+            // Fila ENTER - H
+            case KeyEvent.VK_ENTER:
+                portMap[0xbffe] &= 0xfe;
+                System.out.println("keyPressed: ENTER");
+                break;
+            case KeyEvent.VK_L:
+                portMap[0xbffe] &= 0xfd;
+                System.out.println("keyPressed: L");
+                break;
+            case KeyEvent.VK_K:
+                portMap[0xbffe] &= 0xfb;
+                System.out.println("keyPressed: K");
+                break;
+            case KeyEvent.VK_J:
+                portMap[0xbffe] &= 0x0f7;
+                System.out.println("keyPressed: J");
+                break;
+            case KeyEvent.VK_H:
+                portMap[0xbffe] &= 0x0f;
+                System.out.println("keyPressed: H");
+                break;
+            // Fila P - Y
+            case KeyEvent.VK_P:
+                portMap[0xdffe] &= 0xfe;
+                System.out.println("keyPressed: P");
+                break;
+            case KeyEvent.VK_O:
+                portMap[0xdffe] &= 0xfd;
+                System.out.println("keyPressed: O");
+                break;
+            case KeyEvent.VK_I:
+                portMap[0xdffe] &= 0xfb;
+                System.out.println("keyPressed: I");
+                break;
+            case KeyEvent.VK_U:
+                portMap[0xdffe] &= 0x0f7;
+                System.out.println("keyPressed: U");
+                break;
+            case KeyEvent.VK_Y:
+                portMap[0xdffe] &= 0x0f;
+                System.out.println("keyPressed: Y");
+                break;
+            // Fila 0 - 6
+            case KeyEvent.VK_0:
+                portMap[0xeffe] &= 0xfe;
+                System.out.println("keyPressed: 0");
+                break;
+            case KeyEvent.VK_9:
+                portMap[0xeffe] &= 0xfd;
+                System.out.println("keyPressed: 9");
+                break;
+            case KeyEvent.VK_8:
+                portMap[0xeffe] &= 0xfb;
+                System.out.println("keyPressed: 8");
+                break;
+            case KeyEvent.VK_7:
+                portMap[0xeffe] &= 0x0f7;
+                System.out.println("keyPressed: 7");
+                break;
+            case KeyEvent.VK_6:
+                portMap[0xeffe] &= 0x0f;
+                System.out.println("keyPressed: 6");
+                break;
+            // Fila 1 - 5
+            case KeyEvent.VK_1:
+                portMap[0xf7fe] &= 0xfe;
+                System.out.println("keyPressed: 1");
+                break;
+            case KeyEvent.VK_2:
+                portMap[0xf7fe] &= 0xfd;
+                System.out.println("keyPressed: 2");
+                break;
+            case KeyEvent.VK_3:
+                portMap[0xf7fe] &= 0xfb;
+                System.out.println("keyPressed: 3");
+                break;
+            case KeyEvent.VK_4:
+                portMap[0xf7fe] &= 0x0f7;
+                System.out.println("keyPressed: 4");
+                break;
+            case KeyEvent.VK_5:
+                portMap[0xf7fe] &= 0x0f;
+                System.out.println("keyPressed: 5");
+                break;
+            // Fila Q - T
+            case KeyEvent.VK_Q:
+                portMap[0xfbfe] &= 0xfe;
+                System.out.println("keyPressed: Q");
+                break;
+            case KeyEvent.VK_W:
+                portMap[0xfbfe] &= 0xfd;
+                System.out.println("keyPressed: W");
+                break;
+            case KeyEvent.VK_E:
+                portMap[0xfbfe] &= 0xfb;
+                System.out.println("keyPressed: E");
+                break;
+            case KeyEvent.VK_R:
+                portMap[0xfbfe] &= 0x0f7;
+                System.out.println("keyPressed: R");
+                break;
+            case KeyEvent.VK_T:
+                portMap[0xfbfe] &= 0x0f;
+                System.out.println("keyPressed: T");
+                break;
+            // Fila A - G
+            case KeyEvent.VK_A:
+                portMap[0xfdfe] &= 0xfe;
+                System.out.println("keyPressed: A");
+                break;
+            case KeyEvent.VK_S:
+                portMap[0xfdfe] &= 0xfd;
+                System.out.println("keyPressed: S");
+                break;
+            case KeyEvent.VK_D:
+                portMap[0xfdfe] &= 0xfb;
+                System.out.println("keyPressed: D");
+                break;
+            case KeyEvent.VK_F:
+                portMap[0xfdfe] &= 0x0f7;
+                System.out.println("keyPressed: F");
+                break;
+            case KeyEvent.VK_G:
+                portMap[0xfdfe] &= 0x0f;
+                System.out.println("keyPressed: G");
+                break;
+            // Fila CAPS_SHIFT - V
+            case KeyEvent.VK_SHIFT:
+                portMap[0xfefe] &= 0xfe;
+                System.out.println("keyPressed: CAPS");
+                break;
+            case KeyEvent.VK_Z:
+                portMap[0xfefe] &= 0xfd;
+                System.out.println("keyPressed: Z");
+                break;
+            case KeyEvent.VK_X:
+                portMap[0xfefe] &= 0xfb;
+                System.out.println("keyPressed: X");
+                break;
+            case KeyEvent.VK_C:
+                portMap[0xfefe] &= 0x0f7;
+                System.out.println("keyPressed: C");
+                break;
+            case KeyEvent.VK_V:
+                portMap[0xfefe] &= 0x0f;
+                System.out.println("keyPressed: V");
+                break;
+        }
+    }
+
+    public void keyReleased(KeyEvent evt) {
+        int key = evt.getKeyCode();
+        switch( key ) {
+            // Fila SPACE - B
+            case KeyEvent.VK_SPACE:
+                portMap[0x7ffe] |= 0x01;
+                System.out.println("keyReleased: Spacebar");
+                break;
+            case KeyEvent.VK_ALT_GRAPH:
+                portMap[0x7ffe] |= 0x02;
+                System.out.println("keyReleased: SYMBOL-SHIFT");
+                break;
+            case KeyEvent.VK_M:
+                portMap[0x7ffe] |= 0x04;
+                System.out.println("keyReleased: M");
+                break;
+            case KeyEvent.VK_N:
+                portMap[0x7ffe] |= 0x08;
+                System.out.println("keyReleased: N");
+                break;
+            case KeyEvent.VK_B:
+                portMap[0x7ffe] |= 0x10;
+                System.out.println("keyReleased: B");
+                break;
+            // Fila ENTER - H
+            case KeyEvent.VK_ENTER:
+                portMap[0xbffe] |= 0x01;
+                System.out.println("keyReleased: ENTER");
+                break;
+            case KeyEvent.VK_L:
+                portMap[0xbffe] |= 0x02;
+                System.out.println("keyReleased: L");
+                break;
+            case KeyEvent.VK_K:
+                portMap[0xbffe] |= 0x04;
+                System.out.println("keyReleased: K");
+                break;
+            case KeyEvent.VK_J:
+                portMap[0xbffe] |= 0x08;
+                System.out.println("keyReleased: J");
+                break;
+            case KeyEvent.VK_H:
+                portMap[0xbffe] |= 0x10;
+                System.out.println("keyReleased: H");
+                break;
+            // Fila P - Y
+            case KeyEvent.VK_P:
+                portMap[0xdffe] |= 0x01;
+                System.out.println("keyReleased: P");
+                break;
+            case KeyEvent.VK_O:
+                portMap[0xdffe] |= 0x02;
+                System.out.println("keyReleased: O");
+                break;
+            case KeyEvent.VK_I:
+                portMap[0xdffe] |= 0x04;
+                System.out.println("keyReleased: U");
+                break;
+            case KeyEvent.VK_U:
+                portMap[0xdffe] |= 0x08;
+                System.out.println("keyReleased: U");
+                break;
+            case KeyEvent.VK_Y:
+                portMap[0xdffe] |= 0x10;
+                System.out.println("keyReleased: Y");
+                break;
+            // Fila 0 - 6
+            case KeyEvent.VK_0:
+                portMap[0xeffe] |= 0x01;
+                System.out.println("keyPressed: 0");
+                break;
+            case KeyEvent.VK_9:
+                portMap[0xeffe] |= 0x02;
+                System.out.println("keyPressed: 9");
+                break;
+            case KeyEvent.VK_8:
+                portMap[0xeffe] |= 0x04;
+                System.out.println("keyPressed: 8");
+                break;
+            case KeyEvent.VK_7:
+                portMap[0xeffe] |= 0x08;
+                System.out.println("keyPressed: 7");
+                break;
+            case KeyEvent.VK_6:
+                portMap[0xeffe] |= 0x10;
+                System.out.println("keyPressed: 6");
+                break;
+            // Fila 1 - 5
+            case KeyEvent.VK_1:
+                portMap[0xf7fe] |= 0x01;
+                System.out.println("keyPressed: 1");
+                break;
+            case KeyEvent.VK_2:
+                portMap[0xf7fe] |= 0x02;
+                System.out.println("keyPressed: 2");
+                break;
+            case KeyEvent.VK_3:
+                portMap[0xf7fe] |= 0x04;
+                System.out.println("keyPressed: 3");
+                break;
+            case KeyEvent.VK_4:
+                portMap[0xf7fe] |= 0x08;
+                System.out.println("keyPressed: 4");
+                break;
+            case KeyEvent.VK_5:
+                portMap[0xf7fe] |= 0x10;
+                System.out.println("keyPressed: 5");
+                break;
+            // Fila Q - T
+            case KeyEvent.VK_Q:
+                portMap[0xfbfe] |= 0x01;
+                System.out.println("keyPressed: Q");
+                break;
+            case KeyEvent.VK_W:
+                portMap[0xfbfe] |= 0x02;
+                System.out.println("keyPressed: W");
+                break;
+            case KeyEvent.VK_E:
+                portMap[0xfbfe] |= 0x04;
+                System.out.println("keyPressed: E");
+                break;
+            case KeyEvent.VK_R:
+                portMap[0xfbfe] |= 0x08;
+                System.out.println("keyPressed: R");
+                break;
+            case KeyEvent.VK_T:
+                portMap[0xfbfe] |= 0x10;
+                System.out.println("keyPressed: T");
+                break;
+            // Fila A - G
+            case KeyEvent.VK_A:
+                portMap[0xfdfe] |= 0x01;
+                System.out.println("keyPressed: A");
+                break;
+            case KeyEvent.VK_S:
+                portMap[0xfdfe] |= 0x02;
+                System.out.println("keyPressed: S");
+                break;
+            case KeyEvent.VK_D:
+                portMap[0xfdfe] |= 0x04;
+                System.out.println("keyPressed: D");
+                break;
+            case KeyEvent.VK_F:
+                portMap[0xfdfe] |= 0x08;
+                System.out.println("keyPressed: F");
+                break;
+            case KeyEvent.VK_G:
+                portMap[0xfdfe] |= 0x10;
+                System.out.println("keyPressed: G");
+                break;
+            // Fila CAPS_SHIFT - V
+            case KeyEvent.VK_SHIFT:
+                portMap[0xfefe] |= 0x01;
+                System.out.println("keyPressed: CAPS");
+                break;
+            case KeyEvent.VK_Z:
+                portMap[0xfefe] |= 0x02;
+                System.out.println("keyPressed: Z");
+                break;
+            case KeyEvent.VK_X:
+                portMap[0xfefe] |= 0x04;
+                System.out.println("keyPressed: X");
+                break;
+            case KeyEvent.VK_C:
+                portMap[0xfefe] |= 0x08;
+                System.out.println("keyPressed: C");
+                break;
+            case KeyEvent.VK_V:
+                portMap[0xfefe] |= 0x10;
+                System.out.println("keyPressed: V");
+                break;
         }
     }
 }
