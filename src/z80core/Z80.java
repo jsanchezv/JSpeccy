@@ -829,6 +829,7 @@ public class Z80 {
         /* El módulo 16 del resultado será menor que el módulo 16 del registro A
          * si ha habido HalfCarry. Sucede lo mismo para todos los métodos suma */
         if( (res & 0x0f) < (regA & 0x0f) )
+        //if( (regA & 0x0f) + (valor & 0x0f) > 0x0f )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regA ^ ~valor) & (regA ^ res)) > 0x7f )
@@ -847,6 +848,7 @@ public class Z80 {
         sz5h3pnFlags = sz53n_addTable[res];
 
         if( (res & 0x0f) < (regA & 0x0f) )
+        //if( (regA & 0x0f) + (valor & 0x0f) + (carryFlag ? 1 : 0) > 0x0f )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regA ^ ~valor) & (regA ^ res)) > 0x7f )

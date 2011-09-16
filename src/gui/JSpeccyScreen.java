@@ -22,8 +22,7 @@ import machine.Spectrum;
  *
  * @author  jsanchez
  */
-public class JSpeccyScreen extends javax.swing.JPanel
-            implements KeyListener {
+public class JSpeccyScreen extends javax.swing.JPanel {
     
     //Vector con los valores correspondientes a lo colores anteriores
     public static final int[] Paleta = {
@@ -235,22 +234,6 @@ public class JSpeccyScreen extends javax.swing.JPanel
         }       
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
-    }
-
-    public void keyPressed(java.awt.event.KeyEvent evt) {
-        // TODO add your handling code here:
-        System.out.println("Se pulso una tecla");
-        speccy.keyPressed(evt);
-    }
-
-    public void keyReleased(java.awt.event.KeyEvent evt) {
-        // TODO add your handling code here:
-        System.out.println("Se liberó una tecla");
-        speccy.keyReleased(evt);
-    }
-
-    public void keyTyped(java.awt.event.KeyEvent evt) {
-        // TODO add your handling code here:
     }
 
     /** This method is called from within the constructor to
