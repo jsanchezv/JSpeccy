@@ -60,7 +60,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/downloads/z80tests.sna");
+        loadSNA("z80tests.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -69,7 +69,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void startEmulation() {
         timerFrame = new Timer();
-        timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
+        timerFrame.scheduleAtFixedRate(taskFrame, 0, 5);
     }
 
     public void stopEmulation() {

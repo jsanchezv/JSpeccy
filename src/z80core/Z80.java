@@ -31,7 +31,7 @@
  *          flags se sacan de tablas precalculadas.
  *
  *          22/09/2009 Optimizado el tratamiento del HALFCARRY_FLAG en los
- *          métodos add16/add/adc/adc16/sub/sbc/sbc16/cp.
+ *          métodos add16/add/sub/cp.
  *
  *          23/09/2009 Los métodos de más 8000 bytecodes no son compilados
  *          por el JIT a menos que se obliguemos a ello, cosa poco aconsejable.
@@ -767,6 +767,7 @@ public class Z80 {
         tEstados += MemIoImpl.MREQstates(regHL, 4);
         MemIoImpl.poke8(regHL, (memHL >>> 4) | aux);
         sz5h3pnFlags = sz53pn_addTable[regA];
+        memptr = ++regHL & 0xffff;
     }
 
     // A = A7 A6 A5 A4 (HL)7 (HL)6 (HL)5 (HL)4
@@ -783,6 +784,7 @@ public class Z80 {
         tEstados += MemIoImpl.MREQstates(regHL, 4);
         MemIoImpl.poke8(regHL, ((memHL << 4) | aux) & 0xff);
         sz5h3pnFlags = sz53pn_addTable[regA];
+        memptr = ++regHL & 0xffff;
     }
 
     // Rota a la derecha 1 bit el valor del argumento
@@ -816,6 +818,7 @@ public class Z80 {
         if ( (res & 0x0fff) < (reg16 & 0x0fff) )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
+        memptr = ++reg16 & 0xffff;
         return res;
     }
 
@@ -829,7 +832,6 @@ public class Z80 {
         /* El módulo 16 del resultado será menor que el módulo 16 del registro A
          * si ha habido HalfCarry. Sucede lo mismo para todos los métodos suma */
         if( (res & 0x0f) < (regA & 0x0f) )
-        //if( (regA & 0x0f) + (valor & 0x0f) > 0x0f )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regA ^ ~valor) & (regA ^ res)) > 0x7f )
@@ -840,15 +842,14 @@ public class Z80 {
 
     // Suma con acarreo de 8 bits
     private final void adc(int valor) {
-        int res = regA + valor;
-        if( carryFlag )
-            res++;
+        int carry = (carryFlag ? CARRY_MASK : 0x00);
+        int res = regA + valor + carry;
+
         carryFlag = (res > 0xff);
         res &= 0xff;
         sz5h3pnFlags = sz53n_addTable[res];
 
-        if( (res & 0x0f) < (regA & 0x0f) )
-        //if( (regA & 0x0f) + (valor & 0x0f) + (carryFlag ? 1 : 0) > 0x0f )
+        if( (regA & 0x0f) + (valor & 0x0f) +  carry > 0x0f )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regA ^ ~valor) & (regA ^ res)) > 0x7f )
@@ -859,10 +860,11 @@ public class Z80 {
 
     // Suma con acarreo de 16 bits
     private final void adc16(int valor) {
+        int carry = (carryFlag ? CARRY_MASK : 0x00);
         int regHL = getRegHL();
-        int res = regHL + valor;
-        if( carryFlag )
-            res++;
+        memptr = (regHL + 1) & 0xffff;
+        int res = regHL + valor + carry;
+        
         carryFlag = (res > 0xffff);
         res &= 0xffff;
         setRegHL(res);
@@ -870,7 +872,7 @@ public class Z80 {
         if( res != 0 )
             sz5h3pnFlags &= ~ZERO_MASK;
 
-        if( (res & 0x0fff) < (regHL & 0x0fff) )
+        if( (regHL & 0x0fff)+ (valor & 0x0fff) + carry > 0x0fff )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regHL ^ ~valor) & (regHL ^ res)) > 0x7fff )
@@ -898,14 +900,14 @@ public class Z80 {
 
     // Resta con acarreo de 8 bits
     private final void sbc(int valor) {
-        int res = regA - valor;
-        if( carryFlag )
-            res--;
+        int carry = (carryFlag ? CARRY_MASK : 0x00);
+        int res = regA - valor - carry;
+        
         carryFlag = (res & 0x100) != 0;
         res &= 0xff;
         sz5h3pnFlags = sz53n_subTable[res];
 
-        if( (res & 0x0f) > (regA & 0x0f) )
+        if( (((regA & 0x0f) - (valor & 0x0f) -  carry) & 0x10) != 0 )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regA ^ valor) & (regA ^ res)) > 0x7f )
@@ -916,10 +918,11 @@ public class Z80 {
 
     // Resta con acarreo de 16 bits
     private final void sbc16(int valor) {
+        int carry = (carryFlag ? CARRY_MASK : 0x00);
         int regHL = getRegHL();
-        int res = regHL - valor;
-        if( carryFlag )
-            res--;
+        memptr = (regHL + 1) & 0xffff;
+        int res = regHL - valor - carry;
+        
         carryFlag = (res & 0x10000) != 0;
         res &= 0xffff;
         setRegHL(res);
@@ -927,7 +930,7 @@ public class Z80 {
         if( res != 0 )
             sz5h3pnFlags &= ~ZERO_MASK;
 
-        if( (res & 0x0fff) > (regHL & 0x0fff) )
+        if( (((regHL & 0x0fff) - (valor & 0x0fff) -  carry) & 0x1000) != 0 )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
         if( ((regHL ^ valor) & (regHL ^ res)) > 0x7fff )
@@ -1103,19 +1106,25 @@ public class Z80 {
         MemIoImpl.poke8(getRegHL(), work8);
         regB--;
         regB &= 0xff;
+        
+        int tmpTestados = tEstados;
+        int memHL = MemIoImpl.peek8(getRegHL());
+        tEstados = tmpTestados;
+
         incRegHL();
         carryFlag = false;
+
         if (work8 > 0x7f)
             sz5h3pnFlags = sz53n_subTable[regB];
         else
             sz5h3pnFlags = sz53n_addTable[regB];
 
-        if( (((regC + 1) & 0xff) + work8) > 0xff ) {
+        if( memHL + ((regC + 1) & 0xff) > 0xff ) {
             sz5h3pnFlags |= HALFCARRY_MASK;
             carryFlag = true;
         }
 
-        if( (sz53pn_addTable[(((((regC + 1) & 0xff) + work8) & 0x07) ^ regB)] &
+        if( (sz53pn_addTable[((memHL + ((regC + 1) & 0xff) & 0x07) ^ regB)] &
                 PARITY_MASK) == PARITY_MASK )
             sz5h3pnFlags |= PARITY_MASK;
     }
@@ -1379,7 +1388,9 @@ public class Z80 {
                 regPC += 2;
                 break;
             case 0x02:       /*LD (BC),A*/
-                MemIoImpl.poke8(getRegBC(), regA);
+                memptr = getRegBC();
+                MemIoImpl.poke8(memptr, regA);
+                memptr = (regA << 8) | (++memptr & 0xff);
                 break;
             case 0x03:       /*INC BC*/
                 incRegBC();
@@ -1412,12 +1423,13 @@ public class Z80 {
                 flagFalt = work8;
                 break;
             case 0x09:       /*ADD HL,BC*/
-                memptr = regH;
                 setRegHL(add16(getRegHL(), getRegBC()));
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
                 break;
             case 0x0A:       /*LD A,(BC)*/
-                regA = MemIoImpl.peek8(getRegBC());
+                memptr = getRegBC();
+                regA = MemIoImpl.peek8(memptr);
+                memptr = (memptr + 1) & 0xffff;
                 break;
             case 0x0B:       /*DEC BC*/
                 decRegBC();
@@ -1456,7 +1468,9 @@ public class Z80 {
                 regPC += 2;
                 break;
             case 0x12:       /*LD (DE),A*/
-                MemIoImpl.poke8(getRegDE(), regA);
+                memptr = getRegDE();
+                MemIoImpl.poke8(memptr, regA);
+                memptr = (regA << 8) | (++memptr & 0xff);
                 break;
             case 0x13: {     /*INC DE*/
                 incRegDE();
@@ -1494,13 +1508,14 @@ public class Z80 {
                 break;
             }
             case 0x19: {     /*ADD HL,DE*/
-                memptr = regH;
                 setRegHL(add16(getRegHL(), getRegDE()));
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
                 break;
             }
             case 0x1A: {     /*LD A,(DE)*/
-                regA = MemIoImpl.peek8(getRegDE());
+                memptr = getRegDE();
+                regA = MemIoImpl.peek8(memptr);
+                memptr = (memptr + 1) & 0xffff;
                 break;
             }
             case 0x1B: {     /*DEC DE*/
@@ -1581,7 +1596,6 @@ public class Z80 {
                 break;
             }
             case 0x29: {     /*ADD HL,HL*/
-                memptr = regH;
                 work16 = getRegHL();
                 setRegHL(add16(work16, work16));
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
@@ -1632,6 +1646,7 @@ public class Z80 {
             }
             case 0x32: {     /*LD (nn),A*/
                 MemIoImpl.poke8(MemIoImpl.peek16(regPC), regA);
+                memptr = (regA << 8) | ((regPC + 1) & 0xff);
                 regPC += 2;
                 break;
             }
@@ -1674,13 +1689,13 @@ public class Z80 {
                 break;
             }
             case 0x39: {     /*ADD HL,SP*/
-                memptr = regH;
                 setRegHL(add16(getRegHL(), regSP));
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 7);
                 break;
             }
             case 0x3A: {     /*LD A,(nn)*/
                 regA = MemIoImpl.peek8(MemIoImpl.peek16(regPC));
+                memptr = (regPC + 1) & 0xffff;
                 regPC += 2;
                 break;
             }
@@ -2217,7 +2232,7 @@ public class Z80 {
             case 0xC0: {     /*RET NZ*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             }
@@ -2226,24 +2241,24 @@ public class Z80 {
                 break;
             }
             case 0xC2: {     /*JP NZ,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
                 break;
             }
             case 0xC3: {     /*JP nn*/
-                regPC = MemIoImpl.peek16(regPC);
+                regPC = memptr = MemIoImpl.peek16(regPC);
                 break;
             }
             case 0xC4: {     /*CALL NZ,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & ZERO_MASK) == 0 ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2262,24 +2277,24 @@ public class Z80 {
             case 0xC7: {     /*RST 00H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x00;
+                regPC = memptr = 0x00;
                 break;
             }
             case 0xC8: {     /*RET Z*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             }
             case 0xC9: {     /*RET*/
-                regPC = pop();
+                regPC = memptr = pop();
                 break;
             }
             case 0xCA: {     /*JP Z,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2290,21 +2305,21 @@ public class Z80 {
                 break;
             }
             case 0xCC: {     /*CALL Z,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & ZERO_MASK) != 0 ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
                 break;
             }
             case 0xCD: {     /*CALL nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                 push(regPC + 2);
-                regPC = work16;
+                regPC = memptr;
                 break;
             }
             case 0xCE: {     /*ADC A,n*/
@@ -2315,13 +2330,13 @@ public class Z80 {
             case 0xCF: {     /*RST 08H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x08;
+                regPC = memptr = 0x08;
                 break;
             }
             case 0xD0: {     /*RET NC*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if (!carryFlag) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             }
@@ -2330,9 +2345,9 @@ public class Z80 {
                 break;
             }
             case 0xD2: {     /*JP NC,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if (!carryFlag) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2341,15 +2356,16 @@ public class Z80 {
             case 0xD3: {     /*OUT (n),A*/
                 work8 = MemIoImpl.peek8(regPC);
                 MemIoImpl.outPort((regA << 8) | work8, regA);
+                memptr = (regA <<8 ) | (work8 + 1);
                 regPC++;
                 break;
             }
             case 0xD4: {     /*CALL NC,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if (!carryFlag) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2368,13 +2384,13 @@ public class Z80 {
             case 0xD7: {     /*RST 10H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x10;
+                regPC = memptr = 0x10;
                 break;
             }
             case 0xD8: {     /*RET C*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if (carryFlag) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             }
@@ -2383,9 +2399,9 @@ public class Z80 {
                 break;
             }
             case 0xDA: {     /*JP C,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if (carryFlag) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2394,15 +2410,16 @@ public class Z80 {
             case 0xDB: {     /*IN A,(n)*/
                 work8 = MemIoImpl.peek8(regPC);
                 regPC++;
+                memptr = (regA << 8) + work8 + 1;
                 regA = MemIoImpl.inPort((regA << 8) | work8);
                 break;
             }
             case 0xDC: {     /*CALL C,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if (carryFlag) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2420,22 +2437,22 @@ public class Z80 {
             case 0xDF: {     /*RST 18 H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x18;
+                regPC = memptr = 0x18;
                 break;
             }
             case 0xE0:       /*RET PO*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & PARITY_MASK) == 0 ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             case 0xE1:       /*POP HL*/
                 setRegHL(pop());
                 break;
             case 0xE2:       /*JP PO,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) == 0 ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2449,13 +2466,14 @@ public class Z80 {
                 MemIoImpl.poke8(regSP + 1, (work16 >>> 8));
                 MemIoImpl.poke8(regSP, work16);
                 tEstados += MemIoImpl.MREQstates(regSP, 2);
+                memptr = getRegHL();
                 break;
             case 0xE4:       /*CALL PO,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) == 0 ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1 , 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2471,21 +2489,21 @@ public class Z80 {
             case 0xE7:       /*RST 20H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x20;
+                regPC = memptr = 0x20;
                 break;
             case 0xE8:       /*RET PE*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( (sz5h3pnFlags & PARITY_MASK) != 0 ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             case 0xE9:       /*JP (HL)*/
                 regPC = getRegHL();
                 break;
             case 0xEA:       /*JP PE,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) != 0 ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2499,11 +2517,11 @@ public class Z80 {
                 regE = work8;
                 break;
             case 0xEC:       /*CALL PE,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( (sz5h3pnFlags & PARITY_MASK) != 0 ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2518,12 +2536,12 @@ public class Z80 {
             case 0xEF:       /*RST 28H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x28;
+                regPC = memptr = 0x28;
                 break;
             case 0xF0:       /*RET P*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( sz5h3pnFlags < SIGN_MASK ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             case 0xF1:       /*POP AF*/
@@ -2532,9 +2550,9 @@ public class Z80 {
                 setFlags(work16 & 0xff);
                 break;
             case 0xF2:       /*JP P,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags < SIGN_MASK ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2544,11 +2562,11 @@ public class Z80 {
                 ffIFF2 = false;
                 break;
             case 0xF4:       /*CALL P,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags < SIGN_MASK ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2564,12 +2582,12 @@ public class Z80 {
             case 0xF7:       /*RST 30H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x30;
+                regPC = memptr = 0x30;
                 break;
             case 0xF8:       /*RET M*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 if ( sz5h3pnFlags > 0x7f ) {
-                    regPC = pop();
+                    regPC = memptr = pop();
                 }
                 break;
             case 0xF9:       /*LD SP,HL*/
@@ -2577,9 +2595,9 @@ public class Z80 {
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 2);
                 break;
             case 0xFA:       /*JP M,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags > 0x7f ) {
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2590,11 +2608,11 @@ public class Z80 {
                 pendingEI = true;
                 break;
             case 0xFC:       /*CALL M,nn*/
-                work16 = MemIoImpl.peek16(regPC);
+                memptr = MemIoImpl.peek16(regPC);
                 if ( sz5h3pnFlags > 0x7f ) {
                     tEstados += MemIoImpl.MREQstates(regPC + 1, 1);
                     push(regPC + 2);
-                    regPC = work16;
+                    regPC = memptr;
                     break;
                 }
                 regPC += 2;
@@ -2609,7 +2627,7 @@ public class Z80 {
             case 0xFF:       /*RST 38H*/
                 tEstados += MemIoImpl.MREQstates(getPairIR(), 1);
                 push(regPC);
-                regPC = 0x38;
+                regPC = memptr = 0x38;
                 break;
             default:
                 System.out.println("Error instrucción " + Integer.toHexString(opCode));
@@ -2814,7 +2832,7 @@ public class Z80 {
                 break;
             }
             case 0x28: {     /*SRA B*/
-                regB= sra(regB);
+                regB = sra(regB);
                 break;
             }
             case 0x29: {     /*SRA C*/
@@ -2946,7 +2964,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x01, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -2982,7 +3000,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x02, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3018,7 +3036,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x04, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3054,7 +3072,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x08, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3090,7 +3108,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x10, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3126,7 +3144,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x20, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3162,7 +3180,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x40, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3198,7 +3216,7 @@ public class Z80 {
                 work16 = getRegHL();
                 bit(0x80, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK) |
-                    (memptr & FLAG_53_MASK);
+                    ((memptr >>> 8) & FLAG_53_MASK);
                 tEstados += MemIoImpl.MREQstates(work16, 1);
                 break;
             }
@@ -3788,7 +3806,7 @@ public class Z80 {
      * interrupciones entre cada prefijo.
      */
     private final int decodeDDFD(int regIXY) {
-        int address, work8;
+        int work8;
         regR++;
         opCode = MemIoImpl.getOpcode(regPC);
         regPC++;
@@ -3847,42 +3865,42 @@ public class Z80 {
                 break;
             }
             case 0x2C: {     /*INC IXl*/
-                regIXY = (regIXY & 0xff00) | (inc8(regIXY & 0xff));
+                regIXY = (regIXY & 0xff00) | inc8(regIXY & 0xff);
                 break;
             }
             case 0x2D: {     /*DEC IXl*/
-                regIXY = (regIXY & 0xff00) | (dec8(regIXY & 0xff));
+                regIXY = (regIXY & 0xff00) | dec8(regIXY & 0xff);
                 break;
             }
             case 0x2E: {     /*LD IXl,n*/
-                regIXY = (regIXY & 0xff00) | (MemIoImpl.peek8(regPC) & 0xff);
+                regIXY = (regIXY & 0xff00) | MemIoImpl.peek8(regPC);
                 regPC++;
                 break;
             }
             case 0x34:       /*INC (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
-                MemIoImpl.poke8(address, inc8(work8));
+                work8 = MemIoImpl.peek8(memptr);
+                tEstados += MemIoImpl.MREQstates(memptr, 1);
+                MemIoImpl.poke8(memptr, inc8(work8));
                 regPC++;
                 break;
             case 0x35: {     /*DEC (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                work8 = MemIoImpl.peek8(address);
-                tEstados += MemIoImpl.MREQstates(address, 1);
-                MemIoImpl.poke8(address, dec8(work8));
+                work8 = MemIoImpl.peek8(memptr);
+                tEstados += MemIoImpl.MREQstates(memptr, 1);
+                MemIoImpl.poke8(memptr, dec8(work8));
                 regPC++;
                 break;
             }
             case 0x36: {     /*LD (IX+d),n*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC++;
                 work8 = MemIoImpl.peek8(regPC);
                 tEstados += MemIoImpl.MREQstates(regPC, 2);
                 regPC++;
-                MemIoImpl.poke8(address, work8);
+                MemIoImpl.poke8(memptr, work8);
                 break;
             }
             case 0x39: {     /*ADD IX,SP*/
@@ -3899,11 +3917,10 @@ public class Z80 {
                 break;
             }
             case 0x46: {     /*LD B,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regB = MemIoImpl.peek8(address);
+                regB = MemIoImpl.peek8(memptr);
                 regPC++;
-                memptr = address >>> 8;
                 break;
             }
             case 0x4C: {     /*LD C,IXh*/
@@ -3915,11 +3932,10 @@ public class Z80 {
                 break;
             }
             case 0x4E: {     /*LD C,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regC = MemIoImpl.peek8(address);
+                regC = MemIoImpl.peek8(memptr);
                 regPC++;
-                memptr = address >>> 8;
                 break;
             }
             case 0x54: {     /*LD D,IXh*/
@@ -3931,10 +3947,9 @@ public class Z80 {
                 break;
             }
             case 0x56: {     /*LD D,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regD = MemIoImpl.peek8(address);
-                memptr = address >>> 8;
+                regD = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
             }
@@ -3947,10 +3962,9 @@ public class Z80 {
                 break;
             }
             case 0x5E: {     /*LD E,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regE = MemIoImpl.peek8(address);
-                memptr = address >>> 8;
+                regE = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
             }
@@ -3974,14 +3988,13 @@ public class Z80 {
                 break;
             }
             case 0x65: {     /*LD IXh,IXl*/
-                regIXY = (regIXY & 0x00ff) | ((regIXY << 8) & 0xff00);
+                regIXY = (regIXY & 0x00ff) | ((regIXY & 0xff) << 8);
                 break;
             }
             case 0x66: {     /*LD H,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regH = MemIoImpl.peek8(address);
-                memptr = address >>> 8;
+                regH = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
             }
@@ -4013,10 +4026,9 @@ public class Z80 {
                 break;
             }
             case 0x6E: {     /*LD L,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regL = MemIoImpl.peek8(address);
-                memptr = address >>> 8;
+                regL = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
             }
@@ -4025,51 +4037,51 @@ public class Z80 {
                 break;
             }
             case 0x70: {     /*LD (IX+d),B*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regB);
+                MemIoImpl.poke8(memptr, regB);
                 regPC++;
                 break;
             }
             case 0x71: {     /*LD (IX+d),C*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regC);
+                MemIoImpl.poke8(memptr, regC);
                 regPC++;
                 break;
             }
             case 0x72: {     /*LD (IX+d),D*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regD);
+                MemIoImpl.poke8(memptr, regD);
                 regPC++;
                 break;
             }
             case 0x73: {     /*LD (IX+d),E*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regE);
+                MemIoImpl.poke8(memptr, regE);
                 regPC++;
                 break;
             }
             case 0x74: {     /*LD (IX+d),H*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regH);
+                MemIoImpl.poke8(memptr, regH);
                 regPC++;
                 break;
             }
             case 0x75: {     /*LD (IX+d),L*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regL);
+                MemIoImpl.poke8(memptr, regL);
                 regPC++;
                 break;
             }
             case 0x77: {     /*LD (IX+d),A*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                MemIoImpl.poke8(address, regA);
+                MemIoImpl.poke8(memptr, regA);
                 regPC++;
                 break;
             }
@@ -4082,10 +4094,9 @@ public class Z80 {
                 break;
             }
             case 0x7E: {     /*LD A,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                regA = MemIoImpl.peek8(address);
-                memptr = address >>> 8;
+                regA = MemIoImpl.peek8(memptr);
                 regPC++;
                 break;
             }
@@ -4098,9 +4109,9 @@ public class Z80 {
                 break;
             }
             case 0x86: {     /*ADD A,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                add(MemIoImpl.peek8(address));
+                add(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4113,9 +4124,9 @@ public class Z80 {
                 break;
             }
             case 0x8E: {     /*ADC A,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                adc(MemIoImpl.peek8(address));
+                adc(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4128,9 +4139,9 @@ public class Z80 {
                 break;
             }
             case 0x96: {     /*SUB (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                sub(MemIoImpl.peek8(address));
+                sub(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4143,9 +4154,9 @@ public class Z80 {
                 break;
             }
             case 0x9E: {     /*SBC A,(IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                sbc(MemIoImpl.peek8(address));
+                sbc(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4158,9 +4169,9 @@ public class Z80 {
                 break;
             }
             case 0xA6: {     /*AND (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                and(MemIoImpl.peek8(address));
+                and(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4173,9 +4184,9 @@ public class Z80 {
                 break;
             }
             case 0xAE: {     /*XOR (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                xor(MemIoImpl.peek8(address));
+                xor(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4188,9 +4199,9 @@ public class Z80 {
                 break;
             }
             case 0xB6: {     /*OR (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                or(MemIoImpl.peek8(address));
+                or(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
@@ -4203,31 +4214,31 @@ public class Z80 {
                 break;
             }
             case 0xBE: {     /*CP (IX+d)*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 tEstados += MemIoImpl.MREQstates(regPC, 5);
-                cp(MemIoImpl.peek8(address));
+                cp(MemIoImpl.peek8(memptr));
                 regPC++;
                 break;
             }
             case 0xCB: {     /*Subconjunto de instrucciones*/
-                address = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
+                memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC++;
                 opCode = MemIoImpl.peek8(regPC);
                 tEstados += MemIoImpl.MREQstates(regPC, 2);
                 regPC++;
                 if( opCode < 0x40 ) {
-                    decodeDDFDCBto3F(opCode, address);
+                    decodeDDFDCBto3F(opCode, memptr);
                     break;
                 }
                 if( opCode < 0x80 ) {
-                    decodeDDFDCBto7F(opCode, address);
+                    decodeDDFDCBto7F(opCode, memptr);
                     break;
                 }
                 if( opCode < 0xC0 ) {
-                    decodeDDFDCBtoBF(opCode, address);
+                    decodeDDFDCBtoBF(opCode, memptr);
                     break;
                 }
-                decodeDDFDCBtoFF(opCode, address);
+                decodeDDFDCBtoFF(opCode, memptr);
                 break;
             }
             case 0xE1: {     /*POP IX*/
