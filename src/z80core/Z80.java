@@ -46,6 +46,11 @@
  *          Mis agradecimientos a Mark Woodmass por el programa, a Boo-boo que
  *          investigo el funcionamiento de MEMPTR y a Vladimir Kladov por
  *          traducir al inglés el documento original.
+ *
+ *          02/10/2009 Se modifica el core para que soporte el retriggering de
+ *          interrupciones, cosa que en realidad, estaba pensada desde el
+ *          principio.
+ *
  */
 package z80core;
 
@@ -135,8 +140,8 @@ public class Z80 {
     // En el 128 y superiores, se activa 36 ciclos de reloj
     private boolean activeINT = false;
 
-    // Interrupción reconocida y pendiente de ejecutar
-    private boolean ackINT = false;
+    // Número de t-estados que está activa la INT
+    private int ntEstadosInt;
 
     // Modo de interrupción
     private int modeINT = 0;
@@ -620,6 +625,10 @@ public class Z80 {
     // La línea INT se activa por nivel
     public final void setINTLine(boolean intLine) {
         activeINT = intLine;
+        if( intLine )
+            ntEstadosInt = tEstados;
+        else
+            ntEstadosInt = 0;
     }
 
     //Acceso al modo de interrupción
@@ -664,8 +673,8 @@ public class Z80 {
         pendingEI = false;
         activeNMI = false;
         activeINT = false;
-        ackINT = false;
 
+        ntEstadosInt = 0;
         setIM(IM0);
 
         memptr = 0;
@@ -1329,9 +1338,7 @@ public class Z80 {
      */
     public final void interrupcion() {
 
-        if( !ffIFF1 || pendingEI )
-            return;
-        
+        //System.out.println(String.format("INT at %d T-States", tEstados));
         int tmp = tEstados; // peek8 modifica los tEstados
         // Si estaba en un HALT esperando una INT, lo saca de la espera
         if (MemIoImpl.peek8(regPC) == 0x76) {
@@ -1411,24 +1418,19 @@ public class Z80 {
 
             // Ahora se comprueba si al final de la instrucción anterior se
             // encontró una interrupción enmascarable y, de ser así, se procesa.
-//            if (ackINT) {
-//                ackINT = false;
-//                activeINT = false;
-//                if (ffIFF1) {
-//                    interrupcion();
-//                    continue;
-//                }
-//            }
+            if( (tEstados - ntEstadosInt) >= 32 )
+                activeINT = false;
+
+            if (activeINT) {
+                if( ffIFF1 && !pendingEI )
+                    interrupcion();
+            }
 
             regR++;
-            opCode = MemIoImpl.getOpcode(regPC);
+            opCode = MemIoImpl.fetchOpcode(regPC);
+            //System.out.println(String.format("%04X %02X\t%d", regPC, opCode, tEstados-4));
             regPC = (regPC + 1) & 0xffff;
-            decodeOpcode(opCode);
-            
-            //Mirar si hay solicitada una interrupción enmascarable
-//            if (activeINT && !pendingEI) {
-//                ackINT = true;
-//            }
+            fetchOpcode(opCode);
 
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
@@ -1440,7 +1442,7 @@ public class Z80 {
         return tEstados;
     }
 
-    private final void decodeOpcode(int opCode ) {
+    private final void fetchOpcode(int opCode ) {
         int work8, work16;
         byte salto;
         switch (opCode) {
@@ -2707,7 +2709,7 @@ public class Z80 {
     private final void decodeCB() {
         int work8, work16;
         regR++;
-        opCode = MemIoImpl.getOpcode(regPC);
+        opCode = MemIoImpl.fetchOpcode(regPC);
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x00: {     /*RLC B*/
@@ -3862,7 +3864,7 @@ public class Z80 {
     private final int decodeDDFD(int regIXY) {
         int work8 = tEstados;
         regR++;
-        opCode = MemIoImpl.getOpcode(regPC);
+        opCode = MemIoImpl.fetchOpcode(regPC);
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x09: {     /* ADD IX,BC */
@@ -5647,7 +5649,7 @@ public class Z80 {
     //Subconjunto de instrucciones 0xED
     private final void decodeED() {
         regR++;
-        opCode = MemIoImpl.getOpcode(regPC);
+        opCode = MemIoImpl.fetchOpcode(regPC);
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x40: {     /*IN B,(C)*/

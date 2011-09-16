@@ -117,35 +117,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //speccy = new Spectrum();
         this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
-        System.out.println("imgData.length = " + imgData.length);
+        //System.out.println("imgData.length = " + imgData.length);
         //timerFrame = new Timer();
         //taskFrame = new Clock(this);
         //startEmulation();
         //addKeyListener(this);
         //requestFocus();
     }
-
-
-
-//    public void startEmulation() {
-//        timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
-//    }
-//
-//    public void stopEmulation() {
-//        timerFrame.cancel();
-//    }
-
-//    public void generateFrame() {
-//        //long start = System.currentTimeMillis();
-//        speccy.execFrame();
-//        if( ++nFrame % 16 == 0 ) {
-//            toggleFlash();
-//            speccy.scrMod = true;
-//        }
-//        if( speccy.scrMod )
-//            repaint();
-//        //System.out.println("generateFrame en: " + (System.currentTimeMillis() - start));
-//    }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
@@ -213,6 +191,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if( tstates < 3584 )
             return 0;
 
+        // Si son mayores que 68095 (304 * 224), es la zona no visible inferior
+        if( tstates > 68095 )
+            return imgData.length - 1;
+
         tstates -= 3584;
         
         int row = tstates / 224;
@@ -223,6 +205,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if( mod > 3 )
             col += 4;
 
+//        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
+//                tstates+3584, row, col, mod));
+        
         int pix = row * 352;
 
         // Estamos en la parte superior o inferior del borde
@@ -258,41 +243,44 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int nBorderChg = speccy.nTimesBorderChg;
         int startPix, endPix;
 
-        System.out.println("Cambios de border: " + nBorderChg);
-        for( int idx = 0; idx < nBorderChg; idx++ )
-            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
-                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
+//        System.out.println("Cambios de border: " + nBorderChg);
+//        for( int idx = 0; idx < nBorderChg; idx++ )
+//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
+//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
 
         if (nBorderChg == 1) {
-            //Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
             speccy.nTimesBorderChg = 0;
-            intArrayFill(imgData, Paleta[speccy.portMap[0xfe] & 0x07]);
+            intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
         } else {
             int color;
             for (int idx = 0; idx < (nBorderChg - 1); idx++) {
-                if( speccy.statesBorderChg[idx + 1] < 3584 )
-                    continue;
+//                if( speccy.statesBorderChg[idx + 1] < 3584 )
+//                    continue;
 
                 startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
+//                if( startPix > imgData.length - 1)
+//                    continue;
+
                 endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
+                if( endPix > imgData.length - 1)
+                    endPix = imgData.length - 1;
 
                 color = Paleta[speccy.valueBorderChg[idx]];
                 for (int count = startPix; count < endPix; count++)
                     imgData[count] = color;
-//                fill(imgData, startPix, endPix, Paleta[speccy.valueBorderChg[idx]]);
             }
 
             // Pinta desde el último cambio hasta el final
             startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
-//            fill(imgData, startPix, imgData.length - 1,
-//                Paleta[speccy.valueBorderChg[nBorderChg - 1]]);
-            color = Paleta[speccy.valueBorderChg[nBorderChg - 1]];
-            for( int count = startPix; count < imgData.length - 1; count++ )
-                imgData[count] = color;
+            if( startPix > imgData.length - 1) {
+                color = Paleta[speccy.valueBorderChg[nBorderChg - 1]];
+                for( int count = startPix; count < imgData.length - 1; count++ )
+                    imgData[count] = color;
+            }
 
             // Y encola para el siguiente frame el primer cambio
             speccy.statesBorderChg[0] = 0;
-            speccy.valueBorderChg[0] = speccy.portMap[0xfe] & 0x07;
+            speccy.valueBorderChg[0] = speccy.portFE & 0x07;
             speccy.nTimesBorderChg = 1;
         }
     }
@@ -335,40 +323,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
         }
     }
-
-    public void fill(int[] arr, int fromIndex, int toIndex, int obj) {
-		int arrayLen=arr.length;
-
-        if (fromIndex > toIndex)
-            throw new IllegalArgumentException("fromIndex(" + fromIndex +
-                       ") > toIndex(" + toIndex+")");
-        if (fromIndex < 0)
-            throw new ArrayIndexOutOfBoundsException(fromIndex);
-        if (toIndex > arrayLen)
-            throw new ArrayIndexOutOfBoundsException(toIndex);
-
-		int size=toIndex-fromIndex;
-		int blockSize=1<<5;
-
-		if (size > (blockSize << 1) - blockSize) {
-			int j=fromIndex+blockSize;
-			for(int hh=fromIndex;hh<j;hh++) {
-			 arr[hh]=obj;
-			}
-			while (j+blockSize<toIndex) {
-					System.arraycopy(arr,fromIndex,arr,j,blockSize);
-					j+=blockSize;
-					blockSize <<= 1;
-			}
-			if (j<=toIndex) {
-					System.arraycopy(arr,fromIndex,arr,j,toIndex-j);
-			}
-		} else {
-			for(int hh=fromIndex;hh<toIndex;hh++) {
-				 arr[hh]=obj;
-			}
-		}
-	}
 
     /** This method is called from within the constructor to
      * initialize the form.

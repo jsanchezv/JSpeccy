@@ -25,7 +25,7 @@ public class JSpeccy extends javax.swing.JFrame {
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum);
-        spectrum.startEmulation();
+        //spectrum.startEmulation();
     }
     
     /** This method is called from within the constructor to

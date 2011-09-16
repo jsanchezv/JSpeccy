@@ -24,13 +24,17 @@ import z80core.Z80;
 public class Spectrum implements z80core.MemIoOps, KeyListener {
     private Z80 z80;
     private int z80Ram[] = new int[0x10000];
-    public int portMap[] = new int[0x10000];
+    private int rowKey[] = new int[8];
+    public int portFE;
     // veces que ha cambiado el borde en el último frame
     // tEstados cuando cambió la N vez el borde
     // valor del borde en el cambio N
     public int nTimesBorderChg;
-    public int statesBorderChg[] = new int[1024];
-    public int valueBorderChg[] = new int[1024];
+    public int statesBorderChg[] = new int[2048];
+    public int valueBorderChg[] = new int[2048];
+
+    private int nChgScr;
+    private int nChgAttr;
 
     private FileInputStream fIn;
 
@@ -65,14 +69,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/btime.sna");
         frameStart = 0;
         nFrame = 0;
-        Arrays.fill(portMap, 0xff);
+        Arrays.fill(rowKey, 0xff);
+        portFE = 0xff;
         taskFrame = new SpectrumTimer(this);
         nTimesBorderChg = 1;
         statesBorderChg[0] = 0;
         valueBorderChg[0] = 7;
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/Paperboy.sna");
+        //startEmulation();
     }
 
     public void startEmulation() {
@@ -82,19 +88,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void stopEmulation() {
-        timerFrame.cancel();
+        if( timerFrame != null )
+            timerFrame.cancel();
+        timerFrame = null;
     }
 
     public void generateFrame() {
         //long startFrame, endFrame, sleepTime;
         //startFrame = System.currentTimeMillis();
         //System.out.println("Start frame: " + startFrame);
+        nChgScr = 0;
+        nChgAttr = 0;
         scrMod = false;
 
         z80.tEstados = frameStart;
         z80.statesLimit = 69888;
 
-        z80.interrupcion();
+        z80.setINTLine(true);
         z80.execute();
 
         //System.out.println("execFrame: ejecutados " + z80.getTEstados());
@@ -109,8 +119,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        if( nTimesBorderChg > 0)
 //            System.out.println("El borde cambió " + nTimesBorderChg+ " veces");
 
+        //System.out.println(String.format("Scr: %d\tAttr: %d", nChgScr, nChgAttr));
         if ( nTimesBorderChg != 0 || scrMod ) {
-            jscr.repaint();
+            if( jscr != null )
+                jscr.repaint();
         }
 
         //endFrame = System.currentTimeMillis();
@@ -121,7 +133,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        //jscr.toggleDoubleSize();
+        jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
@@ -158,10 +170,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        throw new UnsupportedOperationException("Not supported yet.");
 //    }
 
-    public int getOpcode(int address) {
-        //int delay = 4;
-
-        //System.out.println(String.format(strMC, z80.getTEstados(), address));
+    public int fetchOpcode(int address) {
 
         if( (address & 0xC000) == 0x4000 ) {
 //            System.out.println(String.format("getOpcode: %d %d %d",
@@ -170,42 +179,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 //System.out.println("R(" + dire +"): ");
         }
         
-        //z80.tEstados += 4;
-        
-//        if( (z80.getPairIR() & 0xC000) == 0x4000 )
-//            z80.tEstados += delayTstates[z80.tEstados];
-        
         z80.tEstados += 4;
 
-        //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         return z80Ram[address];
     }
 
     public int peek8(int address) {
-        //int delay = 3;
 
-        //System.out.println(String.format(strMC, z80.getTEstados(), address));
-        //address &= 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
         }
         z80.tEstados += 3;
 
-        //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         return z80Ram[address];
     }
 
     public void poke8(int address, int value) {
-        //int delay = 3;
-
-        //System.out.println(String.format(strMC, z80.getTEstados(), address));
-
-        //address &= 0xffff;
-        if( address < 0x4000 ) // en la rom no se escribe (o no sería ROM)
-            return;
-
+        
         if( (address & 0xC000) == 0x4000 ) {
+            if( address < 0x5800 )
+                nChgScr++;
+            if( address > 0x57ff && address < 0x5b00)
+                nChgAttr++;
+            
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
         }
@@ -214,72 +211,60 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             scrMod = true;
 
         z80.tEstados += 3;
-        z80Ram[address] = value & 0xff;
-        //System.out.println(String.format(strMW, z80.getTEstados(), address, z80Ram[address]));
+
+        if( address > 0x3fff )
+            z80Ram[address] = value & 0xff;
     }
 
     public int peek16(int address) {
-//        int lsb = peek8(address);
-//        int msb = peek8(address + 1);
-//        return (msb << 8) | lsb;
+
         int lsb, msb;
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
-                //System.out.println("R(" + dire +"): ");
         }
         z80.tEstados += 3;
-        //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         lsb = z80Ram[address];
 
         address = (address + 1) & 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
-                //System.out.println("R(" + dire +"): ");
         }
         z80.tEstados += 3;
 
-        //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         msb = z80Ram[address];
         return (msb << 8) | lsb;
     }
 
     public void poke16(int address, int word) {
-        //poke8(address, word);
-        //poke8(address + 1, word >>> 8);
-        if( address < 0x4000 ) // en la rom no se escribe (o no sería ROM)
-            return;
 
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
-                //System.out.println("R(" + dire +"): ");
         }
 
         if( address < 0x5B00 )
             scrMod = true;
 
         z80.tEstados += 3;
-        z80Ram[address] = word & 0xff;
+        if( address > 0x3fff )
+            z80Ram[address] = word & 0xff;
 
         address = (address + 1) & 0xffff;
-        if( address < 0x4000 ) // en la rom no se escribe (o no sería ROM)
-            return;
 
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
-                //System.out.println("R(" + dire +"): ");
         }
 
         if( address < 0x5B00 )
             scrMod = true;
         
         z80.tEstados += 3;
-        z80Ram[address] = word >>> 8;
+        if( address > 0x3fff )
+            z80Ram[address] = word >>> 8;
     }
 
     public void contendedStates(int address, int tstates) {
         //address &= 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
-            //System.out.println(address + " " + tstates);
             for (int idx = 0; idx < tstates; idx++)
 //                System.out.println(String.format("t-States: %d\taddress:%d\ttstates %d",
 //                    z80.tEstados, address, tstates));
@@ -293,93 +278,72 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         int res = port >>> 8;
         int keys = 0xff;
 
-        //if ((port & 0xff) == 0xff) {
-            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
-                    z80.tEstados, z80.getRegPC()));
-        //}
+//        if ((port & 0xff) == 0xff) {
+//            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
+//                    z80.tEstados, z80.getRegPC()));
+//        }
         //int tstates = z80.tEstados;
+        //postIO(port);
+        //System.out.println(String.format("InPort: %04X", port));
         preIO(port);
+        postIO(port);
 
-        //System.out.println(String.format("%5d PR %04x %02x", z80.tEstados, port, res));
-        if( (port & 0xff) == 0xfe ) {
-            switch (res) {
-                case 0x7f:
-                    keys = portMap[0x7ffe];
-                    break;
-                case 0xbf:
-                    keys = portMap[0xbffe];
-                    break;
-                case 0xdf:
-                    keys = portMap[0xdffe];
-                    break;
-                case 0xef:
-                    keys = portMap[0xeffe];
-                    break;
-                case 0xf7:
-                    keys = portMap[0xf7fe];
-                    break;
-                case 0xfb:
-                    keys = portMap[0xfbfe];
-                    break;
-                case 0xfd:
-                    keys = portMap[0xfdfe];
-                    break;
-                case 0xfe:
-                    keys = portMap[0xfefe];
-                    break;
-                default:
-                    for (int rowKeys = 0x01; rowKeys < 0x100; rowKeys <<= 1) {
-//                   System.out.println(String.format("res: %02x rowKeys: %02x portMap: %04x",
-//                           res, rowKeys, (((~rowKeys & 0xff) << 8) | 0xfe)));
-                        if ((res & rowKeys) == 0) {
-                            keys &= portMap[(((~rowKeys & 0xff) << 8) | 0xfe)];
-                        }
-                    }
+        if( (port & 0x00e0) == 0 )
+            return 0;
+        
+        if( (port & 0x0001) == 0 ) {
+            res = ~res & 0xff;
+            for( int row = 0, mask = 0x01; row < 8; row++, mask <<= 1 ) {
+                if( (res & mask) != 0 )
+                    keys &= rowKey[row];
             }
-            postIO(port);
+            //postIO(port);
+            if ( (portFE & 0x10) == 0 )
+                keys &= 0xbf;
+
             return keys;
         }
 
         if( (port & 0xff) == 0xff ) {
             int tstates = z80.tEstados;
-            if( tstates < 14338 || tstates > 57344 ) {
-                postIO(port);
+            if( tstates < 14324 || tstates > 57332 ) {
+                //postIO(port);
                 return 0xff;
             }
 
             int row = tstates / 224 - 64;
-            int col = (tstates % 224) - 2;
+            int col = (tstates % 224) - 3;
             
             if( col > 124 ) {
-                postIO(port);
+                //postIO(port);
                 return 0xff;
             }
 
             int mod = col % 8;
             switch( mod ) {
                 case 0:
-                    postIO(port);
-                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-                        tstates, row, col, jscr.scrAddr[row] + col / 4));
+                    //postIO(port);
+//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+//                      tstates, row, col, jscr.scrAddr[row] + col / 4));
                     return z80Ram[jscr.scrAddr[row] + col / 4];
                 case 1:
-                    postIO(port);
-                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-                        tstates, row, col, jscr.scr2attr[row] + col / 4));
+                    //postIO(port);
+//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+//                      tstates, row, col, jscr.scr2attr[row] + col / 4));
                     return z80Ram[jscr.scr2attr[row] + col / 4];
                 case 2:
-                    postIO(port);
-                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-                        tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
+                    //postIO(port);
+//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+//                      tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
                     return z80Ram[jscr.scrAddr[row] + col / 4 + 1];
                 case 3:
-                    postIO(port);
-                    System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
-                        tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
+                    //postIO(port);
+//                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
+//                      tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
                     return z80Ram[jscr.scr2attr[row] + col / 4 + 1];
             }
         }
-        postIO(port);
+        //postIO(port);
         return 0xff;
     }
 
@@ -391,15 +355,19 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                    (tEstados < oldstate ? (tEstados+69888-oldstate) : (tEstados-oldstate))));
 //        oldstate = tEstados;
         preIO(port);
+        //postIO(port);
 
-        if( (port & 0xff) == 0xfe ) {
-            if( (portMap[0xfe] & 0x07) != (value & 0x07) && nTimesBorderChg < 1024 ) {
+        if( (port & 0x0001) == 0 ) {
+            if( (portFE & 0x07) != (value & 0x07) && nTimesBorderChg < 2048 ) {
                 statesBorderChg[nTimesBorderChg] = z80.tEstados;
                 valueBorderChg[nTimesBorderChg] = value & 0x07;
                 nTimesBorderChg++;
             }
-            portMap[0xfe] = value;
+            //System.out.println(String.format("outPort: %04X %02x", port, value));
+            
+            portFE = value;
         }
+        //preIO(port);
         postIO(port);
     }
 
@@ -422,7 +390,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
      * con sus contenciones cuando procede y la que añade el estado final con
      * la contención correspondiente.
      */
-    private void preIO(int port) {
+    private void postIO(int port) {
         if ((port & 0x0001) != 0) {
             if ((port & 0xc000) == 0x4000) {
                 // A0 == 1 y es contended RAM
@@ -432,8 +400,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
                 z80.tEstados++;
-//                z80.tEstados += delayTstates[z80.tEstados];
-//                z80.tEstados++;
             } else {
                 // A0 == 1 y no es contended RAM
                 z80.tEstados += 3;
@@ -442,21 +408,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             if ((port & 0xc000) == 0x4000) {
                 // A0 == 0 y es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 2;
+                z80.tEstados += 3;
             } else {
                 // A0 == 0 y no es contended RAM
-                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 2;
+                z80.tEstados += 3;
             }
         }
     }
 
-    private void postIO(int port) {
-       
-            if ((port & 0xc001) == 0x4001 ) {
+    private void preIO(int port) {
+            if ((port & 0xc000) == 0x4000 ) {
                 // A0 == 1 y es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados];
             }
@@ -468,176 +430,174 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         switch( key ) {
             // Fila B - SPACE
             case KeyEvent.VK_SPACE:
-                portMap[0x7ffe] &= 0xfe;
+                rowKey[7] &= 0xfe;
                 break;
             case KeyEvent.VK_ALT_GRAPH:
-                portMap[0x7ffe] &= 0xfd;
+                rowKey[7] &= 0xfd;
                 break;
             case KeyEvent.VK_M:
-                portMap[0x7ffe] &= 0xfb;
+                rowKey[7] &= 0xfb;
                 break;
             case KeyEvent.VK_N:
-                portMap[0x7ffe] &= 0xf7;
+                rowKey[7] &= 0xf7;
                 break;
             case KeyEvent.VK_B:
-                portMap[0x7ffe] &= 0x0f;
+                rowKey[7] &= 0xef;
                 break;
             // Fila ENTER - H
             case KeyEvent.VK_ENTER:
-                portMap[0xbffe] &= 0xfe;
+                rowKey[6] &= 0xfe;
                 break;
             case KeyEvent.VK_L:
-                portMap[0xbffe] &= 0xfd;
+                rowKey[6] &= 0xfd;
                 break;
             case KeyEvent.VK_K:
-                portMap[0xbffe] &= 0xfb;
+                rowKey[6] &= 0xfb;
                 break;
             case KeyEvent.VK_J:
-                portMap[0xbffe] &= 0xf7;
+                rowKey[6] &= 0xf7;
                 break;
             case KeyEvent.VK_H:
-                portMap[0xbffe] &= 0x0f;
+                rowKey[6] &= 0xef;
                 break;
             // Fila P - Y
             case KeyEvent.VK_P:
-                portMap[0xdffe] &= 0xfe;
+                rowKey[5] &= 0xfe;
                 break;
             case KeyEvent.VK_O:
-                portMap[0xdffe] &= 0xfd;
+                rowKey[5] &= 0xfd;
                 break;
             case KeyEvent.VK_I:
-                portMap[0xdffe] &= 0xfb;
+                rowKey[5] &= 0xfb;
                 break;
             case KeyEvent.VK_U:
-                portMap[0xdffe] &= 0xf7;
+                rowKey[5] &= 0xf7;
                 break;
             case KeyEvent.VK_Y:
-                portMap[0xdffe] &= 0x0f;
+                rowKey[5] &= 0xef;
                 break;
             // Fila 0 - 6
             case KeyEvent.VK_0:
-                portMap[0xeffe] &= 0xfe;
+                rowKey[4] &= 0xfe;
                 break;
             case KeyEvent.VK_9:
-                portMap[0xeffe] &= 0xfd;
+                rowKey[4] &= 0xfd;
                 break;
             case KeyEvent.VK_8:
-                portMap[0xeffe] &= 0xfb;
+                rowKey[4] &= 0xfb;
                 break;
             case KeyEvent.VK_7:
-                portMap[0xeffe] &= 0xf7;
+                rowKey[4] &= 0xf7;
                 break;
             case KeyEvent.VK_6:
-                portMap[0xeffe] &= 0x0f; // 6
+                rowKey[4] &= 0xef; // 6
                 break;
             // Fila 1 - 5
             case KeyEvent.VK_1:
-                portMap[0xf7fe] &= 0xfe;
+                rowKey[3] &= 0xfe;
                 break;
             case KeyEvent.VK_2:
-                portMap[0xf7fe] &= 0xfd;
+                rowKey[3] &= 0xfd;
                 break;
             case KeyEvent.VK_3:
-                portMap[0xf7fe] &= 0xfb;
+                rowKey[3] &= 0xfb;
                 break;
             case KeyEvent.VK_4:
-                portMap[0xf7fe] &= 0xf7;
+                rowKey[3] &= 0xf7;
                 break;
             case KeyEvent.VK_5:
-                portMap[0xf7fe] &= 0x0f;
+                rowKey[3] &= 0xef;
                 break;
             // Fila Q - T
             case KeyEvent.VK_Q:
-                portMap[0xfbfe] &= 0xfe;
+                rowKey[2] &= 0xfe;
                 break;
             case KeyEvent.VK_W:
-                portMap[0xfbfe] &= 0xfd;
+                rowKey[2] &= 0xfd;
                 break;
             case KeyEvent.VK_E:
-                portMap[0xfbfe] &= 0xfb;
+                rowKey[2] &= 0xfb;
                 break;
             case KeyEvent.VK_R:
-                portMap[0xfbfe] &= 0xf7;
+                rowKey[2] &= 0xf7;
                 break;
             case KeyEvent.VK_T:
-                portMap[0xfbfe] &= 0x0f;
+                rowKey[2] &= 0xef;
                 break;
             // Fila A - G
             case KeyEvent.VK_A:
-                portMap[0xfdfe] &= 0xfe;
+                rowKey[1] &= 0xfe;
                 break;
             case KeyEvent.VK_S:
-                portMap[0xfdfe] &= 0xfd;
+                rowKey[1] &= 0xfd;
                 break;
             case KeyEvent.VK_D:
-                portMap[0xfdfe] &= 0xfb;
+                rowKey[1] &= 0xfb;
                 break;
             case KeyEvent.VK_F:
-                portMap[0xfdfe] &= 0xf7;
+                rowKey[1] &= 0xf7;
                 break;
             case KeyEvent.VK_G:
-                portMap[0xfdfe] &= 0x0f;
+                rowKey[1] &= 0xef;
                 break;
             // Fila CAPS_SHIFT - V
             case KeyEvent.VK_SHIFT:
-                portMap[0xfefe] &= 0xfe;
+                rowKey[0] &= 0xfe;
                 break;
             case KeyEvent.VK_Z:
-                portMap[0xfefe] &= 0xfd;
+                rowKey[0] &= 0xfd;
                 break;
             case KeyEvent.VK_X:
-                portMap[0xfefe] &= 0xfb;
+                rowKey[0] &= 0xfb;
                 break;
             case KeyEvent.VK_C:
-                portMap[0xfefe] &= 0xf7;
+                rowKey[0] &= 0xf7;
                 break;
             case KeyEvent.VK_V:
-                portMap[0xfefe] &= 0x0f;
+                rowKey[0] &= 0xef;
                 break;
             // Teclas de conveniencia, para mayor comodidad de uso
             case KeyEvent.VK_BACK_SPACE:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xeffe] &= 0xfe; // 0
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xfe; // 0
                 break;
             case KeyEvent.VK_COMMA:
-                portMap[0x7ffe] &= 0xfd; // SYMBOL-SHIFT
-                portMap[0x7ffe] &= 0xf7; // N
+                rowKey[7] &= 0xf5; // SYMBOL-SHIFT + N
                 break;
             case KeyEvent.VK_PERIOD:
-                portMap[0x7ffe] &= 0xfd; // SYMBOL-SHIFT
-                portMap[0x7ffe] &= 0xfb; // M
+                rowKey[7] &= 0xf9; // SYMBOL-SHIFT + M
                 break;
             case KeyEvent.VK_MINUS:
-                portMap[0x7ffe] &= 0xfd; // SYMBOL-SHIFT
-                portMap[0xbffe] &= 0xf7; // J
+                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
+                rowKey[6] &= 0xf7; // J
                 break;
             case KeyEvent.VK_PLUS:
-                portMap[0x7ffe] &= 0xfd; // SYMBOL-SHIFT
-                portMap[0xbffe] &= 0xfb; // K
+                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
+                rowKey[6] &= 0xfb; // K
                 break;
             case KeyEvent.VK_CONTROL:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0x7ffe] &= 0xfd; // SYMBOL-SHIFT -- Extended Mode
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[7] &= 0xfd; // SYMBOL-SHIFT -- Extended Mode
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xf7fe] &= 0xfd; // 2  -- Caps Lock
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[3] &= 0xfd; // 2  -- Caps Lock
                 break;
             case KeyEvent.VK_LEFT:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xf7fe] &= 0x0f; // 5  -- Left arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[7] &= 0xef; // 5  -- Left arrow
                 break;
             case KeyEvent.VK_DOWN:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xeffe] &= 0x0f; // 6  -- Down arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xef; // 6  -- Down arrow
                 break;
             case KeyEvent.VK_UP:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xeffe] &= 0xf7; // 7  -- Up arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xf7; // 7  -- Up arrow
                 break;
             case KeyEvent.VK_RIGHT:
-                portMap[0xfefe] &= 0xfe; // CAPS
-                portMap[0xeffe] &= 0xfb; // 8  -- Left arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xfb; // 8  -- Left arrow
                 break;
         }
     }
@@ -647,176 +607,174 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         switch( key ) {
             // Fila SPACE - B
             case KeyEvent.VK_SPACE:
-                portMap[0x7ffe] |= 0x01; //Spacebar
+                rowKey[7] |= 0x01; //Spacebar
                 break;
             case KeyEvent.VK_ALT_GRAPH:
-                portMap[0x7ffe] |= 0x02; // Symbol-Shift
+                rowKey[7] |= 0x02; // Symbol-Shift
                 break;
             case KeyEvent.VK_M:
-                portMap[0x7ffe] |= 0x04; // M
+                rowKey[7] |= 0x04; // M
                 break;
             case KeyEvent.VK_N:
-                portMap[0x7ffe] |= 0x08; // N
+                rowKey[7] |= 0x08; // N
                 break;
             case KeyEvent.VK_B:
-                portMap[0x7ffe] |= 0x10; // B
+                rowKey[7] |= 0x10; // B
                 break;
             // Fila ENTER - H
             case KeyEvent.VK_ENTER:
-                portMap[0xbffe] |= 0x01; // ENTER
+                rowKey[6] |= 0x01; // ENTER
                 break;
             case KeyEvent.VK_L:
-                portMap[0xbffe] |= 0x02; // L
+                rowKey[6] |= 0x02; // L
                 break;
             case KeyEvent.VK_K:
-                portMap[0xbffe] |= 0x04; // K
+                rowKey[6] |= 0x04; // K
                 break;
             case KeyEvent.VK_J:
-                portMap[0xbffe] |= 0x08; // J
+                rowKey[6] |= 0x08; // J
                 break;
             case KeyEvent.VK_H:
-                portMap[0xbffe] |= 0x10; // H
+                rowKey[6] |= 0x10; // H
                 break;
             // Fila P - Y
             case KeyEvent.VK_P:
-                portMap[0xdffe] |= 0x01; //P
+                rowKey[5] |= 0x01; //P
                 break;
             case KeyEvent.VK_O:
-                portMap[0xdffe] |= 0x02; // O
+                rowKey[5] |= 0x02; // O
                 break;
             case KeyEvent.VK_I:
-                portMap[0xdffe] |= 0x04; // I
+                rowKey[5] |= 0x04; // I
                 break;
             case KeyEvent.VK_U:
-                portMap[0xdffe] |= 0x08; // U
+                rowKey[5] |= 0x08; // U
                 break;
             case KeyEvent.VK_Y:
-                portMap[0xdffe] |= 0x10; // Y
+                rowKey[5] |= 0x10; // Y
                 break;
             // Fila 0 - 6
             case KeyEvent.VK_0:
-                portMap[0xeffe] |= 0x01; // 0
+                rowKey[4] |= 0x01; // 0
                 break;
             case KeyEvent.VK_9:
-                portMap[0xeffe] |= 0x02; // 9
+                rowKey[4] |= 0x02; // 9
                 break;
             case KeyEvent.VK_8:
-                portMap[0xeffe] |= 0x04; // 8
+                rowKey[4] |= 0x04; // 8
                 break;
             case KeyEvent.VK_7:
-                portMap[0xeffe] |= 0x08; // 7
+                rowKey[4] |= 0x08; // 7
                 break;
             case KeyEvent.VK_6:
-                portMap[0xeffe] |= 0x10; // 6
+                rowKey[4] |= 0x10; // 6
                 break;
             // Fila 1 - 5
             case KeyEvent.VK_1:
-                portMap[0xf7fe] |= 0x01;
+                rowKey[3] |= 0x01;
                 break;
             case KeyEvent.VK_2:
-                portMap[0xf7fe] |= 0x02;
+                rowKey[3] |= 0x02;
                 break;
             case KeyEvent.VK_3:
-                portMap[0xf7fe] |= 0x04;
+                rowKey[3] |= 0x04;
                 break;
             case KeyEvent.VK_4:
-                portMap[0xf7fe] |= 0x08;
+                rowKey[3] |= 0x08;
                 break;
             case KeyEvent.VK_5:
-                portMap[0xf7fe] |= 0x10; // 5
+                rowKey[3] |= 0x10; // 5
                 break;
             // Fila Q - T
             case KeyEvent.VK_Q:
-                portMap[0xfbfe] |= 0x01;
+                rowKey[2] |= 0x01;
                 break;
             case KeyEvent.VK_W:
-                portMap[0xfbfe] |= 0x02;
+                rowKey[2] |= 0x02;
                 break;
             case KeyEvent.VK_E:
-                portMap[0xfbfe] |= 0x04;
+                rowKey[2] |= 0x04;
                 break;
             case KeyEvent.VK_R:
-                portMap[0xfbfe] |= 0x08;
+                rowKey[2] |= 0x08;
                 break;
             case KeyEvent.VK_T:
-                portMap[0xfbfe] |= 0x10;
+                rowKey[2] |= 0x10;
                 break;
             // Fila A - G
             case KeyEvent.VK_A:
-                portMap[0xfdfe] |= 0x01;
+                rowKey[1] |= 0x01;
                 break;
             case KeyEvent.VK_S:
-                portMap[0xfdfe] |= 0x02;
+                rowKey[1] |= 0x02;
                 break;
             case KeyEvent.VK_D:
-                portMap[0xfdfe] |= 0x04;
+                rowKey[1] |= 0x04;
                 break;
             case KeyEvent.VK_F:
-                portMap[0xfdfe] |= 0x08;
+                rowKey[1] |= 0x08;
                 break;
             case KeyEvent.VK_G:
-                portMap[0xfdfe] |= 0x10;
+                rowKey[1] |= 0x10;
                 break;
             // Fila CAPS_SHIFT - V
             case KeyEvent.VK_SHIFT:
-                portMap[0xfefe] |= 0x01;
+                rowKey[0] |= 0x01;
                 break;
             case KeyEvent.VK_Z:
-                portMap[0xfefe] |= 0x02;
+                rowKey[0] |= 0x02;
                 break;
             case KeyEvent.VK_X:
-                portMap[0xfefe] |= 0x04;
+                rowKey[0] |= 0x04;
                 break;
             case KeyEvent.VK_C:
-                portMap[0xfefe] |= 0x08;
+                rowKey[0] |= 0x08;
                 break;
             case KeyEvent.VK_V:
-                portMap[0xfefe] |= 0x10;
+                rowKey[0] |= 0x10;
                 break;
             // Teclas de conveniencia
             case KeyEvent.VK_BACK_SPACE:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xeffe] |= 0x01; // 0
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x01; // 0
                 break;
             case KeyEvent.VK_COMMA:
-                portMap[0x7ffe] |= 0x02; // SYMBOL-SHIFT
-                portMap[0x7ffe] |= 0x08; // N
+                rowKey[7] |= 0x0A; // SYMBOL-SHIFT + N
                 break;
             case KeyEvent.VK_PERIOD:
-                portMap[0x7ffe] |= 0x02; // SYMBOL-SHIFT
-                portMap[0x7ffe] |= 0x04; // M
+                rowKey[7] |= 0x06; // SYMBOL-SHIFT + M
                 break;
             case KeyEvent.VK_MINUS:
-                portMap[0x7ffe] |= 0x02; // SYMBOL-SHIFT
-                portMap[0xbffe] |= 0x08; // J
+                rowKey[7] |= 0x02; // SYMBOL-SHIFT
+                rowKey[6] |= 0x08; // J
                 break;
             case KeyEvent.VK_PLUS:
-                portMap[0x7ffe] |= 0x02; // SYMBOL-SHIFT
-                portMap[0xbffe] |= 0x04; // K
+                rowKey[7] |= 0x02; // SYMBOL-SHIFT
+                rowKey[6] |= 0x04; // K
                 break;
             case KeyEvent.VK_CONTROL:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0x7ffe] |= 0x02; // SYMBOL-SHIFT
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[7] |= 0x02; // SYMBOL-SHIFT
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xf7fe] |= 0x02; // 2
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[3] |= 0x02; // 2
                 break;
             case KeyEvent.VK_LEFT:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xf7fe] |= 0x10; // 5  -- Left arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[3] |= 0x10; // 5  -- Left arrow
                 break;
             case KeyEvent.VK_DOWN:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xeffe] |= 0x10; // 6  -- Down arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x10; // 6  -- Down arrow
                 break;
             case KeyEvent.VK_UP:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xeffe] |= 0x08; // 7  -- Up arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x08; // 7  -- Up arrow
                 break;
             case KeyEvent.VK_RIGHT:
-                portMap[0xfefe] |= 0x01; // CAPS
-                portMap[0xeffe] |= 0x04; // 8  -- Right arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x04; // 8  -- Right arrow
                 break;
         }
     }
@@ -826,7 +784,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void loadSNA(String filename) {
-        //stopEmulation();
+        stopEmulation();
         z80.reset();
         try {
             try {
@@ -834,7 +792,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero " + filename);
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-                //startEmulation();
+                startEmulation();
                 return;
             }
             z80.setRegI(fIn.read());
@@ -861,27 +819,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.setIM(fIn.read() & 0xff);
 
             int border = fIn.read() & 0x07;
-            portMap[0xfe] &= 0xf8;
-            portMap[0xfe] |= border;
+            portFE &= 0xf8;
+            portFE |= border;
+            nTimesBorderChg = 1;
+            statesBorderChg[0] = 0;
+            valueBorderChg[0] = border;
 
             int count;
-            for (count = 0x4000; count < 0xFFFF; count++) {
+            for (count = 0x4000; count < 0x10000; count++) {
                 z80Ram[count] = (int) fIn.read() & 0xff;
             }
 
-            if (count != 0xffff) {
+            fIn.close();
+            if (count != 0x10000) {
                 System.out.println("No se pudo cargar la imagen");
                 z80.reset();
-                //startEmulation();
+                startEmulation();
                 return;
             }
             z80.setRegPC(0x72);  // código de RETN en la ROM
-            fIn.close();
         } catch (IOException ex) {
             System.out.println("No se pudo leer el fichero " + filename);
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
         System.out.println("Imagen cargada");
-        //startEmulation();
+        startEmulation();
     }
 }

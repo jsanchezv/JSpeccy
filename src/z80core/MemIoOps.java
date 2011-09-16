@@ -10,7 +10,7 @@ package z80core;
  * @author jsanchez
  */
 public interface MemIoOps {
-    int getOpcode(int address);
+    int fetchOpcode(int address);
 
     int peek8(int address);
     void poke8(int address, int value);
