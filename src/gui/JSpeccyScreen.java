@@ -161,6 +161,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if (nBorderChanges > 0) {
             if (nBorderChanges == 1) {
                 intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+                //updateBorder(69888);
                 nBorderChanges = 0;
             } else {
                 nBorderChanges = 1;
@@ -249,6 +250,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         startPix = tStatesToScrPix(lastChgBorder);
         if (startPix > imgData.length - 1) {
+            lastChgBorder = tstates;
+            nBorderChanges++;
             return;
         }
 
@@ -257,9 +260,11 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             endPix = imgData.length - 1;
         }
 
-        color = Paleta[speccy.portFE & 0x07];
-        for (int count = startPix; count < endPix; count++) {
-            imgData[count] = color;
+        if( startPix < endPix ) {
+            color = Paleta[speccy.portFE & 0x07];
+            for (int count = startPix; count < endPix; count++) {
+                imgData[count] = color;
+            }
         }
         lastChgBorder = tstates;
         nBorderChanges++;

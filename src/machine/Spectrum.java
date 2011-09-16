@@ -30,7 +30,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     private FileInputStream fIn;
 
-    //private int frameStart;
+    private int oldstate;
     private int nFrame;
     //public boolean fullRedraw;
 
@@ -215,26 +215,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void poke16(int address, int word) {
-        poke8(address, word & 0xff);
-        poke8((address + 1) & 0xffff, word >>> 8);
+//        poke8(address, word & 0xff);
+//        poke8((address + 1) & 0xffff, word >>> 8);
 
-//        if( (address & 0xC000) == 0x4000 ) {
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        }
-//        z80.tEstados += 3;
-//
-//        if( address > 0x3fff )
-//            z80Ram[address] = word & 0xff;
-//
-//        address = (address + 1) & 0xffff;
-//
-//        if( (address & 0xC000) == 0x4000 ) {
-//            z80.tEstados += delayTstates[z80.tEstados];
-//        }
-//        z80.tEstados += 3;
-//
-//        if( address > 0x3fff )
-//            z80Ram[address] = word >>> 8;
+        if( (address & 0xC000) == 0x4000 ) {
+            z80.tEstados += delayTstates[z80.tEstados];
+            if( address < 0x5b00 )
+                jscr.screenUpdated(address);
+        }
+        z80.tEstados += 3;
+
+        if( address > 0x3fff )
+            z80Ram[address] = word & 0xff;
+
+        address = (address + 1) & 0xffff;
+
+        if( (address & 0xC000) == 0x4000 ) {
+            z80.tEstados += delayTstates[z80.tEstados];
+            if( address < 0x5b00 )
+                jscr.screenUpdated(address);
+        }
+        z80.tEstados += 3;
+
+        if( address > 0x3fff )
+            z80Ram[address] = word >>> 8;
     }
 
     public void contendedStates(int address, int tstates) {
@@ -310,13 +314,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void outPort(int port, int value) {
-        //int tEstados = z80.tEstados;
-        //contendedIO(port);
-//        System.out.println(String.format("%d %5d PW %04x %02x %d",
-//                    System.currentTimeMillis(), tEstados, port, value,
-//                    (tEstados < oldstate ? (tEstados+69888-oldstate) : (tEstados-oldstate))));
-//        oldstate = tEstados;
         preIO(port);
+        int tEstados = z80.tEstados;
+        //contendedIO(port);
+//        if( (port & 0x0001) == 0 ){
+//            System.out.println(String.format("%5d PW %04x %02x %d",
+//                    tEstados, port, value,
+//                    (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
+//            oldstate = tEstados;
+//        }
         //postIO(port);
 
         if( (port & 0x0001) == 0 ) {
