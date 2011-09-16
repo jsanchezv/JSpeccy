@@ -42,7 +42,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private static final byte delayTstates[] = new byte[FRAMES48k];
     static {
         Arrays.fill(delayTstates, (byte)0x00);
-        for( int idx = 14336; idx < 57344; idx += 224  ) {
+        for( int idx = 14335; idx < 57343; idx += 224  ) {
             for( int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -65,7 +65,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
-        loadSNA("aquaplane.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/ulatest3-modified.sna");
         frameStart = 0;
         nFrame = 0;
         Arrays.fill(portMap, 0xff);
@@ -127,7 +127,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private void loadRom() {
         try {
             try {
-                fIn = new FileInputStream("spectrum.rom");
+                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero spectrum.rom");
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -225,10 +225,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 //System.out.println("R(" + dire +"): ");
         }
         z80.tEstados += 3;
-
         //System.out.println(String.format(strMR, z80.getTEstados(), address, z80Ram[address]));
         lsb = z80Ram[address];
-        address++;
+
+        address = (address + 1) & 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
@@ -257,7 +257,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 3;
         z80Ram[address] = word & 0xff;
 
-        address++;
+        address = (address + 1) & 0xffff;
         if( address < 0x4000 ) // en la rom no se escribe (o no sería ROM)
             return;
 
@@ -277,14 +277,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //address &= 0xffff;
         if( (address & 0xC000) == 0x4000 ) {
             //System.out.println(address + " " + tstates);
-            for( int idx = 0; idx < tstates; idx++ ) {
-//                if ( delayTstates[(tEstados + delay)] != 0 ) {
-//                    System.out.println(String.format("MREQstates: %d %d %d",
-//                    tEstados, address, delayTstates[tEstados]));
-                    z80.tEstados += delayTstates[z80.tEstados] + 1;
-//                }
-
-            }
+            for (int idx = 0; idx < tstates; idx++)
+//                System.out.println(String.format("t-States: %d\taddress:%d\ttstates %d",
+//                    z80.tEstados, address, tstates));
+                z80.tEstados += delayTstates[z80.tEstados] + 1;
         } else {
             z80.tEstados += tstates;
         }
@@ -293,7 +289,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int inPort(int port) {
         int res = port >>> 8;
         int keys = 0xff;
-        preIO(port);
+        contendedIO(port);
         //System.out.println(String.format("%5d PR %04x %02x", z80.tEstados, port, res));
         if( (port & 0xff) == 0xfe ) {
             switch (res) {
@@ -330,7 +326,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                         }
                     }
             }
-            postIO(port);
             return keys;
         }
 
@@ -338,18 +333,31 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             int tstates = z80.tEstados;
             if( tstates < 14347 || tstates > 57343 )
                 return 0xff;
-            tstates -= 14347;
+
+            int row = tstates / 224;
             int col = tstates % 224;
-            if( col > 127 )
+            if( col < 11 || col > 139 )
                 return 0xff;
+
+
+            col = col % 8;
+            switch( col ) {
+                case 3:
+                    return z80Ram[jscr.scrAddr[row]];
+                case 4:
+                    return z80Ram[jscr.scr2attr[row]];
+                case 5:
+                    return z80Ram[jscr.scrAddr[row] + 1];
+                case 6:
+                    return z80Ram[jscr.scr2attr[row + 1]];
+            }
         }
-        postIO(port);
         return 0xff;
     }
 
     public void outPort(int port, int value) {
         //int tEstados = z80.tEstados;
-        preIO(port);
+        contendedIO(port);
 //        System.out.println(String.format("%d %5d PW %04x %02x %d",
 //                    System.currentTimeMillis(), tEstados, port, value,
 //                    (tEstados < oldstate ? (tEstados+69888-oldstate) : (tEstados-oldstate))));
@@ -362,20 +370,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             }
             portMap[0xfe] = value;   
         }
-        postIO(port);
     }
 
-    private void preIO(int port) {
-        if( ( port & 0xc000 ) == 0x4000 ) {
-            //System.out.println(String.format(strPC, z80.getTEstados(), port));
-            z80.tEstados += delayTstates[z80.tEstados];
-        }
-        z80.tEstados++;     
-    }
+//    private void preIO(int port) {
+//        if( ( port & 0xc000 ) == 0x4000 ) {
+//            //System.out.println(String.format(strPC, z80.getTEstados(), port));
+//            z80.tEstados += delayTstates[z80.tEstados];
+//        }
+//        z80.tEstados++;
+//    }
 
-    private void postIO(int port) {
+    private void contendedIO(int port) {
         if( (port & 0x0001) != 0 ) {
             if( ( port & 0xc000 ) == 0x4000 ) {
+                // A0 == 1 y es contended RAM
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
                 z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados];
@@ -383,11 +393,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 z80.tEstados += delayTstates[z80.tEstados];
                 z80.tEstados++;
             } else {
-                z80.tEstados += 3;
+                // A0 == 1 y no es contended RAM
+                z80.tEstados += 4;
             }
         } else {
-            z80.tEstados += delayTstates[z80.tEstados];
-            z80.tEstados += 3;
+            if( ( port & 0xc000 ) == 0x4000 ) {
+                // A0 == 0 y es contended RAM
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados++;
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados += 3;
+            } else {
+                // A0 == 0 y no es contended RAM
+                z80.tEstados++;
+                z80.tEstados += delayTstates[z80.tEstados];
+                z80.tEstados += 3;
+            }
         }
 //        if( (port & 0x0001) != 0 ) {
 //            if( ( port & 0xc000 ) == 0x4000 ) {

@@ -40,19 +40,12 @@
  *          0x00-0x3F, 0x40-0x7F, 0x80-0xBF y 0xC0-0xFF quedando todos por debajo
  *          de los 5000 bytecodes.
  *
- *          25/09/2009 Se divide también el método de decodificación principal
- *          por el mismo motivo que el anterior, ya que la emulación de MEMPTR
- *          nos llevaba claramente por encima de los 8000 bytecodes. Ahora un
- *          método procesa los opcodes entre 0x00-0x7f y otro entre 0x80-0xff.
- *
- *          25/09/2009 (Más tarde... :) ). Se completa la emulación del registro
- *          interno MEMPTR. Ahora el core-Z80 supera todos los test de MEMPTR
- *          del z80tests.tap.
+ *          25/09/2009 Se completa la emulación del registro interno MEMPTR.
+ *          Ahora el core-Z80 supera todos los test de MEMPTR del z80tests.tap.
  *          (http://homepage.ntlworld.com/mark.woodmass/z80tests.tap)
  *          Mis agradecimientos a Mark Woodmass por el programa, a Boo-boo que
  *          investigo el funcionamiento de MEMPTR y a Vladimir Kladov por
  *          traducir al inglés el documento original.
- *
  */
 package z80core;
 
@@ -861,7 +854,8 @@ public class Z80 {
         sz5h3pnFlags = sz53n_addTable[res];
 
         /* El módulo 16 del resultado será menor que el módulo 16 del registro A
-         * si ha habido HalfCarry. Sucede lo mismo para todos los métodos suma */
+         * si ha habido HalfCarry. Sucede lo mismo para todos los métodos suma
+         * SIN carry */
         if( (res & 0x0f) < (regA & 0x0f) )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
@@ -918,8 +912,8 @@ public class Z80 {
         sz5h3pnFlags = sz53n_subTable[res];
 
         /* El módulo 16 del resultado será mayor que el módulo 16 del registro A
-         * si ha habido HalfCarry. Sucede lo mismo para todos los métodos resta,
-           incluído cp */
+         * si ha habido HalfCarry. Sucede lo mismo para todos los métodos resta
+         * SIN carry, incluído cp */
         if( (res & 0x0f) > (regA & 0x0f) )
             sz5h3pnFlags |= HALFCARRY_MASK;
 
@@ -998,7 +992,7 @@ public class Z80 {
         carryFlag = (res & 0x100) != 0;
         res &= 0xff;
         sz5h3pnFlags = (sz53n_addTable[valor] & FLAG_53_MASK) |
-            // No necesito guardar H, pero está a 0 en la tabla de todas formas
+            // No necesito preservar H, pero está a 0 en la tabla de todas formas
                        (sz53n_subTable[res] & FLAG_SZHN_MASK);
 
         if( (res & 0x0f) > (regA & 0x0f) )
@@ -1335,7 +1329,7 @@ public class Z80 {
      */
     public final void interrupcion() {
 
-        if( !ffIFF1 )
+        if( !ffIFF1 || pendingEI )
             return;
         
         int tmp = tEstados; // peek8 modifica los tEstados
@@ -1429,13 +1423,7 @@ public class Z80 {
             regR++;
             opCode = MemIoImpl.getOpcode(regPC);
             regPC = (regPC + 1) & 0xffff;
-            if (opCode < 0x80) {
-                decode00to7F(opCode);
-            } else {
-                decode80toFF(opCode);
-            }
-
-            regPC &= 0xffff;
+            decodeOpcode(opCode);
             
             //Mirar si hay solicitada una interrupción enmascarable
 //            if (activeINT && !pendingEI) {
@@ -1452,7 +1440,7 @@ public class Z80 {
         return tEstados;
     }
 
-    private final void decode00to7F(int opCode ) {
+    private final void decodeOpcode(int opCode ) {
         int work8, work16;
         byte salto;
         switch (opCode) {
@@ -2056,12 +2044,6 @@ public class Z80 {
             case 0x7F: {     /*LD A,A*/
                 break;
             }
-        } /* del switch( codigo ) */
-    }
-
-    private void decode80toFF(int opCode) {
-        int work8, work16;
-        switch (opCode) {
             case 0x80: {     /*ADD A,B*/
                 add(regB);
                 break;
@@ -2717,10 +2699,8 @@ public class Z80 {
                 MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regPC);
                 regPC = memptr = 0x38;
-                break;
-            default:
-                System.out.println("Error instrucción " + Integer.toHexString(opCode));
         } /* del switch( codigo ) */
+        regPC &= 0xffff;
     }
 
     //Subconjunto de instrucciones 0xCB

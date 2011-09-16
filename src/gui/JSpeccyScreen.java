@@ -47,8 +47,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     
     private static int Paper[] = new int[256];
     private static int Ink[] = new int[256];
-    private static int scrAddr[] = new int[192];
-    private static int scr2attr[] = new int[192];
+    public static int scrAddr[] = new int[192];
+    public static int scr2attr[] = new int[192];
     //private static int scrData[] = new int[352 * 288 * 3];
     private static int imgData[];
     static {
@@ -202,8 +202,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
 
-        for( int idx = 0; idx < 37; idx ++ )
-            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
+        // Rejilla horizontal de test
+//        for( int idx = 0; idx < 37; idx ++ )
+//            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
         
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
         if (doubleSize) {
@@ -230,14 +231,18 @@ public class JSpeccyScreen extends javax.swing.JPanel {
      */
     private int tStatesToScrPix(int tstates) {
 
-        // Si los tstates son < 3632 (16 * 224 + 48), no estamos en la zona visible
-        if( tstates < 3584 )
+        // Si los tstates son < 3632 (16 * 224 + 38), no estamos en la zona visible
+        if( tstates < 3632 )
             return 0;
 
         int linea = tstates / 224;
         int pix = (tstates % 224);
 //        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
 //                tstates,linea, pix, (linea*352+pix)));
+        if( pix < 48 )
+            pix = 0;
+        else
+            pix -= 48;
         return linea * 352 + pix;
     }
 
@@ -245,39 +250,50 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int nBorderChg = speccy.nTimesBorderChg;
         int startPix, endPix;
 
-//        System.out.println("Cambios de border: " + nBorderChg);
-//        for( int idx = 0; idx < nBorderChg; idx++ )
-//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
-//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
+        System.out.println("Cambios de border: " + nBorderChg);
+        for( int idx = 0; idx < nBorderChg; idx++ )
+            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
+                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
 
-        for( int idx = 0; idx < (nBorderChg - 1); idx++ ) {
-            startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
-            endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
-            if( startPix >= imgData.length )
+        if (nBorderChg == 1) {
+            Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
+            speccy.nTimesBorderChg = 0;
+        } else {
+            for (int idx = 0; idx < (nBorderChg - 1); idx++) {
+                startPix = tStatesToScrPix(speccy.statesBorderChg[idx]);
+                endPix = tStatesToScrPix(speccy.statesBorderChg[idx + 1]);
+
+                if( startPix == endPix )
+                    continue;
+
+                if (startPix >= imgData.length) {
+                    startPix = imgData.length - 1;
+                }
+                if (endPix >= imgData.length) {
+                    endPix = imgData.length - 1;
+                }
+                //System.out.println(String.format("startPix: %d\tendPix %d", startPix, endPix));
+                if (endPix > startPix) {
+                    Arrays.fill(imgData, startPix, endPix - 1,
+                        Paleta[speccy.valueBorderChg[idx]]);
+                }
+            }
+
+            startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
+            if (startPix >= imgData.length) {
                 startPix = imgData.length - 1;
-            if( endPix >= imgData.length )
-                endPix = imgData.length - 1;
-            //System.out.println(String.format("startPix: %d\tendPix %d", startPix, endPix));
-            if( endPix > startPix )
-                Arrays.fill(imgData, startPix, endPix -1,
-                            Paleta[speccy.valueBorderChg[idx]]);
-        }
+            }
+            //System.out.println("startPix final: " + startPix);
 
-        startPix = tStatesToScrPix(speccy.statesBorderChg[nBorderChg - 1]);
-        if( startPix >= imgData.length )
-            startPix = imgData.length - 1;
-        //System.out.println("startPix final: " + startPix);
+            // Pinta desde el último cambio hasta el final
+            Arrays.fill(imgData, startPix, imgData.length - 1,
+                Paleta[speccy.valueBorderChg[nBorderChg - 1]]);
 
-        Arrays.fill(imgData, startPix, imgData.length - 1,
-                    Paleta[speccy.valueBorderChg[nBorderChg - 1]]);
-
-        if( speccy.statesBorderChg[0] > 0 ) {
+            // Y encola para el siguiente frame el primer cambio
             speccy.statesBorderChg[0] = 0;
-            speccy.valueBorderChg[0] = speccy.valueBorderChg[nBorderChg - 1];
+            speccy.valueBorderChg[0] = speccy.portMap[0xfe] & 0x07;
             speccy.nTimesBorderChg = 1;
         }
-        else
-            speccy.nTimesBorderChg = 0;
     }
 
     /** This method is called from within the constructor to
