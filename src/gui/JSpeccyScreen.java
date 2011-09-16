@@ -122,12 +122,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         pScrn = speccy.getSpectrumMem();
         timerFrame = new Timer();
         taskFrame = new Clock(this);
+        //Arrays.fill(borderColor, 0x07);
         startEmulation();
-        Arrays.fill(imgData, Paleta[1]);
     }
 
     public void startEmulation() {
-        timerFrame.scheduleAtFixedRate(taskFrame, 100, 100);
+        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
     }
 
     public void stopEmulation() {
@@ -136,9 +136,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
     public void generateFrame() {
         speccy.execFrame();
-        if( ++nFrame % 16 == 0 )
+        if( ++nFrame % 16 == 0 ) {
             toggleFlash();
-        repaint();
+            speccy.scrMod = true;
+        }
+        if( speccy.scrMod )
+            repaint();
     }
 
     public synchronized void toggleFlash() {
@@ -162,7 +165,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     
     @Override
     public void paintComponent(Graphics gc) {
-        super.paintComponent(gc);
+        //super.paintComponent(gc);
         paintScreen((Graphics2D) gc);
     }
     
@@ -172,11 +175,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int pixel, attr;
         int border, posIni;
         
-        long start = System.currentTimeMillis();
+        //long start = System.currentTimeMillis();
 
+        border = Paleta[speccy.portMap[0xfe] & 0x07];
         posIni = 0;
         for(int idx = 0; idx < 32; idx++) {
-            border = Paleta[borderColor[idx]];
+            //border = Paleta[borderColor[idx]];
             for( int pix = 0; pix < 320; pix++ )
                 imgData[posIni++] = border;
         }
@@ -186,7 +190,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //int posIni = 10272;  // 10272 = 32 * 352 + 32
         for( int cordy = 0; cordy < 192; cordy++ ) {
             // Poner el borde izquierdo
-            border = Paleta[borderColor[cordy+32]];
+            //border = Paleta[borderColor[cordy+32]];
             for( int leftBorder = 0; leftBorder < 32; leftBorder++ )
                 imgData[posIni++] = border;
             
@@ -212,13 +216,20 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             for( int rightBorder = 0; rightBorder < 32; rightBorder++ )
                 imgData[posIni++] = border;
         }
+        
+        for (int idx = 0; idx < 32; idx++) {
+            //border = Paleta[borderColor[idx]];
+            for (int pix = 0; pix < 320; pix++) {
+                imgData[posIni++] = border;
+            }
+        }
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
         if( doubleSize ) {
             gc2.drawImage(bImg, escalaOp, 0, 0);
         } else {
             gc2.drawImage(bImg, 0, 0, null);
         }       
-        System.out.println("ms: " + (System.currentTimeMillis() - start));
+        //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
 
@@ -231,6 +242,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private void initComponents() {
 
         setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        setMaximumSize(new java.awt.Dimension(640, 512));
         setMinimumSize(new java.awt.Dimension(320, 256));
         setPreferredSize(new java.awt.Dimension(320, 256));
     }// </editor-fold>//GEN-END:initComponents

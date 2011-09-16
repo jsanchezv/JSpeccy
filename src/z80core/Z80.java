@@ -42,7 +42,9 @@ public class Z80 {
     private final MemIoOps MemIoImpl;
 
     //Número de estados T que se llevan ejecutados
-    private int tEstados;
+    public int tEstados;
+    // Hasta donde va a ajecutar
+    //public int statesLimit;
 
     //Código de la instrucción a ejecutar
     private int opCode;
@@ -1298,7 +1300,7 @@ public class Z80 {
      * los datos de la memoria.
      */
     /*
-     * Cuidado al moficiar esta función. El JIT de la JVM no compila métodos
+     * Cuidado al modificar esta función. El JIT de la JVM no compila métodos
      * que ocupen más de 8000 bytecodes. A 22/09/2009 execInstruction ocupa
      * casi 7900 bytecodes.
      */
@@ -1306,6 +1308,7 @@ public class Z80 {
         int work8, work16;
         byte salto;
 
+        //while( tEstados < statesLimit) {
         // Si hay interrupciones pendientes se procesan y se retorna
         // para no acumular un número de tEstados excesivo.
         if (activeNMI) {
@@ -4739,6 +4742,16 @@ public class Z80 {
                 tEstados += MemIoImpl.MREQstates(address, 1);
                 break;
             }
+            default: {
+                decodeDDFDCB_80FF(opCode, address);
+                break;
+            }
+        }
+    }
+
+    private final void decodeDDFDCB_80FF(int opCode, int address) {
+        int work8;
+        switch (opCode) {
             case 0x80: {     /*RES 0,(IX+d),B*/
                 regB = res(0x01, (MemIoImpl.peek8(address)));
                 tEstados += MemIoImpl.MREQstates(address, 1);
