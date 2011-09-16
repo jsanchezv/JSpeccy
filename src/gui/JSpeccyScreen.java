@@ -214,20 +214,24 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         tstates -= 3584;
         //tstates &= 0xffff0;
-
-        int row = tstates / 224;
-        int col = (tstates % 224);
         
-        if( (col % 8) > 2 ) {
-            col &= 0xf8;
-            col += 8;
-        }
+        int row = tstates / 224;
+        int col = tstates % 224;
+
+        int mod = col % 8;
+        col -= mod;
+        if( mod > 3 )
+            col += 4;
+        
         
 //        System.out.println(String.format("T-States: %d\tlinea: %d\tpix: %d\taddr: %d",
 //                tstates,linea, pix, (linea*352+pix)));
 
-        if( row < 48 || row > 239 )
-            return row * 352 + col;
+//        if( row < 48 || row > 239 ) {
+//            if( col > 199 )
+//                return row * 352 + (col - 200) * 2;
+//            return row * 352 + (col * 2) + 48;
+//        }
 
         int pix = row * 352;
         // El borde cambió antes de la zona visible
@@ -235,20 +239,42 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //            pix = 0;
 
         // El borde cambió durante la zona de video. Lo llevamos a la derecha
-        if( col < 128 )
-            pix += 304;
+        if( col < 128 ) {
+            if( row < 48 || row > 239 ) {
+//                System.out.println(String.format("row: %d, col %d, offset: %d",
+//                    row, col, col * 2 + 48));
+                pix += col * 2 + 48;
+            }
+            else
+                pix += 304;
+        }
 
         // El borde cambió en la franja derecha. Cada T-State == 2 píxeles
-        if( col > 127 && col < 152 )
-            pix += col * 2;
+        if( col > 127 && col < 152 ) {
+            if( row < 48 || row > 239 ) {
+//                System.out.println(String.format("row: %d, col %d, offset: %d",
+//                    row, col, col * 2 + 48));
+            }
+            pix += col * 2 + 48;
+        }
 
         // El borde cambió durante el HSync-Blank, se verá en la línea siguente
-        if( col > 151 && col < 200 )
-            pix += 352;
+        if( col > 151 && col < 200 ) {
+            if( (row < 48 || row > 239) && col == 152 ) {
+//                System.out.println(String.format("row: %d, col %d, offset: %d",
+//                    row, col, col * 2 + 48));
+                pix += col * 2 + 48;
+            }
+            else
+                pix += 352;
+        }
 
         // El borde cambió en la franja izquierda de la siguiente línea
-        if( col > 199 )
+        if( col > 199 ) {
+//            System.out.println(String.format("row: %d, col %d, offset: %d",
+//                    row, col, (col - 200) * 2 + 352));
             pix += (col - 200) * 2 + 352;
+        }
 
 //        if( (pix % 16) != 0 ) {
 //            pix &= 0xf0;
@@ -261,10 +287,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int nBorderChg = speccy.nTimesBorderChg;
         int startPix, endPix;
 
-        System.out.println("Cambios de border: " + nBorderChg);
-        for( int idx = 0; idx < nBorderChg; idx++ )
-            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
-                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
+//        System.out.println("Cambios de border: " + nBorderChg);
+//        for( int idx = 0; idx < nBorderChg; idx++ )
+//            System.out.println(String.format("statesBorderChg: %d\tvalueBorderChg %d",
+//                    speccy.statesBorderChg[idx], speccy.valueBorderChg[idx]));
 
         if (nBorderChg == 1) {
             Arrays.fill(imgData, 0, imgData.length - 1, Paleta[speccy.portMap[0xfe] & 0x07]);
@@ -288,7 +314,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 }
                 //System.out.println(String.format("startPix: %d\tendPix %d", startPix, endPix));
                 if (endPix > startPix) {
-                    Arrays.fill(imgData, startPix, endPix - 1,
+                    Arrays.fill(imgData, startPix, endPix,
                         Paleta[speccy.valueBorderChg[idx]]);
                 }
             }
