@@ -43,7 +43,13 @@ public class JSpeccy extends javax.swing.JFrame {
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         fileOpenSnapshot = new javax.swing.JMenuItem();
+        jSeparator1 = new javax.swing.JSeparator();
+        thisIsTheEndMyFriend = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
+        doubleSizeOption = new javax.swing.JCheckBoxMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
+        resetMachineMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("JSpeccy");
@@ -58,11 +64,50 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         jMenu1.add(fileOpenSnapshot);
+        jMenu1.add(jSeparator1);
+
+        thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Q, java.awt.event.InputEvent.ALT_MASK));
+        thisIsTheEndMyFriend.setText("Quit");
+        thisIsTheEndMyFriend.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                thisIsTheEndMyFriendActionPerformed(evt);
+            }
+        });
+        jMenu1.add(thisIsTheEndMyFriend);
 
         jMenuBar1.add(jMenu1);
 
-        jMenu2.setText("Edit");
+        jMenu2.setText("Options");
+
+        doubleSizeOption.setText("Double Size");
+        doubleSizeOption.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                doubleSizeOptionActionPerformed(evt);
+            }
+        });
+        jMenu2.add(doubleSizeOption);
+
         jMenuBar1.add(jMenu2);
+
+        jMenu3.setText("Machine");
+
+        pauseMachineMenu.setText("Pause");
+        pauseMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pauseMachineMenuActionPerformed(evt);
+            }
+        });
+        jMenu3.add(pauseMachineMenu);
+
+        resetMachineMenu.setText("Reset");
+        resetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                resetMachineMenuActionPerformed(evt);
+            }
+        });
+        jMenu3.add(resetMachineMenu);
+
+        jMenuBar1.add(jMenu3);
 
         setJMenuBar(jMenuBar1);
 
@@ -74,6 +119,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if( jFile == null ) {
             jFile = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
             jFile.setFileFilter(new FileFilterSnapshot());
+            currentDir = jFile.getCurrentDirectory();
         }
         else
             jFile.setCurrentDirectory(currentDir);
@@ -89,6 +135,31 @@ public class JSpeccy extends javax.swing.JFrame {
         }
         spectrum.startEmulation();
     }//GEN-LAST:event_fileOpenSnapshotActionPerformed
+
+    private void thisIsTheEndMyFriendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_thisIsTheEndMyFriendActionPerformed
+        // TODO add your handling code here:
+        System.exit(0);
+    }//GEN-LAST:event_thisIsTheEndMyFriendActionPerformed
+
+    private void doubleSizeOptionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doubleSizeOptionActionPerformed
+        // TODO add your handling code here:
+        jscr.toggleDoubleSize();
+        //jscr.invalidateScreen();
+        pack();
+    }//GEN-LAST:event_doubleSizeOptionActionPerformed
+
+    private void pauseMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseMachineMenuActionPerformed
+        // TODO add your handling code here:
+        if( pauseMachineMenu.isSelected() )
+            spectrum.stopEmulation();
+        else
+            spectrum.startEmulation();
+    }//GEN-LAST:event_pauseMachineMenuActionPerformed
+
+    private void resetMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetMachineMenuActionPerformed
+        // TODO add your handling code here:
+        spectrum.reset();
+    }//GEN-LAST:event_resetMachineMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -102,10 +173,16 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
+    private javax.swing.JMenuItem resetMachineMenu;
+    private javax.swing.JMenuItem thisIsTheEndMyFriend;
     // End of variables declaration//GEN-END:variables
     
 }

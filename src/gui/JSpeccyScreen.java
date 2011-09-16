@@ -58,6 +58,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     public final int scrAddr[] = new int[192];
+
     private final boolean dirtyByte[] = new boolean[0x1800];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
@@ -95,6 +96,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int lastChgBorder;
     // veces que ha cambiado el borde en el último frame
     private int nBorderChanges;
+    public boolean screenUpdated;
     // t-states del ciclo contended por I=0x40-0x7F o -1
     public int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
@@ -125,11 +127,21 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         lastChgBorder = 0;
         m1contended = -1;
         Arrays.fill(dirtyByte, true);
+        screenUpdated = false;
     }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
-        Arrays.fill(dirtyByte, true);
+        for(int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++)
+            if( pScrn[addrAttr] > 0x7f ) {
+                int address = attr2scr[addrAttr & 0x3ff] & 0x1fff;
+                for (int scan = 0; scan < 8; scan++) {
+                    dirtyByte[address] = true;
+                    address += 256;
+                }
+            }
+//        if(nBorderChanges == 0 )
+//            nBorderChanges = 1;
     }
 
     public void toggleDoubleSize() {
@@ -149,6 +161,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
     private void paintScreen(Graphics2D gc2) {
 
+
         //long start = System.currentTimeMillis();
 
         //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
@@ -158,10 +171,15 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
 
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        if (nBorderChanges > 0) {
+
+        // si nBorderChanges == 0 y no se actualizó la pantalla es muy probable
+        // que haya sido Swing el que ha llamado a paintComponent porque algo
+        // ha oscurecido parte de la ventana (un menú por ejemplo). En ese caso
+        // no queda otra que dibujarlo todo.
+        if (nBorderChanges > 0 || (nBorderChanges == 0 && !screenUpdated)) {
             if (nBorderChanges == 1) {
-                intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
-                //updateBorder(69888);
+                //intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+                updateBorder(lastChgBorder - 1);
                 nBorderChanges = 0;
             } else {
                 nBorderChanges = 1;
@@ -172,6 +190,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             } else {
                 gc2.drawImage(bImg, 0, 0, this);
             }
+            //System.out.println("Draw border");
         }
 
         if (doubleSize) {
@@ -179,6 +198,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         } else {
             gc2.drawImage(bImgScr, 48, 48, this);
         }
+        screenUpdated = false;
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -268,6 +288,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         }
         lastChgBorder = tstates;
         nBorderChanges++;
+        screenUpdated = true;
     }
 
     public void updateInterval(int fromTstates, int toTstates) {
@@ -319,6 +340,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 }
             }
             dirtyByte[fromAddr] = false;
+            screenUpdated = true;
             fromTstates++;
         }
     }
@@ -333,7 +355,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 addr += 256;
             }
         }
+    }
 
+    public void invalidateScreen() {
+        nBorderChanges = 1;
+        screenUpdated = true;
+        Arrays.fill(dirtyByte, true);
     }
 
     public void intArrayFill(int[] array, int value) {
@@ -386,7 +413,6 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             if (fromCol > 31) {
                 continue;
             }
-
             states2scr[tstates - 8] = scrAddr[fromScan] + fromCol;
         }
     }

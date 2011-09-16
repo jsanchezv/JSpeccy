@@ -69,12 +69,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
-        jscr.updateBorder(0);
-        jscr.toggleFlash(); // fuerza el redibujado de la pantalla
+        jscr.invalidateScreen();
     }
 
     public void stopEmulation() {
         taskFrame.cancel();
+    }
+
+    public void reset() {
+        z80.reset();
     }
 
     public void generateFrame() {
@@ -94,7 +97,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         int fromTstates;
         while (z80.statesLimit < 57248) {
             fromTstates = z80.tEstados + 1;
-            z80.statesLimit = fromTstates + 12;
+            z80.statesLimit = fromTstates + 15;
             z80.execute();
             jscr.updateInterval(fromTstates, z80.tEstados);
         }
@@ -104,14 +107,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
         z80.tEstados -= 69888;
-        if( z80.tEstados < 0 )
-            z80.tEstados = 0;
 
         if (++nFrame % 16 == 0) {
             jscr.toggleFlash();
         }
 
-        jscr.repaint();
+        if( jscr.screenUpdated )
+            jscr.repaint();
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -315,12 +317,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void outPort(int port, int value) {
         preIO(port);
-        int tEstados = z80.tEstados;
+//        int tEstados = z80.tEstados;
         //contendedIO(port);
 //        if( (port & 0x0001) == 0 ){
 //            System.out.println(String.format("%5d PW %04x %02x %d",
 //                    tEstados, port, value,
-//                    (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
+//                   (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
 //            oldstate = tEstados;
 //        }
         //postIO(port);
