@@ -343,7 +343,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int ink = Ink[attr];
         int paper = Paper[attr];
 
-        for (int scan = 0; scan < 8; scan++) {
+        for ( int scan = 0; scan < 8; scan++) {
             int addr = attr2scr[address & 0x3ff] + scan * 256;
             int scrByte = pScrn[addr];
             int addrPtr = bufAddr[addr & 0x1fff];
