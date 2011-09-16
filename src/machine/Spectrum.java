@@ -74,7 +74,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         nTimesBorderChg = 1;
         statesBorderChg[0] = 0;
         valueBorderChg[0] = 7;
-        loadSNA("/home/jsanchez/src/JSpeccy/dist/Arkanoid.sna");
+        loadSNA("/home/jsanchez/src/JSpeccy/dist/brightminer.sna");
         startEmulation();
     }
 
@@ -97,9 +97,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         fullRedraw = scrMod = false;
 
         z80.tEstados = frameStart;
-        z80.statesLimit = 69888;
+        z80.statesLimit = 57344; // (16 + 48 + 192) * 224
 
         z80.setINTLine(true);
+        z80.execute();
+        jscr.bufferToImage();
+        z80.statesLimit = 69888;
         z80.execute();
 
         //System.out.println("execFrame: ejecutados " + z80.getTEstados());
@@ -115,11 +118,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //            System.out.println("El borde cambió " + nTimesBorderChg+ " veces");
 
         //System.out.println(String.format("Scr: %d\tAttr: %d", nChgScr, nChgAttr));
-        if ( nTimesBorderChg != 0 || scrMod || fullRedraw ) {
+        //if ( nTimesBorderChg != 0 || scrMod || fullRedraw ) {
             if (jscr != null) {
                 jscr.repaint();
             }
-        }
+        //}
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -191,29 +194,27 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void poke8(int address, int value) {
         
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
+
+            // Area de pixeles
+            if (address > 0x3FFF && address < 0x5800) {
+                jscr.updateScreenByte(address, value);
+                //System.out.println("updateScreen");
+                scrMod = true;
+            }
+
+            // Area de atributos
+            if (address > 0x57FF && address < 0x5B00) {
+                jscr.updateAttrChar(address, value);
+                //System.out.println("updateAttr");
+                scrMod = true;
+            }
         }
         z80.tEstados += 3;
 
         if( value == z80Ram[address])
             return;
-
-        // Area de pixeles
-        if( address > 0x3FFF && address < 0x5800 ) {
-            if( z80.tEstados > 14335 && z80.tEstados < 57344 )
-                jscr.updateScreenByte(address, value);
-            System.out.println("updateScreen");
-            scrMod = true;
-        }
-
-        // Area de atributos
-        if( address > 0x57FF && address < 0x5B00 ) {
-            if( z80.tEstados > 14335 && z80.tEstados < 57344 )
-                jscr.updateAttrChar(address, value);
-            System.out.println("updateAttr");
-            scrMod = true;
-        }
 
         if( address > 0x3fff )
             z80Ram[address] = value & 0xff;
@@ -330,7 +331,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                     tstates, row, col, jscr.scr2attr[row] + col / 4));
 //                 System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
 //                   tstates, jscr.scrAddr[row] + col / 4, z80Ram[jscr.scrAddr[row] + col / 4]));
-                    return z80Ram[jscr.scr2attr[row] + col / 4];
+                    //return z80Ram[jscr.scr2attr[row] + col / 4];
+                    return z80Ram[jscr.scr2attr[(jscr.scrAddr[row] + col / 4) & 0x1fff]];
                 case 2:
 //                  System.out.println(String.format("tstates: %d\trow: %d\tcol: %d\taddr: %04x",
 //                      tstates, row, col, jscr.scrAddr[row] + col / 4 + 1));
@@ -342,7 +344,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                      tstates, row, col, jscr.scr2attr[row] + col / 4 + 1));
 //         System.out.println(String.format("tstates: %d\ttaddr: %04X\tValor: %d",
 //        states, jscr.scrAddr[row] + col / 4 + 1, z80Ram[jscr.scrAddr[row] + col / 4 + 1]));
-                    return z80Ram[jscr.scr2attr[row] + col / 4 + 1];
+                    return z80Ram[jscr.scr2attr[(jscr.scrAddr[row] + col / 4 + 1) & 0x1fff]];
             }
         }
         return 0xff;

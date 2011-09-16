@@ -43,12 +43,28 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         0xffffff  /* blanco brillante */
 
     };
-    
-    private static int Paper[] = new int[256];
-    private static int Ink[] = new int[256];
-    public static int scrAddr[] = new int[192];
-    public static int scr2attr[] = new int[192];
-    //private static int scrData[] = new int[352 * 288 * 3];
+
+    // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
+    // corresponde una entrada en la tabla que hace referencia al color
+    // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
+    // ya están cambiados, lo que facilita el tratamiento del FLASH.
+    private static final int Paper[] = new int[256];
+    private static final int Ink[] = new int[256];
+
+    // Tabla de correspondencia entre la dirección de pantalla y su atributo
+    public static final int scr2attr[] = new int[0x1800];
+
+    // Tabla de correspondencia entre cada atributo y el primer byte del carácter
+    // en la pantalla del Spectrum (la contraria de la anterior)
+    private static final int attr2scr [] = new int [768];
+
+    // Tabla de correspondencia entre la dirección de pantalla del Spectrum
+    // y la dirección que le corresponde en el BufferedImage.
+    private static final int bufAddr[] = new int [0x1800];
+
+    // Tabla que contiene la dirección de pantalla del primer byte de cada
+    // carácter en la columna cero.
+    public static final int scrAddr[] = new int[192];
     
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -66,22 +82,19 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 Paper[idx] = Paleta[ink];
             }
         }
-        
+
         //Inicialización de la tabla de direcciones de pantalla
         /* Hay una entrada en la tabla con la dirección del primer byte
          * de cada fila de la pantalla.
          */
-        for( int linea = 0; linea < 24; linea++ )
-        {
-            int idx, lsb, msb, addr, attr;
+        for (int linea = 0; linea < 24; linea++) {
+            int idx, lsb, msb, addr;
             lsb = ((linea & 0x07) << 5);
             msb = linea & 0x18;
             addr = (msb << 8) + lsb;
             idx = linea << 3;
-            attr = linea * 32;
-            for( int scan = 0; scan < 8; scan++, addr += 256 ) {
+            for (int scan = 0; scan < 8; scan++, addr += 256) {
                 scrAddr[scan + idx] = 0x4000 + addr;
-                scr2attr[scan + idx] = 0x4000 + attr + 6144;
             }
         }
     }
@@ -93,6 +106,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private int imgData[];
     private BufferedImage bImgScr;
     private int imgDataScr[];
+    private int imgBuffer[];
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
@@ -109,6 +123,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         imgData = ((DataBufferInt)bImg.getRaster().getDataBuffer()).getBankData()[0];
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt)bImgScr.getRaster().getDataBuffer()).getBankData()[0];
+        imgBuffer = new int[256 * 192];
+        buildScreenTables();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
                                          RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -168,12 +184,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             //System.out.println("updateBorder: " + (System.currentTimeMillis() - start));
         }
         
-        if( speccy.fullRedraw ) {
-            updateScreen();
+//        if( speccy.fullRedraw ) {
+//            updateScreen();
             //System.out.println("updateScreen()");
 //        } else {
             //System.out.println("NOT updateScreen()");
-        }
+//        }
 //        else {
 //            Graphics2D gcScr = bImg.createGraphics();
 //            gcScr.drawImage(bImgScr, 48, 48, this);
@@ -301,72 +317,41 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     }
 
     public void updateScreen() {
-        int paper, ink;
-        int addr, nAttr;
-        int pixel, attr;
-        int posIni;
-
-        for( int cordy = 0; cordy < 192; cordy++ ) {
-            posIni = 256 * cordy;
-            // Ahora dibujamos la línea de pantalla
-            addr = scrAddr[cordy];
-            nAttr = scr2attr[cordy];
-            for( int cordx = 0; cordx < 32; cordx++ ) {
-                attr = pScrn[nAttr++];
-                if( attr > 0x7f )
-                    attr &= flash;
-                ink = Ink[attr];
-                paper = Paper[attr];
-                pixel = pScrn[addr++];
-                for( int mask = 0x80; mask != 0; mask >>= 1 ) {
-                    if( (pixel & mask) != 0 )
-                        imgDataScr[posIni++] = ink;
-                    else
-                        imgDataScr[posIni++] = paper;
-                }
-            }
-        }
+        for( int address = 0x5800; address < 0x5B00; address++ )
+            updateAttrChar(address, pScrn[address]);
     }
 
     public void updateScreenByte(int address, int value) {
-        int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
-        int col = address & 0x1f;
-        int scan = (address & 0x700) >>> 8;
-        //System.out.println(String.format("Fila :%d\t Col: %d\t scan: %d", row, col, scan));
-
-        int addrPtr = row * 2048 + scan * 256 + col * 8;
-        int attr = pScrn[scr2attr[row << 3] + col];
+        int addrPtr = bufAddr[address & 0x1fff];
+        int attr = pScrn[scr2attr[address & 0x1fff]];
         if( attr > 0x7f )
             attr &= flash;
         int ink = Ink[attr];
         int paper = Paper[attr];
         for (int mask = 0x80; mask != 0; mask >>= 1) {
             if ((value & mask) != 0) {
-                imgDataScr[addrPtr++] = ink;
+                imgBuffer[addrPtr++] = ink;
             } else {
-                imgDataScr[addrPtr++] = paper;
+                imgBuffer[addrPtr++] = paper;
             }
         }
     }
 
     public void updateAttrChar(int address, int attr) {
-        int row = (address >>> 5)  & 0x1f;
-        int col = address & 0x1f;
         if( attr > 0x7f )
             attr &= flash;
         int ink = Ink[attr];
         int paper = Paper[attr];
 
         for (int scan = 0; scan < 8; scan++) {
-            int addrPtr = row * 2048 + scan * 256 + col * 8;
-            int scrByte = pScrn[scrAddr[row << 3] + col + scan * 256];
-//            System.out.println(String.format("Fila :%d\t Col: %d\t scan: %d\taddress %04X",
-//                                row, col, scan, scrAddr[row << 3] + col));
+            int addr = attr2scr[address & 0x3ff] + scan * 256;
+            int scrByte = pScrn[addr];
+            int addrPtr = bufAddr[addr & 0x1fff];
             for (int mask = 0x80; mask != 0; mask >>= 1) {
                 if ((scrByte & mask) != 0) {
-                    imgDataScr[addrPtr++] = ink;
+                    imgBuffer[addrPtr++] = ink;
                 } else {
-                    imgDataScr[addrPtr++] = paper;
+                    imgBuffer[addrPtr++] = paper;
                 }
             }
         }
@@ -381,6 +366,27 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         for (int idx = 1; idx < len; idx += idx) {
             System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
         }
+    }
+
+    public void bufferToImage() {
+        System.arraycopy(imgBuffer, 0, imgDataScr, 0, imgBuffer.length);
+    }
+
+    private void buildScreenTables() {
+        int row, col, scan;
+
+        for (int address = 0x4000; address < 0x5800; address++) {
+            row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+            col = address & 0x1f;
+            scan = (address & 0x700) >>> 8;
+            //System.out.println(String.format("Fila :%d\t Col: %d\t scan: %d", row, col, scan));
+
+            bufAddr[address & 0x1fff] = row * 2048 + scan * 256 + col * 8;
+            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
+        }
+
+        for( int address = 0x5800; address < 0x5B00; address++ )
+            attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
     }
 
     /** This method is called from within the constructor to
