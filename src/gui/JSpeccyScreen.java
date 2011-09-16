@@ -15,6 +15,7 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
+import java.util.Arrays;
 import machine.Spectrum;
 
 /**
@@ -68,6 +69,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
     public final boolean dirtyLine[] = new boolean[192];
     public final boolean dirtyByte[] = new boolean[0x1800];
+
+    private final int states2scr[] = new int[70000];
     
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -117,6 +120,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     //private Clock taskFrame;
     private Spectrum speccy;
     private boolean fullRedraw;
+    public boolean scrRedraw;
         
     /** Creates new form JScreen */
     public JSpeccyScreen(Spectrum spectrum) {
@@ -141,6 +145,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         //speccy = new Spectrum();
         this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
+        scrRedraw = true;
         //System.out.println("imgData.length = " + imgData.length);
         //timerFrame = new Timer();
         //taskFrame = new Clock(this);
@@ -153,7 +158,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for( int addr = 0x5800; addr < 0x5b00; addr++ )
             if( pScrn[addr] > 0x7f ) {
-                updateAttrChar(addr, pScrn[addr], 0);
+                updateAttrChar(addr, pScrn[addr]);
             }
     }
     
@@ -201,11 +206,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
         }
 
-        if (doubleSize) {
-            gc2.drawImage(bImgScr, escalaOp, 96, 96);
-        } else {
-            gc2.drawImage(bImgScr, 48, 48, this);
-        }
+        if( scrRedraw )
+            if (doubleSize) {
+                gc2.drawImage(bImgScr, escalaOp, 96, 96);
+            } else {
+                gc2.drawImage(bImgScr, 48, 48, this);
+            }
+        scrRedraw = false;
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -330,92 +337,126 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 //                }
 //            }
 //        }
-        java.util.Arrays.fill(dirtyLine, true);
-        java.util.Arrays.fill(dirtyByte, true);
+        Arrays.fill(dirtyLine, true);
+        Arrays.fill(dirtyByte, true);
+        scrRedraw = true;
     }
 
-    public void updateScreenByte(int address, int value, int tstates) {
+    public void updateScreenByte(int address, int value) {
 
-        int addrPtr = bufAddr[address & 0x1fff];
-        int attr = pScrn[scr2attr[address & 0x1fff]];
-        if( attr > 0x7f )
-            attr &= flash;
-        int ink = Ink[attr];
-        int paper = Paper[attr];
-        for (int mask = 0x80; mask != 0; mask >>= 1) {
-            if ((value & mask) != 0) {
-                imgBuffer[addrPtr++] = ink;
-            } else {
-                imgBuffer[addrPtr++] = paper;
-            }
-        }
+//        int addrPtr = bufAddr[address & 0x1fff];
+//        int attr = pScrn[scr2attr[address & 0x1fff]];
+//        if( attr > 0x7f )
+//            attr &= flash;
+//        int ink = Ink[attr];
+//        int paper = Paper[attr];
+//        for (int mask = 0x80; mask != 0; mask >>= 1) {
+//            if ((value & mask) != 0) {
+//                imgBuffer[addrPtr++] = ink;
+//            } else {
+//                imgBuffer[addrPtr++] = paper;
+//            }
+//        }
 
         int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
         int scan = (address & 0x700) >>> 8;
         dirtyLine[(row << 3) + scan] = true;
-        dirtyByte[address & 0x1fff] = false;
+        dirtyByte[address & 0x1fff] = true;
+        scrRedraw = true;
 //        System.out.println(String.format("ScrAddr: %04x\tByte: %02x\tt-states: %d",
 //                address, attr, tstates));
     }
 
-    public void updateAttrChar(int address, int attr, int tstates) {
+    public void updateAttrChar(int address, int attr) {
 
         int row = ((address >>> 5) & 0x1f) * 8;
         //int col = address & 0x1f;
         int scrAddress = attr2scr[address & 0x3ff];
         for (int idx = 0; idx < 8; idx++) {
             dirtyLine[row + idx] = true;
-            //dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
+            dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
         }
+        scrRedraw = true;
 
-        int scanline = tstates / 224;
-        if (scanline > 255) {
-            for (int idx = 0; idx < 8; idx++) {
-                dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
-            }
-            return;
-        }
-        scanline -= 64;
-        if( scanline < row )
-            scanline = 0;
-        else
-            scanline = (scanline % 8) + 1;
-
-        if( attr > 0x7f )
-            attr &= flash;
-        int ink = Ink[attr];
-        int paper = Paper[attr];
-
-        for ( int scan = 0; scan < 8; scan++) {
-            int addr = attr2scr[address & 0x3ff] + scan * 256;
-            if( scan < scanline) {
-                dirtyByte[addr & 0x1fff] = true;
-                continue;
-            }
-            int scrByte = pScrn[addr];
-            int addrPtr = bufAddr[addr & 0x1fff];
-            for (int mask = 0x80; mask != 0; mask >>= 1) {
-                if ((scrByte & mask) != 0) {
-                    imgBuffer[addrPtr++] = ink;
-                } else {
-                    imgBuffer[addrPtr++] = paper;
-                }
-            }
-            dirtyByte[addr & 0x1fff] = false;
-        }
+//        int scanline = tstates / 224;
+//        if (scanline > 255) {
+//            for (int idx = 0; idx < 8; idx++) {
+//                dirtyByte[(scrAddress + idx * 256) & 0x1fff] = true;
+//            }
+//            return;
+//        }
+//        scanline -= 64;
+//        if( scanline < row )
+//            scanline = 0;
+//        else
+//            scanline = (scanline % 8) + 1;
+//
+//        if( attr > 0x7f )
+//            attr &= flash;
+//        int ink = Ink[attr];
+//        int paper = Paper[attr];
+//
+//        for ( int scan = 0; scan < 8; scan++) {
+//            int addr = attr2scr[address & 0x3ff] + scan * 256;
+//            if( scan < scanline) {
+//                dirtyByte[addr & 0x1fff] = true;
+//                continue;
+//            }
+//            int scrByte = pScrn[addr];
+//            int addrPtr = bufAddr[addr & 0x1fff];
+//            for (int mask = 0x80; mask != 0; mask >>= 1) {
+//                if ((scrByte & mask) != 0) {
+//                    imgBuffer[addrPtr++] = ink;
+//                } else {
+//                    imgBuffer[addrPtr++] = paper;
+//                }
+//            }
+//            dirtyByte[addr & 0x1fff] = false;
+//        }
     }
 
     public void updateScanline(int scanline) {
         
-        for (int offset = 0; offset < 32; offset++) {
-            int addr = scrAddr[scanline] + offset;
-            if( !dirtyByte[addr & 0x1fff] )
-                continue;
+//        for (int offset = 0; offset < 32; offset++) {
+//            int addr = scrAddr[scanline] + offset;
+//            if( !dirtyByte[addr & 0x1fff] )
+//                continue;
+//
+//            int scrByte = pScrn[addr];
+//            addr &= 0x1fff;
+//            int addrBuf = bufAddr[addr];
+//            int attr = pScrn[scr2attr[addr]];
+//            if (attr > 0x7f) {
+//                attr &= flash;
+//            }
+//            int ink = Ink[attr];
+//            int paper = Paper[attr];
+//            for (int mask = 0x80; mask != 0; mask >>= 1) {
+//                if ((scrByte & mask) != 0) {
+//                    imgBuffer[addrBuf++] = ink;
+//                } else {
+//                    imgBuffer[addrBuf++] = paper;
+//                }
+//            }
+//            dirtyByte[addr] = false;
+//        }
+        System.arraycopy(imgBuffer, scanline * 256, imgDataScr, scanline * 256, 256);
+        dirtyLine[scanline] = false;
+    }
 
-            int scrByte = pScrn[addr];
-            addr &= 0x1fff;
-            int addrBuf = bufAddr[addr];
-            int attr = pScrn[scr2attr[addr]];
+    public void updateInterval(int fromTstates, int toTstates) {
+
+        //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
+        while (fromTstates <= toTstates) {
+            int fromAddr = states2scr[fromTstates];
+            if ( fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
+                fromTstates++;
+                continue;
+            }
+            int scrByte = pScrn[fromAddr];
+            fromAddr &= 0x1fff;
+            int addrBuf = bufAddr[fromAddr];
+            int attr = pScrn[scr2attr[fromAddr]];
             if (attr > 0x7f) {
                 attr &= flash;
             }
@@ -423,16 +464,15 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             int paper = Paper[attr];
             for (int mask = 0x80; mask != 0; mask >>= 1) {
                 if ((scrByte & mask) != 0) {
-                    imgBuffer[addrBuf++] = ink;
+                    imgDataScr[addrBuf++] = ink;
                 } else {
-                    imgBuffer[addrBuf++] = paper;
+                    imgDataScr[addrBuf++] = paper;
                 }
             }
-            dirtyByte[addr] = false;
+            dirtyByte[fromAddr] = false;
+            fromTstates++;
         }
-        System.arraycopy(imgBuffer, scanline * 256, imgDataScr, scanline * 256, 256);
-        dirtyLine[scanline] = false;
-    }
+   }
 
     public void intArrayFill(int[] array, int value) {
         int len = array.length;
@@ -464,6 +504,20 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         for( int address = 0x5800; address < 0x5B00; address++ )
             attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
+
+        Arrays.fill(states2scr, -1);
+        for(int tstates = 14336; tstates < 57344; tstates += 4 ) {
+            //tstates -= (tstates % 4);
+            int fromScan = tstates / 224 - 64;
+            int fromCol = (tstates % 224) / 4;
+            if( fromCol > 31 )
+                continue;
+
+            //states2scr[tstates] = scrAddr[fromScan] + fromCol;
+            states2scr[tstates + 1] = scrAddr[fromScan] + fromCol;
+            //states2scr[tstates + 2] = scrAddr[fromScan] + fromCol;
+            //states2scr[tstates + 3] = scrAddr[fromScan] + fromCol;
+        }
     }
 
     /** This method is called from within the constructor to

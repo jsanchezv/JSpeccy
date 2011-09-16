@@ -100,22 +100,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.statesLimit = 32;
         z80.setINTLine(true);
         z80.execute();
-        z80.statesLimit = 14175; // 63 * 224 + 63
         z80.setINTLine(false);
+        z80.statesLimit = 14240; // 63 * 224 + 199
         z80.execute();
         //System.out.println(String.format("t-states: %d", z80.tEstados));
-        int nChangedLines = 0;
-        for(int line = 0; line < 192; line++ ) {
-            z80.statesLimit += 224;
+        int fromTstates;
+        while (z80.statesLimit < 57250) {
+            fromTstates = z80.tEstados + 1;
+            z80.statesLimit = fromTstates + 12;
             z80.execute();
-            if (jscr.dirtyLine[line]) {
-                jscr.updateScanline(line);
-                nChangedLines++;
-            }
-            //z80.statesLimit += 224;
+            if( fromTstates % 224 < 128 || z80.tEstados % 224 < 128 )
+                jscr.updateInterval(fromTstates, z80.tEstados);
         }
+        
+        if ( jscr.scrRedraw  || nTimesBorderChg != 0 )
+            jscr.repaint();
 
-        //System.out.println("nLines " + nChangedLines);
         z80.statesLimit = 69888;
         z80.execute();
 
@@ -127,15 +127,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if (++nFrame % 16 == 0) {
             jscr.toggleFlash();
         }
-        
-//        if( nTimesBorderChg > 0)
-//            System.out.println("El borde cambió " + nTimesBorderChg+ " veces");
-        
-        if ( nChangedLines != 0  || nTimesBorderChg != 0 ) {
-            if (jscr != null) {
-                jscr.repaint();
-            }
-        }
+
+//        if ( jscr.scrRedraw  || nTimesBorderChg != 0 )
+//            jscr.repaint();
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -212,13 +206,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
             // Area de pixeles
             if (address > 0x3FFF && address < 0x5800) {
-                jscr.updateScreenByte(address, value, z80.tEstados);
+                jscr.updateScreenByte(address, value);
                 //System.out.println("updateScreen");
             }
 
             // Area de atributos
             if (address > 0x57FF && address < 0x5B00) {
-                jscr.updateAttrChar(address, value, z80.tEstados);
+                jscr.updateAttrChar(address, value);
                 //System.out.println("updateAttr");
             }
         }
