@@ -7,19 +7,24 @@
 package gui;
 
 import java.awt.BorderLayout;
+import machine.Spectrum;
 
 /**
  *
  * @author  jsanchez
  */
 public class JSpeccy extends javax.swing.JFrame {
+    Spectrum spectrum;
     JSpeccyScreen jscr;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
-        jscr = new JSpeccyScreen();
+        spectrum = new Spectrum();
+        jscr = new JSpeccyScreen(spectrum);
+        spectrum.setScreen(jscr);
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
+        spectrum.startEmulation();
     }
     
     /** This method is called from within the constructor to

@@ -15,9 +15,6 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-import java.util.Arrays;
-import java.util.Timer;
-import machine.Clock;
 import machine.Spectrum;
 
 /**
@@ -97,13 +94,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    private Timer timerFrame;
-    private Clock taskFrame;
+    //private Timer timerFrame;
+    //private Clock taskFrame;
     private Spectrum speccy;
-    private int nFrame;
+    //private int nFrame;
         
     /** Creates new form JScreen */
-    public JSpeccyScreen() {
+    public JSpeccyScreen(Spectrum spectrum) {
         initComponents();
         
         bImg = new BufferedImage(320, 256, BufferedImage.TYPE_INT_RGB);
@@ -118,35 +115,38 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         renderHints.put(RenderingHints.KEY_COLOR_RENDERING,
                         RenderingHints.VALUE_COLOR_RENDER_SPEED);
         escalaOp = new AffineTransformOp(escala, renderHints);
-        speccy = new Spectrum();
+        //speccy = new Spectrum();
+        this.speccy = spectrum;
         pScrn = speccy.getSpectrumMem();
-        timerFrame = new Timer();
-        taskFrame = new Clock(this);
-        //Arrays.fill(borderColor, 0x07);
-        startEmulation();
+        //timerFrame = new Timer();
+        //taskFrame = new Clock(this);
+        //startEmulation();
     }
 
-    public void startEmulation() {
-        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
-    }
 
-    public void stopEmulation() {
-        timerFrame.cancel();
-    }
 
-    public void generateFrame() {
-        speccy.execFrame();
-        if( ++nFrame % 16 == 0 ) {
-            toggleFlash();
-            speccy.scrMod = true;
-        }
-        if( speccy.scrMod )
-            repaint();
-    }
+//    public void startEmulation() {
+//        timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
+//    }
+//
+//    public void stopEmulation() {
+//        timerFrame.cancel();
+//    }
+
+//    public void generateFrame() {
+//        //long start = System.currentTimeMillis();
+//        speccy.execFrame();
+//        if( ++nFrame % 16 == 0 ) {
+//            toggleFlash();
+//            speccy.scrMod = true;
+//        }
+//        if( speccy.scrMod )
+//            repaint();
+//        //System.out.println("generateFrame en: " + (System.currentTimeMillis() - start));
+//    }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
-        //System.out.println("Flash: " + flash);
     }
     
     public void toggleDoubleSize() {

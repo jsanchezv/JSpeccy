@@ -5,10 +5,12 @@
 
 package machine;
 
+import gui.JSpeccyScreen;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import z80core.Z80;
@@ -25,6 +27,7 @@ public class Spectrum implements z80core.MemIoOps {
     private FileInputStream fIn;
 
     private int frameStart;
+    private int nFrame;
     public boolean scrMod;
     static int nShot;
 
@@ -46,20 +49,56 @@ public class Spectrum implements z80core.MemIoOps {
             }
         }
     }
+    private Timer timerFrame;
+    private SpectrumTimer taskFrame;
+    JSpeccyScreen jscr;
+    //private final Clock clk;
 
     public Spectrum() {
+        //super("SpectrumThread");
         z80 = new Z80(this);
         loadRom();
         frameStart = 0;
+        nFrame = 0;
         nShot = 0;
-//        for( int addr = 0x4000; addr < z80Ram.length; addr++ )
-//            z80Ram[addr] = (int)Math.abs(Math.random()) & 0xff;
+        taskFrame = new SpectrumTimer(this);
+    }
+
+    public void startEmulation() {
+        timerFrame = new Timer();
+        timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
+    }
+
+    public void stopEmulation() {
+        timerFrame.cancel();
+    }
+
+    public void generateFrame() {
+        long startFrame, endFrame, sleepTime;
+        startFrame = System.currentTimeMillis();
+        //System.out.println("Start frame: " + startFrame);
+        scrMod = false;
+        execFrame();
+        if (++nFrame % 16 == 0) {
+            jscr.toggleFlash();
+            scrMod = true;
+        }
+        if (scrMod) {
+            jscr.repaint();
+        }
+        endFrame = System.currentTimeMillis();
+        //System.out.println("End frame: " + endFrame);
+        //sleepTime = endFrame - startFrame;
+        //System.out.println("execFrame en: " + sleepTime);
+    }
+
+    public void setScreen(JSpeccyScreen jscr) {
+        this.jscr = jscr;
     }
 
     public void execFrame() {
         //long start = System.currentTimeMillis();
         boolean intREQ = false;
-        scrMod = false;
 
         z80.tEstados = frameStart;
         z80.setINTLine(true);
@@ -151,10 +190,13 @@ public class Spectrum implements z80core.MemIoOps {
             return;
 
         if( (address & 0xC000) == 0x4000 ) {
-            scrMod = true;
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
         }
+        
+        if( address < 0x5B00 )
+            scrMod = true;
+
         z80.tEstados += 3;
         z80Ram[address] = value & 0xff;
         //System.out.println(String.format(strMW, z80.getTEstados(), address, z80Ram[address]));
@@ -192,10 +234,13 @@ public class Spectrum implements z80core.MemIoOps {
             return;
 
         if( (address & 0xC000) == 0x4000 ) {
-            scrMod = true;
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
         }
+
+        if( address < 0x5B00 )
+            scrMod = true;
+
         z80.tEstados += 3;
         z80Ram[address] = word & 0xff;
 
@@ -204,10 +249,13 @@ public class Spectrum implements z80core.MemIoOps {
             return;
 
         if( (address & 0xC000) == 0x4000 ) {
-            scrMod = true;
             z80.tEstados += delayTstates[z80.tEstados];
                 //System.out.println("R(" + dire +"): ");
         }
+
+        if( address < 0x5B00 )
+            scrMod = true;
+        
         z80.tEstados += 3;
         z80Ram[address] = word >>> 8;
     }
