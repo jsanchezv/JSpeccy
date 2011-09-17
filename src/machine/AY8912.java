@@ -383,7 +383,6 @@ public final class AY8912 {
         regAY[Mixer] = 0xff;
         Continue = false;
         Attack = true;
-        amplitudeEnv = 0;
         envIncr = 1;
     }
 

@@ -75,6 +75,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         if (doubleSize) {
             gc2.drawImage(tvImage, escalaOp, 0, 0);
+//            gc2.drawImage(tvImage, 0, 0, Spectrum.SCREEN_WIDTH * 2,
+//                    Spectrum.SCREEN_HEIGHT * 2, null);
         } else {
             gc2.drawImage(tvImage, 0, 0, null);
         }

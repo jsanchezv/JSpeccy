@@ -13,6 +13,9 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicFileChooserUI;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import machine.Spectrum;
 
 /**
@@ -41,6 +44,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
         lsm.addListSelectionListener(new TapeBrowserSelectionListener(spectrum.tape));
+        spectrum.tape.setListSelectionModel(lsm);
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum.getKeyboard());

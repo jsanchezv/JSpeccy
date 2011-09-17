@@ -26,6 +26,8 @@ public enum MachineTypes {
     public int firstScrByte;    // t-states hasta la pantalla
     public int firstScrUpdate;  // t-states primera actualización de la pantalla
     public int lastScrUpdate;   // t-states última actualización de la pantalla
+    public int firstBorderUpdate;
+    public int lastBorderUpdate;
     public int outOffset;       //
     public int lengthINT;       // Duración en t-states de la señal INT
     private boolean hasAY8912;  // Tiene un AY-3-8912?
@@ -44,6 +46,8 @@ public enum MachineTypes {
                 this.firstScrByte = 14336;
                 this.firstScrUpdate = 14328;
                 this.lastScrUpdate = 57237;
+                this.firstBorderUpdate = (64 - Spectrum.BORDER_WIDTH )* tstatesLine;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
                 this.outOffset = 3;
                 this.hasAY8912 = false;
                 this.hasDisk = false;
@@ -60,6 +64,8 @@ public enum MachineTypes {
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14344;
                 this.lastScrUpdate = 58040;
+                this.firstBorderUpdate = (63 - Spectrum.BORDER_WIDTH) * tstatesLine;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
@@ -76,6 +82,8 @@ public enum MachineTypes {
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
+                this.firstBorderUpdate = (63 - Spectrum.BORDER_WIDTH) * tstatesLine;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
@@ -92,6 +100,8 @@ public enum MachineTypes {
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
+                this.firstBorderUpdate = (63 - Spectrum.BORDER_WIDTH) * tstatesLine;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = true;

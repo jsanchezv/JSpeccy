@@ -650,7 +650,8 @@ public class Snapshots {
             issue3 = (byte29 & 0x04) == 0 ? true : false;
             switch (byte29 >>> 6) {
                 case 0: // Cursor/AGF/Protek Joystick
-                    joystick = Joystick.CURSOR;
+                    // No es lo que dice la especificación, pero lo prefiero...
+                    joystick = Joystick.NONE;
                     break;
                 case 1: // Kempston joystick
                     joystick = Joystick.KEMPSTON;
@@ -942,6 +943,8 @@ public class Snapshots {
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 // Página 5, que corresponde a 0x4000-0x7FFF
                 bufLen = compressPageZ80(memory, buffer, 5);
+                if (bufLen == 0x4000)
+                    bufLen = 0xffff; // el bloque no se pudo comprimir
                 fOut.write(bufLen);
                 fOut.write(bufLen >>> 8);
                 fOut.write(8);
@@ -951,6 +954,8 @@ public class Snapshots {
 
                 // Página 2, que corresponde a 0x8000-0xBFFF
                 bufLen = compressPageZ80(memory, buffer, 2);
+                if (bufLen == 0x4000)
+                    bufLen = 0xffff; // el bloque no se pudo comprimir
                 fOut.write(bufLen);
                 fOut.write(bufLen >>> 8);
                 fOut.write(4);
@@ -960,6 +965,8 @@ public class Snapshots {
 
                 // Página 0, que corresponde a 0xC000-0xFFFF
                 bufLen = compressPageZ80(memory, buffer, 0);
+                if (bufLen == 0x4000)
+                    bufLen = 0xffff; // el bloque no se pudo comprimir
                 fOut.write(bufLen);
                 fOut.write(bufLen >>> 8);
                 fOut.write(5);
@@ -969,6 +976,8 @@ public class Snapshots {
             } else { // Mode 128k
                 for (int page = 0; page < 8; page++) {
                     bufLen = compressPageZ80(memory, buffer, page);
+                    if (bufLen == 0x4000)
+                        bufLen = 0xffff; // el bloque no se pudo comprimir
                     fOut.write(bufLen);
                     fOut.write(bufLen >>> 8);
                     fOut.write(page + 3);
