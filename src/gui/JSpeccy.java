@@ -50,6 +50,8 @@ public class JSpeccy extends javax.swing.JFrame {
         keyboardHelper = new javax.swing.JDialog(this);
         keyboardImage = new javax.swing.JLabel();
         closeKeyboardHelper = new javax.swing.JButton();
+        joystickButtonGroup = new javax.swing.ButtonGroup();
+        hardwareButtonGroup = new javax.swing.ButtonGroup();
         jPanel1 = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
@@ -71,6 +73,12 @@ public class JSpeccy extends javax.swing.JFrame {
         thisIsTheEndMyFriend = new javax.swing.JMenuItem();
         optionsMenu = new javax.swing.JMenu();
         doubleSizeOption = new javax.swing.JCheckBoxMenuItem();
+        joystickOptionMenu = new javax.swing.JMenu();
+        noneJoystick = new javax.swing.JRadioButtonMenuItem();
+        kempstonJoystick = new javax.swing.JRadioButtonMenuItem();
+        sinclair1Joystick = new javax.swing.JRadioButtonMenuItem();
+        sinclair2Joystick = new javax.swing.JRadioButtonMenuItem();
+        cursorJoystick = new javax.swing.JRadioButtonMenuItem();
         machineMenu = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
@@ -78,8 +86,8 @@ public class JSpeccy extends javax.swing.JFrame {
         nmiMachineMenu = new javax.swing.JMenuItem();
         jSeparator3 = new javax.swing.JPopupMenu.Separator();
         hardwareMachineMenu = new javax.swing.JMenu();
-        Spec48kHardwareMenu = new javax.swing.JMenuItem();
-        Spec128kHardwareMenu = new javax.swing.JMenuItem();
+        spec48kHardware = new javax.swing.JRadioButtonMenuItem();
+        spec128kHardware = new javax.swing.JRadioButtonMenuItem();
         mediaMenu = new javax.swing.JMenu();
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
@@ -103,6 +111,15 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         keyboardHelper.getContentPane().add(closeKeyboardHelper, java.awt.BorderLayout.PAGE_END);
+
+        joystickButtonGroup.add(noneJoystick);
+        joystickButtonGroup.add(kempstonJoystick);
+        joystickButtonGroup.add(sinclair1Joystick);
+        joystickButtonGroup.add(sinclair2Joystick);
+        joystickButtonGroup.add(cursorJoystick);
+
+        hardwareButtonGroup.add(spec48kHardware);
+        hardwareButtonGroup.add(spec128kHardware);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle(bundle.getString("JSpeccy.title")); // NOI18N
@@ -267,6 +284,51 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         optionsMenu.add(doubleSizeOption);
 
+        joystickOptionMenu.setText(bundle.getString("JSpeccy.joystickOptionMenu.text")); // NOI18N
+
+        noneJoystick.setSelected(true);
+        noneJoystick.setText(bundle.getString("JSpeccy.noneJoystick.text")); // NOI18N
+        noneJoystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                noneJoystickActionPerformed(evt);
+            }
+        });
+        joystickOptionMenu.add(noneJoystick);
+
+        kempstonJoystick.setText(bundle.getString("JSpeccy.kempstonJoystick.text")); // NOI18N
+        kempstonJoystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                kempstonJoystickActionPerformed(evt);
+            }
+        });
+        joystickOptionMenu.add(kempstonJoystick);
+
+        sinclair1Joystick.setText(bundle.getString("JSpeccy.sinclair1Joystick.text")); // NOI18N
+        sinclair1Joystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sinclair1JoystickActionPerformed(evt);
+            }
+        });
+        joystickOptionMenu.add(sinclair1Joystick);
+
+        sinclair2Joystick.setText(bundle.getString("JSpeccy.sinclair2Joystick.text")); // NOI18N
+        sinclair2Joystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sinclair2JoystickActionPerformed(evt);
+            }
+        });
+        joystickOptionMenu.add(sinclair2Joystick);
+
+        cursorJoystick.setText(bundle.getString("JSpeccy.cursorJoystick.text")); // NOI18N
+        cursorJoystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cursorJoystickActionPerformed(evt);
+            }
+        });
+        joystickOptionMenu.add(cursorJoystick);
+
+        optionsMenu.add(joystickOptionMenu);
+
         jMenuBar1.add(optionsMenu);
 
         machineMenu.setText(bundle.getString("JSpeccy.machineMenu.text")); // NOI18N
@@ -313,21 +375,22 @@ public class JSpeccy extends javax.swing.JFrame {
 
         hardwareMachineMenu.setText(bundle.getString("JSpeccy.hardwareMachineMenu.text")); // NOI18N
 
-        Spec48kHardwareMenu.setText(bundle.getString("JSpeccy.Spec48kHardwareMenu.text")); // NOI18N
-        Spec48kHardwareMenu.addActionListener(new java.awt.event.ActionListener() {
+        spec48kHardware.setSelected(true);
+        spec48kHardware.setText(bundle.getString("JSpeccy.spec48kHardware.text")); // NOI18N
+        spec48kHardware.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                Spec48kHardwareMenuActionPerformed(evt);
+                spec48kHardwareActionPerformed(evt);
             }
         });
-        hardwareMachineMenu.add(Spec48kHardwareMenu);
+        hardwareMachineMenu.add(spec48kHardware);
 
-        Spec128kHardwareMenu.setText(bundle.getString("JSpeccy.Spec128kHardwareMenu.text")); // NOI18N
-        Spec128kHardwareMenu.addActionListener(new java.awt.event.ActionListener() {
+        spec128kHardware.setText(bundle.getString("JSpeccy.spec128kHardware.text")); // NOI18N
+        spec128kHardware.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                Spec128kHardwareMenuActionPerformed(evt);
+                spec128kHardwareActionPerformed(evt);
             }
         });
-        hardwareMachineMenu.add(Spec128kHardwareMenu);
+        hardwareMachineMenu.add(spec128kHardware);
 
         machineMenu.add(hardwareMachineMenu);
 
@@ -564,8 +627,39 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.startEmulation();
     }//GEN-LAST:event_fileSaveSnapshotActionPerformed
 
-    private void Spec48kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec48kHardwareMenuActionPerformed
+    private void noneJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noneJoystickActionPerformed
+
+        spectrum.setJoystick(Spectrum.Joystick.NONE);
+
+}//GEN-LAST:event_noneJoystickActionPerformed
+
+    private void kempstonJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kempstonJoystickActionPerformed
+
+        spectrum.setJoystick(Spectrum.Joystick.KEMPSTON);
+
+    }//GEN-LAST:event_kempstonJoystickActionPerformed
+
+    private void sinclair1JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair1JoystickActionPerformed
+
+        spectrum.setJoystick(Spectrum.Joystick.SINCLAIR1);
+
+    }//GEN-LAST:event_sinclair1JoystickActionPerformed
+
+    private void sinclair2JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair2JoystickActionPerformed
+
+        spectrum.setJoystick(Spectrum.Joystick.SINCLAIR2);
+
+    }//GEN-LAST:event_sinclair2JoystickActionPerformed
+
+    private void cursorJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cursorJoystickActionPerformed
+
+        spectrum.setJoystick(Spectrum.Joystick.CURSOR);
+        
+    }//GEN-LAST:event_cursorJoystickActionPerformed
+
+    private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
         boolean paused = spectrum.isPaused();
+
         if (!paused)
             spectrum.stopEmulation();
 
@@ -574,10 +668,11 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if (!paused)
             spectrum.startEmulation();
-    }//GEN-LAST:event_Spec48kHardwareMenuActionPerformed
+    }//GEN-LAST:event_spec48kHardwareActionPerformed
 
-    private void Spec128kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec128kHardwareMenuActionPerformed
+    private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
         boolean paused = spectrum.isPaused();
+
         if (!paused)
             spectrum.stopEmulation();
 
@@ -586,7 +681,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if (!paused)
             spectrum.startEmulation();
-    }//GEN-LAST:event_Spec128kHardwareMenuActionPerformed
+    }//GEN-LAST:event_spec128kHardwareActionPerformed
     
     /**
      * @param args the command line arguments
@@ -600,16 +695,16 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JMenuItem Spec128kHardwareMenu;
-    private javax.swing.JMenuItem Spec48kHardwareMenu;
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JButton closeKeyboardHelper;
+    private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
     private javax.swing.JButton exitButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenuItem fileSaveSnapshot;
+    private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JMenuItem imageHelpMenu;
@@ -619,12 +714,16 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
+    private javax.swing.ButtonGroup joystickButtonGroup;
+    private javax.swing.JMenu joystickOptionMenu;
+    private javax.swing.JRadioButtonMenuItem kempstonJoystick;
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;
+    private javax.swing.JRadioButtonMenuItem noneJoystick;
     private javax.swing.JButton openSnapshotButton;
     private javax.swing.JMenuItem openTapeMediaMenu;
     private javax.swing.JMenu optionsMenu;
@@ -636,6 +735,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem rewindTapeMediaMenu;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
+    private javax.swing.JRadioButtonMenuItem sinclair1Joystick;
+    private javax.swing.JRadioButtonMenuItem sinclair2Joystick;
+    private javax.swing.JRadioButtonMenuItem spec128kHardware;
+    private javax.swing.JRadioButtonMenuItem spec48kHardware;
     private javax.swing.JLabel speedLabel;
     private javax.swing.JLabel tapeLabel;
     private javax.swing.JMenu tapeMediaMenu;
