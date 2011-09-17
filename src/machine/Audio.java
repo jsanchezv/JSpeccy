@@ -18,7 +18,7 @@ class Audio {
     static final int FREQ = 22050;
     SourceDataLine line;
     DataLine.Info infoDataLine;
-    byte buf[] = new byte[4096];
+    byte buf[] = new byte[2646]; // 3 frames de sonido
     int bufp;
     int level;
     public int audiotstates;

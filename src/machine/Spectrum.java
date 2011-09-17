@@ -13,8 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import z80core.Z80;
@@ -23,7 +22,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
+public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     private Z80 z80;
     private int z80Ram[] = new int[0x10000];
@@ -51,11 +50,11 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
             }
         }
     }
-//    private Timer timerFrame;
-//    private SpectrumTimer taskFrame;
+    private Timer timerFrame;
+    private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
-    private ScheduledThreadPoolExecutor stpe;
+//    private ScheduledThreadPoolExecutor stpe;
     private boolean paused;
     private boolean loading;
 
@@ -66,26 +65,26 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
         kempston = 0;
-//        timerFrame = new Timer("SpectrumClock", true);
+        timerFrame = new Timer("SpectrumClock", true);
         audio = new Audio();
         audio.open(3500000);
         paused = true;
         loading = true;
-        stpe = new ScheduledThreadPoolExecutor(1);
-        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
+//        stpe = new ScheduledThreadPoolExecutor(1);
+//        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
 
     public void startEmulation() {
         z80.setTEstados(0);
         audio.audiotstates = 0;
         jscr.invalidateScreen();
-//        taskFrame = new SpectrumTimer(this);
-//        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+        taskFrame = new SpectrumTimer(this);
+        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         paused = false;
     }
 
     public void stopEmulation() {
-//        taskFrame.cancel();
+        taskFrame.cancel();
         paused = true;
         audio.bufp = audio.flush(audio.bufp);
     }
@@ -149,13 +148,13 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
         //System.out.println("execFrame en: " + sleepTime);
     }
 
-    public void run() {
-        if (paused) {
-            return;
-        }
-        
-        generateFrame();
-    }
+//    public void run() {
+//        if (paused) {
+//            return;
+//        }
+//
+//        generateFrame();
+//    }
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
