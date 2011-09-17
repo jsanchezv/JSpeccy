@@ -97,12 +97,12 @@ loop:
 			  = new AudioFormat(FREQ, 16, 1, true, false);
 			System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
-            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
-                infoDataLine.getMaxBufferSize(), infoDataLine.getMinBufferSize()));
 			SourceDataLine l = (SourceDataLine)AudioSystem.getLine(infoDataLine);
 			l.open(fmt, 4096);
 			l.start();
 			line = l;
+//            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
+//                infoDataLine.getMaxBufferSize(), infoDataLine.getMinBufferSize()));
 		} catch (Exception e) {
 			System.out.println(e);
 		}

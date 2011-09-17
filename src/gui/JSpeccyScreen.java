@@ -63,7 +63,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     private final boolean dirtyByte[] = new boolean[0x1800];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
-    private final int states2scr[] = new int[70000];
+    private final int states2scr[] = new int[69050];
 
     private static final int BORDER_WIDTH = 40;
     private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
@@ -300,17 +300,23 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     }
 
     public void updateInterval(int fromTstates, int toTstates) {
-
+        int fromAddr, addrBuf;
+        int paper, ink;
+        int scrByte, attr;
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
+
+        while (fromTstates % 4 != 0)
+            fromTstates++;
+        
         while (fromTstates <= toTstates) {
-            int fromAddr = states2scr[fromTstates];
+            fromAddr = states2scr[fromTstates];
             if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
-                fromTstates++;
+                fromTstates += 4;
                 continue;
             }
 
-            int scrByte = 0, attr = 0;
-            // si m1contended es != -1 es que hay que emular el efecto snow.
+            scrByte = attr = 0;
+            // si m1contended != -1 es que hay que emular el efecto snow.
             if (m1contended == -1) {
                 scrByte = pScrn[fromAddr];
                 fromAddr &= 0x1fff;
@@ -334,12 +340,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 m1contended = -1;
             }
 
-            int addrBuf = bufAddr[fromAddr];
+            addrBuf = bufAddr[fromAddr];
             if (attr > 0x7f) {
                 attr &= flash;
             }
-            int ink = Ink[attr];
-            int paper = Paper[attr];
+            ink = Ink[attr];
+            paper = Paper[attr];
             for (int mask = 0x80; mask != 0; mask >>= 1) {
                 if ((scrByte & mask) != 0) {
                     imgDataScr[addrBuf++] = ink;
@@ -349,7 +355,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             }
             dirtyByte[fromAddr] = false;
             screenUpdated = true;
-            fromTstates++;
+            fromTstates += 4;
         }
     }
 
@@ -417,12 +423,12 @@ public class JSpeccyScreen extends javax.swing.JPanel {
 
         Arrays.fill(states2scr, -1);
         for (int tstates = 14336; tstates < 57344; tstates += 4) {
-            int fromScan = tstates / 224 - 64;
-            int fromCol = (tstates % 224) / 4;
-            if (fromCol > 31) {
+            col = (tstates % 224) / 4;
+            if (col > 31)
                 continue;
-            }
-            states2scr[tstates - 8] = scrAddr[fromScan] + fromCol;
+
+            scan = tstates / 224 - 64;
+            states2scr[tstates - 8] = scrAddr[scan] + col;
         }
     }
 

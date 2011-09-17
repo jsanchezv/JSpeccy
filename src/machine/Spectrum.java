@@ -100,12 +100,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.setINTLine(true);
         z80.execute();
         z80.setINTLine(false);
-        z80.statesLimit = 14311; // 63 * 224 + 199
+        z80.statesLimit = 14335;
         z80.execute();
+        jscr.updateInterval(14328, z80.tEstados);
         //System.out.println(String.format("t-states: %d", z80.tEstados));
         int fromTstates;
-        while (z80.statesLimit < 57248) {
-            fromTstates = z80.tEstados + 1;
+        // El último byte de pantalla se muestra en el estado 57236
+        while (z80.statesLimit < 57237) {
+            fromTstates = z80.tEstados + 1;     
             z80.statesLimit = fromTstates + 15;
             z80.execute();
             jscr.updateInterval(fromTstates, z80.tEstados);
