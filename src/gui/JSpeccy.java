@@ -305,7 +305,7 @@ public class JSpeccy extends javax.swing.JFrame {
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
         if( jFileSnapshot == null ) {
-            jFileSnapshot = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
+            jFileSnapshot = new JFileChooser("/home/jsanchez/Spectrum");
             jFileSnapshot.setFileFilter(new FileFilterSnapshot());
             currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
         }
@@ -395,7 +395,7 @@ public class JSpeccy extends javax.swing.JFrame {
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
         if( jFileTape == null ) {
-            jFileTape = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
+            jFileTape = new JFileChooser("/home/jsanchez/Spectrum");
             jFileTape.setFileFilter(new FileFilterTape());
             currentDirTape = jFileTape.getCurrentDirectory();
         }

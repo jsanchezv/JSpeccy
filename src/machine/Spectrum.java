@@ -130,30 +130,31 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         long counter = framesByInt;
 
         do {
-            z80.statesLimit = 32;
+            //z80.statesLimit = 32;
             z80.setINTLine(true);
-            z80.execute();
+            z80.execute(32); // La INT dura 32 t-states
             z80.setINTLine(false);
-            z80.statesLimit = 14335;
-            z80.execute();
-            updateInterval(14328, z80.tEstados);
+            //z80.statesLimit = 14335;
+            z80.execute(14335);
+            updateInterval(14328, z80.getTEstados());
             //System.out.println(String.format("t-states: %d", z80.tEstados));
-            int fromTstates;
+            //int fromTstates;
             // El último byte de pantalla se muestra en el estado 57236
-            while (z80.statesLimit < 57237) {
-                fromTstates = z80.tEstados + 1;
-                z80.statesLimit = fromTstates + 12;
-                z80.execute();
-                updateInterval(fromTstates, z80.tEstados);
+            while (z80.getTEstados() < 57237) {
+                int fromTstates = z80.getTEstados() + 1;
+                //z80.statesLimit = fromTstates + 12;
+                z80.execute(fromTstates + 15);
+                updateInterval(fromTstates, z80.getTEstados());
             }
 
-            z80.statesLimit = FRAMES48k;
-            z80.execute();
+            //z80.statesLimit = FRAMES48k;
+            z80.execute(FRAMES48k);
 
-            audio.updateAudio(z80.tEstados, speaker);
+            audio.updateAudio(z80.getTEstados(), speaker);
             audio.audiotstates -= FRAMES48k;
 
-            z80.tEstados -= FRAMES48k;
+            //z80.tEstados -= FRAMES48k;
+            z80.addTEstados(-FRAMES48k);
 
             if (++nFrame % 16 == 0) {
                 toggleFlash();
@@ -170,6 +171,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             }
         } while (--counter > 0);
 
+        /* 20/03/2010
+         * La pantalla se ha de dibujar en un solo paso. Si el borde no se
+         * modificó, se vuelca sobre el doble búfer solo la pantalla. Si se
+         * modificó el borde, primero se vuelca la pantalla sobre la imagen
+         * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
+         * en juegos como el TV-game.
+         */
         if (screenUpdated || nBorderChanges > 0) {
 //            System.out.print(System.currentTimeMillis() + " ");
             if (nBorderChanges > 0) {
@@ -295,13 +303,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((address & 0xC000) == 0x4000) {
 //            System.out.println(String.format("getOpcode: %d %d %d",
 //                    z80.tEstados, address, delayTstates[z80.tEstados]));
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
-
-        z80.tEstados += 4;
+        //z80.tEstados += 4;
+        z80.addTEstados(4);
 
         if ((z80.getRegI() & 0xC0) == 0x40) {
-            m1contended = z80.tEstados;
+            m1contended = z80.getTEstados();
             m1regR = z80.getRegR();
         }
 
@@ -321,9 +330,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int peek8(int address) {
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
 
         return z80Ram[address];
     }
@@ -331,12 +342,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void poke8(int address, int value) {
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (address < 0x5b00) {
                 screenUpdated(address);
             }
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
 
         if (address > 0x3fff) {
             z80Ram[address] = value;
@@ -347,16 +360,20 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         int lsb; //, msb;
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
         lsb = z80Ram[address];
 
         address = (address + 1) & 0xffff;
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
 
         //msb = z80Ram[address];
         return (z80Ram[address] << 8) | lsb;
@@ -367,12 +384,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        poke8((address + 1) & 0xffff, word >>> 8);
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (address < 0x5b00) {
                 screenUpdated(address);
             }
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
 
         if (address > 0x3fff) {
             z80Ram[address] = word & 0xff;
@@ -381,12 +400,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         address = (address + 1) & 0xffff;
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (address < 0x5b00) {
                 screenUpdated(address);
             }
         }
-        z80.tEstados += 3;
+        //z80.tEstados += 3;
+        z80.addTEstados(3);
 
         if (address > 0x3fff) {
             z80Ram[address] = word >>> 8;
@@ -397,10 +418,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //address &= 0xffff;
         if ((address & 0xC000) == 0x4000) {
             for (int idx = 0; idx < tstates; idx++) {
-                z80.tEstados += delayTstates[z80.tEstados] + 1;
+                //z80.tEstados += delayTstates[z80.tEstados] + 1;
+                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
             }
         } else {
-            z80.tEstados += tstates;
+            //z80.tEstados += tstates;
+            z80.addTEstados(tstates);
         }
     }
 
@@ -497,7 +520,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                if( (value & 0x07) == 0x07 )
 //                    System.out.println(String.format("tstates: %d border: %d",
 //                        z80.tEstados, value&0x07));
-                updateBorder(z80.tEstados);
+                updateBorder(z80.getTEstados());
             }
 
             //if (tape.isStopped()) {
@@ -505,7 +528,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 if (spkMic != speaker) {
 //                au_update();
 //                    if (soundOn) {
-                        audio.updateAudio(z80.tEstados, speaker);
+                        audio.updateAudio(z80.getTEstados(), speaker);
 //                    }
                     speaker = spkMic;
                 }
@@ -559,15 +582,19 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((port & 0x0001) != 0) {
             if ((port & 0xc000) == 0x4000) {
                 // A0 == 1 y es contended RAM
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados++;
+//                z80.tEstados += delayTstates[z80.tEstados];
+//                z80.tEstados++;
+//                z80.tEstados += delayTstates[z80.tEstados];
+//                z80.tEstados++;
+//                z80.tEstados += delayTstates[z80.tEstados];
+//                z80.tEstados++;
+                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
+                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
+                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
             } else {
                 // A0 == 1 y no es contended RAM
-                z80.tEstados += 3;
+                //z80.tEstados += 3;
+                z80.addTEstados(3);
             }
         } else {
 //            if ((port & 0xc000) == 0x4000) {
@@ -576,8 +603,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                z80.tEstados += 3;
 //            } else {
             // A0 == 0 y no es contended RAM
-            z80.tEstados += delayTstates[z80.tEstados];
-            z80.tEstados += 3;
+//            z80.tEstados += delayTstates[z80.tEstados];
+//            z80.tEstados += 3;
+            z80.addTEstados(delayTstates[z80.getTEstados()] + 3);
             // }
         }
     }
@@ -585,20 +613,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private void preIO(int port) {
         if ((port & 0xc000) == 0x4000) {
             // A0 == 1 y es contended RAM
-            z80.tEstados += delayTstates[z80.tEstados];
+            //z80.tEstados += delayTstates[z80.tEstados];
+            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
-        z80.tEstados++;
+        //z80.tEstados++;
+        z80.addTEstados(1);
     }
 
     public void execDone(int tstates) {
-        tape.notifyTstates(nFrame, z80.tEstados);
+        tape.notifyTstates(nFrame, z80.getTEstados());
         if (tape.isPlaying()) {
             earBit = tape.getEarBit();
             int spkMic = sp_volt[(earBit >>> 5) & 0x02];
             if (spkMic != speaker) {
 //                au_update();
 //                if (soundOn) {
-                audio.updateAudio(z80.tEstados, speaker);
+                audio.updateAudio(z80.getTEstados(), speaker);
             }
             speaker = spkMic;
 //            }

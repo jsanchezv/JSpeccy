@@ -60,12 +60,9 @@ public class Z80 {
 
     private final MemIoOps MemIoImpl;
     // Número de estados T que se llevan ejecutados
-    public int tEstados;
+    private int tEstados;
 
     private boolean execDone;
-
-    // Hay que ejecutar hasta estos tEstados
-    public int statesLimit;
 
     //Código de la instrucción a ejecutar
     private int opCode;
@@ -1392,7 +1389,7 @@ public class Z80 {
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
      * simular la contended memory del Spectrum.
      */
-    public final int execute() {
+    public final int execute(int statesLimit) {
 
         while (tEstados < statesLimit) {
             int tmp = tEstados;
