@@ -22,5 +22,5 @@ public interface MemIoOps {
 
     void contendedStates(int address, int tstates);
 
-    void newInstruction(int tstates);
+    void timeoutEvent();
 }

@@ -315,6 +315,7 @@ public class JSpeccy extends javax.swing.JFrame {
             silenceSoundToggleButton.setSelected(silenceMachineMenu.isSelected());
 
         spectrum.toggleSound();
+        spectrum.toggleTape();
     }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
     
     /**

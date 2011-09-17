@@ -59,6 +59,7 @@ import java.util.Arrays;
 public class Z80 {
 
     private final MemIoOps MemIoImpl;
+    private int timeout;
 
     // Número de estados T que se llevan ejecutados
     public int tEstados;
@@ -222,8 +223,17 @@ public class Z80 {
     // Constructor de la clase
     public Z80(MemIoOps memoria) {
         MemIoImpl = memoria;
-        tEstados = 0;
+        tEstados = timeout = 0;
         reset();
+    }
+
+    // Iniciar timeout en testados para generar un timeoutEvent
+    public final void setTimeout(int tstates) {
+        timeout = tstates;
+    }
+
+    public final int getTimeout() {
+        return timeout;
     }
 
     // Acceso a registros de 8 bits
@@ -1392,12 +1402,9 @@ public class Z80 {
         tEstados += delay;
     }
 
-    // Ejecuta una instrucción por llamada
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
-     * simular la contended memory del Spectrum. Por ello en algunos opcodes no
-     * hay suma de tEstados, ya que se han sumado al extraer la instrucción o
-     * los datos de la memoria.
+     * simular la contended memory del Spectrum.
      */
     public final int execute() {
 
@@ -1416,12 +1423,31 @@ public class Z80 {
 //                activeINT = false;
 
             if (activeINT) {
-                if( ffIFF1 && !pendingEI )
+                if (ffIFF1 && !pendingEI) {
                     interrupcion();
+                    if (timeout > 0) {
+                        timeout -= (tEstados - tmpstates);
+                        tmpstates = tEstados;
+                        if (timeout < 4) {
+                            //System.out.println("Timeout: " + timeout);
+                            timeout = 0;
+                            MemIoImpl.timeoutEvent();
+                        }
+                    }
+                }
             }
 
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
+            if (timeout > 0) {
+                timeout -= (tEstados - tmpstates);
+                tmpstates = tEstados;
+                if (timeout < 4) {
+                    //System.out.println("Timeout: " + timeout);
+                    timeout = 0;
+                    MemIoImpl.timeoutEvent();
+                }
+            }
 //            if( regPC > 0x8100 )
 //                System.out.println(String.format("%04X %02X\t%d", regPC, opCode, tEstados-4));
             regPC = (regPC + 1) & 0xffff;
@@ -1433,8 +1459,14 @@ public class Z80 {
                 pendingEI = false;
             }
 
-            if( true )
-                MemIoImpl.newInstruction(tEstados - tmpstates);
+            if (timeout > 0) {
+                timeout -= (tEstados - tmpstates);
+                if (timeout < 7) {
+                    //System.out.println("Timeout: " + timeout);
+                    timeout = 0;
+                    MemIoImpl.timeoutEvent();
+                }
+            }
         } /* del while */
         return tEstados;
     }

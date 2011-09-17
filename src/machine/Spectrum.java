@@ -72,9 +72,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio = new Audio();
         audio.open(3500000);
         paused = true;
-        loading = true;
+        loading = false;
         tape = new Tape(z80);
-        tape.insert("/home/jsanchez/src/JSpeccy/dist/PAPERBOY.TAP");
+        tape.insert("/home/jsanchez/src/JSpeccy/dist/chopin.tap");
+//        z80.setTimeout(2168);
 //        stpe = new ScheduledThreadPoolExecutor(1);
 //        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
@@ -314,17 +315,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
     }
 
-    static int totalStates = 0;
-    public void newInstruction(int tstates) {
+    public void timeoutEvent() {
         //System.out.println(String.format("tstates: %d", tstates));
-        totalStates += tstates;
-        if( totalStates >= 2168 ) {
-            if( earBit == 0xbf )
-                earBit = 0xff;
-            else
-                earBit = 0xbf;
-            totalStates = 0;
-        }
+        tape.play();
     }
 
     public int inPort(int port) {
@@ -368,8 +361,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
-//            if( loading )
-//                earBit = readTape(z80.getTEstados());
+            if( loading )
+                earBit = tape.getEarBit();
+
             return keys & earBit;
         }
 
@@ -437,11 +431,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 speaker = spkMic;
             }
 
-//            if ((value & 0x10) == 0) {
-//                earBit = 0xbf;
-//            } else {
-//                earBit = 0xff;
-//            }
+            if (!loading && (value & 0x10) == 0) {
+                earBit = 0xbf;
+            } else {
+                earBit = 0xff;
+            }
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
@@ -973,6 +967,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
     }
 
+    public void toggleTape() {
+        if (loading == false) {
+            tape.play();
+            loading = true;
+        } else {
+            tape.stop();
+            loading = false;
+        }
+    }
+
     static {
         sp_volt = new int[4];
         setvol();
@@ -992,11 +996,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
     }
 
-    private int tapeStates;
-    private int readTape(int tstates) {
-        int earIn = 0xbf;
-        if (tstates < tapeStates)
-            tstates += FRAMES48k;
-        return earIn;
-    }
+//    private int tapeStates;
+//    private int readTape(int tstates) {
+//        int earIn = 0xbf;
+//        if (tstates < tapeStates)
+//            tstates += FRAMES48k;
+//        return earIn;
+//    }
 }
