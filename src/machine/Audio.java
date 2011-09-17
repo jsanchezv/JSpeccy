@@ -16,9 +16,10 @@ import javax.sound.sampled.SourceDataLine;
  */
 public class Audio {
 
-    private byte buf[] = new byte[16384];
+    private byte buf[] = new byte[480];
     public int bufp;
     private int fromTstates, tstatesRem, oldFrame;
+    public int audiotstates;
     static final int FREQ = 48000;
     SourceDataLine line;
 
@@ -33,9 +34,38 @@ public class Audio {
             lineOut.start();
             line = lineOut;
             bufp = 0;
-            fromTstates = tstatesRem = oldFrame = 0;
+            fromTstates = tstatesRem = oldFrame = audiotstates = 0;
         } catch (Exception e) {
             System.out.println(e);
+        }
+    }
+
+    synchronized void updateAudio(int tstates, int value) {
+        byte POS_SIGNAL_MSB = (byte)0x40;
+        byte POS_SIGNAL_LSB = (byte)0x00;
+        byte NEG_SIGNAL_MSB = (byte)0xC0;
+        byte NEG_SIGNAL_LSB = (byte)0x00;
+
+        int time = tstates - audiotstates;
+        audiotstates += time;
+        //if( time / 72 < 5 )
+            time += tstatesRem;
+        int nSamples = time / 73;
+        tstatesRem = time % 73;
+//        System.out.println(String.format("tstates: %d audiotstates: %d nSamples: %d Rem: %d",
+//                tstates, audiotstates, nSamples, tstatesRem));
+        if( bufp == buf.length )
+            bufp = flush(bufp);
+        for( int count = 0; count < nSamples; count++ ) {
+            if( (value & 0x10) != 0 ) {
+                buf[bufp++] = POS_SIGNAL_LSB;
+                buf[bufp++] = POS_SIGNAL_MSB;
+            } else {
+                buf[bufp++] = 0; //NEG_SIGNAL_LSB;
+                buf[bufp++] = 0; //NEG_SIGNAL_MSB;
+            }
+            if( bufp == buf.length )
+                bufp = flush(bufp);
         }
     }
 
@@ -120,14 +150,31 @@ public class Audio {
     }
 
     synchronized int flush(int p) {
-        while (bufp < 1920 )
-            buf[bufp++] = 0;
-        System.out.println(String.format("Samples: %d", bufp/2));
+//        while (bufp < 1920 )
+//            buf[bufp++] = 0;
+//        System.out.println(String.format("Samples: %d", bufp/2));
         SourceDataLine lineOut = line;
         if (lineOut != null) {
-            lineOut.write(buf, 0, p);
+            if (lineOut.write(buf, 0, p) != p)
+                System.out.println("Se escribieron menos bytes de los debidos!");
         }
         return 0;
+    }
+
+    synchronized void fill(int value) {
+        byte POS_SIGNAL_MSB = (byte)0x40;
+        byte POS_SIGNAL_LSB = (byte)0x00;
+
+        while (bufp < 1920 ) {
+            if( (value & 0x10) != 0 ) {
+                buf[bufp++] = POS_SIGNAL_LSB;
+                buf[bufp++] = POS_SIGNAL_MSB;
+            } else {
+                buf[bufp++] = 0;
+                buf[bufp++] = 0;
+            }
+        }
+
     }
 
     synchronized void close() {

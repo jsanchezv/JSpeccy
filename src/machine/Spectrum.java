@@ -34,8 +34,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private int nFrame;
     //public boolean fullRedraw;
 
-    public static final int FRAMES48k = 70000;
-    private static final byte delayTstates[] = new byte[FRAMES48k];
+    public static final int FRAMES48k = 69888;
+    private static final byte delayTstates[] = new byte[FRAMES48k + 100];
     static {
         Arrays.fill(delayTstates, (byte)0x00);
         for( int idx = 14335; idx < 57343; idx += 224  ) {
@@ -73,8 +73,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
         jscr.invalidateScreen();
-        if( audio.bufp > 0 )
-            audio.bufp = audio.flush(0);
+//        if( audio.bufp > 0 )
+//            audio.bufp = audio.flush(0);
     }
 
     public void stopEmulation() {
@@ -110,8 +110,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.statesLimit = 69888;
         z80.execute();
 
+        audio.updateAudio(z80.tEstados, portFE);
+//        System.out.println(String.format("bufp = %d", audio.bufp));
+//        audio.bufp = audio.flush(audio.bufp);
+        //System.out.println(String.format("bufp = %d", audio.bufp));
+        //audio.fill(portFE);
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
-        z80.tEstados -= 69888;
+        audio.audiotstates -= FRAMES48k;
+        z80.tEstados -= FRAMES48k;
 
         if (++nFrame % 16 == 0) {
             jscr.toggleFlash();
@@ -339,8 +345,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             if( (portFE & 0x07) != (value & 0x07) )
                 jscr.updateBorder(z80.tEstados);
 
-            if( (portFE & 0x18) != (value & 0x18) )
-                audio.generateSample(nFrame, z80.tEstados, value);
+            if( (portFE & 0x10) != (value & 0x10) )
+                audio.updateAudio(z80.tEstados, portFE);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
