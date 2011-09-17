@@ -12,11 +12,7 @@ import java.util.Arrays;
  * @author jsanchez
  */
 public class AY8912 {
-//    private enum AYReg { FineToneA, CoarseToneA,
-//        FineToneB, CoarseToneB, FineToneC, CoarseToneC,
-//        NoisePeriod, Enable, AmplitudeA, AmplitudeB, AmplitudeC,
-//        FineToneEnvelope, CoarseToneEnvelope, EnvelopeShapeCycle,
-//        IOPortA, IOPortB };
+
     private static final int FineToneA = 0;
     private static final int CoarseToneA = 1;
     private static final int FineToneB = 2;
@@ -54,7 +50,7 @@ public class AY8912 {
     private int amplitudeA, amplitudeB, amplitudeC;
     // Noise counter
     private int noiseCounter;
-    private int envelopePeriod;
+    private int envelopePeriod, envelopeCounter;
 
     /* Envelope shape cycles:
        C AtAlH
@@ -87,9 +83,11 @@ public class AY8912 {
     private int registerLatch;
     // AY register set
     private int regAY[] = new int[16];
-    // Output signal levels
+    // Output signal levels (thanks to Matthew Westcott)
+    // http://groups.google.com/group/comp.sys.sinclair/browse_thread/thread/
+    // fb3091da4c4caf26/d5959a800cda0b5e?lnk=gst&q=Matthew+Westcott#d5959a800cda0b5e
     private static final double volumeRate[] = {
-        0.0000, 0.0138, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369,
+        0.0000, 0.0137, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369,
         0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0000
     };
     // Real (for the soundcard) volume levels
@@ -144,55 +142,65 @@ public class AY8912 {
             return 0xFF;
         }
 
-//        System.out.println(String.format("getAYRegister %d: %d",
-//            indexRegister, ayRegs[indexRegister]));
+        System.out.println(String.format("getAYRegister %d: %02X",
+            registerLatch, regAY[registerLatch]));
         return regAY[registerLatch];
     }
 
     public void setAYRegister(int value) {
+
+        regAY[registerLatch] = value & 0xff;
+
         switch(registerLatch) {
             case FineToneA:
-                regAY[registerLatch] = value & 0xff;
-                periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
-                break;
             case CoarseToneA:
-                regAY[registerLatch] = value & 0x0f;
+                regAY[CoarseToneA] = value & 0x0f;
                 periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
+                if (periodA == 0) {
+                    periodA = 1;
+                }
                 break;
             case FineToneB:
-                regAY[registerLatch] = value & 0xff;
-                periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
-                break;
             case CoarseToneB:
-                regAY[registerLatch] = value & 0x0f;
+                regAY[CoarseToneB] = value & 0x0f;
                 periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
+                if (periodB == 0) {
+                    periodB = 1;
+                }
                 break;
             case FineToneC:
-                regAY[registerLatch] = value & 0xff;
-                periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
-                break;
             case CoarseToneC:
-                regAY[registerLatch] = value & 0x0f;
+                regAY[CoarseToneC] = value & 0x0f;
                 periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
+                if (periodC == 0) {
+                    periodC = 1;
+                }
                 break;
             case NoisePeriod:
-                regAY[registerLatch] = value & 0x1f;
+                regAY[registerLatch] &= 0x1f;
+                if (regAY[registerLatch] == 0) {
+                    regAY[registerLatch] = 1;
+                }
                 break;
             case AYEnable:
-                regAY[registerLatch] = value & 0xff;
                 break;
             case AmplitudeA:
             case AmplitudeB:
             case AmplitudeC:
-                regAY[registerLatch] = value & 0x1f;
+                regAY[registerLatch] &= 0x1f;
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
-                regAY[registerLatch] = value & 0xff;
                 envelopePeriod = (regAY[CoarseEnvelope] << 16) | regAY[FineEnvelope];
+                if (envelopePeriod == 0)
+                    envelopePeriod = 1;
+                break;
+            case EnvelopeShapeCycle:
+                regAY[registerLatch] = value & 0x0f;
+                envelopeCounter = 0;
         }
-//        System.out.println(String.format("setAYRegister %d: %d",
-//            indexRegister, ayRegs[indexRegister]));
+        System.out.println(String.format("setAYRegister %d: %02X",
+            registerLatch, regAY[registerLatch]));
     }
 
     public void updateAY(int tstates) {

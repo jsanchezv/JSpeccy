@@ -45,7 +45,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
-    private AY8910 ay8910;
+    private AY8912 ay8912;
     public Tape tape;
     private boolean paused;
 
@@ -68,7 +68,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         port7ffd = 0;
         kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
-        ay8910 = new AY8910(1773450, 48000);
+        ay8912 = new AY8912(1773450);
         audio = new Audio();
         soundOn = true;
         paused = true;
@@ -489,7 +489,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
 
         if ((port & 0xC002) == 0xC000) {
-            return ay8910.getAYRegister();
+            return ay8912.getAYRegister();
         }
 
         if ((port & 0x0001) == 0) {
@@ -605,10 +605,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         
         if ((port & 0x8002) == 0x8000) {
             if ((port & 0x4000) != 0) {
-                ay8910.setIndexRegister(value);
+                ay8912.setIndexRegister(value);
             } else {
                 audio.updateAudio(z80.tEstados, speaker);
-                ay8910.setAYRegister(value);
+                ay8912.setAYRegister(value);
             }
         }
         //preIO(port);
