@@ -25,10 +25,19 @@ public class Snapshots {
     private int Ram[];
     private FileInputStream fIn;
     private boolean snapLoaded;
+    private int error;
+    private final String errorString[] = { "OPERACIÓN_CORRECTA",
+                                           "EL_ARCHIVO_NO_ES_UNA_IMAGEN",
+                                           "NO_SE_PUDO_ABRIR_EL_ARCHIVO",
+                                           "LA_IMAGEN_TIENE_UNA_LONGITUD_INCORRECTA",
+                                           "ERROR_DE_LECTURA_DEL_ARCHIVO",
+                                           "LA_VERSIÓN_DEL_Z80_ES_MAYOR_DE_1"
+    };
 
     public Snapshots() {
         Ram = new int[0xC000];
         snapLoaded = false;
+        error = 0;
     }
 
     public boolean isSnapLoaded() {
@@ -115,11 +124,17 @@ public class Snapshots {
         return Ram[address - 0x4000];
     }
 
+    public String getErrorString() {
+        return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
+            errorString[error]);
+    }
+
     public boolean loadSnapshot(File filename) {
         if( filename.getName().toLowerCase().endsWith(".sna") )
             return loadSNA(filename);
         if( filename.getName().toLowerCase().endsWith(".z80") )
             return loadZ80(filename);
+        error = 1;
         return false;
     }
 
@@ -128,6 +143,12 @@ public class Snapshots {
             try {
                 fIn = new FileInputStream(filename);
             } catch (FileNotFoundException ex) {
+                error = 2;
+                return false;
+            }
+
+            if (fIn.available() != 49179) {
+                error = 3;
                 return false;
             }
 
@@ -165,13 +186,12 @@ public class Snapshots {
             }
 
             fIn.close();
-            if (count != 0xC000) {
-                return false;
-            }
+
             regPC = 0x72;  // código de RETN en la ROM
             tstates = 0;
 
         } catch (IOException ex) {
+            error = 4;
             return false;
         }
 
@@ -183,6 +203,12 @@ public class Snapshots {
             try {
                 fIn = new FileInputStream(filename);
             } catch (FileNotFoundException ex) {
+                error = 2;
+                return false;
+            }
+
+            if (fIn.available() < 30) {
+                error = 3;
                 return false;
             }
 
@@ -211,7 +237,6 @@ public class Snapshots {
             int byte29 = fIn.read() & 0xff;
             modeIM = byte29 & 0x03;
 
-
             if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
                 int address;
                 for (address = 0; address < 0xC000; address++) {
@@ -236,19 +261,26 @@ public class Snapshots {
                         }
                     }
                 }
-                System.out.println(String.format("Leídos %d bytes de RAM", address));
-                System.out.println(String.format("Quedan %d bytes por leer", fIn.available()));
-                while (fIn.available() > 0)
-                    System.out.println(String.format("Byte: %02x", fIn.read()));
+//                System.out.println(String.format("Leídos %d bytes de RAM", address));
+//                System.out.println(String.format("Quedan %d bytes por leer", fIn.available()));
+//                while (fIn.available() > 0)
+//                    System.out.println(String.format("Byte: %02x", fIn.read()));
+                if (fIn.available() != 4 || address < 0xC000) {
+                    error = 4;
+                    return false;
+                }
             }
 
             fIn.close();
 
             tstates = 0;
-            if( regPC == 0)  // de momento, solo se soporta el Z80 v1.0
+            if( regPC == 0) {  // de momento, solo se soporta el Z80 v1.0
+                error = 5;
                 return false;
+            }
 
         } catch (IOException ex) {
+            error = 4;
             return false;
         }
 

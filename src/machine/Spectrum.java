@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import utilities.Snapshots;
 import z80core.Z80;
 
@@ -869,17 +870,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         Snapshots snap = new Snapshots();
         if (snap.loadSnapshot(filename)) {
             z80.reset();
-//        try {
-//            try {
-//                fIn = new FileInputStream(filename);
-//            } catch (FileNotFoundException ex) {
-//                System.out.println(
-//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-//                    "NO_SE_PUDO_ABRIR_EL_FICHERO_") + filename); //NOI18N
-//                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-//                //startEmulation();
-//                return;
-//            }
+
             z80.setRegI(snap.getRegI());
             z80.setRegHLalt(snap.getRegHLalt());
             z80.setRegDEalt(snap.getRegDEalt());
@@ -904,26 +895,19 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             portFE |= border;
 
             int count;
-            for (count = 0x4000; count < 0x10000; count++)
+            for (count = 0x4000; count < 0x10000; count++) {
                 z80Ram[count] = snap.getRamAddr(count);
+            }
 
-//            if (count != 0x10000) {
-//                System.out.println(
-//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-//                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"));
-//                z80.reset();
-//                return;
-//            }
             z80.setRegPC(snap.getRegPC());  // código de RETN en la ROM
             z80.setTEstados(snap.getTstates());
-//        } catch (IOException ex) {
-//            System.out.println(
-//                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-//                "NO_SE_PUDO_LEER_EL_FICHERO_") + filename);
-//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        System.out.println(
-//            java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
+
+            System.out.println(
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
+        } else {
+            JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
         }
     }
     
