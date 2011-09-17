@@ -173,6 +173,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             //z80.statesLimit = FRAMES48k;
             z80.execute(FRAMES48k);
 
+            ay8912.updateAY(z80.tEstados);
             audio.updateAudio(z80.tEstados, speaker);
             audio.endFrame();
 //            System.out.println("Playing " + audio.bufp + " bytes");
@@ -269,6 +270,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             //z80.statesLimit = FRAMES48k;
             z80.execute(FRAMES128k);
 
+            ay8912.updateAY(z80.tEstados);
             audio.updateAudio(z80.tEstados, speaker);
             audio.endFrame();
 //            System.out.println("Playing " + audio.bufp + " bytes");
@@ -564,6 +566,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     }
 
     public void outPort(int port, int value) {
+        
         preIO(port);
 
         if ((port & 0x0001) == 0) {
@@ -598,6 +601,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
 
         if ((port & 0x8002) == 0) {
+//            System.out.println(String.format("outPort: %04X %02x", port, value));
+
             memory.setMemoryMap128k(value);
             // En el 128k las páginas impares son contended
             contendedPage[3] = (value & 0x01) != 0 ? true : false;
@@ -611,10 +616,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             if ((port & 0x4000) != 0) {
                 ay8912.setAddressLatch(value);
             } else {
-//                audio.updateAudio(z80.tEstados, speaker);
                 if (ay8912.getAddressLatch() < 14)
-                    audio.updateAudio(z80.tEstados, speaker);
-                ay8912.writeRegister(value);
+                    ay8912.updateAY(z80.tEstados);
+                ay8912.writeRegister(value, nFrame, z80.tEstados);
             }
         }
         //preIO(port);
@@ -675,6 +679,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     }
 
     public void execDone(int tstates) {
+        ay8912.updateAY(z80.tEstados);
         tape.notifyTstates(nFrame, z80.tEstados);
         if (tape.isPlaying()) {
             earBit = tape.getEarBit();
@@ -851,23 +856,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                 break;
             // Emulación joystick Kempston
             case KeyEvent.VK_LEFT:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[3] &= 0xef; // 5  -- Left arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[3] &= 0xef; // 5  -- Left arrow
                 kempston |= 0x02;
                 break;
             case KeyEvent.VK_DOWN:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xef; // 6  -- Down arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xef; // 6  -- Down arrow
                 kempston |= 0x04;
                 break;
             case KeyEvent.VK_UP:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xf7; // 7  -- Up arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xf7; // 7  -- Up arrow
                 kempston |= 0x08;
                 break;
             case KeyEvent.VK_RIGHT:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xfb; // 8  -- Right arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xfb; // 8  -- Right arrow
                 kempston |= 0x01;
                 break;
             case KeyEvent.VK_DELETE:
@@ -1038,23 +1043,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                 rowKey[3] |= 0x02; // 2
                 break;
             case KeyEvent.VK_LEFT:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[3] |= 0x10; // 5  -- Left arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[3] |= 0x10; // 5  -- Left arrow
                 kempston &= 0xfd;
                 break;
             case KeyEvent.VK_DOWN:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x10; // 6  -- Down arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x10; // 6  -- Down arrow
                 kempston &= 0xfb;
                 break;
             case KeyEvent.VK_UP:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x08; // 7  -- Up arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x08; // 7  -- Up arrow
                 kempston &= 0xf7;
                 break;
             case KeyEvent.VK_RIGHT:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x04; // 8  -- Right arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x04; // 8  -- Right arrow
                 kempston &= 0xfe;
                 break;
             case KeyEvent.VK_DELETE:
