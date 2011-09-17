@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -31,11 +33,11 @@ public class Snapshots {
                                            "NO_SE_PUDO_ABRIR_EL_ARCHIVO",
                                            "LA_IMAGEN_TIENE_UNA_LONGITUD_INCORRECTA",
                                            "ERROR_DE_LECTURA_DEL_ARCHIVO",
-                                           "LA_VERSIÓN_DEL_Z80_ES_MAYOR_DE_1"
+                                           "128K_Z80_SNAPSHOT"
     };
 
     public Snapshots() {
-        Ram = new int[0xC000];
+        Ram = new int[0x10000];
         snapLoaded = false;
         error = 0;
     }
@@ -121,7 +123,7 @@ public class Snapshots {
     }
 
     public int getRamAddr(int address) {
-        return Ram[address - 0x4000];
+        return Ram[address];
     }
 
     public String getErrorString() {
@@ -181,9 +183,8 @@ public class Snapshots {
 
             border = fIn.read() & 0x07;
 
-            int count;
-            for (count = 0; count < 0xC000; count++) {
-                Ram[count] = (int) fIn.read() & 0xff;
+            for (int addr = 0x4000; addr < 0x10000; addr++) {
+                Ram[addr] = (int) fIn.read() & 0xff;
             }
 
             fIn.close();
@@ -200,7 +201,32 @@ public class Snapshots {
     }
 
     private boolean uncompressZ80(int address, int length) {
-        return false;
+//        System.out.println(String.format("Addr: %04X, len = %d", address, length));
+        try {
+            int endAddr = address + length;
+            while (fIn.available() > 0 && address < endAddr) {
+                int mem = fIn.read() & 0xff;
+                if (mem != 0xED) {
+                    Ram[address++] = mem;
+                } else {
+                    int mem2 = fIn.read() & 0xff;
+                    if (mem2 != 0xED) {
+                        Ram[address++] = 0xED;
+                        Ram[address++] = mem2;
+                    } else {
+                        int nreps = fIn.read() & 0xff;
+                        int value = fIn.read() & 0xff;
+                        while (nreps-- > 0) {
+                            Ram[address++] = value;
+                        }
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Snapshots.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+        return true;
     }
 
     private boolean loadZ80(File filename) {
@@ -222,11 +248,6 @@ public class Snapshots {
             regBC = fIn.read() | (fIn.read() << 8) & 0xffff;
             regHL = fIn.read() | (fIn.read() << 8) & 0xffff;
             regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
-            if( regPC == 0) {  // de momento, solo se soporta el Z80 v1.0
-                error = 5;
-                fIn.close();
-                return false;
-            }
             regSP = fIn.read() | (fIn.read() << 8) & 0xffff;
             regI = fIn.read() & 0xff;
             regR = fIn.read() & 0x7f;
@@ -248,38 +269,91 @@ public class Snapshots {
             int byte29 = fIn.read() & 0xff;
             modeIM = byte29 & 0x03;
 
-            if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
-                int address;
-                for (address = 0; address < 0xC000; address++) {
-                    Ram[address] = fIn.read() & 0xff;
-                }
-            } else {
-                int address = 0;
-                while (fIn.available() > 0 && address < 0xC000) {
-                    int mem = fIn.read() & 0xff;
-                    if (mem != 0xED) {
-                        Ram[address++] = mem;
-                    } else {
-                        int mem2 = fIn.read() & 0xff;
-                        if( mem2 != 0xED ) {
-                            Ram[address++] = 0xED;
-                            Ram[address++] = mem2;
-                        } else {
-                            int nreps = fIn.read() & 0xff;
-                            int value = fIn.read() & 0xff;
-                            while(nreps-- > 0)
-                                Ram[address++] = value;
-                        }
+            if (regPC != 0) {
+                if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
+                    int address;
+                    for (address = 0x4000; address < 0x10000; address++) {
+                        Ram[address] = fIn.read() & 0xff;
+                    }
+                } else {
+                    uncompressZ80(0x4000, 0xC000);
+                    if (fIn.available() != 4) {
+                        error = 4;
+                        fIn.close();
+                        return false;
                     }
                 }
-//                System.out.println(String.format("Leídos %d bytes de RAM", address));
-//                System.out.println(String.format("Quedan %d bytes por leer", fIn.available()));
-//                while (fIn.available() > 0)
-//                    System.out.println(String.format("Byte: %02x", fIn.read()));
-                if (fIn.available() != 4 || address < 0xC000) {
-                    error = 4;
+            } else {
+                // Z80 v2 & v3
+                int hdrLen = fIn.read() | (fIn.read() << 8) & 0xffff;
+//                if (hdrLen > 23)
+//                    System.out.println("Z80 v3. Header: " + hdrLen);
+//                else
+//                    System.out.println("Z80 v2");
+                
+                regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
+                int hwMode = fIn.read() & 0xff;
+                if (hwMode > 1) {  // de momento, solo se soporta el 48k
+                    error = 5;
                     fIn.close();
                     return false;
+                }
+                int last7ffd = fIn.read() & 0xff;
+                int if1Paged = fIn.read() & 0xff;
+                int flagsMode = fIn.read() & 0xff;
+                int lastfffd = fIn.read() & 0xff;
+                int psgRegs[] = new int[16];
+                for (int idx = 0; idx < 16; idx++)
+                    psgRegs[idx] = fIn.read() & 0xff;
+
+                if (hdrLen > 23) { // Z80 v3.x
+                    int lowTstate = fIn.read() | (fIn.read() << 8) & 0xffff;
+                    int highTstate = fIn.read() & 0xff;
+                    int fooByte = fIn.read() & 0xff; // Spectator flag (always 0)
+                    int mgtRom = fIn.read() & 0xff;
+                    int multifaceRom = fIn.read() & 0xff;
+                    int rom0_8k = fIn.read() & 0xff;
+                    int rom8_16k = fIn.read() & 0xff;
+                    int keymaps[] = new int[5];
+                    for (int idx = 0; idx < 5; idx++) {
+                        keymaps[idx] = fIn.read() & 0xff;
+                        fooByte = fIn.read(); // always 0
+                    }
+                    int keyASCII[] = new int[5];
+                    for (int idx = 0; idx < 5; idx++) {
+                        keyASCII[idx] = fIn.read() | (fIn.read() << 8) & 0xffff;
+                    }
+                    int mgtType = fIn.read() & 0xff;
+                    int discipleButton = fIn.read() & 0xff;
+                    int discipleFlag = fIn.read() & 0xff;
+                    int last1ffd = 0;
+                    if (hdrLen == 55)
+                        last1ffd = fIn.read() & 0xff;
+                }
+
+                while (fIn.available() > 0) {
+                    int addr;
+                    int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
+                    int ramPage = fIn.read() & 0xff;
+                    switch (ramPage) {
+                        case 4:  // 0x8000-0xbfff
+                            addr = 0x8000;
+                            break;
+                        case 5:  // 0xC000-0xFFFF
+                            addr = 0xC000;
+                            break;
+                        case 8:  // 0x4000-0x7FFF
+                            addr = 0x4000;
+                            break;
+                        default:
+                            addr = 0;
+                    }
+                    if (blockLen == 0xffff) { // uncompressed data
+                        for(int count = 0; count < 0x4000; count++)
+                            Ram[addr + count] = fIn.read() & 0xff;
+                    } else {
+                        uncompressZ80(addr, 0x4000);
+                    }
                 }
             }
 

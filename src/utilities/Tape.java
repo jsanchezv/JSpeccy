@@ -569,6 +569,7 @@ public class Tape {
                     break;
                 case 0x2A: // Stop the tape if in 48K mode
                     statePlay = State.STOP;
+                    tapePos += 5;
                     repeat = false;
                     break;
                 case 0x2B: // Set Signal Level

@@ -5696,6 +5696,10 @@ public class Z80 {
                 break;
             }
             case 0x47: {     /*LD I,A*/
+                /*
+                 * El contended-tstate se produce con el contenido de I *antes*
+                 * de ser copiado el del registro A. Detalle importante.
+                 */
                 MemIoImpl.contendedStates(getPairIR(), 1);
                 regI = regA;
                 break;

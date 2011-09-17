@@ -18,7 +18,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 class Audio {
-    static final int FREQ = 44100;
+    static final int FREQ = 48000;
     SourceDataLine line;
     DataLine.Info infoDataLine;
     AudioFormat fmt;

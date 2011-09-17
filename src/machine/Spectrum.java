@@ -329,7 +329,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 return 0xC9; // RET opcode
             }
         }
-
         return z80Ram[address];
     }
 
@@ -421,8 +420,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public int inPort(int port) {
         int res = port >>> 8;
-        int keys = 0xff;
-        int floatbus = 0xff;
 
 //        if ((port & 0xff) == 0xff) {
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
@@ -437,9 +434,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
-        // El interfaz Kempston solo (debería) decodificar A5=0...
-        if ((port & 0x0020) == 0) {
-            //System.out.println(String.format("InPort: %04X", port));
+        /*
+         * El interfaz Kempston solo (debería) decodificar A5=0...
+         * Las Tres Luces de Glaurung leen el puerto #DF (223) y si se decodifica
+         * algo más no funciona con el joystick. Si decodificamos solo A5==0
+         * es Buggy Boy el que se cuelga.
+         */
+        if ((port & 0x00e0) == 0 || (port & 0x0020) == 0) {
+//            System.out.println(String.format("InPort: %04X, PC: %04X", port, z80.getRegPC()));
             return kempston;
         }
 
@@ -451,6 +453,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        }
 
         if ((port & 0x0001) == 0) {
+            int keys = 0xff;
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                   z80.tEstados, z80.getRegPC()));
 //            System.out.println(String.format("InPort: %04X", port));
@@ -464,6 +467,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             return keys & tape.getEarBit();
         }
 
+        int floatbus = 0xff;
         int addr = 0;
         if ((port & 0xff) == 0xff) {
             int tstates = z80.getTEstados();
@@ -522,7 +526,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             //}
 
             if (tape.isStopped()) {
-                if ((value & 0x10) == 0) // and con 0x18 para emular un Issue 2
+                // and con 0x18 para emular un Issue 2
+                // and con 0x10 para emular un Issue 3
+                if ((value & 0x10) == 0) 
                     tape.setEarBit(false);
                 else
                     tape.setEarBit(true);
@@ -621,8 +627,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             case KeyEvent.VK_SPACE:
                 rowKey[7] &= 0xfe;
                 break;
-            case KeyEvent.VK_ALT_GRAPH:
-                rowKey[7] &= 0xfd;
+            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT:
+                rowKey[7] &= 0xfd; // Symbol-Shift
                 break;
             case KeyEvent.VK_M:
                 rowKey[7] &= 0xfb;
@@ -764,7 +771,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[7] &= 0xfd; // SYMBOL-SHIFT
                 rowKey[6] &= 0xfb; // K
                 break;
-            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT_GRAPH:
                 rowKey[0] &= 0xfe; // CAPS
                 rowKey[7] &= 0xfd; // SYMBOL-SHIFT -- Extended Mode
                 break;
@@ -808,7 +815,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             case KeyEvent.VK_SPACE:
                 rowKey[7] |= 0x01; //Spacebar
                 break;
-            case KeyEvent.VK_ALT_GRAPH:
+            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT:
                 rowKey[7] |= 0x02; // Symbol-Shift
                 break;
             case KeyEvent.VK_M:
@@ -951,7 +959,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[7] |= 0x02; // SYMBOL-SHIFT
                 rowKey[6] |= 0x04; // K
                 break;
-            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT_GRAPH:
                 rowKey[0] |= 0x01; // CAPS
                 rowKey[7] |= 0x02; // SYMBOL-SHIFT
                 break;
