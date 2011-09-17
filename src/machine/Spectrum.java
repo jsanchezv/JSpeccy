@@ -513,7 +513,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         int floatbus = 0xff;
         int addr = 0;
         int tstates = z80.tEstados;
-        if (tstates < 14336 || tstates > 57343) {
+        if (tstates < 14336 || tstates > 57248) {
             return floatbus;
         }
 
@@ -1087,6 +1087,47 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
             System.out.println(
               java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
+        } else {
+            JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void saveSnapshot(File filename) {
+        Snapshots snap = new Snapshots();
+
+        snap.setRegI(z80.getRegI());
+        snap.setRegHLalt(z80.getRegHLalt());
+        snap.setRegDEalt(z80.getRegDEalt());
+        snap.setRegBCalt(z80.getRegBCalt());
+        snap.setRegAFalt(z80.getRegAFalt());
+        snap.setRegHL(z80.getRegHL());
+        snap.setRegDE(z80.getRegDE());
+        snap.setRegBC(z80.getRegBC());
+        snap.setRegIY(z80.getRegIY());
+        snap.setRegIX(z80.getRegIX());
+
+        snap.setIFF2(z80.isIFF2());
+        snap.setIFF1(z80.isIFF1());
+
+        snap.setRegR(z80.getRegR());
+        snap.setRegAF(z80.getRegAF());
+        snap.setRegSP(z80.getRegSP());
+        snap.setModeIM(z80.getIM());
+        snap.setBorder(portFE & 0x07);
+
+        int count;
+        for (count = 0x4000; count < 0x10000; count++) {
+            snap.setRamAddr(count, z80Ram[count]);
+        }
+
+        snap.setRegPC(z80.getRegPC());
+        snap.setTstates(z80.getTEstados());
+
+        if (snap.saveSnapshot(filename)) {
+            System.out.println(
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_GUARDADA"));
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                 java.util.ResourceBundle.getBundle("machine/Bundle").getString(

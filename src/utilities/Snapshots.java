@@ -8,6 +8,7 @@ package utilities;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,14 +27,17 @@ public class Snapshots {
     private int tstates;
     private int Ram[];
     private FileInputStream fIn;
+    private FileOutputStream fOut;
     private boolean snapLoaded;
     private int error;
-    private final String errorString[] = { "OPERACIÓN_CORRECTA",
-                                           "EL_ARCHIVO_NO_ES_UNA_IMAGEN",
-                                           "NO_SE_PUDO_ABRIR_EL_ARCHIVO",
-                                           "LA_IMAGEN_TIENE_UNA_LONGITUD_INCORRECTA",
-                                           "ERROR_DE_LECTURA_DEL_ARCHIVO",
-                                           "128K_Z80_SNAPSHOT"
+    private final String errorString[] = { "OPERATION_OK",
+                                           "NOT_SNAPSHOT_FILE",
+                                           "OPEN_FILE_ERROR",
+                                           "FILE_SIZE_ERROR",
+                                           "FILE_READ_ERROR",
+                                           "128K_Z80_SNAPSHOT",
+                                           "FILE_WRITE_ERROR",
+                                           "SNA_REGSP_ERROR"
     };
 
     public Snapshots() {
@@ -50,80 +54,160 @@ public class Snapshots {
         return regAF;
     }
 
+    public void setRegAF(int value) {
+        regAF = value;
+    }
+
     public int getRegBC() {
         return regBC;
+    }
+
+    public void setRegBC(int value) {
+        regBC = value;
     }
 
     public int getRegDE() {
         return regDE;
     }
 
+    public void setRegDE(int value) {
+        regDE = value;
+    }
+
     public int getRegHL() {
         return regHL;
+    }
+
+    public void setRegHL(int value) {
+        regHL = value;
     }
 
     public int getRegAFalt() {
         return regAFalt;
     }
 
+    public void setRegAFalt(int value) {
+        regAFalt = value;
+    }
+
     public int getRegBCalt() {
         return regBCalt;
+    }
+
+    public void setRegBCalt(int value) {
+        regBCalt = value;
     }
 
     public int getRegDEalt() {
         return regDEalt;
     }
 
+    public void setRegDEalt(int value) {
+        regDEalt = value;
+    }
+
     public int getRegHLalt() {
         return regHLalt;
+    }
+
+    public void setRegHLalt(int value) {
+        regHLalt = value;
     }
 
     public int getRegIX() {
         return regIX;
     }
 
+    public void setRegIX(int value) {
+        regIX = value;
+    }
+
     public int getRegIY() {
         return regIY;
+    }
+
+    public void setRegIY(int value) {
+        regIY = value;
     }
 
     public int getRegSP() {
         return regSP;
     }
 
+    public void setRegSP(int value) {
+        regSP = value;
+    }
+
     public int getRegPC() {
         return regPC;
+    }
+
+    public void setRegPC(int value) {
+        regPC = value;
     }
 
     public int getRegI() {
         return regI;
     }
 
+    public void setRegI(int value) {
+        regI = value;
+    }
+
     public int getRegR() {
         return regR;
+    }
+
+    public void setRegR(int value) {
+        regR = value;
     }
 
     public int getModeIM() {
         return modeIM;
     }
 
+    public void setModeIM(int value) {
+        modeIM = value;
+    }
+
     public boolean getIFF1() {
         return iff1;
+    }
+
+    public void setIFF1(boolean value) {
+        iff1 = value;
     }
 
     public boolean getIFF2() {
         return iff2;
     }
 
+    public void setIFF2(boolean value) {
+        iff2 = value;
+    }
+
     public int getBorder() {
         return border;
+    }
+
+    public void setBorder(int value) {
+        border = value;
     }
 
     public int getTstates(){
         return tstates;
     }
 
+    public void setTstates(int value) {
+        tstates = value;
+    }
+
     public int getRamAddr(int address) {
         return Ram[address];
+    }
+
+    public void setRamAddr(int address, int value) {
+        Ram[address] = value;
     }
 
     public String getErrorString() {
@@ -136,6 +220,15 @@ public class Snapshots {
             return loadSNA(filename);
         if( filename.getName().toLowerCase().endsWith(".z80") )
             return loadZ80(filename);
+        error = 1;
+        return false;
+    }
+
+    public boolean saveSnapshot(File filename) {
+        if( filename.getName().toLowerCase().endsWith(".sna") )
+            return saveSNA(filename);
+//        if( filename.getName().toLowerCase().endsWith(".z80") )
+//            return loadZ80(filename);
         error = 1;
         return false;
     }
@@ -194,6 +287,76 @@ public class Snapshots {
 
         } catch (IOException ex) {
             error = 4;
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean saveSNA(File filename) {
+
+        if (regSP < 0x4002) {
+            error = 7;
+            return false;
+        }
+
+        try {
+            try {
+                fOut = new FileOutputStream(filename);
+            } catch (FileNotFoundException ex) {
+                error = 2;
+                return false;
+            }
+
+            fOut.write(regI);
+            fOut.write(regHLalt);
+            fOut.write(regHLalt >>> 8);
+            fOut.write(regDEalt);
+            fOut.write(regDEalt >>> 8);
+            fOut.write(regBCalt);
+            fOut.write(regBCalt >>> 8);
+            fOut.write(regAFalt);
+            fOut.write(regAFalt >>> 8);
+            fOut.write(regHL);
+            fOut.write(regHL >>> 8);
+            fOut.write(regDE);
+            fOut.write(regDE >>> 8);
+            fOut.write(regBC);
+            fOut.write(regBC >>> 8);
+            fOut.write(regIY);
+            fOut.write(regIY >>> 8);
+            fOut.write(regIX);
+            fOut.write(regIX >>> 8);
+
+            int iff2EI = 0;
+            if (iff1)
+                iff2EI |= 0x02;
+            if (iff2)
+                iff2EI |= 0x04;
+            fOut.write(iff2EI);
+
+            fOut.write(regR);
+            fOut.write(regAF);
+            fOut.write(regAF >>> 8);
+
+            regSP = (regSP - 1) & 0xffff;
+            Ram[regSP] = regPC >>> 8;
+            regSP = (regSP - 1) & 0xffff;
+            Ram[regSP] = regPC & 0xff;
+            
+            fOut.write(regSP);
+            fOut.write(regSP >>> 8);
+            fOut.write(modeIM);
+            fOut.write(border);
+
+            for (int addr = 0x4000; addr < 0x10000; addr++) {
+                fOut.write(Ram[addr]);
+            }
+
+            fOut.close();
+
+        } catch (IOException ex) {
+            error = 6;
             return false;
         }
 

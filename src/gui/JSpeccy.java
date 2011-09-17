@@ -45,7 +45,6 @@ public class JSpeccy extends javax.swing.JFrame {
      */
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-        java.awt.GridBagConstraints gridBagConstraints;
 
         keyboardHelper = new javax.swing.JDialog(this);
         keyboardImage = new javax.swing.JLabel();
@@ -65,6 +64,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jMenuBar1 = new javax.swing.JMenuBar();
         fileMenu = new javax.swing.JMenu();
         fileOpenSnapshot = new javax.swing.JMenuItem();
+        fileSaveSnapshot = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JSeparator();
         thisIsTheEndMyFriend = new javax.swing.JMenuItem();
         optionsMenu = new javax.swing.JMenu();
@@ -89,7 +89,6 @@ public class JSpeccy extends javax.swing.JFrame {
         keyboardImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Spectkey.png"))); // NOI18N
         keyboardImage.setText(bundle.getString("JSpeccy.keyboardImage.text")); // NOI18N
         keyboardHelper.getContentPane().add(keyboardImage, java.awt.BorderLayout.PAGE_START);
-        keyboardImage.getAccessibleContext().setAccessibleParent(null);
 
         closeKeyboardHelper.setText(bundle.getString("JSpeccy.closeKeyboardHelper.text")); // NOI18N
         closeKeyboardHelper.addActionListener(new java.awt.event.ActionListener() {
@@ -225,6 +224,15 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         fileMenu.add(fileOpenSnapshot);
+
+        fileSaveSnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
+        fileSaveSnapshot.setText(bundle.getString("JSpeccy.fileSaveSnapshot.text")); // NOI18N
+        fileSaveSnapshot.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileSaveSnapshotActionPerformed(evt);
+            }
+        });
+        fileMenu.add(fileSaveSnapshot);
         fileMenu.add(jSeparator1);
 
         thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Q, java.awt.event.InputEvent.ALT_MASK));
@@ -495,6 +503,30 @@ public class JSpeccy extends javax.swing.JFrame {
         // TODO add your handling code here:
         keyboardHelper.setVisible(false);
     }//GEN-LAST:event_closeKeyboardHelperActionPerformed
+
+    private void fileSaveSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveSnapshotActionPerformed
+        // TODO add your handling code here:
+        boolean paused = spectrum.isPaused();
+        if( jFileSnapshot == null ) {
+            jFileSnapshot = new JFileChooser("/home/jsanchez/Spectrum");
+            jFileSnapshot.setFileFilter(new FileFilterSnapshot());
+            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
+        }
+        else
+            jFileSnapshot.setCurrentDirectory(currentDirSnapshot);
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        int status = jFileSnapshot.showSaveDialog(getContentPane());
+        if( status == JFileChooser.APPROVE_OPTION ) {
+            //spectrum.stopEmulation();
+            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
+            spectrum.saveSnapshot(jFileSnapshot.getSelectedFile());
+        }
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_fileSaveSnapshotActionPerformed
     
     /**
      * @param args the command line arguments
@@ -515,6 +547,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JButton exitButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
+    private javax.swing.JMenuItem fileSaveSnapshot;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JLabel jLabel1;
