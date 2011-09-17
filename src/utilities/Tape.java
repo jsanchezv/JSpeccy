@@ -1,6 +1,12 @@
 /*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
+ *
+ * 26/02/2010 Nota al bloque Turbo Mode del formato TZX: algunos programas
+ * necesitan empezar con una polaridad concreta. Dos ejemplos son "MASK2 y
+ * "Basil the Great Mouse Detective". Al resto de programas que he probado eso
+ * les da igual, así que se deja hasta que se demuestre perjudicial.
+ * 
  */
 
 package utilities;
@@ -64,7 +70,7 @@ public class Tape {
         tapeInserted = tzxTape = false;
         tapePos = 0;
         timeout = timeLastIn = 0;
-        fastload = true;
+        fastload = false;
         earBit = 0xbf;
     }
 
@@ -108,7 +114,7 @@ public class Tape {
         tapeInserted = true;
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
-        fastload = true;
+        fastload = false;
         earBit = 0xbf;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
@@ -281,7 +287,7 @@ public class Tape {
                     statePlay = State.START; // START
                     //fastload = true;
                 }
-                fastload = true;
+                //fastload = true;
         }
         return true;
     }
@@ -479,7 +485,7 @@ public class Tape {
                     timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
                     repeat = false;
-                    earBit = 0xff;
+                    earBit = 0xff; // ver nota en la cabecera
                     break;
                 case 0x12: // Pure Tone Block
                     leaderLenght = (tapeBuffer[tapePos + 1] +
