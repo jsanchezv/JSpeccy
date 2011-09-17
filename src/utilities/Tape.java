@@ -39,7 +39,7 @@ public class Tape {
     private enum State { STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
         NEWBYTE_NOCHG,NEWBIT, HALF2, PAUSE, TZX_HEADER, PURE_TONE,
         PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, NEWDR_BYTE,
-        NEWDR_BIT, PAUSE_STOP,
+        NEWDR_BIT, PAUSE_STOP
         };
     private State statePlay;
     private int earBit;
@@ -187,7 +187,7 @@ public class Tape {
     }
 
     public void stop() {
-        if (!tapeInserted)
+        if (!tapeInserted || statePlay == State.STOP)
             return;
 
         statePlay = State.STOP;
@@ -240,7 +240,7 @@ public class Tape {
 
                 blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
                 tapePos += 2;
-                System.out.println("blockLen = " + blockLen);
+//                System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
                 earBit = 0xbf;
                 timeout = LEADER_LENGHT;

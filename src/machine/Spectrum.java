@@ -126,11 +126,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     }
 
     private void doReset() {
-        z80.setExecDone(false);
-        tape.stop();
         z80.reset();
         nFrame = 0;
-        //audio.flush();
         audio.audiotstates = 0;
         Arrays.fill(rowKey, 0xff);
         portFE = 0;
@@ -161,11 +158,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         long counter = framesByInt;
 
         do {
-            //z80.statesLimit = 32;
             z80.setINTLine(true);
             z80.execute(32); // La INT dura 32 t-states
             z80.setINTLine(false);
-            //z80.statesLimit = 14335;
             z80.execute(14335);
             updateInterval(14328, z80.tEstados);
             //System.out.println(String.format("t-states: %d", z80.tEstados));
@@ -173,7 +168,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             // El último byte de pantalla se muestra en el estado 57236
             while (z80.tEstados < 57237) {
                 int fromTstates = z80.tEstados + 1;
-                //z80.statesLimit = fromTstates + 12;
                 z80.execute(fromTstates + 15);
                 updateInterval(fromTstates, z80.tEstados);
             }
