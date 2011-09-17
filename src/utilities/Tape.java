@@ -512,13 +512,14 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x19: // Generalized Data Block
+                    printGDBHeader(tapePos);
                     blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
                             (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
                     tapePos += blockLen + 5;
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
-                    endBlockPause = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                    endBlockPause = (tapeBuffer[tapePos + 1] +
+                        (tapeBuffer[tapePos + 2] << 8)) * 3500;
                     tapePos += 3;
                     statePlay = State.PAUSE_STOP;
                     repeat = false;
@@ -595,6 +596,29 @@ public class Tape {
         }
 //        System.out.println(String.format("tapeBufferLength: %d, tapePos: %d, blockLen: %d",
 //                    tapeBuffer.length, tapePos, blockLen));
+    }
+
+    private void printGDBHeader(int index) {
+        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8) +
+                (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
+        int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
+        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8) +
+            (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
+        int npp = tapeBuffer[index + 11];
+        int asp = tapeBuffer[index + 12];
+        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8) +
+                  (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
+        int npd = tapeBuffer[index + 17];
+        int asd  = tapeBuffer[index + 18];
+
+        System.out.println(String.format("GDB size: %d", blkLenght));
+        System.out.println(String.format("Pause: %d ms", pause));
+        System.out.println(String.format("TOTP: %d", totp));
+        System.out.println(String.format("NPP: %d", npp));
+        System.out.println(String.format("ASP: %d", asp));
+        System.out.println(String.format("TOTD: %d", totd));
+        System.out.println(String.format("NPD: %d", npd));
+        System.out.println(String.format("ASD: %d", asd));
     }
 
     public boolean fastload(int Ram[]) {

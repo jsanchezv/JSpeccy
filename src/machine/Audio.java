@@ -15,7 +15,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 
 class Audio {
-    static final int FREQ = 22050;
+    static final int FREQ = 44100;
     SourceDataLine line;
     DataLine.Info infoDataLine;
     byte buf[] = new byte[2646]; // 3 frames de sonido

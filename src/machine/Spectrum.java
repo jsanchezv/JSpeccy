@@ -231,7 +231,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (address == 0x0556 && tape.isTapeInserted()) {
+        if (address == 0x0556 && tape.isTapeInserted()&& tape.isStopped()) {
             if (tape.fastload(z80Ram))
                 return 0xC9; // RET opcode
         }
@@ -700,23 +700,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 break;
             // Emulación joystick Kempston
             case KeyEvent.VK_LEFT:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[3] &= 0xef; // 5  -- Left arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[3] &= 0xef; // 5  -- Left arrow
                 kempston |= 0x02;
                 break;
             case KeyEvent.VK_DOWN:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xef; // 6  -- Down arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xef; // 6  -- Down arrow
                 kempston |= 0x04;
                 break;
             case KeyEvent.VK_UP:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xf7; // 7  -- Up arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xf7; // 7  -- Up arrow
                 kempston |= 0x08;
                 break;
             case KeyEvent.VK_RIGHT:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xfb; // 8  -- Right arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xfb; // 8  -- Right arrow
                 kempston |= 0x01;
                 break;
             case KeyEvent.VK_DELETE:
@@ -886,23 +886,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[3] |= 0x02; // 2
                 break;
             case KeyEvent.VK_LEFT:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[3] |= 0x10; // 5  -- Left arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[3] |= 0x10; // 5  -- Left arrow
                 kempston &= 0xfd;
                 break;
             case KeyEvent.VK_DOWN:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x10; // 6  -- Down arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x10; // 6  -- Down arrow
                 kempston &= 0xfb;
                 break;
             case KeyEvent.VK_UP:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x08; // 7  -- Up arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x08; // 7  -- Up arrow
                 kempston &= 0xf7;
                 break;
             case KeyEvent.VK_RIGHT:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x04; // 8  -- Right arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x04; // 8  -- Right arrow
                 kempston &= 0xfe;
                 break;
             case KeyEvent.VK_DELETE:
