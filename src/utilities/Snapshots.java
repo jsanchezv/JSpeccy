@@ -37,7 +37,8 @@ public class Snapshots {
                                            "FILE_READ_ERROR",
                                            "128K_Z80_SNAPSHOT",
                                            "FILE_WRITE_ERROR",
-                                           "SNA_REGSP_ERROR"
+                                           "SNA_REGSP_ERROR",
+                                           "SNAP_EXTENSION_ERROR"
     };
 
     public Snapshots() {
@@ -229,7 +230,7 @@ public class Snapshots {
             return saveSNA(filename);
 //        if( filename.getName().toLowerCase().endsWith(".z80") )
 //            return loadZ80(filename);
-        error = 1;
+        error = 8;
         return false;
     }
 
