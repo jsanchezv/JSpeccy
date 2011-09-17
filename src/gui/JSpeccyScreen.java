@@ -20,20 +20,16 @@ import machine.Spectrum;
  */
 public class JSpeccyScreen extends javax.swing.JComponent {
 
-    private BufferedImage tvImage, borderImage, screenImage;
+    private BufferedImage tvImage;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    private boolean doubleSize, frameReady, dirtyBorder;
-    private Graphics2D gcTvImage, gcBorderImage, gcScreenImage;
+    private boolean doubleSize;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
         initComponents();
 
-        tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
-                                    BufferedImage.TYPE_INT_RGB);
-        gcTvImage = tvImage.createGraphics();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -44,87 +40,43 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         renderHints.put(RenderingHints.KEY_COLOR_RENDERING,
             RenderingHints.VALUE_COLOR_RENDER_SPEED);
         escalaOp = new AffineTransformOp(escala, renderHints);
-//        bImg = spectrum.getScreenImage();
+
         setMaximumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH * 2,
-                Spectrum.SCREEN_HEIGHT * 2));
+            Spectrum.SCREEN_HEIGHT * 2));
         setMinimumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
-                Spectrum.SCREEN_HEIGHT));
+            Spectrum.SCREEN_HEIGHT));
         setPreferredSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
-                Spectrum.SCREEN_HEIGHT));
+            Spectrum.SCREEN_HEIGHT));
     }
 
-    public void notifyNewFrame(boolean dirty) {
-        frameReady = true;
-        dirtyBorder = dirty;
-    }
-
-    public void setScreenImage(BufferedImage bImage, BufferedImage scrImage) {
-        borderImage = bImage;
-        screenImage = scrImage;
-        gcBorderImage = borderImage.createGraphics();
-        gcScreenImage = screenImage.createGraphics();
-        frameReady = false;
-        dirtyBorder = true;
+    public void setTvImage(BufferedImage bImage) {
+        tvImage = bImage;
     }
 
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
         if (doubleSize) {
             this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH * 2,
-                    Spectrum.SCREEN_HEIGHT * 2));
+                Spectrum.SCREEN_HEIGHT * 2));
         } else {
             this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH,
-                    Spectrum.SCREEN_HEIGHT));
+                Spectrum.SCREEN_HEIGHT));
         }
+    }
+
+    public boolean isDoubleSized() {
+        return doubleSize;
     }
 
     @Override
     public void paintComponent(Graphics gc) {
         //super.paintComponent(gc);
-        Graphics2D gc2 = (Graphics2D)gc;
+        Graphics2D gc2 = (Graphics2D) gc;
 
-        /* 20/03/2010
-         * La pantalla se ha de dibujar en un solo paso. Si el borde no se
-         * modificó, se vuelca sobre el doble búfer solo la pantalla. Si se
-         * modificó el borde, primero se vuelca la pantalla sobre la imagen
-         * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
-         * en juegos como el TV-game.
-         */
-
-        // Esto sería un update solicitado por la clase Spectrum
-        if (frameReady) {
-            if(dirtyBorder) {
-//                System.out.println("Update from Spectrum: frameReady + dirtyBorder");
-                gcBorderImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
-                                        Spectrum.BORDER_WIDTH, null);
-                gcTvImage.drawImage(borderImage, 0, 0, null);
-                if (doubleSize) {
-                    gc2.drawImage(tvImage, escalaOp, 0, 0);
-                } else {
-                    gc2.drawImage(tvImage, 0, 0, null);
-                }
-                dirtyBorder = false;
-            } else {
-//                System.out.println("Update from Spectrum: frameReady");
-                gcTvImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
-                                    Spectrum.BORDER_WIDTH, null);
-                if (doubleSize) {
-                    gc2.drawImage(screenImage, escalaOp, Spectrum.BORDER_WIDTH,
-                                  Spectrum.BORDER_WIDTH);
-                } else {
-                    gc2.drawImage(screenImage, Spectrum.BORDER_WIDTH,
-                                  Spectrum.BORDER_WIDTH, null);
-                }
-            }
-            frameReady = false;
+        if (doubleSize) {
+            gc2.drawImage(tvImage, escalaOp, 0, 0);
         } else {
-            // Esto sería un update solicitado por su cuenta por Swing
-//            System.out.println("Update from Swing");
-            if (doubleSize) {
-                gc2.drawImage(tvImage, escalaOp, 0, 0);
-            } else {
-                gc2.drawImage(tvImage, 0, 0, this);
-            }
+            gc2.drawImage(tvImage, 0, 0, null);
         }
     }
 

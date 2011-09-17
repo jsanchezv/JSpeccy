@@ -168,7 +168,7 @@ class Audio {
                 buf[ptr++] = (byte) msb;
             }
         }
-//        flushBuffer(ptr);
+        flushBuffer(ptr);
         bufp = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }

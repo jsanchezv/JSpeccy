@@ -228,6 +228,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         long counter = framesByInt;
 
+        firstLine = lastLine = 0;
         do {
             z80.setINTLine(true);
             z80.execute(spectrumModel.lengthINT);
@@ -277,8 +278,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             }
         } while (--counter > 0);
 
-        
-        if (screenUpdated || nBorderChanges > 0) {
+        /* 20/03/2010
+         * La pantalla se ha de dibujar en un solo paso. Si el borde no se
+         * modificó, se vuelca sobre el doble búfer solo la pantalla. Si se
+         * modificó el borde, primero se vuelca la pantalla sobre la imagen
+         * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
+         * en juegos como el TV-game.
+         */
+        if (screenUpdated || nBorderChanges > 0 || framesByInt > 1) {
 //            System.out.print(System.currentTimeMillis() + " ");
             if (nBorderChanges > 0) {
                 if (nBorderChanges == 1) {
@@ -287,12 +294,26 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 } else {
                     nBorderChanges = 1;
                 }
-
-                jscr.notifyNewFrame(true);
+                gcBorderImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
+                                        Spectrum.BORDER_WIDTH, null);
+                gcTvImage.drawImage(borderImage, 0, 0, null);
                 jscr.repaint();
             } else {
-                jscr.notifyNewFrame(false);
-                jscr.repaint(BORDER_WIDTH, BORDER_WIDTH, 256, 192);
+                firstLine = (bufAddr[firstLine & 0x1fff]) >>> 8;
+                lastLine = (bufAddr[lastLine & 0x1fff]) >>> 8;
+
+                gcTvImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
+                                    Spectrum.BORDER_WIDTH, null);
+                if (jscr.isDoubleSized()) {
+                    jscr.repaint(BORDER_WIDTH * 2 + leftCol * 8, (BORDER_WIDTH + firstLine) * 2,
+                        (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2);
+                }  else {
+                    jscr.repaint(BORDER_WIDTH + leftCol * 8, BORDER_WIDTH  + firstLine,
+                        (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1);
+//                    System.out.println(String.format("repaint x: %d, y: %d, width: %d, height: %d",
+//                     BORDER_WIDTH + leftCol * 8, BORDER_WIDTH  + firstLine,
+//                     (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1));
+                }
             }
 
             if (nBorderChanges == 0) {
@@ -309,19 +330,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public int fetchOpcode(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-//            System.out.println(String.format("getOpcode: %d %d %d",
-//                    z80.tEstados, address, delayTstates[z80.tEstados]));
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados += 4;
-//        z80.addTEstados(4);
 
-//        if ((z80.getRegI() & 0xC0) == 0x40) {
-//            m1contended = z80.tEstados;
-////            m1contended = z80.getTEstados();
-//            m1regR = z80.getRegR();
-//        }
+        if ((z80.getRegI() & 0xC0) == 0x40) {
+            m1contended = z80.tEstados;
+            m1regR = z80.getRegR();
+        }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && tape.isTapeInserted() && tape.isStopped()) {
@@ -340,10 +356,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
 
         return memory.readByte(address);
     }
@@ -352,13 +366,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (memory.isScreenByte(address)) {
                 screenUpdated(address);
             }
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
 
         memory.writeByte(address, value);
     }
@@ -368,37 +380,28 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         int lsb;
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
         lsb = memory.readByte(address);
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
 
-        //msb = z80Ram[address];
         return (memory.readByte(address) << 8) | lsb;
     }
 
     public void poke16(int address, int word) {
-//        poke8(address, word & 0xff);
-//        poke8((address + 1) & 0xffff, word >>> 8);
 
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (memory.isScreenByte(address)) {
                 screenUpdated(address);
             }
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
 
         memory.writeByte(address, word & 0xff);
 
@@ -406,13 +409,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (memory.isScreenByte(address)) {
                 screenUpdated(address);
             }
         }
         z80.tEstados += 3;
-//        z80.addTEstados(3);
 
         memory.writeByte(address, word >>> 8);
     }
@@ -421,27 +422,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         if (contendedRamPage[address >>> 14]) {
             for (int idx = 0; idx < tstates; idx++) {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
-//                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
             }
         } else {
             z80.tEstados += tstates;
-//            z80.addTEstados(tstates);
         }
     }
 
     public int inPort(int port) {
-//        int res = port >>> 8;
 
 //        if ((port & 0xff) == 0xff) {
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
 //        }
-        //int tstates = z80.tEstados;
-        //postIO(port);
 //        System.out.println(String.format("InPort: %04X", port));
         preIO(port);
         postIO(port);
-//        tape.notifyTstates(nFrame, z80.tEstados);
 
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
@@ -517,7 +512,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 port7ffd = floatbus;
             }
         }
-//        floatbus = memory.readScreenByte(addr);
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
 //                    tstates, addr, floatbus));
         return floatbus;
@@ -618,14 +612,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 z80.tEstados += 3;
             }
         } else {
-//            if ((port & 0xc000) == 0x4000) {
-//                // A0 == 0 y es contended RAM
-//                z80.tEstados += delayTstates[z80.tEstados];
-//                z80.tEstados += 3;
-//            } else {
-            // A0 == 0 y no es contended RAM
+            // A0 == 0
             z80.tEstados += delayTstates[z80.tEstados] + 3;
-//            }
         }
     }
 
@@ -835,6 +823,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         } else {
             framesByInt = 1;
             toggleSound();
+            // La velocidad rápida solo pinta 1 frame de cada 10, así que
+            // al volver a velocidad lenta hay que actualizar la pantalla
+            jscr.repaint();
         }
     }
 
@@ -931,6 +922,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
     }
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
+    private BufferedImage tvImage;     // imagen actualizada al final de cada frame
     private BufferedImage borderImage; // imagen del borde
     private int imgData[];
     private BufferedImage screenImage; // imagen de la pantalla
@@ -939,15 +931,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     // t-states del último cambio de border
     private int lastChgBorder;
     // veces que ha cambiado el borde en el último frame
-    public int nBorderChanges;
-    public boolean screenUpdated;
+    private int nBorderChanges;
+    private boolean screenUpdated;
     // t-states del ciclo contended por I=0x40-0x7F o -1
-    public int m1contended;
+    private int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
-    public int m1regR;
+    private int m1regR;
+    // Primera y última línea a ser actualizada
+    private int firstLine, lastLine;
+    private int leftCol, rightCol;
 
     private void initGFX() {
-        
+        tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
+                                    BufferedImage.TYPE_INT_RGB);
+        gcTvImage = tvImage.createGraphics();
         borderImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         gcBorderImage = borderImage.createGraphics();
         imgData = ((DataBufferInt) borderImage.getRaster().getDataBuffer()).getBankData()[0];
@@ -960,12 +957,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         screenUpdated = false;
     }
 
-    public BufferedImage getBorderImage() {
-        return borderImage;
-    }
-
-    public BufferedImage getScreenImage() {
-        return screenImage;
+    public BufferedImage getTvImage() {
+        return tvImage;
     }
 
     public synchronized void toggleFlash() {
@@ -992,21 +985,53 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
      */
     private int tStatesToScrPix48k(int tstates) {
 
-        // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
-        if (tstates < (3584 + ((48 - BORDER_WIDTH) * spectrumModel.tstatesLine))) {
-            return 0;
-        }
-
-        // Se evita la zona no visible inferior
-        if (tstates > (256 + BORDER_WIDTH) * spectrumModel.tstatesLine) {
-            return imgData.length - 1;
-        }
-
-        tstates -= 3584 + ((48 - BORDER_WIDTH) * spectrumModel.tstatesLine);
-
+        tstates %= spectrumModel.tstatesFrame;
         int row = tstates / spectrumModel.tstatesLine;
         int col = tstates % spectrumModel.tstatesLine;
 
+        // Eliminamos las partes que no se ven por arriba y por abajo
+        if (row < (64 - BORDER_WIDTH - 1) || row > (256 + BORDER_WIDTH - 1)) {
+            return -1;
+        }
+
+        // Caso especial de la primera línea del borde
+        if (row == (64 - BORDER_WIDTH - 1) && (col > (200 + BORDER_WIDTH / 2)))
+            return -1;
+        
+        // Caso especial de la última línea del borde
+        if (row == (256 + BORDER_WIDTH - 1) && col > 128 + BORDER_WIDTH / 2)
+            return -1;
+
+        // Se elimina la parte de la pantalla y la del borde que no se ve
+        if (row > 63 && row < 256 + BORDER_WIDTH - 1) {
+            if (col < 128 || (col > 127 + BORDER_WIDTH / 2 && col < 200)
+                    || col > (199 + BORDER_WIDTH / 2)) {
+                return -1;
+            }
+
+            // 176 t-estados de línea es en medio de la zona de retrazo
+            if (col < 176) {
+                col += 128 - BORDER_WIDTH * 2 - 48;
+            } else {
+//            row -= BORDER_WIDTH - 1;
+                col -= 200;
+            }
+            row -= BORDER_WIDTH - 1;
+        } else {
+            // Partes superior e inferior del borde
+            if( col > 128 + BORDER_WIDTH && col < 200)
+                return -1;
+        }
+//        if (col < (199 + BORDER_WIDTH / 2)) {
+//
+//        }
+//            col -= 200;
+//        } else {
+//            col -= 128;
+//        }
+
+        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
+        
         // No se puede dibujar en el borde con precisión de pixel.
         int mod = col % 8;
         col -= mod;
@@ -1107,6 +1132,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         nBorderChanges++;
     }
 
+    int lastAddr;
     public void updateInterval(int fromTstates, int toTstates) {
         int fromAddr, addrBuf;
         int paper, ink;
@@ -1124,6 +1150,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 continue;
             }
 
+            if (firstLine == 0) {
+                firstLine = lastLine = fromAddr;
+                leftCol = 24;
+                rightCol = 0;
+            } else {
+                lastLine = fromAddr;
+                int column = fromAddr & 0x1f;
+                if (column < leftCol)
+                    leftCol = column;
+                if (column > rightCol)
+                    rightCol = column;
+            }
+
+
+            lastAddr = fromAddr;
+//            System.out.println("Addr: " + fromAddr);
             scrByte = attr = 0;
             // si m1contended != -1 es que hay que emular el efecto snow.
             if (m1contended == -1) {
@@ -1243,13 +1285,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             if (col > 31) {
                 continue;
             }
-
-            scan = tstates / 224 - 64;
+            scan = tstates / 224 - 64;         
             states2scr[tstates - 8] = scrAddr[scan] + col;
         }
 
+        Arrays.fill(states2border, -1);
         for (int tstates = 0; tstates < states2border.length - 1; tstates++) {
             states2border[tstates] = tStatesToScrPix48k(tstates);
+//            System.out.println(String.format("tstates: %d, states2border[tstates]: %d",
+//                    tstates, states2border[tstates]));
         }
 
         Arrays.fill(delayTstates, (byte) 0x00);

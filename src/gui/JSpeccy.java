@@ -31,7 +31,7 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum = new Spectrum();
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
-        jscr.setScreenImage(spectrum.getBorderImage(), spectrum.getScreenImage());
+        jscr.setTvImage(spectrum.getTvImage());
         spectrum.setInfoLabels(modelLabel, speedLabel);
         spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
@@ -581,7 +581,6 @@ public class JSpeccy extends javax.swing.JFrame {
             doubleSizeOption.setSelected(doubleSizeToggleButton.isSelected());
 
         jscr.toggleDoubleSize();
-        //jscr.invalidateScreen();
         pack();
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
 

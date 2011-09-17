@@ -122,7 +122,7 @@ public class Tape {
             if (tapeBuffer[offset + car] > 31 && tapeBuffer[offset + car] < 128) {
                 msg[car] = (byte) tapeBuffer[offset + car];
             } else {
-                msg[car] = 32; // space
+                msg[car] = '?'; // sustituir el carácter no imprimible
             }
         }
 
