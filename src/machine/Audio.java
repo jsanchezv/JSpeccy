@@ -160,7 +160,7 @@ class Audio {
                 buf[ptr++] = (byte) (beeper[idx] >>> 8);
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            // Copiamos el último sample del beeper
             if (ptr == 1918) {
                 lsb = (byte) beeper[958];
                 msb = (byte) (beeper[958] >>> 8);
@@ -168,7 +168,7 @@ class Audio {
                 buf[ptr++] = (byte) msb;
             }
         }
-        flushBuffer(ptr);
+//        flushBuffer(ptr);
         bufp = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }

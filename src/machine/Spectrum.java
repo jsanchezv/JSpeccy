@@ -140,7 +140,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public void startEmulation() {
         z80.setTEstados(0);
         audio.reset();
-        invalidateScreen();
+        invalidateScreen(true);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
@@ -171,7 +171,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         nFrame = 0;       
         portFE = 0;
         port7ffd = 0;
-        invalidateScreen();
+        invalidateScreen(true);
     }
 
     public boolean isPaused() {
@@ -243,7 +243,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 updateInterval(fromTstates, z80.tEstados);
             }
 
-            //z80.statesLimit = FRAMES48k;
             z80.execute(spectrumModel.tstatesFrame);
 
             if (soundOn) {
@@ -278,13 +277,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             }
         } while (--counter > 0);
 
-        /* 20/03/2010
-         * La pantalla se ha de dibujar en un solo paso. Si el borde no se
-         * modificó, se vuelca sobre el doble búfer solo la pantalla. Si se
-         * modificó el borde, primero se vuelca la pantalla sobre la imagen
-         * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
-         * en juegos como el TV-game.
-         */
+        
         if (screenUpdated || nBorderChanges > 0) {
 //            System.out.print(System.currentTimeMillis() + " ");
             if (nBorderChanges > 0) {
@@ -294,18 +287,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 } else {
                     nBorderChanges = 1;
                 }
-                gcBorderImage.drawImage(screenImage, BORDER_WIDTH, BORDER_WIDTH, null);
-                gcTvImage.drawImage(borderImage, 0, 0, null);
-//                System.out.print("Border + ");
+
+                jscr.notifyNewFrame(true);
+                jscr.repaint();
             } else {
-                gcTvImage.drawImage(screenImage, BORDER_WIDTH, BORDER_WIDTH, null);
+                jscr.notifyNewFrame(false);
+                jscr.repaint(BORDER_WIDTH, BORDER_WIDTH, 256, 192);
             }
-//            System.out.println("Screen$");
 
             if (nBorderChanges == 0) {
                 screenUpdated = false;
             }
-            jscr.repaint();
         }
 
         //endFrame = System.currentTimeMillis();
@@ -337,7 +329,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 tape.play();
             } else {
                 tape.fastload(memory);
-                invalidateScreen(); // thanks Andrew Owen
+                invalidateScreen(true); // thanks Andrew Owen
                 return 0xC9; // RET opcode
             }
         }
@@ -362,7 +354,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             z80.tEstados += delayTstates[z80.tEstados];
 //            z80.addTEstados(delayTstates[z80.getTEstados()]);
             if (memory.isScreenByte(address)) {
-                screenUpdated(address & 0x7fff);
+                screenUpdated(address);
             }
         }
         z80.tEstados += 3;
@@ -507,8 +499,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
                 floatbus = memory.readScreenByte(addr);
                 break;
-//            default:
-//                return floatbus;
         }
 
         /*
@@ -522,7 +512,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 contendedRamPage[3] = contendedIOPage[3] = (floatbus & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
                 if ((port7ffd & 0x08) != (floatbus & 0x08)) {
-                    invalidateScreen();
+                    invalidateScreen(false);
                 }
                 port7ffd = floatbus;
             }
@@ -575,7 +565,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
                 if (((port7ffd ^ value) & 0x08) != 0) {
-                    invalidateScreen();
+                    invalidateScreen(false);
                 }
                 port7ffd = value;
             }
@@ -801,7 +791,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
     }
 //    static final int CHANNEL_VOLUME = 26000;
-    static final int SPEAKER_VOLUME = 8000;
+    static final int SPEAKER_VOLUME = 7000;
     private int speaker;
     private static final int sp_volt[];
     static boolean muted = false;
@@ -944,8 +934,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     private BufferedImage borderImage; // imagen del borde
     private int imgData[];
     private BufferedImage screenImage; // imagen de la pantalla
-    private BufferedImage tvImage;  // doble buffer de borde+pantalla
     private int imgDataScr[];
+    private Graphics2D gcBorderImage, gcTvImage;
     // t-states del último cambio de border
     private int lastChgBorder;
     // veces que ha cambiado el borde en el último frame
@@ -955,17 +945,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
     public int m1regR;
-    private Graphics2D gcBorderImage, gcTvImage;
 
     private void initGFX() {
-        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
-        gcTvImage = tvImage.createGraphics();
+        
         borderImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         gcBorderImage = borderImage.createGraphics();
         imgData = ((DataBufferInt) borderImage.getRaster().getDataBuffer()).getBankData()[0];
         screenImage = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt) screenImage.getRaster().getDataBuffer()).getBankData()[0];
-//        buildScreenTables128k();
 
         lastChgBorder = 0;
         m1contended = -1;
@@ -973,19 +960,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         screenUpdated = false;
     }
 
-    public BufferedImage getTvImage() {
-        return tvImage;
+    public BufferedImage getBorderImage() {
+        return borderImage;
+    }
+
+    public BufferedImage getScreenImage() {
+        return screenImage;
     }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
             if (memory.readScreenByte(addrAttr) > 0x7f) {
-                int address = attr2scr[addrAttr & 0x3ff] & 0x1fff;
-                for (int scan = 0; scan < 8; scan++) {
-                    dirtyByte[address] = true;
-                    address += 256;
-                }
+                screenUpdated(addrAttr);
             }
         }
     }
@@ -1182,19 +1169,27 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void screenUpdated(int address) {
-        if (address < 0x5800) {
-            dirtyByte[address & 0x1fff] = true;
+        address &= 0x1fff;
+        if (address < 6144) {
+            dirtyByte[address] = true;
         } else {
             int addr = attr2scr[address & 0x3ff] & 0x1fff;
-            for (int scan = 0; scan < 8; scan++) {
-                dirtyByte[addr] = true;
-                addr += 256;
-            }
+            // cuando esto lo hace un compilador, se le llama loop-unrolling
+            // cuando lo hace un pogramadó, se le llama shapusa :P
+            dirtyByte[addr] = true;
+            dirtyByte[addr + 256] = true;
+            dirtyByte[addr + 512] = true;
+            dirtyByte[addr + 768] = true;
+            dirtyByte[addr + 1024] = true;
+            dirtyByte[addr + 1280] = true;
+            dirtyByte[addr + 1536] = true;
+            dirtyByte[addr + 1792] = true;
         }
     }
 
-    public void invalidateScreen() {
-        nBorderChanges = 1;
+    public void invalidateScreen(boolean invalidateBorder) {
+        if(invalidateBorder)
+            nBorderChanges = 1;
         screenUpdated = true;
         Arrays.fill(dirtyByte, true);
         //intArrayFill(imgData, Paleta[portFE & 0x07]);

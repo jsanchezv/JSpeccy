@@ -10,7 +10,6 @@
  * por eso. Debería ser algo seleccionado por el usuario.
  * 
  */
-
 package utilities;
 
 import java.io.File;
@@ -30,6 +29,7 @@ import z80core.Z80;
  * @author jsanchez
  */
 public class Tape {
+
     private Z80 cpu;
     private FileInputStream tapeFile;
     private String filenameLabel;
@@ -41,11 +41,14 @@ public class Tape {
     private int blockLen;
     private int mask;
     private int bitTime;
-    private enum State { STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
-        NEWBYTE_NOCHG,NEWBIT, HALF2, PAUSE, TZX_HEADER, PURE_TONE,
+
+    private enum State {
+
+        STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
+        NEWBYTE_NOCHG, NEWBIT, HALF2, PAUSE, TZX_HEADER, PURE_TONE,
         PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, NEWDR_BYTE,
         NEWDR_BIT, PAUSE_STOP
-        };
+    };
     private State statePlay;
     private int earBit;
     private long timeout;
@@ -74,6 +77,7 @@ public class Tape {
     private int nLoops;
     private int targetJump;
     private MachineTypes spectrumModel;
+    private TapeTableModel tapeTableModel;
 
     public Tape(Z80 z80) {
         cpu = z80;
@@ -87,10 +91,321 @@ public class Tape {
         filenameLabel = null;
         nOffsetBlocks = 0;
         Arrays.fill(offsetBlocks, 0);
+        tapeTableModel = new TapeTableModel(this);
     }
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
+    }
+
+    public int getNumBlocks() {
+        if (!tapeInserted) {
+            return 1;
+        }
+
+        return nOffsetBlocks;
+    }
+
+    public void setSelectedBlock(int block) {
+        if (!tapeInserted || isPlaying() || block > nOffsetBlocks) {
+            return;
+        }
+
+        tapePos = offsetBlocks[block];
+    }
+
+    public String getCleanMsg(int offset, int len) {
+        byte msg[] = new byte[len];
+
+        // Hay que quitar los caracteres especiales
+        for (int car = 0; car < len; car++) {
+            if (tapeBuffer[offset + car] > 31 && tapeBuffer[offset + car] < 128) {
+                msg[car] = (byte) tapeBuffer[offset + car];
+            } else {
+                msg[car] = 32; // space
+            }
+        }
+
+        return new String(msg);
+    }
+
+    public String getBlockType(int block) {
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+        if (!tapeInserted) {
+            return bundle.getString("NO_TAPE_INSERTED");
+        }
+
+        if (!tzxTape) {
+            return bundle.getString("STD_SPD_DATA");
+        }
+
+        int offset = offsetBlocks[block];
+        if (isTZXHeader(offset)) {
+            return "ZXTape!";
+        }
+
+        String msg;
+        switch (tapeBuffer[offset]) {
+            case 0x10: // Standard speed data block
+                msg = bundle.getString("STD_SPD_DATA");
+                break;
+            case 0x11: // Turbo speed data block
+                msg = bundle.getString("TURBO_SPD_DATA");
+                break;
+            case 0x12: // Pure Tone Block
+                msg = bundle.getString("PURE_TONE");
+                break;
+            case 0x13: // Pulse Sequence Block
+                msg = bundle.getString("PULSE_SEQUENCE");
+                break;
+            case 0x14: // Pure Data Block
+                msg = bundle.getString("PURE_DATA");
+                break;
+            case 0x15: // Direct Data Block
+                msg = bundle.getString("DIRECT_DATA");
+                break;
+            case 0x18: // CSW Recording Block
+                msg = bundle.getString("CSW_RECORDING");
+                break;
+            case 0x19: // Generalized Data Block
+                msg = bundle.getString("GDB_DATA");
+                break;
+            case 0x20: // Pause (silence) or 'Stop the Tape' command
+                msg = bundle.getString("PAUSE_STOP");
+                break;
+            case 0x21: // Group Start
+                msg = bundle.getString("GROUP_START");
+                break;
+            case 0x22: // Group End
+                msg = bundle.getString("GROUP_STOP");
+                break;
+            case 0x23: // Jump to Block
+                msg = bundle.getString("JUMP_TO");
+                break;
+            case 0x24: // Loop Start
+                msg = bundle.getString("LOOP_START");
+                break;
+            case 0x25: // Loop End
+                msg = bundle.getString("LOOP_STOP");
+                break;
+            case 0x26: // Call Sequence
+                msg = bundle.getString("CALL_SEQ");
+                break;
+            case 0x27: // Return from Sequence
+                msg = bundle.getString("RETURN_SEQ");
+                break;
+            case 0x28: // Select Block
+                msg = bundle.getString("SELECT_BLOCK");
+                break;
+            case 0x2A: // Stop the tape if in 48K mode
+                msg = bundle.getString("STOP_48K_MODE");
+                break;
+            case 0x2B: // Set Signal Level
+                msg = bundle.getString("SET_SIGNAL_LEVEL");
+                break;
+            case 0x30: // Text Description
+                msg = bundle.getString("TEXT_DESC");
+                break;
+            case 0x31: // Message Block
+                msg = bundle.getString("MESSAGE_BLOCK");
+                break;
+            case 0x32: // Archive Info
+                msg = bundle.getString("ARCHIVE_INFO");
+                break;
+            case 0x33: // Hardware Type
+                msg = bundle.getString("HARDWARE_TYPE");
+                break;
+            case 0x35: // Custom Info Block
+                msg = bundle.getString("CUSTOM_INFO");
+                break;
+            case 0x5A: // "Glue" Block
+                msg = bundle.getString("GLUE_BLOCK");
+                break;
+            default:
+                msg = String.format(bundle.getString("UNKN_TZX_BLOCK"), tapeBuffer[offset]);
+        }
+
+        return msg;
+    }
+
+    public String getBlockInfo(int block) {
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+        if (!tapeInserted) {
+            return bundle.getString("NO_TAPE_INSERTED");
+        }
+
+        String msg;
+
+        if (!tzxTape) {
+            int offset = offsetBlocks[block];
+            int len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+
+            if (tapeBuffer[offset + 2] == 0) { // Header
+                switch (tapeBuffer[offset + 3]) {
+                    case 0: // Program
+                        msg = String.format(bundle.getString("PROGRAM_HEADER"),
+                                getCleanMsg(offset + 4, 10));
+                        break;
+                    case 1: // Number array
+                        msg = bundle.getString("NUMBER_ARRAY_HEADER");
+                        break;
+                    case 2:
+                        msg = bundle.getString("CHAR_ARRAY_HEADER");
+                        break;
+                    case 3:
+                        msg = String.format(bundle.getString("BYTES_HEADER"),
+                                getCleanMsg(offset + 4, 10));
+                        break;
+                    default:
+                        msg = "";
+                }
+            } else {
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+            }
+            return msg;
+        }
+
+        int offset = offsetBlocks[block];
+        if (isTZXHeader(offset)) {
+            return bundle.getString("TZX_HEADER");
+        }
+
+        int len, num;
+        switch (tapeBuffer[offset++]) {
+            case 0x10: // Standard speed data block
+                len = tapeBuffer[offset + 2] + (tapeBuffer[offset + 3] << 8);
+                if (tapeBuffer[offset + 4] == 0) { // Header
+                    switch (tapeBuffer[offset + 5]) {
+                        case 0: // Program
+                            msg = String.format(bundle.getString("PROGRAM_HEADER"),
+                                    getCleanMsg(offset + 4, 10));
+                            break;
+                        case 1: // Number array
+                            msg = bundle.getString("NUMBER_ARRAY_HEADER");
+                            break;
+                        case 2: // Character array
+                            msg = bundle.getString("CHAR_ARRAY_HEADER");
+                            break;
+                        case 3:
+                            msg = String.format(bundle.getString("BYTES_HEADER"),
+                                    getCleanMsg(offset + 4, 10));
+                            break;
+                        default:
+                            msg = String.format(bundle.getString("UNKN_HEADER_ID"),
+                                tapeBuffer[offset + 5]);
+                    }
+                } else {
+                    msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                }
+                break;
+            case 0x11: // Turbo speed data block
+                len = tapeBuffer[offset + 15] + (tapeBuffer[offset + 16] << 8)
+                    + (tapeBuffer[offset + 17] << 16);
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                break;
+            case 0x12: // Pure Tone Block
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+                num = tapeBuffer[offset + 2] + (tapeBuffer[offset + 3] << 8);
+                msg = String.format(bundle.getString("PURE_TONE_MESSAGE"), num, len);
+                break;
+            case 0x13: // Pulse Sequence Block
+                len = tapeBuffer[offset];
+                msg = String.format(bundle.getString("PULSE_SEQ_MESSAGE"), len);
+                break;
+            case 0x14: // Pure Data Block
+                len = tapeBuffer[offset + 7] + (tapeBuffer[offset + 8] << 8)
+                    + (tapeBuffer[offset + 9] << 16);
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                break;
+            case 0x15: // Direct Data Block
+                len = tapeBuffer[offset + 5] + (tapeBuffer[offset + 6] << 8)
+                    + (tapeBuffer[offset + 7] << 16);
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                break;
+            case 0x18: // CSW Recording Block
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8)
+                    + (tapeBuffer[offset + 2] << 16) + (tapeBuffer[offset + 3] << 24);
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                break;
+            case 0x19: // Generalized Data Block
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8)
+                    + (tapeBuffer[offset + 2] << 16) + (tapeBuffer[offset + 3] << 24);
+                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+                break;
+            case 0x20: // Pause (silence) or 'Stop the Tape' command
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+                if (len == 0) {
+                    msg = bundle.getString("STOP_THE_TAPE");
+                } else {
+                    msg = String.format(bundle.getString("PAUSE_MS"), len);
+                }
+                break;
+            case 0x21: // Group Start
+                len = tapeBuffer[offset];
+                msg = getCleanMsg(offset + 1, len);
+                break;
+            case 0x22: // Group End
+                msg = "";
+                break;
+            case 0x23: // Jump to Block
+                byte disp = (byte) tapeBuffer[offset];
+                msg = String.format(bundle.getString("NUMBER_OF_BLOCKS"), disp);
+                break;
+            case 0x24: // Loop Start
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+                msg = String.format(bundle.getString("NUMBER_OF_ITER"), len);
+                break;
+            case 0x25: // Loop End
+                msg = "";
+                break;
+            case 0x26: // Call Sequence
+                len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+                msg = String.format(bundle.getString("NUMBER_OF_CALLS"), len);
+                break;
+            case 0x27: // Return from Sequence
+                msg = "";
+                break;
+            case 0x28: // Select Block
+                len = tapeBuffer[offset + 2];
+                msg = String.format(bundle.getString("NUMBER_OF_SELS"), len);
+                break;
+            case 0x2A: // Stop the tape if in 48K mode
+                msg = "";
+                break;
+            case 0x2B: // Set Signal Level
+                len = tapeBuffer[offset + 2];
+                msg = String.format(bundle.getString("SIGNAL_TO_LEVEL"), len);
+                break;
+            case 0x30: // Text Description
+                len = tapeBuffer[offset];
+                msg = getCleanMsg(offset + 1, len);
+                break;
+            case 0x31: // Message Block
+                len = tapeBuffer[offset + 1];
+                msg = getCleanMsg(offset + 2, len);
+                break;
+            case 0x32: // Archive Info
+                len = tapeBuffer[offset + 2];
+                msg = String.format(bundle.getString("NUMBER_OF_STRINGS"), len);
+                break;
+            case 0x33: // Hardware Type
+                msg = "";
+                break;
+            case 0x35: // Custom Info Block
+                msg = getCleanMsg(offset, 10);
+                break;
+            case 0x5A: // "Glue" Block
+                msg = "";
+                break;
+            default:
+                msg = "";
+        }
+
+        return msg;
+    }
+
+    public TapeTableModel getTapeTableModel() {
+        return tapeTableModel;
     }
 
     public void notifyTstates(long frames, int tstates) {
@@ -103,8 +418,9 @@ public class Tape {
         timeout -= (now - timeLastIn);
 //        System.out.println("timeout: " + timeout);
         timeLastIn = now;
-        if (timeout > 0)
+        if (timeout > 0) {
             return;
+        }
 
 //        System.out.println("timeout: " + timeout);
         timeout = 0;
@@ -113,12 +429,13 @@ public class Tape {
     }
 
     public boolean insert(File filename) {
-        if( tapeInserted )
+        if (tapeInserted) {
             return false;
+        }
 
         try {
             tapeFile = new FileInputStream(filename);
-        } catch( FileNotFoundException fex ) {
+        } catch (FileNotFoundException fex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, fex);
             return false;
         }
@@ -126,8 +443,9 @@ public class Tape {
         try {
             tapeBuffer = new int[tapeFile.available()];
             int count = 0;
-            while( count < tapeBuffer.length )
+            while (count < tapeBuffer.length) {
                 tapeBuffer[count++] = tapeFile.read() & 0xff;
+            }
             tapeFile.close();
         } catch (IOException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
@@ -143,17 +461,18 @@ public class Tape {
         if (tzxTape) {
             fastload = false;
             findTZXOffsetBlocks();
-            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
+//            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         } else {
             findTAPOffsetBlocks();
-            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
+//            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         }
+        tapeTableModel.fireTableDataChanged();
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
         updateTapeIcon();
@@ -200,8 +519,9 @@ public class Tape {
     }
 
     public boolean play() {
-        if (!tapeInserted || statePlay != State.STOP)
+        if (!tapeInserted || statePlay != State.STOP) {
             return false;
+        }
 
         statePlay = State.START;
         timeLastIn = 0;
@@ -212,41 +532,40 @@ public class Tape {
     }
 
     public void stop() {
-        if (!tapeInserted || statePlay == State.STOP)
+        if (!tapeInserted || statePlay == State.STOP) {
             return;
+        }
 
         statePlay = State.STOP;
         tapePos += blockLen;
-        if( tapePos == tapeBuffer.length )
-//            if (tzxTape)
-//                tapePos = 10;
-//            else
-        tapePos = 0;
+        if (tapePos == tapeBuffer.length) {
+            tapePos = 0;
+        }
         timeLastIn = 0;
         cpu.setExecDone(false);
         updateTapeIcon();
     }
 
     public boolean rewind() {
-        if (!tapeInserted || statePlay != State.STOP)
+        if (!tapeInserted || statePlay != State.STOP) {
             return false;
+        }
 
-//        if (tzxTape)
-//            tapePos = 10;
-//        else
-          tapePos = 0;
+        tapePos = 0;
 
         return true;
     }
 
     private boolean doPlay() {
-        if (!tapeInserted)
+        if (!tapeInserted) {
             return false;
+        }
 
-        if (tzxTape)
+        if (tzxTape) {
             return playTzx();
-        else
+        } else {
             return playTap();
+        }
     }
 
     private int findTAPOffsetBlocks() {
@@ -272,8 +591,9 @@ public class Tape {
                 timeLastIn = 0;
                 break;
             case START:
-                if( tapePos == tapeBuffer.length )
+                if (tapePos == tapeBuffer.length) {
                     tapePos = 0;
+                }
 
                 blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
                 tapePos += 2;
@@ -301,10 +621,11 @@ public class Tape {
                 mask = 0x80; // se empieza por el bit 7
             case NEWBIT:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
-                if ((tapeBuffer[tapePos] & mask) == 0)
+                if ((tapeBuffer[tapePos] & mask) == 0) {
                     bitTime = ZERO_LENGHT;
-                else
+                } else {
                     bitTime = ONE_LENGHT;
+                }
                 timeout = bitTime;
                 statePlay = State.HALF2;
                 break;
@@ -314,12 +635,14 @@ public class Tape {
                 mask >>>= 1;
                 if (mask == 0) {
                     tapePos++;
-                    if( --blockLen > 0)
+                    if (--blockLen > 0) {
                         statePlay = State.NEWBYTE;
-                    else
+                    } else {
                         statePlay = State.PAUSE;
-                } else
+                    }
+                } else {
                     statePlay = State.NEWBIT;
+                }
                 break;
             case PAUSE:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
@@ -329,12 +652,11 @@ public class Tape {
 //                    tapeBuffer.length, tapePos));
                 break;
             case PAUSE_STOP:
-                if( tapePos == tapeBuffer.length ) {
+                if (tapePos == tapeBuffer.length) {
                     statePlay = State.STOP;
                     tapePos = 0;
                     timeout = 1;
-                }
-                else {
+                } else {
                     statePlay = State.START; // START
                 }
         }
@@ -342,10 +664,10 @@ public class Tape {
     }
 
     private boolean isTZXHeader(int offset) {
-        if (tapeBuffer[offset] == 'Z' && tapeBuffer[offset + 1] == 'X' &&
-            tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a' &&
-            tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e' &&
-            tapeBuffer[offset + 6] == '!') {
+        if (tapeBuffer[offset] == 'Z' && tapeBuffer[offset + 1] == 'X'
+            && tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a'
+            && tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e'
+            && tapeBuffer[offset + 6] == '!') {
             return true;
         }
         return false;
@@ -363,16 +685,16 @@ public class Tape {
                 offset += 10;
                 continue;
             }
-            
+
             switch (tapeBuffer[offset]) {
                 case 0x10: // Standard speed data block
                     len = tapeBuffer[offset + 3] + (tapeBuffer[offset + 4] << 8);
                     offset += len + 5;
                     break;
                 case 0x11: // Turbo speed data block
-                    len = tapeBuffer[offset + 16] +
-                         (tapeBuffer[offset + 17] << 8) +
-                         (tapeBuffer[offset + 18] << 16);
+                    len = tapeBuffer[offset + 16]
+                        + (tapeBuffer[offset + 17] << 8)
+                        + (tapeBuffer[offset + 18] << 16);
                     offset += len + 19;
                     break;
                 case 0x12: // Pure Tone Block
@@ -384,21 +706,21 @@ public class Tape {
                     offset += len * 2 + 2;
                     break;
                 case 0x14: // Pure Data Block
-                    len = tapeBuffer[offset + 8] +
-                         (tapeBuffer[offset + 9] << 8) +
-                         (tapeBuffer[offset + 10] << 16);
+                    len = tapeBuffer[offset + 8]
+                        + (tapeBuffer[offset + 9] << 8)
+                        + (tapeBuffer[offset + 10] << 16);
                     offset += len + 11;
                     break;
                 case 0x15: // Direct Data Block
-                    len = tapeBuffer[offset + 6] +
-                         (tapeBuffer[offset + 7] << 8) +
-                         (tapeBuffer[offset + 8] << 16);
+                    len = tapeBuffer[offset + 6]
+                        + (tapeBuffer[offset + 7] << 8)
+                        + (tapeBuffer[offset + 8] << 16);
                     offset += len + 9;
                     break;
                 case 0x18: // CSW Recording Block
                 case 0x19: // Generalized Data Block
-                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8) +
-                         (tapeBuffer[offset + 3] << 16) + (tapeBuffer[offset + 4] << 24);
+                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8)
+                        + (tapeBuffer[offset + 3] << 16) + (tapeBuffer[offset + 4] << 24);
                     offset += len + 5;
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
@@ -443,8 +765,8 @@ public class Tape {
                     offset += len * 3 + 2;
                     break;
                 case 0x35: // Custom Info Block
-                    len = tapeBuffer[offset + 17] + (tapeBuffer[offset + 18] << 8) +
-                         (tapeBuffer[offset + 19] << 16) + (tapeBuffer[offset + 20] << 24);
+                    len = tapeBuffer[offset + 17] + (tapeBuffer[offset + 18] << 8)
+                        + (tapeBuffer[offset + 19] << 16) + (tapeBuffer[offset + 20] << 24);
                     offset += len + 21;
                     break;
                 case 0x5A: // "Glue" Block
@@ -526,12 +848,12 @@ public class Tape {
 
                     tapePos++;
                     if (--blockLen > 0) {
-                            statePlay = State.NEWBYTE;
-                        } else {
+                        statePlay = State.NEWBYTE;
+                    } else {
 //                            System.out.println(String.format("Last byte: %02x",
 //                                    tapeBuffer[tapePos-1]));
-                            statePlay = State.PAUSE;
-                        }
+                        statePlay = State.PAUSE;
+                    }
                     break;
                 case PAUSE:
                     earBit = earBit == 0xbf ? 0xff : 0xbf;
@@ -540,7 +862,7 @@ public class Tape {
                         repeat = true;
                         break;
                     }
-                    timeout = endBlockPause;           
+                    timeout = endBlockPause;
                     break;
                 case TZX_HEADER:
                     decodeTzxHeader();
@@ -600,17 +922,17 @@ public class Tape {
 
                     tapePos++;
                     if (--blockLen > 0) {
-                            statePlay = State.NEWDR_BYTE;
-                        } else {
+                        statePlay = State.NEWDR_BYTE;
+                    } else {
 //                            System.out.println(String.format("Last byte: %02x",
 //                                    tapeBuffer[tapePos-1]));
-                            statePlay = State.PAUSE;
-                        }
+                        statePlay = State.PAUSE;
+                    }
                     break;
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
-                       statePlay = State.STOP;
-                       repeat = true;
+                        statePlay = State.STOP;
+                        repeat = true;
                     } else {
                         timeout = endBlockPause;
                         statePlay = State.TZX_HEADER;
@@ -624,14 +946,15 @@ public class Tape {
     private void decodeTzxHeader() {
         boolean repeat = true;
         while (repeat) {
-            if (tapePos == tapeBuffer.length)
+            if (tapePos == tapeBuffer.length) {
                 return;
+            }
 
             if (isTZXHeader(tapePos)) {
                 tapePos += 10;
                 continue;
             }
-            
+
             switch (tapeBuffer[tapePos]) {
                 case 0x10: // Standard speed data block
                     leaderLenght = LEADER_LENGHT;
@@ -640,10 +963,11 @@ public class Tape {
                     zeroLenght = ZERO_LENGHT;
                     oneLenght = ONE_LENGHT;
                     bitsLastByte = 8;
-                    endBlockPause = (tapeBuffer[tapePos + 1] +
-                                    (tapeBuffer[tapePos + 2] << 8)) * 3500;
-                    if (endBlockPause == 0)
+                    endBlockPause = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                    if (endBlockPause == 0) {
                         endBlockPause = END_BLOCK_PAUSE;
+                    }
                     blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
                     tapePos += 5;
                     leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
@@ -652,24 +976,24 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x11: // Turbo speed data block
-                    leaderLenght = (tapeBuffer[tapePos + 1] +
-                                   (tapeBuffer[tapePos + 2] << 8));
-                    sync1Lenght = (tapeBuffer[tapePos + 3] +
-                                  (tapeBuffer[tapePos + 4] << 8));
-                    sync2Lenght = (tapeBuffer[tapePos + 5] +
-                                  (tapeBuffer[tapePos + 6] << 8));
-                    zeroLenght = (tapeBuffer[tapePos + 7] +
-                                 (tapeBuffer[tapePos + 8] << 8));
-                    oneLenght = (tapeBuffer[tapePos + 9] +
-                                (tapeBuffer[tapePos + 10] << 8));
-                    leaderPulses = (tapeBuffer[tapePos + 11] +
-                                   (tapeBuffer[tapePos + 12] << 8));
+                    leaderLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    sync1Lenght = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8));
+                    sync2Lenght = (tapeBuffer[tapePos + 5]
+                        + (tapeBuffer[tapePos + 6] << 8));
+                    zeroLenght = (tapeBuffer[tapePos + 7]
+                        + (tapeBuffer[tapePos + 8] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 9]
+                        + (tapeBuffer[tapePos + 10] << 8));
+                    leaderPulses = (tapeBuffer[tapePos + 11]
+                        + (tapeBuffer[tapePos + 12] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 13];
-                    endBlockPause = (tapeBuffer[tapePos + 14] +
-                                    (tapeBuffer[tapePos + 15] << 8)) * 3500;
-                    blockLen = tapeBuffer[tapePos + 16] +
-                              (tapeBuffer[tapePos + 17] << 8) +
-                              (tapeBuffer[tapePos + 18] << 16);
+                    endBlockPause = (tapeBuffer[tapePos + 14]
+                        + (tapeBuffer[tapePos + 15] << 8)) * 3500;
+                    blockLen = tapeBuffer[tapePos + 16]
+                        + (tapeBuffer[tapePos + 17] << 8)
+                        + (tapeBuffer[tapePos + 18] << 16);
                     tapePos += 19;
                     timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
@@ -677,10 +1001,10 @@ public class Tape {
                     //earBit = 0xff; // ver nota en la cabecera
                     break;
                 case 0x12: // Pure Tone Block
-                    leaderLenght = (tapeBuffer[tapePos + 1] +
-                                   (tapeBuffer[tapePos + 2] << 8));
-                    leaderPulses = (tapeBuffer[tapePos + 3] +
-                                   (tapeBuffer[tapePos + 4] << 8));
+                    leaderLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    leaderPulses = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8));
                     tapePos += 5;
                     statePlay = State.PURE_TONE_NOCHG;
                     repeat = false;
@@ -692,49 +1016,49 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x14: // Pure Data Block
-                    zeroLenght = (tapeBuffer[tapePos + 1] +
-                                 (tapeBuffer[tapePos + 2] << 8));
-                    oneLenght = (tapeBuffer[tapePos + 3] +
-                                (tapeBuffer[tapePos + 4] << 8));
+                    zeroLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 5];
-                    endBlockPause = (tapeBuffer[tapePos + 6] +
-                                    (tapeBuffer[tapePos + 7] << 8)) * 3500;
-                    blockLen = tapeBuffer[tapePos + 8] +
-                              (tapeBuffer[tapePos + 9] << 8) +
-                              (tapeBuffer[tapePos + 10] << 16);
+                    endBlockPause = (tapeBuffer[tapePos + 6]
+                        + (tapeBuffer[tapePos + 7] << 8)) * 3500;
+                    blockLen = tapeBuffer[tapePos + 8]
+                        + (tapeBuffer[tapePos + 9] << 8)
+                        + (tapeBuffer[tapePos + 10] << 16);
                     tapePos += 11;
                     statePlay = State.NEWBYTE_NOCHG;
                     repeat = false;
                     break;
                 case 0x15: // Direct Data Block
-                    zeroLenght = (tapeBuffer[tapePos + 1] +
-                                 (tapeBuffer[tapePos + 2] << 8));
-                    endBlockPause = (tapeBuffer[tapePos + 3] +
-                                    (tapeBuffer[tapePos + 4] << 8)) * 3500;
+                    zeroLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    endBlockPause = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8)) * 3500;
                     bitsLastByte = tapeBuffer[tapePos + 5];
-                    blockLen = tapeBuffer[tapePos + 6] +
-                              (tapeBuffer[tapePos + 7] << 8) +
-                              (tapeBuffer[tapePos + 8] << 16);
+                    blockLen = tapeBuffer[tapePos + 6]
+                        + (tapeBuffer[tapePos + 7] << 8)
+                        + (tapeBuffer[tapePos + 8] << 16);
                     tapePos += 9;
                     statePlay = State.NEWDR_BYTE;
                     repeat = false;
                     break;
                 case 0x18: // CSW Recording Block
-                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
-                            (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)
+                        + (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
                     tapePos += blockLen + 5;
                     System.out.println("CSW Block not supported!. Skipping...");
                     break;
                 case 0x19: // Generalized Data Block
                     //printGDBHeader(tapePos);
-                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
-                            (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)
+                        + (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
                     tapePos += blockLen + 5;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
-                    endBlockPause = (tapeBuffer[tapePos + 1] +
-                        (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                    endBlockPause = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
                     tapePos += 3;
                     statePlay = State.PAUSE_STOP;
                     repeat = false;
@@ -748,7 +1072,7 @@ public class Tape {
                     break;
                 case 0x23: // Jump to Block
                     System.out.println(String.format("Jump to block %d",
-                            tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)));
+                        tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)));
                     tapePos += 3;
                     break;
                 case 0x24: // Loop Start
@@ -802,8 +1126,8 @@ public class Tape {
                     tapePos += blockLen * 3 + 2;
                     break;
                 case 0x35: // Custom Info Block
-                    blockLen = tapeBuffer[tapePos + 17] + (tapeBuffer[tapePos + 18] << 8) +
-                            (tapeBuffer[tapePos + 19] << 16) + (tapeBuffer[tapePos + 20] << 24);
+                    blockLen = tapeBuffer[tapePos + 17] + (tapeBuffer[tapePos + 18] << 8)
+                        + (tapeBuffer[tapePos + 19] << 16) + (tapeBuffer[tapePos + 20] << 24);
                     tapePos += blockLen + 21;
                     break;
                 case 0x5A: // "Glue" Block
@@ -819,17 +1143,17 @@ public class Tape {
     }
 
     private void printGDBHeader(int index) {
-        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8) +
-                (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
+        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8)
+            + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
         int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
-        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8) +
-            (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
+        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8)
+            + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
         int npp = tapeBuffer[index + 11];
         int asp = tapeBuffer[index + 12];
-        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8) +
-                  (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
+        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8)
+            + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
         int npd = tapeBuffer[index + 17];
-        int asd  = tapeBuffer[index + 18];
+        int asd = tapeBuffer[index + 18];
 
         System.out.println(String.format("GDB size: %d", blkLenght));
         System.out.println(String.format("Pause: %d ms", pause));
@@ -844,8 +1168,9 @@ public class Tape {
     public void fastload(Memory memory) {
 
         System.out.println("fastload!");
-        if (!tapeInserted || cpu == null)
+        if (!tapeInserted || cpu == null) {
             return;
+        }
 
         int addr = cpu.getRegIX(); // Address start
 //        int flag = cpu.getRegA();
@@ -875,8 +1200,9 @@ public class Tape {
         int count = 0;
         int nBytes = cpu.getRegDE();
         while (count < nBytes && count < blockLen - 1) {
-            if( addr > 0x3fff )
+            if (addr > 0x3fff) {
                 memory.writeByte(addr, tapeBuffer[tapePos + count + 1]);
+            }
             cpu.xor(tapeBuffer[tapePos + count + 1]);
             addr = (addr + 1) & 0xffff;
             count++;
@@ -887,13 +1213,13 @@ public class Tape {
             cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
             cpu.cp(0x01);
         }
-        
+
         // Hay menos bytes en la cinta de los indicados en DE
         // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
         // que se señaliza con CARRY==reset & ZERO==set
-        if (count < nBytes)
+        if (count < nBytes) {
             cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
-        
+        }
         cpu.setRegIX(addr);
         cpu.setRegDE(nBytes - count);
 
@@ -902,24 +1228,27 @@ public class Tape {
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
         return;
     }
-
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
+
     public void setTapeIcon(javax.swing.JLabel tapeLabel) {
         tapeIcon = tapeLabel;
         updateTapeIcon();
     }
 
     private void updateTapeIcon() {
-        if (tapeIcon == null)
+        if (tapeIcon == null) {
             return;
+        }
 
-        if (statePlay == State.STOP)
+        if (statePlay == State.STOP) {
             enabledIcon = false;
-        else
+        } else {
             enabledIcon = true;
+        }
 
         SwingUtilities.invokeLater(new Runnable() {
+
             public void run() {
                 tapeIcon.setToolTipText(filenameLabel);
                 tapeIcon.setEnabled(enabledIcon);

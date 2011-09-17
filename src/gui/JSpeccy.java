@@ -11,6 +11,7 @@ import java.io.File;
 import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import machine.Spectrum;
 
@@ -23,18 +24,23 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccyScreen jscr;
     File currentDirOpenSnapshot, currentDirSaveSnapshot, currentDirTape;
     JFileChooser openSnapshotDlg, saveSnapshotDlg, OpenTapeDlg;
+    ListSelectionModel lsm;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
         spectrum = new Spectrum();
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
+        jscr.setScreenImage(spectrum.getBorderImage(), spectrum.getScreenImage());
         spectrum.setInfoLabels(modelLabel, speedLabel);
         spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
             sinclair1Joystick, sinclair2Joystick, cursorJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
-        jscr.setScreenImage(spectrum.getTvImage());
+        tapeCatalog.setModel(spectrum.tape.getTapeTableModel());
+        tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
+        lsm = tapeCatalog.getSelectionModel();
+        lsm.addListSelectionListener(new TapeBrowserSelectionListener(spectrum.tape));
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum.getKeyboard());
@@ -55,6 +61,12 @@ public class JSpeccy extends javax.swing.JFrame {
         closeKeyboardHelper = new javax.swing.JButton();
         joystickButtonGroup = new javax.swing.ButtonGroup();
         hardwareButtonGroup = new javax.swing.ButtonGroup();
+        tapeBrowserDialog = new javax.swing.JDialog();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        tapeCatalog = new javax.swing.JTable();
+        jPanel2 = new javax.swing.JPanel();
+        closeTapeBrowserButton = new javax.swing.JButton();
+        tapeFilename = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
@@ -96,6 +108,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
         playTapeMediaMenu = new javax.swing.JMenuItem();
+        browserTapeMediaMenu = new javax.swing.JMenuItem();
         rewindTapeMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
@@ -124,6 +137,50 @@ public class JSpeccy extends javax.swing.JFrame {
 
         hardwareButtonGroup.add(spec48kHardware);
         hardwareButtonGroup.add(spec128kHardware);
+
+        tapeBrowserDialog.setTitle(bundle.getString("JSpeccy.tapeBrowserDialog.title")); // NOI18N
+
+        tapeCatalog.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null}
+            },
+            new String [] {
+                "Block Number", "Block Type", "Block information"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        tapeCatalog.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
+        tapeCatalog.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        tapeCatalog.getTableHeader().setReorderingAllowed(false);
+        jScrollPane1.setViewportView(tapeCatalog);
+        tapeCatalog.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        tapeCatalog.getColumnModel().getColumn(0).setResizable(false);
+        tapeCatalog.getColumnModel().getColumn(0).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title0")); // NOI18N
+        tapeCatalog.getColumnModel().getColumn(1).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title1")); // NOI18N
+        tapeCatalog.getColumnModel().getColumn(2).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title2")); // NOI18N
+
+        tapeBrowserDialog.getContentPane().add(jScrollPane1, java.awt.BorderLayout.CENTER);
+
+        closeTapeBrowserButton.setText(bundle.getString("JSpeccy.closeTapeBrowserButton.text")); // NOI18N
+        closeTapeBrowserButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                closeTapeBrowserButtonActionPerformed(evt);
+            }
+        });
+        jPanel2.add(closeTapeBrowserButton);
+
+        tapeBrowserDialog.getContentPane().add(jPanel2, java.awt.BorderLayout.PAGE_END);
+
+        tapeFilename.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        tapeFilename.setText(bundle.getString("JSpeccy.tapeFilename.text")); // NOI18N
+        tapeBrowserDialog.getContentPane().add(tapeFilename, java.awt.BorderLayout.PAGE_START);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle(bundle.getString("JSpeccy.title")); // NOI18N
@@ -434,6 +491,14 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         tapeMediaMenu.add(playTapeMediaMenu);
 
+        browserTapeMediaMenu.setText(bundle.getString("JSpeccy.browserTapeMediaMenu.text")); // NOI18N
+        browserTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                browserTapeMediaMenuActionPerformed(evt);
+            }
+        });
+        tapeMediaMenu.add(browserTapeMediaMenu);
+
         rewindTapeMediaMenu.setText(bundle.getString("JSpeccy.rewindTapeMediaMenu.text")); // NOI18N
         rewindTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -576,25 +641,23 @@ public class JSpeccy extends javax.swing.JFrame {
             currentDirTape = OpenTapeDlg.getCurrentDirectory();
             spectrum.tape.eject();
             spectrum.tape.insert(OpenTapeDlg.getSelectedFile());
+            tapeFilename.setText(OpenTapeDlg.getSelectedFile().getName());
         }
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_openTapeMediaMenuActionPerformed
 
     private void rewindTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rewindTapeMediaMenuActionPerformed
-        // TODO add your handling code here:
         spectrum.tape.rewind();
     }//GEN-LAST:event_rewindTapeMediaMenuActionPerformed
 
     private void imageHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageHelpMenuActionPerformed
-        // TODO add your handling code here:
         keyboardHelper.setResizable(false);
         keyboardHelper.pack();
         keyboardHelper.setVisible(true);
     }//GEN-LAST:event_imageHelpMenuActionPerformed
 
     private void aboutHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutHelpMenuActionPerformed
-        // TODO add your handling code here:
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         JOptionPane.showMessageDialog(getContentPane(),
             bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
@@ -602,12 +665,10 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_aboutHelpMenuActionPerformed
 
     private void nmiMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nmiMachineMenuActionPerformed
-        // TODO add your handling code here:
         spectrum.triggerNMI();
     }//GEN-LAST:event_nmiMachineMenuActionPerformed
 
     private void closeKeyboardHelperActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeKeyboardHelperActionPerformed
-        // TODO add your handling code here:
         keyboardHelper.setVisible(false);
     }//GEN-LAST:event_closeKeyboardHelperActionPerformed
 
@@ -697,6 +758,21 @@ public class JSpeccy extends javax.swing.JFrame {
     private void fastEmulationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fastEmulationToggleButtonActionPerformed
         spectrum.toggleSpeed();
     }//GEN-LAST:event_fastEmulationToggleButtonActionPerformed
+
+    private void browserTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browserTapeMediaMenuActionPerformed
+        //tapeBrowser.validate();
+        tapeBrowserDialog.setVisible(true);
+        tapeBrowserDialog.pack();
+        tapeCatalog.doLayout();
+    }//GEN-LAST:event_browserTapeMediaMenuActionPerformed
+
+    private void closeTapeBrowserButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeTapeBrowserButtonActionPerformed
+        tapeBrowserDialog.setVisible(false);
+//        int row = tapeCatalog.getSelectedRow();
+//        if (row != -1) {
+//            spectrum.tape.setSelectedBlock(row);
+//        }
+    }//GEN-LAST:event_closeTapeBrowserButtonActionPerformed
     
     /**
      * @param args the command line arguments
@@ -711,7 +787,9 @@ public class JSpeccy extends javax.swing.JFrame {
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem aboutHelpMenu;
+    private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JButton closeKeyboardHelper;
+    private javax.swing.JButton closeTapeBrowserButton;
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
@@ -727,6 +805,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
@@ -756,6 +836,9 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem spec128kHardware;
     private javax.swing.JRadioButtonMenuItem spec48kHardware;
     private javax.swing.JLabel speedLabel;
+    private javax.swing.JDialog tapeBrowserDialog;
+    private javax.swing.JTable tapeCatalog;
+    private javax.swing.JLabel tapeFilename;
     private javax.swing.JLabel tapeLabel;
     private javax.swing.JMenu tapeMediaMenu;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;

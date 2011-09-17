@@ -20,16 +20,20 @@ import machine.Spectrum;
  */
 public class JSpeccyScreen extends javax.swing.JComponent {
 
-    private BufferedImage tvImage;
+    private BufferedImage tvImage, borderImage, screenImage;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    private boolean doubleSize;
+    private boolean doubleSize, frameReady, dirtyBorder;
+    private Graphics2D gcTvImage, gcBorderImage, gcScreenImage;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
         initComponents();
 
+        tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
+                                    BufferedImage.TYPE_INT_RGB);
+        gcTvImage = tvImage.createGraphics();
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -49,8 +53,18 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 Spectrum.SCREEN_HEIGHT));
     }
 
-    public void setScreenImage(BufferedImage fullImg) {
-        tvImage = fullImg;
+    public void notifyNewFrame(boolean dirty) {
+        frameReady = true;
+        dirtyBorder = dirty;
+    }
+
+    public void setScreenImage(BufferedImage bImage, BufferedImage scrImage) {
+        borderImage = bImage;
+        screenImage = scrImage;
+        gcBorderImage = borderImage.createGraphics();
+        gcScreenImage = screenImage.createGraphics();
+        frameReady = false;
+        dirtyBorder = true;
     }
 
     public void toggleDoubleSize() {
@@ -69,10 +83,48 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         //super.paintComponent(gc);
         Graphics2D gc2 = (Graphics2D)gc;
 
-        if (doubleSize) {
-            gc2.drawImage(tvImage, escalaOp, 0, 0);
+        /* 20/03/2010
+         * La pantalla se ha de dibujar en un solo paso. Si el borde no se
+         * modificó, se vuelca sobre el doble búfer solo la pantalla. Si se
+         * modificó el borde, primero se vuelca la pantalla sobre la imagen
+         * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
+         * en juegos como el TV-game.
+         */
+
+        // Esto sería un update solicitado por la clase Spectrum
+        if (frameReady) {
+            if(dirtyBorder) {
+//                System.out.println("Update from Spectrum: frameReady + dirtyBorder");
+                gcBorderImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
+                                        Spectrum.BORDER_WIDTH, null);
+                gcTvImage.drawImage(borderImage, 0, 0, null);
+                if (doubleSize) {
+                    gc2.drawImage(tvImage, escalaOp, 0, 0);
+                } else {
+                    gc2.drawImage(tvImage, 0, 0, null);
+                }
+                dirtyBorder = false;
+            } else {
+//                System.out.println("Update from Spectrum: frameReady");
+                gcTvImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
+                                    Spectrum.BORDER_WIDTH, null);
+                if (doubleSize) {
+                    gc2.drawImage(screenImage, escalaOp, Spectrum.BORDER_WIDTH,
+                                  Spectrum.BORDER_WIDTH);
+                } else {
+                    gc2.drawImage(screenImage, Spectrum.BORDER_WIDTH,
+                                  Spectrum.BORDER_WIDTH, null);
+                }
+            }
+            frameReady = false;
         } else {
-            gc2.drawImage(tvImage, 0, 0, this);
+            // Esto sería un update solicitado por su cuenta por Swing
+//            System.out.println("Update from Swing");
+            if (doubleSize) {
+                gc2.drawImage(tvImage, escalaOp, 0, 0);
+            } else {
+                gc2.drawImage(tvImage, 0, 0, this);
+            }
         }
     }
 
