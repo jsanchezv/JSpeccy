@@ -21,4 +21,6 @@ public interface MemIoOps {
     void outPort(int port, int value);
 
     void contendedStates(int address, int tstates);
+
+    void newInstruction(int tstates);
 }

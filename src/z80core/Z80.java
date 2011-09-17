@@ -1402,6 +1402,7 @@ public class Z80 {
     public final int execute() {
 
         while (tEstados < statesLimit) {
+            int tmpstates = tEstados;
             // Primero se comprueba NMI
             if (activeNMI) {
                 activeNMI = false;
@@ -1432,6 +1433,8 @@ public class Z80 {
                 pendingEI = false;
             }
 
+            if( true )
+                MemIoImpl.newInstruction(tEstados - tmpstates);
         } /* del while */
         return tEstados;
     }

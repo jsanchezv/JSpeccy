@@ -217,10 +217,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             jscr.m1regR = z80.getRegR();
         }
 
-        if( address == 0x0556) { // LD_BYTES routine in Spectrum ROM
-            tape.fastload(z80Ram);
-            return 0xC9; // RET opcode
-        }
+//        if( address == 0x0556) { // LD_BYTES routine in Spectrum ROM
+//            tape.fastload(z80Ram);
+//            return 0xC9; // RET opcode
+//        }
 
         return z80Ram[address];
     }
@@ -311,6 +311,19 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             }
         } else {
             z80.tEstados += tstates;
+        }
+    }
+
+    static int totalStates = 0;
+    public void newInstruction(int tstates) {
+        //System.out.println(String.format("tstates: %d", tstates));
+        totalStates += tstates;
+        if( totalStates >= 2168 ) {
+            if( earBit == 0xbf )
+                earBit = 0xff;
+            else
+                earBit = 0xbf;
+            totalStates = 0;
         }
     }
 
@@ -424,11 +437,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 speaker = spkMic;
             }
 
-            if ((value & 0x10) == 0) {
-                earBit = 0xbf;
-            } else {
-                earBit = 0xff;
-            }
+//            if ((value & 0x10) == 0) {
+//                earBit = 0xbf;
+//            } else {
+//                earBit = 0xff;
+//            }
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
@@ -920,7 +933,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
+
     static final int CHANNEL_VOLUME = 26000;
     static final int SPEAKER_VOLUME = 5000;
     private int speaker;
