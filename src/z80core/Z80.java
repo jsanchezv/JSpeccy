@@ -1306,13 +1306,6 @@ public class Z80 {
         return (reg | mask);
     }
 
-    // Operación de input
-    private final int inPort() {
-        int dataIn = MemIoImpl.inPort(getRegBC());
-        sz5h3pnFlags = sz53pn_addTable[dataIn];
-        return dataIn;
-    }
-
     //Interrupción
     /* Desglose de la interrupción, según el modo:
      * IM0:
@@ -5651,7 +5644,8 @@ public class Z80 {
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x40: {     /*IN B,(C)*/
-                regB = inPort();
+                regB = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regB];
                 break;
             }
             case 0x41: {     /*OUT (C),B*/
@@ -5707,7 +5701,8 @@ public class Z80 {
                 break;
             }
             case 0x48: {     /*IN C,(C)*/
-                regC = inPort();
+                regC = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regC];
                 break;
             }
             case 0x49: {     /*OUT (C),C*/
@@ -5736,7 +5731,8 @@ public class Z80 {
                 break;
             }
             case 0x50: {     /*IN D,(C)*/
-                regD = inPort();
+                regD = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regD];
                 break;
             }
             case 0x51: {     /*OUT (C),D*/
@@ -5769,7 +5765,8 @@ public class Z80 {
                 break;
             }
             case 0x58: {     /*IN E,(C)*/
-                regE = inPort();
+                regE = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regE];
                 break;
             }
             case 0x59: {     /*OUT (C),E*/
@@ -5802,7 +5799,8 @@ public class Z80 {
                 break;
             }
             case 0x60: {     /*IN H,(C)*/
-                regH = inPort();
+                regH = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regH];
                 break;
             }
             case 0x61: {     /*OUT (C),H*/
@@ -5826,7 +5824,8 @@ public class Z80 {
                 break;
             }
             case 0x68: {     /*IN L,(C)*/
-                regL = inPort();
+                regL = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regL];
                 break;
             }
             case 0x69: {     /*OUT (C),L*/
@@ -5850,7 +5849,8 @@ public class Z80 {
                 break;
             }
             case 0x70: {     /*IN (C)*/
-                inPort();
+                int inPort = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[inPort];
                 break;
             }
             case 0x71: {     /*OUT (C),0*/
@@ -5870,7 +5870,8 @@ public class Z80 {
                 break;
             }
             case 0x78: {     /*IN A,(C)*/
-                regA = inPort();
+                regA = MemIoImpl.inPort(getRegBC());
+                sz5h3pnFlags = sz53pn_addTable[regA];
                 memptr = (getRegBC() + 1) & 0xffff;
                 break;
             }

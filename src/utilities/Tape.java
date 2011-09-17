@@ -504,6 +504,11 @@ public class Tape {
                     statePlay = State.NEWBYTE_NOCHG;
                     repeat = false;
                     break;
+                case 0x19: // Generalized Data Block
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
+                            (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
+                    tapePos += blockLen + 5;
+                    break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
                     endBlockPause = (tapeBuffer[tapePos + 1]
                         + (tapeBuffer[tapePos + 2] << 8)) * 3500;
@@ -518,6 +523,9 @@ public class Tape {
                 case 0x22: // Group End
                     tapePos++;
                     break;
+                case 0x23: // Jump to Block
+                    tapePos += 3;
+                    break;
                 case 0x24: // Loop Start
                     nLoops = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
                     tapePos += 3;
@@ -530,25 +538,48 @@ public class Tape {
                     }
                     tapePos = targetJump;
                     break;
-                case 0x2a: // Stop the tape if in 48K mode
+                case 0x26: // Call Sequence
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
+                    tapePos += blockLen * 2 + 3;
+                    break;
+                case 0x27: // Return from Sequence
+                    tapePos++;
+                    break;
+                case 0x28: // Select Block
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
+                    tapePos += blockLen + 3;
+                    break;
+                case 0x2A: // Stop the tape if in 48K mode
                     statePlay = State.STOP;
                     repeat = false;
+                    break;
+                case 0x2B: // Set Signal Level
+                    earBit = tapeBuffer[tapePos + 5] == 0 ? 0xbf : 0xff;
+                    tapePos += blockLen + 6;
+                    break;
                 case 0x30: // Text Description
                     blockLen = tapeBuffer[tapePos + 1];
                     tapePos += blockLen + 2;
+                    break;
+                case 0x31: // Message Block
+                    blockLen = tapeBuffer[tapePos + 2];
+                    tapePos += blockLen + 3;
                     break;
                 case 0x32: // Archive Info
                     blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
                     tapePos += blockLen + 3;
                     break;
-                case 0x33: //Hardware Type
+                case 0x33: // Hardware Type
                     blockLen = tapeBuffer[tapePos + 1];
                     tapePos += blockLen * 3 + 2;
                     break;
                 case 0x35: // Custom Info Block
-                    blockLen = tapeBuffer[tapePos + 11] + (tapeBuffer[tapePos + 12] << 8) +
-                            (tapeBuffer[tapePos + 13] << 16) + (tapeBuffer[tapePos + 14] << 24);
-                    tapePos += blockLen + 11;
+                    blockLen = tapeBuffer[tapePos + 17] + (tapeBuffer[tapePos + 18] << 8) +
+                            (tapeBuffer[tapePos + 19] << 16) + (tapeBuffer[tapePos + 20] << 24);
+                    tapePos += blockLen + 21;
+                    break;
+                case 0x5A: // "Glue" Block
+                    tapePos += 10;
                     break;
                 default:
                     System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
@@ -599,13 +630,4 @@ public class Tape {
         tapePos += blockLen;
         return true;
     }
-
-//    public static void main(String args[]) {
-//         Tape tape = new Tape();
-//         if( tape.insert("chopin.tap") == false )
-//             System.out.println("Error at insert");
-//         System.out.println(String.format("Tape: %s, length: %d",
-//                 tape.tapeName, tape.tapeBuffer.length));
-//         tape.eject();
-//    }
 }
