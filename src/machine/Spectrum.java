@@ -45,6 +45,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
+    private AY8910 ay8910;
     public Tape tape;
     private boolean paused;
 
@@ -67,6 +68,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         port7ffd = 0;
         kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
+        ay8910 = new AY8910(1773450, 48000);
         audio = new Audio();
         soundOn = true;
         paused = true;
@@ -347,11 +349,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 4;
 //        z80.addTEstados(4);
 
-        if ((z80.getRegI() & 0xC0) == 0x40) {
-            m1contended = z80.tEstados;
-//            m1contended = z80.getTEstados();
-            m1regR = z80.getRegR();
-        }
+//        if ((z80.getRegI() & 0xC0) == 0x40) {
+//            m1contended = z80.tEstados;
+////            m1contended = z80.getTEstados();
+//            m1regR = z80.getRegR();
+//        }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && tape.isTapeInserted()&& tape.isStopped()) {
@@ -486,12 +488,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             return kempston;
         }
 
-//        if ((port & 0xC002) == 0xC000 && ay_enabled) {
-//            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
-//                return 0xFF;
-//            }
-//            return ay_reg[ay_idx];
-//        }
+        if ((port & 0xC002) == 0xC000) {
+            return ay8910.getAYRegister();
+        }
 
         if ((port & 0x0001) == 0) {
             int keys = 0xff;
@@ -604,14 +603,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             port7ffd = value;
         }
         
-//        if ((port & 0x8002) == 0x8000 && ay_enabled) {
-//            if ((port & 0x4000) != 0) {
-//                ay_idx = (byte) (value & 15);
-//            } else {
-//                au_update();
-//                ay_write(ay_idx, value);
-//            }
-//        }
+        if ((port & 0x8002) == 0x8000) {
+            if ((port & 0x4000) != 0) {
+                ay8910.setIndexRegister(value);
+            } else {
+                audio.updateAudio(z80.tEstados, speaker);
+                ay8910.setAYRegister(value);
+            }
+        }
         //preIO(port);
         postIO(port);
 //        tape.notifyTstates(nFrame, z80.tEstados);
