@@ -55,8 +55,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
-    private int oldstate;
-
 
     public Spectrum() {
         z80 = new Z80(this);

@@ -17,7 +17,7 @@ import javax.sound.sampled.SourceDataLine;
 
 class Audio
 {
-	byte buf[] = new byte[4096];
+	byte buf[] = new byte[9600];
 	int bufp;
 
 	long div;
@@ -25,7 +25,8 @@ class Audio
 	int acct;
 	int accv0, accv1, level;
     public int audiotstates;
-    private int out1, out2;
+    private int out1, out2, idxSampl;
+    private short bufSampl[];
     private double timeRem, spf;
 
 	void open(int hz)
@@ -33,8 +34,13 @@ class Audio
 		div = hz;
 		acct = hz;
 		idiv = (1<<30) / hz;
-        timeRem = out1 = out2 = 0;
-        spf = ((double)hz / (double)FREQ);
+        out1 = out2 = 0;
+        timeRem = 0.0;
+//        spf = ((double)hz / (double)FREQ);
+        spf = (double)69888 / ((double)FREQ / (double)50);
+        bufSampl = new short[5];
+        java.util.Arrays.fill(bufSampl, (short)0);
+        idxSampl = 0;
 	}
 
 	void step(int time, int volume)
@@ -91,6 +97,19 @@ loop:
 		accv1 += volume*xx >> 8;
 	}
 
+    synchronized void addSample(short sample) {
+        bufSampl[idxSampl++] = sample;
+        if( idxSampl == bufSampl.length )
+            idxSampl = 0;
+    }
+
+    synchronized short getSample() {
+        int sample = 0;
+        for( int idx = 0; idx < bufSampl.length; idx ++)
+            sample += bufSampl[idx];
+        return (short)(sample / bufSampl.length);
+    }
+
      synchronized void updateAudio(int tstates, int value) {
 
         tstates = tstates - audiotstates;
@@ -102,25 +121,27 @@ loop:
 //                tstates, audiotstates, nSamples, tstatesRem));
 
         while( time > spf ) {
-            if( bufp == buf.length )
-                bufp = flush(bufp);
             if( (value & 0x10) != 0 ) {
-                level = (0x4000 + out1 + out2) / 3;
+                level = 0x2000;
+                if( (value & 0x08) != 0)
+                    level *= 1.06;
+                //level = (level + out1 + out2) / 3;
+                addSample((short)level);
             } else {
-                level = (out1 + out2) / 3;
+                //level = (out1 + out2) / 3;
+                addSample((short)0);
             }
+            level = getSample();
             buf[bufp++] = (byte) level;
             buf[bufp++] = (byte) (level >>> 8);
-            out2 = out1;
-            out1 = level;
+            if( bufp == buf.length )
+                bufp = flush(bufp);
+            addSample((short)level);
+//            out2 = out1;
+//            out1 = level;
             time -= spf;
         }
         timeRem = time;
-
-//        if( (value & 0x10) != 0 )
-//            level = (int)(tstatesRem * rel);
-//        else
-//            level = 0;
     }
 
 

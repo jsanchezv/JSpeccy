@@ -138,6 +138,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void thisIsTheEndMyFriendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_thisIsTheEndMyFriendActionPerformed
         // TODO add your handling code here:
+        spectrum.stopEmulation();
         System.exit(0);
     }//GEN-LAST:event_thisIsTheEndMyFriendActionPerformed
 
