@@ -76,7 +76,7 @@ public class Tape {
         tapePos = 0;
         timeout = timeLastIn = 0;
         fastload = false;
-        earBit = 0xff;
+        earBit = 0xbf;
     }
 
     public void notifyTstates(long frames, int tstates) {

@@ -509,39 +509,40 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             return keys & tape.getEarBit();
         }
 
+//        System.out.println(String.format("InPort: %04X at %d t-states", port, z80.tEstados));
         int floatbus = 0xff;
         int addr = 0;
-        if ((port & 0xff) == 0xff) {
-            int tstates = z80.tEstados;
-            if (tstates < 14336 || tstates > 57343) {
-                return 0xff;
-            }
-
-            int col = (tstates % 224) - 3;
-            if (col > 124) {
-                return 0xff;
-            }
-
-            int row = tstates / 224 - 64;
-
-            switch (col % 8) {
-                case 0:
-                    addr = scrAddr[row] + col / 4;
-                    break;
-                case 1:
-                    addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
-                    break;
-                case 2:
-                    addr = scrAddr[row] + col / 4 + 1;
-                    break;
-                case 3:
-                    addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
-                    break;
-                default:
-                    return 0xff;
-            }
-            floatbus = z80Ram[addr];
+        int tstates = z80.tEstados;
+        if (tstates < 14336 || tstates > 57343) {
+            return floatbus;
         }
+
+        int col = (tstates % 224) - 3;
+        if (col > 124) {
+            return floatbus;
+        }
+
+        int row = tstates / 224 - 64;
+
+        switch (col % 8) {
+            case 0:
+                addr = scrAddr[row] + col / 4;
+                break;
+            case 1:
+                addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
+                break;
+            case 2:
+                addr = scrAddr[row] + col / 4 + 1;
+                break;
+            case 3:
+                addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
+                break;
+            default:
+                return floatbus;
+        }
+        floatbus = z80Ram[addr];
+//            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
+//                    tstates, addr, floatbus));
         return floatbus;
     }
 
@@ -570,7 +571,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             if (tape.isStopped()) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
-                if ((value & 0x10) == 0) 
+                if ((value & 0x10) == 0)
                     tape.setEarBit(false);
                 else
                     tape.setEarBit(true);
