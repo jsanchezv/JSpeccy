@@ -11,6 +11,7 @@ import java.io.File;
 import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.plaf.basic.BasicFileChooserUI;
 import machine.Spectrum;
 
 /**
@@ -20,8 +21,8 @@ import machine.Spectrum;
 public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
-    File currentDirSnapshot, currentDirTape;
-    JFileChooser jFileSnapshot, jFileTape;
+    File currentDirOpenSnapshot, currentDirSaveSnapshot, currentDirTape;
+    JFileChooser openSnapshotDlg, saveSnapshotDlg, OpenTapeDlg;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
@@ -362,22 +363,22 @@ public class JSpeccy extends javax.swing.JFrame {
     private void fileOpenSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileOpenSnapshotActionPerformed
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
-        if( jFileSnapshot == null ) {
-            jFileSnapshot = new JFileChooser("/home/jsanchez/Spectrum");
-            jFileSnapshot.setFileFilter(new FileFilterSnapshot());
-            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
+        if( openSnapshotDlg == null ) {
+            openSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openSnapshotDlg.setFileFilter(new FileFilterSnapshot());
+            currentDirOpenSnapshot = openSnapshotDlg.getCurrentDirectory();
         }
         else
-            jFileSnapshot.setCurrentDirectory(currentDirSnapshot);
+            openSnapshotDlg.setCurrentDirectory(currentDirOpenSnapshot);
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = jFileSnapshot.showOpenDialog(getContentPane());
+        int status = openSnapshotDlg.showOpenDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             //spectrum.stopEmulation();
-            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
-            spectrum.loadSnapshot(jFileSnapshot.getSelectedFile());
+            currentDirOpenSnapshot = openSnapshotDlg.getCurrentDirectory();
+            spectrum.loadSnapshot(openSnapshotDlg.getSelectedFile());
         }
         if (!paused)
             spectrum.startEmulation();
@@ -452,23 +453,23 @@ public class JSpeccy extends javax.swing.JFrame {
     private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
-        if( jFileTape == null ) {
-            jFileTape = new JFileChooser("/home/jsanchez/Spectrum");
-            jFileTape.setFileFilter(new FileFilterTape());
-            currentDirTape = jFileTape.getCurrentDirectory();
+        if( OpenTapeDlg == null ) {
+            OpenTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            OpenTapeDlg.setFileFilter(new FileFilterTape());
+            currentDirTape = OpenTapeDlg.getCurrentDirectory();
         }
         else
-            jFileTape.setCurrentDirectory(currentDirTape);
+            OpenTapeDlg.setCurrentDirectory(currentDirTape);
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = jFileTape.showOpenDialog(getContentPane());
+        int status = OpenTapeDlg.showOpenDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             //spectrum.stopEmulation();
-            currentDirTape = jFileTape.getCurrentDirectory();
+            currentDirTape = OpenTapeDlg.getCurrentDirectory();
             spectrum.tape.eject();
-            spectrum.tape.insert(jFileTape.getSelectedFile());
+            spectrum.tape.insert(OpenTapeDlg.getSelectedFile());
         }
         if (!paused)
             spectrum.startEmulation();
@@ -507,22 +508,25 @@ public class JSpeccy extends javax.swing.JFrame {
     private void fileSaveSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveSnapshotActionPerformed
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
-        if( jFileSnapshot == null ) {
-            jFileSnapshot = new JFileChooser("/home/jsanchez/Spectrum");
-            jFileSnapshot.setFileFilter(new FileFilterSnapshot());
-            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
+        if( saveSnapshotDlg == null ) {
+            saveSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            saveSnapshotDlg.setFileFilter(new FileFilterSnapshot());
+            currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
         }
-        else
-            jFileSnapshot.setCurrentDirectory(currentDirSnapshot);
+        else {
+            saveSnapshotDlg.setCurrentDirectory(currentDirSaveSnapshot);
+            BasicFileChooserUI chooserUI = (BasicFileChooserUI) saveSnapshotDlg.getUI();
+            chooserUI.setFileName("");
+        }
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = jFileSnapshot.showSaveDialog(getContentPane());
+        int status = saveSnapshotDlg.showSaveDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             //spectrum.stopEmulation();
-            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
-            spectrum.saveSnapshot(jFileSnapshot.getSelectedFile());
+            currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
+            spectrum.saveSnapshot(saveSnapshotDlg.getSelectedFile());
         }
         if (!paused)
             spectrum.startEmulation();
