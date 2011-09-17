@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.logging.Level;
@@ -26,12 +27,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private Z80 z80;
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
-    public int portFE, earBit = 0xbf;
+    public int portFE, earBit = 0xbf, kempston;
 
     private FileInputStream fIn;
 
     private int nFrame;
-    //public boolean fullRedraw;
+    private boolean soundOn = true;
 
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
@@ -62,18 +63,18 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         nFrame = 0;
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
+        kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
         audio = new Audio();
         audio.open(3500000);
-        volume(100);
     }
 
     public void startEmulation() {
-        taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.setTEstados(0);
         audio.audiotstates = 0;
         jscr.invalidateScreen();
+        taskFrame = new SpectrumTimer(this);
+        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
     }
 
     public void stopEmulation() {
@@ -83,12 +84,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void reset() {
         z80.reset();
+        z80.setTEstados(0);
+        audio.audiotstates = 0;
     }
 
     public void generateFrame() {
-        //long startFrame, endFrame, sleepTime;
-        //startFrame = System.currentTimeMillis();
-        //System.out.println("Start frame: " + startFrame);
+//        long startFrame, endFrame, sleepTime;
+//        startFrame = System.currentTimeMillis();
+//        System.out.println("Start frame: " + startFrame);
              
         //z80.tEstados = frameStart;
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
@@ -123,7 +126,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if (++nFrame % 16 == 0)
             jscr.toggleFlash();
 
-        if( jscr.screenUpdated )
+        if (jscr.screenUpdated || jscr.nBorderChanges > 0)
             jscr.repaint();
 
         //endFrame = System.currentTimeMillis();
@@ -134,29 +137,27 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
-        //jscr.toggleDoubleSize();
     }
 
     private void loadRom() {
+        InputStream inRom;
+
         try {
-            try {
-                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
-//                fIn = new FileInputStream("spectrum.rom");
-            } catch (FileNotFoundException ex) {
-                System.out.println("No se pudo abrir el fichero spectrum.rom");
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+            inRom = Spectrum.class.getResourceAsStream("/roms/spectrum.rom");
+            if (inRom == null) {
+                System.out.println("No se pudo leer la ROM desde /roms/spectrum.rom");
                 return;
             }
             int count;
             for (count = 0; count < 0x4000; count++) {
-                z80Ram[count] = (int) fIn.read() & 0xff;
+                z80Ram[count] = (int) inRom.read() & 0xff;
             }
             if (count != 0x4000) {
                 System.out.println("No se pudo cargar la ROM");
                 return;
             }
 
-            fIn.close();
+            inRom.close();
         } catch (IOException ex) {
             System.out.println("No se pudo leer el fichero spectrum.rom");
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -283,7 +284,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         postIO(port);
 
         if( (port & 0x00e0) == 0 )
-            return 0;
+            return kempston;
 
 //        if ((port & 0xC002) == 0xC000 && ay_enabled) {
 //            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
@@ -363,7 +364,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             int spkMic = sp_volt[value >> 3 & 3];
             if (spkMic != speaker) {
 //                au_update();
-                audio.updateAudio(z80.tEstados, speaker);
+                if( soundOn )
+                    audio.updateAudio(z80.tEstados, speaker);
                 speaker = spkMic;
             }
 
@@ -599,21 +601,31 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[0] &= 0xfe; // CAPS
                 rowKey[3] &= 0xfd; // 2  -- Caps Lock
                 break;
+            // Emulación joystick Kempston
             case KeyEvent.VK_LEFT:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[7] &= 0xef; // 5  -- Left arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[3] &= 0xef; // 5  -- Left arrow
+                kempston |= 0x02;
                 break;
             case KeyEvent.VK_DOWN:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xef; // 6  -- Down arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xef; // 6  -- Down arrow
+                kempston |= 0x04;
                 break;
             case KeyEvent.VK_UP:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xf7; // 7  -- Up arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xf7; // 7  -- Up arrow
+                kempston |= 0x08;
                 break;
             case KeyEvent.VK_RIGHT:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xfb; // 8  -- Left arrow
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xfb; // 8  -- Left arrow
+                kempston |= 0x01;
+                break;
+            case KeyEvent.VK_ESCAPE:
+//                rowKey[0] &= 0xfe; // CAPS
+//                rowKey[4] &= 0xfb; // 8  -- Left arrow
+                kempston |= 0x10; // Fire
                 break;
         }
     }
@@ -777,20 +789,29 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[3] |= 0x02; // 2
                 break;
             case KeyEvent.VK_LEFT:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[3] |= 0x10; // 5  -- Left arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[3] |= 0x10; // 5  -- Left arrow
+                kempston &= 0xfd;
                 break;
             case KeyEvent.VK_DOWN:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x10; // 6  -- Down arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x10; // 6  -- Down arrow
+                kempston &= 0xfb;
                 break;
             case KeyEvent.VK_UP:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x08; // 7  -- Up arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x08; // 7  -- Up arrow
+                kempston &= 0xf7;
                 break;
             case KeyEvent.VK_RIGHT:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x04; // 8  -- Right arrow
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x04; // 8  -- Right arrow
+                kempston &= 0xfe;
+                break;
+            case KeyEvent.VK_ESCAPE:
+//                rowKey[0] |= 0x01; // CAPS
+//                rowKey[4] |= 0x04; // 8  -- Right arrow
+                kempston &= 0xef;
                 break;
         }
     }
@@ -860,7 +881,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
 	static final int CHANNEL_VOLUME = 26000;
-	static final int SPEAKER_VOLUME = 20000;
+	static final int SPEAKER_VOLUME = 5000;
 
 	private int speaker;
 	private static final int sp_volt[];
@@ -885,6 +906,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 		return volume(volume + chg);
 	}
 
+    public void toggleSound() {
+        soundOn = !soundOn;
+        if (soundOn) {
+            audio = new Audio();
+            audio.open(3500000);
+        } else {
+            audio.bufp = audio.flush(audio.bufp);
+            audio.close();
+        }
+    }
+
 	static {
 		sp_volt = new int[4];
 		setvol();
@@ -895,7 +927,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 		double a = muted ? 0 : volume/100.;
 		a *= a;
 
-//        sp_volt[0] = (int)(-SPEAKER_VOLUME*a);
+//      sp_volt[0] = (int)(-SPEAKER_VOLUME*a);
 //		sp_volt[1] = (int)(-SPEAKER_VOLUME*1.06*a);
 //		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
 //		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);

@@ -94,9 +94,9 @@ class Audio {
 
     synchronized void close() {
         if (line != null) {
-            line = null;
             line.stop();
             line.close();
+            line = null;
         }
     }
 }

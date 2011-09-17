@@ -9,6 +9,7 @@ package gui;
 import java.awt.BorderLayout;
 import java.io.File;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import machine.Spectrum;
 
 /**
@@ -40,6 +41,16 @@ public class JSpeccy extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jPanel1 = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
+        jToolBar1 = new javax.swing.JToolBar();
+        openSnapshotButton = new javax.swing.JButton();
+        pauseToggleButton = new javax.swing.JToggleButton();
+        doubleSizeToggleButton = new javax.swing.JToggleButton();
+        silenceSoundToggleButton = new javax.swing.JToggleButton();
+        jButton1 = new javax.swing.JButton();
+        exitButton = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         fileOpenSnapshot = new javax.swing.JMenuItem();
@@ -49,15 +60,105 @@ public class JSpeccy extends javax.swing.JFrame {
         doubleSizeOption = new javax.swing.JCheckBoxMenuItem();
         jMenu3 = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
+        silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
         resetMachineMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("JSpeccy");
         setResizable(false);
 
-        jMenu1.setText("File");
+        jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
-        fileOpenSnapshot.setText("Open snapshot");
+        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/logo.png"))); // NOI18N
+        jPanel1.add(jLabel2);
+
+        jLabel1.setText("48K");
+        jPanel1.add(jLabel1);
+
+        getContentPane().add(jPanel1, java.awt.BorderLayout.PAGE_END);
+
+        jToolBar1.setRollover(true);
+
+        openSnapshotButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/fileopen.png"))); // NOI18N
+        openSnapshotButton.setToolTipText("Cargar snaphshot...");
+        openSnapshotButton.setFocusable(false);
+        openSnapshotButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        openSnapshotButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        openSnapshotButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileOpenSnapshotActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(openSnapshotButton);
+
+        pauseToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_pause.png"))); // NOI18N
+        pauseToggleButton.setToolTipText("Pausa");
+        pauseToggleButton.setFocusable(false);
+        pauseToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        pauseToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_play.png"))); // NOI18N
+        pauseToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        pauseToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pauseMachineMenuActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(pauseToggleButton);
+
+        doubleSizeToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag+.png"))); // NOI18N
+        doubleSizeToggleButton.setToolTipText("Tamaño doble/normal");
+        doubleSizeToggleButton.setFocusable(false);
+        doubleSizeToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        doubleSizeToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag-.png"))); // NOI18N
+        doubleSizeToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        doubleSizeToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                doubleSizeOptionActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(doubleSizeToggleButton);
+
+        silenceSoundToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-on-16x16.png"))); // NOI18N
+        silenceSoundToggleButton.setToolTipText("Silenciar el Spectrum");
+        silenceSoundToggleButton.setFocusable(false);
+        silenceSoundToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        silenceSoundToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-off-16x16.png"))); // NOI18N
+        silenceSoundToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        silenceSoundToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                silenceSoundToggleButtonActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(silenceSoundToggleButton);
+
+        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/shutdown.png"))); // NOI18N
+        jButton1.setToolTipText("Reiniciar el Spectrum");
+        jButton1.setFocusable(false);
+        jButton1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        jButton1.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                resetMachineMenuActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(jButton1);
+
+        exitButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/exit.png"))); // NOI18N
+        exitButton.setToolTipText("Salir de JSpeccy");
+        exitButton.setFocusable(false);
+        exitButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        exitButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        exitButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                thisIsTheEndMyFriendActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(exitButton);
+
+        getContentPane().add(jToolBar1, java.awt.BorderLayout.PAGE_START);
+
+        jMenu1.setText("Archivo");
+
+        fileOpenSnapshot.setText("Abrir imagen..");
         fileOpenSnapshot.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 fileOpenSnapshotActionPerformed(evt);
@@ -67,7 +168,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jMenu1.add(jSeparator1);
 
         thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Q, java.awt.event.InputEvent.ALT_MASK));
-        thisIsTheEndMyFriend.setText("Quit");
+        thisIsTheEndMyFriend.setText("Salir...");
         thisIsTheEndMyFriend.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 thisIsTheEndMyFriendActionPerformed(evt);
@@ -77,9 +178,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
         jMenuBar1.add(jMenu1);
 
-        jMenu2.setText("Options");
+        jMenu2.setText("Opciones");
 
-        doubleSizeOption.setText("Double Size");
+        doubleSizeOption.setText("Doble tamaño");
         doubleSizeOption.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 doubleSizeOptionActionPerformed(evt);
@@ -89,15 +190,28 @@ public class JSpeccy extends javax.swing.JFrame {
 
         jMenuBar1.add(jMenu2);
 
-        jMenu3.setText("Machine");
+        jMenu3.setText("Máquina");
+        jMenu3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                silenceSoundToggleButtonActionPerformed(evt);
+            }
+        });
 
-        pauseMachineMenu.setText("Pause");
+        pauseMachineMenu.setText("Pausa");
         pauseMachineMenu.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 pauseMachineMenuActionPerformed(evt);
             }
         });
         jMenu3.add(pauseMachineMenu);
+
+        silenceMachineMenu.setText("Silenciar");
+        silenceMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                silenceSoundToggleButtonActionPerformed(evt);
+            }
+        });
+        jMenu3.add(silenceMachineMenu);
 
         resetMachineMenu.setText("Reset");
         resetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
@@ -138,12 +252,23 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void thisIsTheEndMyFriendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_thisIsTheEndMyFriendActionPerformed
         // TODO add your handling code here:
-        spectrum.stopEmulation();
-        System.exit(0);
+        int ret = JOptionPane.showConfirmDialog(getContentPane(),
+                    "¿Está seguro?", "Salir de JSpeccy",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if( ret == JOptionPane.YES_OPTION ) {
+            spectrum.stopEmulation();
+            System.exit(0);
+        }
     }//GEN-LAST:event_thisIsTheEndMyFriendActionPerformed
 
     private void doubleSizeOptionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doubleSizeOptionActionPerformed
         // TODO add your handling code here:
+        Object source = evt.getSource();
+        if( source instanceof javax.swing.JCheckBoxMenuItem )
+            doubleSizeToggleButton.setSelected(doubleSizeOption.isSelected());
+        else
+            doubleSizeOption.setSelected(doubleSizeToggleButton.isSelected());
+
         jscr.toggleDoubleSize();
         //jscr.invalidateScreen();
         pack();
@@ -151,6 +276,12 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void pauseMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseMachineMenuActionPerformed
         // TODO add your handling code here:
+        Object source = evt.getSource();
+        if( source instanceof javax.swing.JCheckBoxMenuItem )
+            pauseToggleButton.setSelected(pauseMachineMenu.isSelected());
+        else
+            pauseMachineMenu.setSelected(pauseToggleButton.isSelected());
+        
         if( pauseMachineMenu.isSelected() )
             spectrum.stopEmulation();
         else
@@ -159,8 +290,24 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void resetMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetMachineMenuActionPerformed
         // TODO add your handling code here:
-        spectrum.reset();
+        int ret = JOptionPane.showConfirmDialog(getContentPane(),
+                    "¿Está seguro?", "Reiniciar el Spectrum",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+        if( ret == JOptionPane.YES_OPTION )
+            spectrum.reset();
     }//GEN-LAST:event_resetMachineMenuActionPerformed
+
+    private void silenceSoundToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_silenceSoundToggleButtonActionPerformed
+        // TODO add your handling code here:
+        Object source = evt.getSource();
+        if( source instanceof javax.swing.JToggleButton )
+            silenceMachineMenu.setSelected(silenceSoundToggleButton.isSelected());
+        else
+            silenceSoundToggleButton.setSelected(silenceMachineMenu.isSelected());
+
+        spectrum.toggleSound();
+    }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
     
     /**
      * @param args the command line arguments
@@ -175,14 +322,25 @@ public class JSpeccy extends javax.swing.JFrame {
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
+    private javax.swing.JToggleButton doubleSizeToggleButton;
+    private javax.swing.JButton exitButton;
     private javax.swing.JMenuItem fileOpenSnapshot;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JToolBar jToolBar1;
+    private javax.swing.JButton openSnapshotButton;
     private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
+    private javax.swing.JToggleButton pauseToggleButton;
     private javax.swing.JMenuItem resetMachineMenu;
+    private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
+    private javax.swing.JToggleButton silenceSoundToggleButton;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     // End of variables declaration//GEN-END:variables
     
