@@ -77,6 +77,7 @@ public class JSpeccy extends javax.swing.JFrame {
         rewindTapeMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
+        aboutHelpMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -294,6 +295,14 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         helpMenu.add(imageHelpMenu);
 
+        aboutHelpMenu.setText(bundle.getString("JSpeccy.aboutHelpMenu.text")); // NOI18N
+        aboutHelpMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                aboutHelpMenuActionPerformed(evt);
+            }
+        });
+        helpMenu.add(aboutHelpMenu);
+
         jMenuBar1.add(helpMenu);
 
         setJMenuBar(jMenuBar1);
@@ -432,6 +441,14 @@ public class JSpeccy extends javax.swing.JFrame {
         }
         keyboard.setVisible(true);
     }//GEN-LAST:event_imageHelpMenuActionPerformed
+
+    private void aboutHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutHelpMenuActionPerformed
+        // TODO add your handling code here:
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        JOptionPane.showMessageDialog(getContentPane(),
+            bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
+            JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_aboutHelpMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -445,6 +462,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
     private javax.swing.JButton exitButton;

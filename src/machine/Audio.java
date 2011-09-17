@@ -1,6 +1,9 @@
 /*
  *	Audio.java
  *
+ *  2009-2010 José Luis Sánchez
+ *
+ *  with parts from:
  *	Copyright 2007-2008 Jan Bobrowski <jb@wizard.ae.krakow.pl>
  *
  *	This program is free software; you can redistribute it and/or
@@ -23,7 +26,7 @@ class Audio {
     DataLine.Info infoDataLine;
     AudioFormat fmt;
     SourceDataLine sdl;
-    private final byte buf[] = new byte[4096];
+    private final byte buf[] = new byte[8192];
     int bufp;
     int level;
     public int audiotstates;
@@ -48,13 +51,14 @@ class Audio {
     
     synchronized void open(int hz) {
         timeRem = (float) 0.0;
-        spf = (float) 69888 / ((float) FREQ / (float) 50);
+        spf = (float) 69888 / (FREQ / 50);
         level = 0;
         audiotstates = 0;
         if (line == null)
         {
             try {
-                sdl.open(fmt, buf.length * 2);
+                sdl.open(fmt, buf.length);
+                //System.out.println("Audio buffersize = "  + sdl.getBufferSize() + " bytes");
                 sdl.start();
                 line = sdl;
             } catch (LineUnavailableException ex) {

@@ -37,7 +37,9 @@ public class Tape {
     private int bitTime;
     private enum State { STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
         NEWBYTE_NOCHG,NEWBIT, HALF2, PAUSE, TZX_HEADER, PURE_TONE,
-        PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, PAUSE_STOP };
+        PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, NEWDR_BYTE,
+        NEWDR_BIT, PAUSE_STOP,
+        };
     private State statePlay;
     private int earBit;
     private long timeout;
@@ -425,6 +427,38 @@ public class Tape {
                     statePlay = State.TZX_HEADER;
                     repeat = true;
                     break;
+                case NEWDR_BYTE:
+                    mask = 0x80;
+                case NEWDR_BIT:
+                    if ((tapeBuffer[tapePos] & mask) == 0) {
+                        earBit = 0xbf;
+                    } else {
+                        earBit = 0xff;
+                    }
+                    timeout = zeroLenght;
+                    mask >>>= 1;
+                    if (blockLen == 1 && bitsLastByte < 8) {
+                        if (mask == (0x80 >>> bitsLastByte)) {
+                            statePlay = State.PAUSE;
+                            tapePos++;
+                            break;
+                        }
+                    }
+
+                    if (mask != 0) {
+                        statePlay = State.NEWDR_BIT;
+                        break;
+                    }
+
+                    tapePos++;
+                    if (--blockLen > 0) {
+                            statePlay = State.NEWDR_BYTE;
+                        } else {
+//                            System.out.println(String.format("Last byte: %02x",
+//                                    tapeBuffer[tapePos-1]));
+                            statePlay = State.PAUSE;
+                        }
+                    break;
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
                        statePlay = State.STOP;
@@ -519,11 +553,31 @@ public class Tape {
                     statePlay = State.NEWBYTE_NOCHG;
                     repeat = false;
                     break;
-                case 0x19: // Generalized Data Block
-                    printGDBHeader(tapePos);
+                case 0x15: // Direct Data Block
+                    zeroLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    endBlockPause = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8)) * 3500;
+                    bitsLastByte = tapeBuffer[tapePos + 5];
+                    blockLen = tapeBuffer[tapePos + 6] +
+                            (tapeBuffer[tapePos + 7] << 8) +
+                            (tapeBuffer[tapePos + 8] << 16);
+                    tapePos += 9;
+                    statePlay = State.NEWDR_BYTE;
+                    repeat = false;
+                    break;
+                case 0x18: // CSW Recording Block
                     blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
                             (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
                     tapePos += blockLen + 5;
+                    System.out.println("CSW Block not supported!. Skipping...");
+                    break;
+                case 0x19: // Generalized Data Block
+                    //printGDBHeader(tapePos);
+                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8) +
+                            (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
+                    tapePos += blockLen + 5;
+                    System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
                     endBlockPause = (tapeBuffer[tapePos + 1] +

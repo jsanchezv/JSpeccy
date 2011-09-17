@@ -108,6 +108,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         nFrame = 0;
         audio.flush();
         audio.audiotstates = 0;
+        Arrays.fill(rowKey, 0xff);
+        portFE = 0xff;
+        kempston = 0;
         invalidateScreen();
     }
 
@@ -1169,7 +1172,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private final boolean dirtyByte[] = new boolean[0x1800];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
-    private final int states2scr[] = new int[69050];
+    private final int states2scr[] = new int[FRAMES48k+100];
     // Tabla de traslación de t-states al pixel correspondiente del borde.
     private final int states2border[] = new int[FRAMES48k+100];
     public static final int BORDER_WIDTH = 32;
@@ -1467,7 +1470,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             states2scr[tstates - 8] = scrAddr[scan] + col;
         }
         
-        for (int tstates = 0; tstates < FRAMES48k+100; tstates++)
+        for (int tstates = 0; tstates < states2border.length - 1; tstates++)
             states2border[tstates] = tStatesToScrPix(tstates);
 
     }
