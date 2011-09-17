@@ -20,15 +20,12 @@ import machine.Spectrum;
  */
 public class JSpeccyScreen extends javax.swing.JComponent {
 
-    private BufferedImage bImg, bScr;
+    private BufferedImage tvImage;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    private Graphics2D gcImg;
     private boolean doubleSize;
-    private static final int BORDER_WIDTH = 32;
-    private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
+
     /** Creates new form JScreen */
     public JSpeccyScreen() {
         initComponents();
@@ -44,53 +41,39 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             RenderingHints.VALUE_COLOR_RENDER_SPEED);
         escalaOp = new AffineTransformOp(escala, renderHints);
 //        bImg = spectrum.getScreenImage();
-        setMaximumSize(new java.awt.Dimension(SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2));
-        setMinimumSize(new java.awt.Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
-        setPreferredSize(new java.awt.Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
+        setMaximumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH * 2,
+                Spectrum.SCREEN_HEIGHT * 2));
+        setMinimumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
+                Spectrum.SCREEN_HEIGHT));
+        setPreferredSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
+                Spectrum.SCREEN_HEIGHT));
     }
 
-    public void setScreenImage(BufferedImage fullImg, BufferedImage scrImg) {
-        bImg = fullImg;
-        bScr = scrImg;
-        gcImg = bImg.createGraphics();
+    public void setScreenImage(BufferedImage fullImg) {
+        tvImage = fullImg;
     }
 
     public void toggleDoubleSize() {
         doubleSize = !doubleSize;
         if (doubleSize) {
-            this.setPreferredSize(new Dimension(SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2));
+            this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH * 2,
+                    Spectrum.SCREEN_HEIGHT * 2));
         } else {
-            this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
+            this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH,
+                    Spectrum.SCREEN_HEIGHT));
         }
     }
 
     @Override
     public void paintComponent(Graphics gc) {
         //super.paintComponent(gc);
-        paintScreen((Graphics2D) gc);
-    }
+        Graphics2D gc2 = (Graphics2D)gc;
 
-    private void paintScreen(Graphics2D gc2) {
-
-
-        //long start = System.currentTimeMillis();
-
-        //System.out.println("Borrado: " + (System.currentTimeMillis() - start));
-
-        // Rejilla horizontal de test
-//        for( int idx = 0; idx < 36; idx ++ )
-//            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
-
-        //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-
-        gcImg.drawImage(bScr, BORDER_WIDTH, BORDER_WIDTH, null);
         if (doubleSize) {
-            gc2.drawImage(bImg, escalaOp, 0, 0);
+            gc2.drawImage(tvImage, escalaOp, 0, 0);
         } else {
-            gc2.drawImage(bImg, 0, 0, this);
+            gc2.drawImage(tvImage, 0, 0, this);
         }
-        //System.out.println("ms: " + (System.currentTimeMillis() - start));
-        //System.out.println("");
     }
 
     /** This method is called from within the constructor to

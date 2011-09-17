@@ -1309,7 +1309,7 @@ public class Z80 {
     //Interrupción
     /* Desglose de la interrupción, según el modo:
      * IM0:
-     *      M1: 6 T-Estados -> reconocer INT y decSP
+     *      M1: 7 T-Estados -> reconocer INT y decSP
      *      M2: 3 T-Estados -> escribir byte alto y decSP
      *      M3: 3 T-Estados -> escribir byte bajo y salto a N
      * IM1:
@@ -1323,7 +1323,7 @@ public class Z80 {
      *      M4: 3 T-Estados -> leer byte bajo del vector de INT
      *      M5: 3 T-Estados -> leer byte alto y saltar a la rutina de INT
      */
-    public final void interrupcion() {
+    public final void interruption() {
 
         //System.out.println(String.format("INT at %d T-States", tEstados));
         int tmp = tEstados; // peek8 modifica los tEstados
@@ -1332,10 +1332,7 @@ public class Z80 {
             regPC++;
         }
 
-        tEstados = tmp + 6;
-        if (modeINT > IM0) {
-            tEstados++;
-        }
+        tEstados = tmp + 7;
 
         regR++;
         ffIFF1 = false;
@@ -1411,7 +1408,7 @@ public class Z80 {
             // encontró una interrupción enmascarable y, de ser así, se procesa.
             if (activeINT) {
                 if (ffIFF1 && !pendingEI)
-                    interrupcion();
+                    interruption();
             }
 
             regR++;
@@ -3832,7 +3829,7 @@ public class Z80 {
                 break;
             }
             default: {
-                System.out.println("Error instrucción CB " + Integer.toHexString(opCode));
+//                System.out.println("Error instrucción CB " + Integer.toHexString(opCode));
                 break;
             }
         }
@@ -5631,7 +5628,7 @@ public class Z80 {
                 break;
             }
             default: {
-                System.out.println("Error instrucción DDCB " + Integer.toHexString(opCode));
+//                System.out.println("Error instrucción DDCB " + Integer.toHexString(opCode));
                 break;
             }
         }
@@ -6000,7 +5997,7 @@ public class Z80 {
                 break;
             }
             default: {
-                System.out.println("Error instrucción ED " + Integer.toHexString(opCode));
+//                System.out.println("Error instrucción ED " + Integer.toHexString(opCode));
                 break;
             }
         }

@@ -34,8 +34,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
-//    public int lastInPC, nInPC;
-//    private FileInputStream fIn;
     private long nFrame, framesByInt, speedometer;
     private boolean soundOn, resetPending;
     public static final int FRAMES48k = 69888;
@@ -62,9 +60,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private JSpeccyScreen jscr;
     private Audio audio;
     public Tape tape;
-//    private ScheduledThreadPoolExecutor stpe;
     private boolean paused;
-//    private boolean loading;
 
     private javax.swing.JLabel speedLabel;
 
@@ -84,8 +80,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         paused = true;
         resetPending = false;
         tape = new Tape(z80);
-//        stpe = new ScheduledThreadPoolExecutor(1);
-//        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
 
     public void startEmulation() {
@@ -132,6 +126,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             resetPending = false;
             doReset();
         }
+
         long counter = framesByInt;
 
         do {
@@ -157,10 +152,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
             audio.updateAudio(z80.tEstados, speaker);
             audio.audiotstates -= FRAMES48k;
-//        System.out.println(String.format("Bytes en buffer: %d", audio.bufp));
-//        audio.bufp = audio.flush(audio.bufp);
 
-            //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
             z80.tEstados -= FRAMES48k;
 
             if (++nFrame % 16 == 0) {
@@ -175,15 +167,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 if (speedLabel != null) {
                     speedLabel.setText(String.format("%4d%%", speed));
                 }
-        }
-
-            //tape.notifyTstates(nFrame, z80.tEstados);
-//            if (tape.isPlaying())
-//                earBit = tape.getEarBit(nFrame, z80.tEstados);
-
+            }
         } while (--counter > 0);
 
         if (screenUpdated || nBorderChanges > 0) {
+//            System.out.print(System.currentTimeMillis() + " ");
             if (nBorderChanges > 0) {
                 if (nBorderChanges == 1) {
                     intArrayFill(imgData, Paleta[portFE & 0x07]);
@@ -191,9 +179,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 } else {
                     nBorderChanges = 1;
                 }
+                gcBorderImage.drawImage(screenImage, BORDER_WIDTH, BORDER_WIDTH, null);
+                gcTvImage.drawImage(borderImage, 0, 0, null);
+//                System.out.print("Border + ");
+            } else {
+                gcTvImage.drawImage(screenImage, BORDER_WIDTH, BORDER_WIDTH, null);
             }
-
-//            gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
+//            System.out.println("Screen$");
 
             if (nBorderChanges == 0) {
                 screenUpdated = false;
@@ -207,13 +199,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //System.out.println("execFrame en: " + sleepTime);
     }
 
-//    public void run() {
-//        if (paused) {
-//            return;
-//        }
-//
-//        generateFrame();
-//    }
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
     }
@@ -326,6 +311,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 tape.play();
             else{
                 tape.fastload(z80Ram);
+                invalidateScreen(); // thank's Andrew Owen
                 return 0xC9; // RET opcode
             }
         }
@@ -1156,9 +1142,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private final int states2scr[] = new int[69050];
     // Tabla de traslación de t-states al pixel correspondiente del borde.
     private final int states2border[] = new int[FRAMES48k+100];
-    private static final int BORDER_WIDTH = 32;
-    private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
+    public static final int BORDER_WIDTH = 32;
+    public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+    public static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1178,9 +1164,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
     }
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
-    private BufferedImage bImg;
+    private BufferedImage borderImage; // imagen del borde
     private int imgData[];
-    private BufferedImage bImgScr;
+    private BufferedImage screenImage; // imagen de la pantalla
+    private BufferedImage tvImage;  // doble buffer de borde+pantalla
     private int imgDataScr[];
     // t-states del último cambio de border
     private int lastChgBorder;
@@ -1191,14 +1178,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
     public int m1regR;
-    //private Graphics2D gcImg;
+    private Graphics2D gcBorderImage, gcTvImage;
 
     private void initGFX() {
-        bImg = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
-        imgData = ((DataBufferInt) bImg.getRaster().getDataBuffer()).getBankData()[0];
-//        gcImg = bImg.createGraphics();
-        bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
-        imgDataScr = ((DataBufferInt) bImgScr.getRaster().getDataBuffer()).getBankData()[0];
+        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        gcTvImage = tvImage.createGraphics();
+        borderImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        gcBorderImage = borderImage.createGraphics();
+        imgData = ((DataBufferInt) borderImage.getRaster().getDataBuffer()).getBankData()[0];
+        screenImage = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
+        imgDataScr = ((DataBufferInt) screenImage.getRaster().getDataBuffer()).getBankData()[0];
         buildScreenTables();
 
         lastChgBorder = 0;
@@ -1207,12 +1196,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         screenUpdated = false;
     }
 
-    public BufferedImage getScreenImage() {
-        return bImg;
-    }
-
-    public BufferedImage getSpectrumImage() {
-        return bImgScr;
+    public BufferedImage getTvImage() {
+        return tvImage;
     }
     
     public synchronized void toggleFlash() {

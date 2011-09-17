@@ -168,11 +168,11 @@ public class Snapshots {
 
             iff1 = iff2 = false;
             int iff2EI = fIn.read() & 0xff;
-            if ((iff2EI & 0x02) != 0) {
+            if ((iff2EI & 0x04) != 0) {
                 iff2 = true;
             }
 
-            if ((iff2EI & 0x01) != 0) {
+            if ((iff2EI & 0x02) != 0) {
                 iff1 = true;
             }
 
