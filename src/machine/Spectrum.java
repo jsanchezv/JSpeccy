@@ -30,7 +30,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     private FileInputStream fIn;
 
-    private int oldstate;
     private int nFrame;
     //public boolean fullRedraw;
 
@@ -66,23 +65,28 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         portFE = 0xff;
         timerFrame = new Timer("SpectrumClock", true);
         audio = new Audio();
+        audio.open(3500000);
+        ay(true);
     }
 
     public void startEmulation() {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
+        au_time = -14335;
+        au_reset();
         jscr.invalidateScreen();
-//        if( audio.bufp > 0 )
-//            audio.bufp = audio.flush(0);
     }
 
     public void stopEmulation() {
         taskFrame.cancel();
+        audio.step(z80.tEstados - au_time, 0);
+        au_time = z80.tEstados;
     }
 
     public void reset() {
         z80.reset();
+        au_reset();
     }
 
     public void generateFrame() {
@@ -107,16 +111,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             jscr.updateInterval(fromTstates, z80.tEstados);
         }
         
-        z80.statesLimit = 69888;
+        z80.statesLimit = FRAMES48k;
         z80.execute();
 
-        audio.updateAudio(z80.tEstados, portFE);
-//        System.out.println(String.format("bufp = %d", audio.bufp));
-//        audio.bufp = audio.flush(audio.bufp);
-        //System.out.println(String.format("bufp = %d", audio.bufp));
-        //audio.fill(portFE);
+        au_update();
+        au_time -= FRAMES48k;
+        audio.level -= audio.level>>8;
+        
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
-        audio.audiotstates -= FRAMES48k;
         z80.tEstados -= FRAMES48k;
 
         if (++nFrame % 16 == 0) {
@@ -125,9 +127,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         if( jscr.screenUpdated )
             jscr.repaint();
-
-//        if( audio.bufp > 9600 )
-//            audio.bufp = audio.flush(audio.bufp);
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -286,6 +285,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         if( (port & 0x00e0) == 0 )
             return 0;
+
+        if ((port & 0xC002) == 0xC000 && ay_enabled) {
+            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
+                return 0xFF;
+            }
+            return ay_reg[ay_idx];
+        }
         
         if( (port & 0x0001) == 0 ) {
             res = ~res & 0xff;
@@ -329,27 +335,44 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         return floatbus;
     }
 
+    protected byte ay_idx;
     public void outPort(int port, int value) {
         preIO(port);
 //        int tEstados = z80.tEstados;
         //contendedIO(port);
 //        if( (port & 0x0001) == 0 ){
 //            System.out.println(String.format("%07d %5d PW %04x %02x %d",
-//                    nFrame, tEstados, port, value,
-//                   (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
+//                   nFrame, tEstados, port, value,
+//                  (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
 //            oldstate = tEstados;
 //        }
         //postIO(port);
 
-        if( (port & 0x0001) == 0 ) {
-            if( (portFE & 0x07) != (value & 0x07) )
+        if ((port & 0x0001) == 0) {
+            if ((portFE & 0x07) != (value & 0x07)) {
                 jscr.updateBorder(z80.tEstados);
+            }
 
-            if( (portFE & 0x10) != (value & 0x10) )
-                audio.updateAudio(z80.tEstados, portFE);
+            int spkMic = sp_volt[value >> 3 & 3];
+            if (spkMic != speaker) {
+                au_update();
+                speaker = spkMic;
+            }
+
+//            if( (portFE & 0x18) != (value & 0x18) )
+//                audio.generateSample(nFrame, z80.tEstados, value);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
+        }
+
+        if ((port & 0x8002) == 0x8000 && ay_enabled) {
+            if ((port & 0x4000) != 0) {
+                ay_idx = (byte) (value & 15);
+            } else {
+                au_update();
+                ay_write(ay_idx, value);
+            }
         }
         //preIO(port);
         postIO(port);
@@ -826,4 +849,232 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         System.out.println("Imagen cargada");
         //startEmulation();
     }
+
+    /* audio (thanks Jan) */
+
+	static final int CHANNEL_VOLUME = 26000;
+	static final int SPEAKER_VOLUME = 49000;
+
+	boolean ay_enabled;
+
+	void ay(boolean y) // enable
+	{
+		if(!y) ay_mix = 0;
+		ay_enabled = y;
+	}
+
+	private int speaker;
+	private static final int sp_volt[];
+
+	protected final byte ay_reg[] = new byte[16];
+
+	private int ay_aper, ay_bper, ay_cper, ay_nper, ay_eper;
+	private int ay_acnt, ay_bcnt, ay_ccnt, ay_ncnt, ay_ecnt;
+	private int ay_gen, ay_mix, ay_ech, ay_dis;
+	private int ay_avol, ay_bvol, ay_cvol;
+	private int ay_noise = 1;
+	private int ay_ekeep; // >=0:hold, ==0:stop
+	private boolean ay_div16;
+	private int ay_eattack, ay_ealt, ay_estep;
+
+	private static final int ay_volt[];
+
+	void ay_write(int n, int v) {
+		switch(n) {
+		case  0: ay_aper = ay_aper&0xF00 | v; break;
+		case  1: ay_aper = ay_aper&0x0FF | (v&=15)<<8; break;
+		case  2: ay_bper = ay_bper&0xF00 | v; break;
+		case  3: ay_bper = ay_bper&0x0FF | (v&=15)<<8; break;
+		case  4: ay_cper = ay_cper&0xF00 | v; break;
+		case  5: ay_cper = ay_cper&0x0FF | (v&=15)<<8; break;
+		case  6: ay_nper = v&=31; break;
+		case  7: ay_mix = ~(v|ay_dis); break;
+		case  8:
+		case  9:
+		case 10:
+			int a=v&=31, x=011<<(n-8);
+			if(v==0) {
+				ay_dis |= x;
+				ay_ech &= ~x;
+			} else if(v<16) {
+				ay_dis &= (x = ~x);
+				ay_ech &= x;
+			} else {
+				ay_dis &= ~x;
+				ay_ech |= x;
+				a = ay_estep^ay_eattack;
+			}
+			ay_mix = ~(ay_reg[7]|ay_dis);
+			a = ay_volt[a];
+			switch(n) {
+			case 8: ay_avol = a; break;
+			case 9: ay_bvol = a; break;
+			case 10: ay_cvol = a; break;
+			}
+			break;
+		case 11: ay_eper = ay_eper&0xFF00 | v; break;
+		case 12: ay_eper = ay_eper&0xFF | v<<8; break;
+		case 13: ay_eshape(v&=15); break;
+		}
+		ay_reg[n] = (byte)v;
+	}
+
+	private void ay_eshape(int v) {
+		if(v<8)
+			v = v<4 ? 1 : 7;
+
+		ay_ekeep = (v&1)!=0 ? 1 : -1;
+		ay_ealt = (v+1&2)!=0 ? 15 : 0;
+		ay_eattack = (v&4)!=0 ? 15 : 0;
+		ay_estep = 15;
+
+		ay_ecnt = -1; // ?
+		ay_echanged();
+	}
+
+	private void ay_echanged()
+	{
+		int v = ay_volt[ay_estep ^ ay_eattack];
+		int x = ay_ech;
+		if((x&1)!=0) ay_avol = v;
+		if((x&2)!=0) ay_bvol = v;
+		if((x&4)!=0) ay_cvol = v;
+	}
+
+	private int ay_tick()
+	{
+		int x = 0;
+		if((--ay_acnt & ay_aper)==0) {
+			ay_acnt = -1;
+			x ^= 1;
+		}
+		if((--ay_bcnt & ay_bper)==0) {
+			ay_bcnt = -1;
+			x ^= 2;
+		}
+		if((--ay_ccnt & ay_cper)==0) {
+			ay_ccnt = -1;
+			x ^= 4;
+		}
+
+		if(ay_div16 ^= true) {
+			ay_gen ^= x;
+			return x & ay_mix;
+		}
+
+		if((--ay_ncnt & ay_nper)==0) {
+			ay_ncnt = -1;
+			if((ay_noise&1)!=0) {
+				x ^= 070;
+				ay_noise ^= 0x28000;
+			}
+			ay_noise >>= 1;
+		}
+
+		if((--ay_ecnt & ay_eper)==0) {
+			ay_ecnt = -1;
+			if(ay_ekeep!=0) {
+				if(ay_estep==0) {
+					ay_eattack ^= ay_ealt;
+					ay_ekeep >>= 1;
+					ay_estep = 16;
+				}
+				ay_estep--;
+				if(ay_ech!=0) {
+					ay_echanged();
+					x |= 0x100;
+				}
+			}
+		}
+		ay_gen ^= x;
+		return x & ay_mix;
+	}
+
+	private int au_value()
+	{
+		int g = ay_mix & ay_gen;
+		int v = speaker;
+		if((g&011)==0) v += ay_avol;
+		if((g&022)==0) v += ay_bvol;
+		if((g&044)==0) v += ay_cvol;
+		return v;
+	}
+
+	private int au_time;
+	private int au_val, au_dt;
+
+	private void au_update() {
+		int t = z80.tEstados - 14335;
+		au_time += (t -= au_time);
+
+		int dv = au_value() - au_val;
+		if(dv != 0) {
+			au_val += dv;
+			audio.step(0, dv);
+		}
+		int dt = au_dt;
+		for(; t>=dt; dt+=16) {
+			if(ay_tick() == 0)
+				continue;
+			dv = au_value() - au_val;
+			if(dv == 0)
+				continue;
+			au_val += dv;
+			audio.step(dt, dv);
+			t -= dt; dt = 0;
+		}
+		au_dt = dt - t;
+		audio.step(t, 0);
+	}
+
+	void au_reset()
+	{
+		/* XXX */
+		speaker = 0;
+		ay_mix = ay_gen = 0;
+		ay_avol = ay_bvol = ay_cvol = 0;
+		ay_ekeep = 0;
+		ay_dis = 077;
+	}
+
+	static boolean muted = false;
+	static int volume = 40; // %
+
+	void mute(boolean v) {
+		muted = v;
+		setvol();
+	}
+
+	int volume(int v) {
+		if(v<0) v=0; else if(v>100) v=100;
+		volume = v;
+		setvol();
+		return v;
+	}
+
+	int volumeChg(int chg) {
+		return volume(volume + chg);
+	}
+
+	static {
+		sp_volt = new int[4];
+		ay_volt = new int[16];
+		setvol();
+	}
+
+	static void setvol()
+	{
+		double a = muted ? 0 : volume/100.;
+		a *= a;
+
+		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
+		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);
+
+		a *= CHANNEL_VOLUME;
+		int n;
+		ay_volt[n=15] = (int)a;
+		do {
+			ay_volt[--n] = (int)(a *= 0.7071);
+		} while(n>1);
+	}
 }

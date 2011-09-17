@@ -369,6 +369,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         nBorderChanges = 1;
         screenUpdated = true;
         Arrays.fill(dirtyByte, true);
+        intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
     }
 
     public void intArrayFill(int[] array, int value) {
