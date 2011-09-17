@@ -51,16 +51,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     public Spectrum() {
         super("SpectrumThread");
-        spectrumModel = MachineTypes.SPECTRUM48K;
         z80 = new Z80(this);
         memory = new Memory();
-        memory.setMemoryMap48k();
         Arrays.fill(contendedRamPage, false);
         Arrays.fill(contendedIOPage, false);
         contendedRamPage[1] = contendedIOPage[1] = true;
         memory.loadRoms();
         initGFX();
-        buildScreenTables48k();
         nFrame = speedometer = 0;
         framesByInt = 1;
         Arrays.fill(rowKey, 0xff);
@@ -69,52 +66,47 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
         ay8912 = new AY8912();
-        enabledAY = spectrumModel.hasAY8912();
         audio = new Audio();
+        tape = new Tape(z80);
         soundOn = true;
         paused = true;
+        select48kHardware();
         resetPending = false;
-        tape = new Tape(z80);
-        tape.setSpectrumModel(spectrumModel);
     }
 
-    public void select48KHardware() {
+    public final void select48kHardware() {
         if (spectrumModel == MachineTypes.SPECTRUM48K) {
             return;
         }
 
-        stopEmulation();
         spectrumModel = MachineTypes.SPECTRUM48K;
         memory.setSpectrumModel(spectrumModel);
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
         buildScreenTables48k();
-        resetPending = true;
-        startEmulation();
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
-                modelLabel.setText(spectrumModel.getModelName());
+                modelLabel.setToolTipText(spectrumModel.getLongModelName());
+                modelLabel.setText(spectrumModel.getShortModelName());
             }
         });
     }
 
-    public void select128KHardware() {
+    public final void select128kHardware() {
         if (spectrumModel == MachineTypes.SPECTRUM128K)
             return;
 
-        stopEmulation();
         spectrumModel = MachineTypes.SPECTRUM128K;
         memory.setSpectrumModel(spectrumModel);
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
         buildScreenTables128k();
-        resetPending = true;
-        startEmulation();
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
-                modelLabel.setText(spectrumModel.getModelName());
+                modelLabel.setToolTipText(spectrumModel.getLongModelName());
+                modelLabel.setText(spectrumModel.getShortModelName());
             }
         });
     }
@@ -315,7 +307,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                 tape.play();
             } else {
                 tape.fastload(memory);
-                invalidateScreen(); // thank's Andrew Owen
+                invalidateScreen(); // thanks Andrew Owen
                 return 0xC9; // RET opcode
             }
         }
@@ -505,7 +497,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
          */
         if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
             if ((port & 0x8002) == 0) {
-                memory.setMemoryMap128k(floatbus);
+                memory.setPort7ffd(floatbus);
                 // En el 128k las páginas impares son contended
                 contendedRamPage[3] = contendedIOPage[3] = (floatbus & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
@@ -557,7 +549,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
 
-                memory.setMemoryMap128k(value);
+                memory.setPort7ffd(value);
                 // En el 128k las páginas impares son contended
                 contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
@@ -575,7 +567,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                 if (soundOn && ay8912.getAddressLatch() < 14) {
                     ay8912.updateAY(z80.tEstados);
                 }
-                ay8912.writeRegister(value, z80.tEstados);
+                ay8912.writeRegister(value);
             }
         }
         //preIO(port);
@@ -1032,6 +1024,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         if (snap.loadSnapshot(filename, memory)) {
             doReset();
 
+            switch(snap.getSnapshotModel()) {
+                case SPECTRUM48K:
+                    select48kHardware();
+                    break;
+                case SPECTRUM128K:
+                    select128kHardware();
+                    break;
+            }
+
             z80.setRegI(snap.getRegI());
             z80.setRegHLalt(snap.getRegHLalt());
             z80.setRegDEalt(snap.getRegDEalt());
@@ -1060,8 +1061,25 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 //                memory.writeByte(count, snap.getRamAddr(count));
 //            }
 
-            z80.setRegPC(snap.getRegPC());  // código de RETN en la ROM
+            z80.setRegPC(snap.getRegPC());
             z80.setTEstados(snap.getTstates());
+
+            if (snap.getSnapshotModel() != MachineTypes.CodeModel.SPECTRUM48K) {
+                port7ffd = snap.getPort7ffd();
+                memory.setPort7ffd(port7ffd);
+                contendedRamPage[3] = contendedIOPage[3] =
+                    (port7ffd & 0x01) != 0 ? true : false;
+            }
+
+            if (snap.getAYEnabled() ||
+                snap.getSnapshotModel() == MachineTypes.CodeModel.SPECTRUM128K) {
+                enabledAY = true;
+                for(int reg = 0; reg < 16; reg++) {
+                    ay8912.setAddressLatch(reg);
+                    ay8912.writeRegister(snap.getPsgReg(reg));
+                }
+                ay8912.setAddressLatch(snap.getPortFffd());
+            }
 
             System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
                     "IMAGEN_CARGADA"));

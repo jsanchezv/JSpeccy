@@ -714,6 +714,7 @@ public class Tape {
 
         if (tapePos >= tapeBuffer.length) {
             cpu.setCarryFlag(false);
+            fastload = false;
             return;
         }
 

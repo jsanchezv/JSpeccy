@@ -32,7 +32,7 @@ public final class Memory {
     int[][] readPages = new int[4][];
     int[][] writePages = new int[4][];
     // Número de página de RAM de donde sale la pantalla activa
-    int screenPage, highPage;
+    int screenPage, highPage, bankM, bankP;
     boolean model128k;
     MachineTypes spectrumModel;
 
@@ -57,7 +57,7 @@ public final class Memory {
         writePages[address >>> 14][address & 0x3fff] = value;
     }
 
-    public void setMemoryMap48k() {
+    private void setMemoryMap48k() {
         readPages[0] = Rom48k;
         readPages[1] = Ram[5];
         readPages[2] = Ram[2];
@@ -72,7 +72,7 @@ public final class Memory {
         model128k = false;
     }
 
-    public void setMemoryMap128k() {
+    private void setMemoryMap128k() {
         readPages[0] = Rom128k[0];
         writePages[0] = fakeROM;
 
@@ -83,9 +83,13 @@ public final class Memory {
         screenPage = 5;
         highPage = 0;
         model128k = true;
+        bankM = 0;
     }
 
-    public void setMemoryMap128k(int port7ffd) {
+    public void setPort7ffd(int port7ffd) {
+        if (port7ffd == bankM)
+            return;
+
         // Set the high page
         highPage = port7ffd & 0x07;
         readPages[3] = writePages[3] = Ram[highPage];
@@ -95,6 +99,7 @@ public final class Memory {
 
         // Set the active ROM
         readPages[0] = (port7ffd & 0x10) == 0 ? Rom128k[0] : Rom128k[1];
+        bankM = port7ffd;
     }
 
     // "La Abadía del Crimen" pone la página 7 en 0xC000 y selecciona la

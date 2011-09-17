@@ -149,7 +149,7 @@ public final class AY8912 {
         return regAY[addressLatch];
     }
 
-    public void writeRegister(int value, int tstates) {
+    public void writeRegister(int value) {
 
         regAY[addressLatch] = value & 0xff;
 

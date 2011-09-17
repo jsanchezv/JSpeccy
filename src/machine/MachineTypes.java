@@ -17,7 +17,8 @@ public enum MachineTypes {
 
     static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS2, SPECTRUMPLUS3 };
     public CodeModel codeModel; // Código de modelo
-    private String modelName;   // Nombre de la máquina
+    private String longModelName;   // Nombre largo del modelo de Spectrum
+    private String shortModelName;   // Nombre corto del modelo de Spectrum
     public int tstatesFrame;    // t-states por cuadro de la imagen
     public int tstatesLine;     // t-states por línea de imagen
     public int upBorderWidth;   // Número de líneas del borde superior
@@ -33,7 +34,8 @@ public enum MachineTypes {
     MachineTypes(CodeModel model) {
         switch (model) {
             case SPECTRUM48K: // Spectrum 48K
-                this.modelName = "48K";
+                this.longModelName = "ZX Spectrum 48K";
+                this.shortModelName = "48k";
                 this.tstatesFrame = 69888;
                 this.tstatesLine = 224;
                 this.upBorderWidth = 64;
@@ -48,7 +50,8 @@ public enum MachineTypes {
                 this.codeModel = CodeModel.SPECTRUM48K;
                 break;
             case SPECTRUM128K: // Spectrum 128K
-                this.modelName = "128K";
+                this.longModelName = "ZX Spectrum 128K/+2";
+                this.shortModelName = "128";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -63,7 +66,8 @@ public enum MachineTypes {
                 this.codeModel = CodeModel.SPECTRUM128K;
                 break;
             case SPECTRUMPLUS2: // Spectrum +2A/B
-                this.modelName = "+2A/B";
+                this.longModelName = "ZX Spectrum +2A/B";
+                this.shortModelName = "+2A";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -78,7 +82,8 @@ public enum MachineTypes {
                 this.codeModel = CodeModel.SPECTRUMPLUS2;
                 break;
             case SPECTRUMPLUS3: // Spectrum +3
-                this.modelName = "+3";
+                this.longModelName = "ZX Spectrum +3";
+                this.shortModelName = "+3";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -95,8 +100,12 @@ public enum MachineTypes {
         }
     }
 
-    public String getModelName() {
-        return modelName;
+    public String getLongModelName() {
+        return longModelName;
+    }
+
+    public String getShortModelName() {
+        return shortModelName;
     }
 
     public int getTstatesFrame() {

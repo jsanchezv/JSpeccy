@@ -112,6 +112,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
         modelLabel.setText(bundle.getString("JSpeccy.modelLabel.text")); // NOI18N
+        modelLabel.setToolTipText(bundle.getString("JSpeccy.modelLabel.toolTipText")); // NOI18N
         modelLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
         jPanel1.add(modelLabel);
 
@@ -564,11 +565,27 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_fileSaveSnapshotActionPerformed
 
     private void Spec48kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec48kHardwareMenuActionPerformed
-        spectrum.select48KHardware();
+        boolean paused = spectrum.isPaused();
+        if (!paused)
+            spectrum.stopEmulation();
+
+        spectrum.select48kHardware();
+        spectrum.reset();
+
+        if (!paused)
+            spectrum.startEmulation();
     }//GEN-LAST:event_Spec48kHardwareMenuActionPerformed
 
     private void Spec128kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec128kHardwareMenuActionPerformed
-        spectrum.select128KHardware();
+        boolean paused = spectrum.isPaused();
+        if (!paused)
+            spectrum.stopEmulation();
+
+        spectrum.select128kHardware();
+        spectrum.reset();
+
+        if (!paused)
+            spectrum.startEmulation();
     }//GEN-LAST:event_Spec128kHardwareMenuActionPerformed
     
     /**

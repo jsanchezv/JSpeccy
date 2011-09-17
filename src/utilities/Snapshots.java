@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package utilities;
 
 import java.io.File;
@@ -10,8 +9,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import machine.MachineTypes;
 import machine.Memory;
 
 /**
@@ -19,26 +20,33 @@ import machine.Memory;
  * @author jsanchez
  */
 public class Snapshots {
+
     private int regAF, regBC, regDE, regHL;
     private int regAFalt, regBCalt, regDEalt, regHLalt;
     private int regIX, regIY, regPC, regSP;
     private int regI, regR, modeIM;
     private boolean iff1, iff2;
+    private int last7ffd;
+    private int flagsMode;
+    private int lastfffd;
+    private int last1ffd;
+    int psgRegs[] = new int[16];
+    private MachineTypes.CodeModel snapshotModel;
     private int border;
     private int tstates;
     private FileInputStream fIn;
     private FileOutputStream fOut;
     private boolean snapLoaded;
     private int error;
-    private final String errorString[] = { "OPERATION_OK",
-                                           "NOT_SNAPSHOT_FILE",
-                                           "OPEN_FILE_ERROR",
-                                           "FILE_SIZE_ERROR",
-                                           "FILE_READ_ERROR",
-                                           "128K_Z80_SNAPSHOT",
-                                           "FILE_WRITE_ERROR",
-                                           "SNA_REGSP_ERROR",
-                                           "SNAP_EXTENSION_ERROR"
+    private final String errorString[] = {"OPERATION_OK",
+        "NOT_SNAPSHOT_FILE",
+        "OPEN_FILE_ERROR",
+        "FILE_SIZE_ERROR",
+        "FILE_READ_ERROR",
+        "UNSUPPORTED_SNAPSHOT",
+        "FILE_WRITE_ERROR",
+        "SNA_REGSP_ERROR",
+        "SNAP_EXTENSION_ERROR"
     };
 
     public Snapshots() {
@@ -49,6 +57,14 @@ public class Snapshots {
 
     public boolean isSnapLoaded() {
         return snapLoaded;
+    }
+
+    public MachineTypes.CodeModel getSnapshotModel() {
+        return snapshotModel;
+    }
+
+    public void setSnapshotModel(MachineTypes.CodeModel model) {
+        snapshotModel = model;
     }
 
     public int getRegAF() {
@@ -187,6 +203,49 @@ public class Snapshots {
         iff2 = value;
     }
 
+    public int getPort7ffd() {
+        return last7ffd;
+    }
+
+    public void setPort7ffd(int port7ffd) {
+        last7ffd = port7ffd;
+    }
+
+    public int getPort1ffd() {
+        return last1ffd;
+    }
+
+    public void setPort1ffd(int port1ffd) {
+        last1ffd = port1ffd;
+    }
+
+    public int getPortFffd() {
+        return lastfffd;
+    }
+
+    public void setPortfffd(int portfffd) {
+        lastfffd = portfffd;
+    }
+
+    public int getPsgReg(int reg) {
+        return psgRegs[reg];
+    }
+
+    public void setPsgReg(int reg, int value) {
+        psgRegs[reg] = value;
+    }
+
+    public boolean getAYEnabled() {
+        return (flagsMode & 0x04) == 0 ? false : true;
+    }
+
+    public void setAyEnabled(boolean ayEnabled) {
+        flagsMode &= 0xfb;
+        if (ayEnabled) {
+            flagsMode |= 0x04;
+        }
+    }
+
     public int getBorder() {
         return border;
     }
@@ -195,7 +254,7 @@ public class Snapshots {
         border = value;
     }
 
-    public int getTstates(){
+    public int getTstates() {
         return tstates;
     }
 
@@ -209,17 +268,20 @@ public class Snapshots {
     }
 
     public boolean loadSnapshot(File filename, Memory memory) {
-        if( filename.getName().toLowerCase().endsWith(".sna") )
+        if (filename.getName().toLowerCase().endsWith(".sna")) {
             return loadSNA(filename, memory);
-        if( filename.getName().toLowerCase().endsWith(".z80") )
+        }
+        if (filename.getName().toLowerCase().endsWith(".z80")) {
             return loadZ80(filename, memory);
+        }
         error = 1;
         return false;
     }
 
     public boolean saveSnapshot(File filename, Memory memory) {
-        if( filename.getName().toLowerCase().endsWith(".sna") )
+        if (filename.getName().toLowerCase().endsWith(".sna")) {
             return saveSNA(filename, memory);
+        }
 //        if( filename.getName().toLowerCase().endsWith(".z80") )
 //            return loadZ80(filename);
         error = 8;
@@ -235,10 +297,22 @@ public class Snapshots {
                 return false;
             }
 
-            if (fIn.available() != 49179) {
-                error = 3;
-                fIn.close();
-                return false;
+            int snaLen = fIn.available();
+            switch (snaLen) {
+                case 49179: // 48K
+                    snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                    memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
+                    memory.reset();
+                    break;
+                case 131103: // 128k
+                    snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                    memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
+                    memory.reset();
+                    break;
+                default:
+                    error = 3;
+                    fIn.close();
+                    return false;
             }
 
             regI = fIn.read();
@@ -269,13 +343,52 @@ public class Snapshots {
 
             border = fIn.read() & 0x07;
 
-            for (int addr = 0x4000; addr < 0x10000; addr++) {
-                memory.writeByte(addr, (int) fIn.read() & 0xff);
+            boolean loaded[] = {false, false, true, false,
+                false, true, false, false};
+            int highPage[] = new int[0x4000];
+            if (snaLen == 49179) { // 48K
+                for (int addr = 0x4000; addr < 0x10000; addr++) {
+                    memory.writeByte(addr, (int) fIn.read() & 0xff);
+                }
+                regPC = 0x72; // dirección de RETN en la ROM
+            } else {
+                for (int addr = 0x4000; addr < 0xC000; addr++) {
+                    memory.writeByte(addr, (int) fIn.read() & 0xff);
+                }
+
+                // Hasta que leamos el último valor del puerto 0x7ffd no sabemos
+                // en qué página hay que poner los últimos 16K. Los leemos en
+                // un buffer temporal y luego los copiamos (que remedio!!!)
+                for (int addr = 0x0000; addr < 0x4000; addr++) {
+                    highPage[addr] = (int) fIn.read() & 0xff;
+                }
+                
+                regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
+                last7ffd = fIn.read() | (fIn.read() << 8) & 0xffff;
+                memory.setPort7ffd(last7ffd);
+                for (int addr = 0; addr < 0x4000; addr++) {
+                    memory.writeByte(addr + 0xC000, highPage[addr]);
+                }
+                loaded[last7ffd & 0x07] = true;
+                int trDos = fIn.read();
+                
+                for (int page = 0; page < 8; page++) {
+                    if (!loaded[page]) {
+                        memory.setPort7ffd(page);
+                        for (int addr = 0xC000; addr < 0x10000; addr++) {
+                            memory.writeByte(addr, (int) fIn.read() & 0xff);
+                        }
+                    }
+                    // El formato SNA no guarda los registros del AY
+                    // Los ponemos a cero y que se apañe....
+                    Arrays.fill(psgRegs, 0);
+                    lastfffd = 0;
+                }
+
             }
 
             fIn.close();
 
-            regPC = 0x72;  // código de RETN en la ROM
             tstates = 0;
 
         } catch (IOException ex) {
@@ -322,10 +435,12 @@ public class Snapshots {
             fOut.write(regIX >>> 8);
 
             int iff2EI = 0;
-            if (iff1)
+            if (iff1) {
                 iff2EI |= 0x02;
-            if (iff2)
+            }
+            if (iff2) {
                 iff2EI |= 0x04;
+            }
             fOut.write(iff2EI);
 
             fOut.write(regR);
@@ -336,7 +451,7 @@ public class Snapshots {
             memory.writeByte(regSP, regPC >>> 8);
             regSP = (regSP - 1) & 0xffff;
             memory.writeByte(regSP, regPC & 0xff);
-            
+
             fOut.write(regSP);
             fOut.write(regSP >>> 8);
             fOut.write(modeIM);
@@ -409,8 +524,9 @@ public class Snapshots {
             regR = fIn.read() & 0x7f;
 
             int byte12 = fIn.read() & 0xff;
-            if ((byte12 & 0x01) != 0 )
+            if ((byte12 & 0x01) != 0) {
                 regR |= 0x80;
+            }
             border = (byte12 >>> 1) & 0x07;
 
             regDE = fIn.read() | (fIn.read() << 8) & 0xffff;
@@ -425,7 +541,11 @@ public class Snapshots {
             int byte29 = fIn.read() & 0xff;
             modeIM = byte29 & 0x03;
 
+            // Si regPC == 0, es un z80 v1.0
             if (regPC != 0) {
+                snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
+                memory.reset();
                 if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
                     int address;
                     for (address = 0x4000; address < 0x10000; address++) {
@@ -446,21 +566,52 @@ public class Snapshots {
 //                    System.out.println("Z80 v3. Header: " + hdrLen);
 //                else
 //                    System.out.println("Z80 v2");
-                
+
                 regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
                 int hwMode = fIn.read() & 0xff;
-                if (hwMode > 1) {  // de momento, solo se soporta el 48k
-                    error = 5;
-                    fIn.close();
-                    return false;
+                if (hdrLen == 23) { // Z80 v2
+                    switch (hwMode) {
+                        case 0: // 48k
+                            snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
+                            memory.reset();
+                            break;
+                        case 3: // 128k
+                            snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
+                            memory.reset();
+                            break;
+                        default:
+                            error = 5;
+                            fIn.close();
+                            return false;
+                    }
+                } else { // Z80 v3
+                    switch (hwMode) {
+                        case 0: // 48k
+                            snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
+                            memory.reset();
+                            break;
+                        case 4: // 128k
+                            snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
+                            memory.reset();
+                            break;
+                        default:
+                            error = 5;
+                            fIn.close();
+                            return false;
+                    }
                 }
-                int last7ffd = fIn.read() & 0xff;
+
+                last7ffd = fIn.read() & 0xff;
                 int if1Paged = fIn.read() & 0xff;
-                int flagsMode = fIn.read() & 0xff;
-                int lastfffd = fIn.read() & 0xff;
-                int psgRegs[] = new int[16];
-                for (int idx = 0; idx < 16; idx++)
+                flagsMode = fIn.read() & 0xff;
+                lastfffd = fIn.read() & 0xff;
+                for (int idx = 0; idx < 16; idx++) {
                     psgRegs[idx] = fIn.read() & 0xff;
+                }
 
                 if (hdrLen > 23) { // Z80 v3.x
                     int lowTstate = fIn.read() | (fIn.read() << 8) & 0xffff;
@@ -482,31 +633,42 @@ public class Snapshots {
                     int mgtType = fIn.read() & 0xff;
                     int discipleButton = fIn.read() & 0xff;
                     int discipleFlag = fIn.read() & 0xff;
-                    int last1ffd = 0;
-                    if (hdrLen == 55)
+                    last1ffd = 0;
+                    if (hdrLen == 55) {
                         last1ffd = fIn.read() & 0xff;
+                    }
                 }
 
                 while (fIn.available() > 0) {
                     int addr;
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
-                    switch (ramPage) {
-                        case 4:  // 0x8000-0xbfff
-                            addr = 0x8000;
-                            break;
-                        case 5:  // 0xC000-0xFFFF
+                    if (snapshotModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                        switch (ramPage) {
+                            case 4:  // 0x8000-0xbfff
+                                addr = 0x8000;
+                                break;
+                            case 5:  // 0xC000-0xFFFF
+                                addr = 0xC000;
+                                break;
+                            case 8:  // 0x4000-0x7FFF
+                                addr = 0x4000;
+                                break;
+                            default:
+                                addr = 0;
+                        }
+                    } else { // snapshotModel == 128K
+                        if (ramPage >= 3 && ramPage <= 10) {
+                            memory.setPort7ffd(ramPage - 3);
                             addr = 0xC000;
-                            break;
-                        case 8:  // 0x4000-0x7FFF
-                            addr = 0x4000;
-                            break;
-                        default:
+                        } else {
                             addr = 0;
+                        }
                     }
                     if (blockLen == 0xffff) { // uncompressed data
-                        for(int count = 0; count < 0x4000; count++)
+                        for (int count = 0; count < 0x4000; count++) {
                             memory.writeByte(addr + count, fIn.read() & 0xff);
+                        }
                     } else {
                         uncompressZ80(memory, addr, 0x4000);
                     }
