@@ -199,6 +199,10 @@ public class Snapshots {
         return true;
     }
 
+    private boolean uncompressZ80(int address, int length) {
+        return false;
+    }
+
     private boolean loadZ80(File filename) {
         try {
             try {

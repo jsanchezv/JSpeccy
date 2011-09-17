@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import utilities.Snapshots;
+import utilities.Tape;
 import z80core.Z80;
 
 /**
@@ -58,6 +59,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private boolean paused;
     private boolean loading;
 
+    private Tape tape;
+
     public Spectrum() {
         z80 = new Z80(this);
         loadRom();
@@ -70,6 +73,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio.open(3500000);
         paused = true;
         loading = true;
+        tape = new Tape(z80);
+        tape.insert("/home/jsanchez/src/JSpeccy/dist/PAPERBOY.TAP");
 //        stpe = new ScheduledThreadPoolExecutor(1);
 //        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
@@ -210,6 +215,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((z80.getRegI() & 0xC0) == 0x40) {
             jscr.m1contended = z80.tEstados;
             jscr.m1regR = z80.getRegR();
+        }
+
+        if( address == 0x0556) { // LD_BYTES routine in Spectrum ROM
+            tape.fastload(z80Ram);
+            return 0xC9; // RET opcode
         }
 
         return z80Ram[address];
@@ -668,7 +678,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                rowKey[4] &= 0xfb; // 8  -- Left arrow
                 kempston |= 0x01;
                 break;
-            case KeyEvent.VK_ESCAPE:
+            case KeyEvent.VK_DELETE:
 //                rowKey[0] &= 0xfe; // CAPS
 //                rowKey[4] &= 0xfb; // 8  -- Left arrow
                 kempston |= 0x10; // Fire
@@ -854,7 +864,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                rowKey[4] |= 0x04; // 8  -- Right arrow
                 kempston &= 0xfe;
                 break;
-            case KeyEvent.VK_ESCAPE:
+            case KeyEvent.VK_DELETE:
 //                rowKey[0] |= 0x01; // CAPS
 //                rowKey[4] |= 0x04; // 8  -- Right arrow
                 kempston &= 0xef;
