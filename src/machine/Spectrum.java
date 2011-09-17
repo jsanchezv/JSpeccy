@@ -45,6 +45,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
+//    private AY8910 ay8910;
     private AY8912 ay8912;
     public Tape tape;
     private boolean paused;
@@ -68,6 +69,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         port7ffd = 0;
         kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
+//        ay8910 = new AY8910(1773450, 48000);
         ay8912 = new AY8912(1773450);
         audio = new Audio();
         soundOn = true;
@@ -96,7 +98,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     public void startEmulation() {
         z80.setTEstados(0);
-        audio.audiotstates = 0;
+        audio.reset();
         invalidateScreen();
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
@@ -122,7 +124,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         memory.setMemoryMap128k();
         contendedPage[3] = false;
         nFrame = 0;
-        audio.audiotstates = 0;
+        audio.reset();
         Arrays.fill(rowKey, 0xff);
         portFE = 0;
         port7ffd = 0;
@@ -173,7 +175,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             audio.updateAudio(z80.tEstados, speaker);
             audio.endFrame();
 //            System.out.println("Playing " + audio.bufp + " bytes");
-            audio.audiotstates -= FRAMES48k;
+//            audio.audiotstates -= FRAMES48k;
 
             z80.tEstados -= FRAMES48k;
 //            z80.addTEstados(-FRAMES48k);
@@ -266,10 +268,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             //z80.statesLimit = FRAMES48k;
             z80.execute(FRAMES128k);
 
+            ay8912.updateAY(z80.tEstados);
             audio.updateAudio(z80.tEstados, speaker);
             audio.endFrame();
 //            System.out.println("Playing " + audio.bufp + " bytes");
-            audio.audiotstates -= FRAMES128k;
+//            ay8912.audiotstates -= FRAMES128k;
+//            audio.audiotstates -= FRAMES128k;
 
             z80.tEstados -= FRAMES128k;
 //            z80.addTEstados(-FRAMES48k);
@@ -489,7 +493,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
 
         if ((port & 0xC002) == 0xC000) {
-            return ay8912.getAYRegister();
+            return ay8912.readRegister();
         }
 
         if ((port & 0x0001) == 0) {
@@ -605,10 +609,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         
         if ((port & 0x8002) == 0x8000) {
             if ((port & 0x4000) != 0) {
-                ay8912.setIndexRegister(value);
+                ay8912.setRegisterAddress(value);
             } else {
-                audio.updateAudio(z80.tEstados, speaker);
-                ay8912.setAYRegister(value);
+//                audio.updateAudio(z80.tEstados, speaker);
+                if (ay8912.getRegisterAddress() < 14)
+                    ay8912.updateAY(z80.tEstados);
+                ay8912.writeRegister(value);
             }
         }
         //preIO(port);

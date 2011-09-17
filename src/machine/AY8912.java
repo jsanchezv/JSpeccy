@@ -80,7 +80,7 @@ public class AY8912 {
     private int maxAmplitude;
     
     // AY register index
-    private int registerLatch;
+    private int registerAddress;
     // AY register set
     private int regAY[] = new int[16];
     // Output signal levels (thanks to Matthew Westcott)
@@ -92,17 +92,17 @@ public class AY8912 {
     };
     // Real (for the soundcard) volume levels
     private int volumeLevel[] = new int[16];
-    // Channel audio buffer
-    private int[] bufA = new int[2048];
-    private int[] bufB = new int[2048];
-    private int[] bufC = new int[2048];
+    // Channel audio buffer (110840 / 50 = 2216'8) samples per frame
+    private int[] bufA = new int[2220];
+    private int[] bufB = new int[2220];
+    private int[] bufC = new int[2220];
     private int pbufA, pbufB, pbufC;
 
     // Output channel levels
-    private int outA, outB, outC, outN;
+    private boolean outA, outB, outC, outN;
 
-    public int audiotstates;
-    private float timeRem, spf;
+    private int audiotstates;
+    private float spf;
 
     AY8912(int clock) {
         clockFreq = clock;
@@ -113,7 +113,7 @@ public class AY8912 {
         noiseCounter = 0;
         envelopePeriod = envelopeShape = 0;
         maxAmplitude = 8000;
-        registerLatch = 0;
+        registerAddress = 0;
         Arrays.fill(regAY, 0);
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int)(maxAmplitude * volumeRate[idx]);
@@ -123,39 +123,40 @@ public class AY8912 {
         Arrays.fill(bufB, 0);
         Arrays.fill(bufC, 0);
         pbufA = pbufB = pbufC = 0;
-        outA = outB = outC = 0;
+        outA = outB = outC = outN = false;
     }
 
-    public int getIndexRegister() {
-        return registerLatch;
+    public int getRegisterAddress() {
+        return registerAddress;
     }
 
-    public void setIndexRegister(int value) {
-        registerLatch = value & 0x0f;
+    public void setRegisterAddress(int value) {
+        registerAddress = value & 0x0f;
     }
 
-    public int getAYRegister() {
-        if (registerLatch >= 14 &&
-                (regAY[AYEnable] >> registerLatch - 8 & 1) == 0) {
-//            System.out.println(String.format("getAYRegister %d: %d",
-//                indexRegister, 0xFF));
+    public int readRegister() {
+        if (registerAddress >= 14 &&
+                (regAY[AYEnable] >> registerAddress - 8 & 1) == 0) {
+//            System.out.println(String.format("getAYRegister %d: %02X",
+//                registerLatch, 0xFF));
             return 0xFF;
         }
 
-        System.out.println(String.format("getAYRegister %d: %02X",
-            registerLatch, regAY[registerLatch]));
-        return regAY[registerLatch];
+        if (registerAddress < 14)
+            System.out.println(String.format("getAYRegister %d: %02X",
+                registerAddress, regAY[registerAddress]));
+        return regAY[registerAddress];
     }
 
-    public void setAYRegister(int value) {
+    public void writeRegister(int value) {
 
-        regAY[registerLatch] = value & 0xff;
+        regAY[registerAddress] = value & 0xff;
 
-        switch(registerLatch) {
+        switch(registerAddress) {
             case FineToneA:
             case CoarseToneA:
                 regAY[CoarseToneA] = value & 0x0f;
-                periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
+                periodA = regAY[CoarseToneA] * 256 + regAY[FineToneA];
                 if (periodA == 0) {
                     periodA = 1;
                 }
@@ -163,7 +164,7 @@ public class AY8912 {
             case FineToneB:
             case CoarseToneB:
                 regAY[CoarseToneB] = value & 0x0f;
-                periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
+                periodB = regAY[CoarseToneB] * 256 + regAY[FineToneB];
                 if (periodB == 0) {
                     periodB = 1;
                 }
@@ -171,73 +172,100 @@ public class AY8912 {
             case FineToneC:
             case CoarseToneC:
                 regAY[CoarseToneC] = value & 0x0f;
-                periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
+                periodC = regAY[CoarseToneC] * 256 + regAY[FineToneC];
                 if (periodC == 0) {
                     periodC = 1;
                 }
                 break;
             case NoisePeriod:
-                regAY[registerLatch] &= 0x1f;
-                if (regAY[registerLatch] == 0) {
-                    regAY[registerLatch] = 1;
+                regAY[registerAddress] &= 0x1f;
+                if (regAY[registerAddress] == 0) {
+                    regAY[registerAddress] = 1;
                 }
                 break;
             case AYEnable:
                 break;
             case AmplitudeA:
+                regAY[registerAddress] &= 0x1f;
+                amplitudeA = value & 0x1f;
+                break;
             case AmplitudeB:
+                regAY[registerAddress] &= 0x1f;
+                amplitudeB = value & 0x1f;
+                break;
             case AmplitudeC:
-                regAY[registerLatch] &= 0x1f;
+                regAY[registerAddress] &= 0x1f;
+                amplitudeC = value & 0x1f;
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
-                envelopePeriod = (regAY[CoarseEnvelope] << 16) | regAY[FineEnvelope];
+                envelopePeriod = regAY[CoarseEnvelope] * 256 + regAY[FineEnvelope];
                 if (envelopePeriod == 0)
                     envelopePeriod = 1;
                 break;
             case EnvelopeShapeCycle:
-                regAY[registerLatch] = value & 0x0f;
+                regAY[registerAddress] = value & 0x0f;
                 envelopeCounter = 0;
         }
-        System.out.println(String.format("setAYRegister %d: %02X",
-            registerLatch, regAY[registerLatch]));
+        if (registerAddress < 14)
+            System.out.println(String.format("setAYRegister %d: %02X",
+                registerAddress, regAY[registerAddress]));
     }
 
     public void updateAY(int tstates) {
-        tstates = tstates - audiotstates;
-        audiotstates += tstates;
-        float time = tstates;
+//        System.out.println(String.format("updateAY: tstates = %d", tstates));
+//        states = tstates - audiotstates;
+//        audiotstates += tstates;
+//        float time = tstates;
 
-        if (time + timeRem < 32) { //32 CPU clocks == 1 AY clock
-            timeRem += time;
+//        tstates += timeRem;
+        if (tstates < 32) { // 32 CPU clocks == 1 AY clock
             return;
         }
 
-        time += timeRem;
+        while ((tstates - audiotstates) > 32) {
+            audiotstates += 32;
+            counterA++;
+            counterB++;
+            counterC++;
+            if ((regAY[AYEnable] & ENABLE_A) != 0) {
+                outA = true;
+            } else {
+                if (regAY[AmplitudeA] == 0) {
+                    bufA[pbufA++] = 0;
+                    bufA[pbufA++] = 0;
+                } else {
+                    bufA[pbufA] = volumeLevel[amplitudeA];
+                    bufA[pbufA + 1] = -volumeLevel[amplitudeA];;
+                    pbufA += 2;
+                }
+            }
 
-        if ((regAY[AYEnable] & ENABLE_A) != 0) {
-            counterA += time;
-            outA = volumeLevel[15];
-        } else if (regAY[AmplitudeA] == 0) {
-           counterA += time;
-        }
+            if ((regAY[AYEnable] & ENABLE_B) != 0) {
+                outB = true;
+            } else {
+                if (regAY[AmplitudeB] == 0) {
+                    bufB[pbufB++] = 0;
+                    bufB[pbufB++] = 0;
+                } else {
+                    bufB[pbufB] = volumeLevel[amplitudeB];
+                    bufB[pbufB + 1] = -volumeLevel[amplitudeB];
+                    pbufB += 2;
+                }
+            }
 
-        if ((regAY[AYEnable] & ENABLE_B) != 0) {
-            counterB += time;
-            outB = volumeLevel[15];
-        } else if (regAY[AmplitudeB] == 0) {
-           counterB += time;
-        }
-
-        if ((regAY[AYEnable] & ENABLE_C) != 0) {
-            counterC += time;
-            outC = volumeLevel[15];
-        } else if (regAY[AmplitudeC] == 0) {
-           counterC += time;
-        }
-
-        while (time > 32) {
-
+            if ((regAY[AYEnable] & ENABLE_C) != 0) {
+                outC = true;
+            } else {
+                if (regAY[AmplitudeC] == 0) {
+                    bufC[pbufC++] = 0;
+                    bufC[pbufC++] = 0;
+                } else {
+                    bufC[pbufC] = volumeLevel[amplitudeC];
+                    bufC[pbufC + 1] = -volumeLevel[amplitudeC];
+                    pbufC += 2;
+                }
+            }
         }
     }
 }

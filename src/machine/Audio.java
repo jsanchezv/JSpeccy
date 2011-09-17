@@ -32,7 +32,7 @@ class Audio {
     private final byte nullbuf[] = new byte[1920];
     private int bufp;
     private int level;
-    public int audiotstates;
+    private int audiotstates;
     private float timeRem, spf;
 
     Audio() {
@@ -136,6 +136,7 @@ class Audio {
             buf[bufp++] = (byte) (level >> 8);
         }
         bufp = flushBuffer(bufp);
+        audiotstates -= Spectrum.FRAMES128k;
     }
 
     synchronized void close() {
@@ -145,5 +146,10 @@ class Audio {
             line.close();
             line = null;
         }
+    }
+
+    public void reset() {
+        audiotstates = 0;
+        bufp = 0;
     }
 }
