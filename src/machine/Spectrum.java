@@ -104,7 +104,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
         if (soundOn)
-            audio.open(FRAMES128k);
+            audio.open(FRAMES128k, ay8912);
     }
 
     public void stopEmulation() {
@@ -124,6 +124,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         memory.setMemoryMap128k();
         contendedPage[3] = false;
         nFrame = 0;
+        ay8912.reset();
         audio.reset();
         Arrays.fill(rowKey, 0xff);
         portFE = 0;
@@ -268,7 +269,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             //z80.statesLimit = FRAMES48k;
             z80.execute(FRAMES128k);
 
-            ay8912.updateAY(z80.tEstados);
             audio.updateAudio(z80.tEstados, speaker);
             audio.endFrame();
 //            System.out.println("Playing " + audio.bufp + " bytes");
@@ -579,7 +579,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                 if (spkMic != speaker) {
 //                au_update();
 //                    if (soundOn) {
-                        audio.updateAudio(z80.tEstados, speaker);
+                    audio.updateAudio(z80.tEstados, speaker);
 //                    }
                     speaker = spkMic;
                 }
@@ -602,18 +602,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             // En el 128k las páginas impares son contended
             contendedPage[3] = (value & 0x01) != 0 ? true : false;
             // Si ha cambiado la pantalla visible hay que invalidar
-            if( (port7ffd & 0x08) != (value & 0x08))
+            if (((port7ffd ^ value) & 0x08) != 0)
                 invalidateScreen();
             port7ffd = value;
         }
         
         if ((port & 0x8002) == 0x8000) {
             if ((port & 0x4000) != 0) {
-                ay8912.setRegisterAddress(value);
+                ay8912.setAddressLatch(value);
             } else {
 //                audio.updateAudio(z80.tEstados, speaker);
-                if (ay8912.getRegisterAddress() < 14)
-                    ay8912.updateAY(z80.tEstados);
+                if (ay8912.getAddressLatch() < 14)
+                    audio.updateAudio(z80.tEstados, speaker);
                 ay8912.writeRegister(value);
             }
         }
@@ -1186,7 +1186,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         soundOn = !soundOn;
         if (soundOn) {
 //            audio = new Audio();
-            audio.open(FRAMES128k);
+            audio.open(FRAMES128k, ay8912);
             framesByInt = 1;
         } else {
             audio.flush();

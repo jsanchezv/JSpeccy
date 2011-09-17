@@ -34,6 +34,7 @@ class Audio {
     private int level;
     private int audiotstates;
     private float timeRem, spf;
+    private AY8912 ay;
 
     Audio() {
         try {
@@ -48,7 +49,8 @@ class Audio {
         }
     }
     
-    synchronized void open(int frameLen) {
+    synchronized void open(int frameLen, AY8912 ay8912) {
+        ay = ay8912;
         timeRem = (float) 0.0;
         spf = (float) frameLen / (FREQ / 50);
         audiotstates = bufp = level = 0;
@@ -66,6 +68,7 @@ class Audio {
     }
 
     synchronized void updateAudio(int tstates, int value) {
+        ay.updateAY(tstates);
         tstates = tstates - audiotstates;
         audiotstates += tstates;
         float time = tstates;
@@ -74,6 +77,7 @@ class Audio {
             if (time + timeRem > spf) {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
+                level += ay.getSampleABC(bufp / 2);
                 buf[bufp++] = (byte) level;
                 buf[bufp++] = (byte) (level >> 8);
                 if (bufp == buf.length) {
@@ -85,11 +89,12 @@ class Audio {
                 return;
             }
 
-            byte lsb = (byte) value;
-            byte msb = (byte) (value >> 8);
+//            byte lsb = (byte) value;
+//            byte msb = (byte) (value >> 8);
             while (time > spf) {
-                buf[bufp++] = lsb;
-                buf[bufp++] = msb;
+                level = value + ay.getSampleABC(bufp / 2);
+                buf[bufp++] = (byte) level;
+                buf[bufp++] = (byte) (level >> 8);
                 if (bufp == buf.length) {
                     bufp = flushBuffer(bufp);
                 }
@@ -129,11 +134,13 @@ class Audio {
     }
 
     public void endFrame() {
+        ay.endFrame();
 //        System.out.println("Frame: " + bufp + " bytes");
         // Si el frame se ha quedado corto de una punta, rellenarlo
         if (bufp == 1918) {
-            buf[bufp++] = (byte) level;
-            buf[bufp++] = (byte) (level >> 8);
+            int tail = level + ay.getSampleABC(959);
+            buf[bufp++] = (byte) tail;
+            buf[bufp++] = (byte) (tail >> 8);
         }
         bufp = flushBuffer(bufp);
         audiotstates -= Spectrum.FRAMES128k;
