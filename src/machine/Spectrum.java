@@ -55,6 +55,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
+    private int oldstate;
 
 
     public Spectrum() {
@@ -73,14 +74,14 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
-        au_time = -14335;
+        au_time = audio.audiotstates = 0;
         au_reset();
         jscr.invalidateScreen();
     }
 
     public void stopEmulation() {
         taskFrame.cancel();
-        audio.step(z80.tEstados - au_time, 0);
+        //audio.step(z80.tEstados - au_time, 0);
         au_time = z80.tEstados;
     }
 
@@ -116,9 +117,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.statesLimit = FRAMES48k;
         z80.execute();
 
-        au_update();
-        au_time -= FRAMES48k;
-        audio.level -= audio.level>>8;
+        //au_update();
+        //au_time -= FRAMES48k;
+        //audio.level -= audio.level>>8;
+        audio.updateAudio(z80.tEstados, portFE);
+        audio.audiotstates -= FRAMES48k;
         
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
         z80.tEstados -= FRAMES48k;
@@ -355,27 +358,27 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
             }
 
-            int spkMic = sp_volt[value >> 3 & 3];
-            if (spkMic != speaker) {
-                au_update();
-                speaker = spkMic;
-            }
+//            int spkMic = sp_volt[value >> 3 & 3];
+//            if (spkMic != speaker) {
+//                au_update();
+//                speaker = spkMic;
+//            }
 
-//            if( (portFE & 0x18) != (value & 0x18) )
-//                audio.generateSample(nFrame, z80.tEstados, value);
+            if( (portFE & 0x18) != (value & 0x18) )
+                audio.updateAudio(z80.tEstados, portFE);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
 
-        if ((port & 0x8002) == 0x8000 && ay_enabled) {
-            if ((port & 0x4000) != 0) {
-                ay_idx = (byte) (value & 15);
-            } else {
-                au_update();
-                ay_write(ay_idx, value);
-            }
-        }
+//        if ((port & 0x8002) == 0x8000 && ay_enabled) {
+//            if ((port & 0x4000) != 0) {
+//                ay_idx = (byte) (value & 15);
+//            } else {
+//                au_update();
+//                ay_write(ay_idx, value);
+//            }
+//        }
         //preIO(port);
         postIO(port);
     }
@@ -1006,7 +1009,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 	private int au_val, au_dt;
 
 	private void au_update() {
-		int t = z80.tEstados - 14335;
+		int t = z80.tEstados;
 		au_time += (t -= au_time);
 
 		int dv = au_value() - au_val;

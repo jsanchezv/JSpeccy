@@ -24,12 +24,17 @@ class Audio
 	int idiv, mul;
 	int acct;
 	int accv0, accv1, level;
+    public int audiotstates;
+    private int out1, out2;
+    private double timeRem, spf;
 
 	void open(int hz)
 	{
 		div = hz;
 		acct = hz;
 		idiv = (1<<30) / hz;
+        timeRem = out1 = out2 = 0;
+        spf = ((double)hz / (double)FREQ);
 	}
 
 	void step(int time, int volume)
@@ -86,7 +91,40 @@ loop:
 		accv1 += volume*xx >> 8;
 	}
 
-	static final int FREQ = 22050;
+     synchronized void updateAudio(int tstates, int value) {
+
+        tstates = tstates - audiotstates;
+        audiotstates += tstates;
+        double time = tstates;
+        time += timeRem;
+
+//        System.out.println(String.format("tstates: %d audiotstates: %d nSamples: %d Rem: %d",
+//                tstates, audiotstates, nSamples, tstatesRem));
+
+        while( time > spf ) {
+            if( bufp == buf.length )
+                bufp = flush(bufp);
+            if( (value & 0x10) != 0 ) {
+                level = (0x4000 + out1 + out2) / 3;
+            } else {
+                level = (out1 + out2) / 3;
+            }
+            buf[bufp++] = (byte) level;
+            buf[bufp++] = (byte) (level >>> 8);
+            out2 = out1;
+            out1 = level;
+            time -= spf;
+        }
+        timeRem = time;
+
+//        if( (value & 0x10) != 0 )
+//            level = (int)(tstatesRem * rel);
+//        else
+//            level = 0;
+    }
+
+
+	static final int FREQ = 48000;
 	SourceDataLine line;
     DataLine.Info infoDataLine;
 
@@ -103,6 +141,8 @@ loop:
 			line = l;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
 //                infoDataLine.getMaxBufferSize(), infoDataLine.getMinBufferSize()));
+            audiotstates = 0;
+            timeRem = 0.0;
 		} catch (Exception e) {
 			System.out.println(e);
 		}
