@@ -86,7 +86,7 @@ public class Tape {
 //        if (timeout == 0)
 //            return;
 
-        long now = frames * Spectrum.FRAMES48k + tstates;
+        long now = frames * Spectrum.FRAMES128k + tstates;
         timeout -= (now - timeLastIn);
 //        System.out.println("timeout: " + timeout);
         timeLastIn = now;

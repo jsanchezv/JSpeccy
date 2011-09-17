@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import machine.Memory;
 
 /**
  *
@@ -25,7 +26,6 @@ public class Snapshots {
     private boolean iff1, iff2;
     private int border;
     private int tstates;
-    private int Ram[];
     private FileInputStream fIn;
     private FileOutputStream fOut;
     private boolean snapLoaded;
@@ -42,7 +42,7 @@ public class Snapshots {
     };
 
     public Snapshots() {
-        Ram = new int[0x10000];
+//        Ram = new int[0x10000];
         snapLoaded = false;
         error = 0;
     }
@@ -203,38 +203,30 @@ public class Snapshots {
         tstates = value;
     }
 
-    public int getRamAddr(int address) {
-        return Ram[address];
-    }
-
-    public void setRamAddr(int address, int value) {
-        Ram[address] = value;
-    }
-
     public String getErrorString() {
         return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
             errorString[error]);
     }
 
-    public boolean loadSnapshot(File filename) {
+    public boolean loadSnapshot(File filename, Memory memory) {
         if( filename.getName().toLowerCase().endsWith(".sna") )
-            return loadSNA(filename);
+            return loadSNA(filename, memory);
         if( filename.getName().toLowerCase().endsWith(".z80") )
-            return loadZ80(filename);
+            return loadZ80(filename, memory);
         error = 1;
         return false;
     }
 
-    public boolean saveSnapshot(File filename) {
+    public boolean saveSnapshot(File filename, Memory memory) {
         if( filename.getName().toLowerCase().endsWith(".sna") )
-            return saveSNA(filename);
+            return saveSNA(filename, memory);
 //        if( filename.getName().toLowerCase().endsWith(".z80") )
 //            return loadZ80(filename);
         error = 8;
         return false;
     }
 
-    private boolean loadSNA(File filename) {
+    private boolean loadSNA(File filename, Memory memory) {
         try {
             try {
                 fIn = new FileInputStream(filename);
@@ -278,7 +270,7 @@ public class Snapshots {
             border = fIn.read() & 0x07;
 
             for (int addr = 0x4000; addr < 0x10000; addr++) {
-                Ram[addr] = (int) fIn.read() & 0xff;
+                memory.writeByte(addr, (int) fIn.read() & 0xff);
             }
 
             fIn.close();
@@ -294,7 +286,7 @@ public class Snapshots {
         return true;
     }
 
-    private boolean saveSNA(File filename) {
+    private boolean saveSNA(File filename, Memory memory) {
 
         if (regSP < 0x4002) {
             error = 7;
@@ -341,9 +333,9 @@ public class Snapshots {
             fOut.write(regAF >>> 8);
 
             regSP = (regSP - 1) & 0xffff;
-            Ram[regSP] = regPC >>> 8;
+            memory.writeByte(regSP, regPC >>> 8);
             regSP = (regSP - 1) & 0xffff;
-            Ram[regSP] = regPC & 0xff;
+            memory.writeByte(regSP, regPC & 0xff);
             
             fOut.write(regSP);
             fOut.write(regSP >>> 8);
@@ -351,7 +343,7 @@ public class Snapshots {
             fOut.write(border);
 
             for (int addr = 0x4000; addr < 0x10000; addr++) {
-                fOut.write(Ram[addr]);
+                fOut.write(memory.readByte(addr));
             }
 
             fOut.close();
@@ -364,24 +356,24 @@ public class Snapshots {
         return true;
     }
 
-    private boolean uncompressZ80(int address, int length) {
+    private boolean uncompressZ80(Memory memory, int address, int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
         try {
             int endAddr = address + length;
             while (fIn.available() > 0 && address < endAddr) {
                 int mem = fIn.read() & 0xff;
                 if (mem != 0xED) {
-                    Ram[address++] = mem;
+                    memory.writeByte(address++, mem);
                 } else {
                     int mem2 = fIn.read() & 0xff;
                     if (mem2 != 0xED) {
-                        Ram[address++] = 0xED;
-                        Ram[address++] = mem2;
+                        memory.writeByte(address++, 0xED);
+                        memory.writeByte(address++, mem2);
                     } else {
                         int nreps = fIn.read() & 0xff;
                         int value = fIn.read() & 0xff;
                         while (nreps-- > 0) {
-                            Ram[address++] = value;
+                            memory.writeByte(address++, value);
                         }
                     }
                 }
@@ -393,7 +385,7 @@ public class Snapshots {
         return true;
     }
 
-    private boolean loadZ80(File filename) {
+    private boolean loadZ80(File filename, Memory memory) {
         try {
             try {
                 fIn = new FileInputStream(filename);
@@ -437,10 +429,10 @@ public class Snapshots {
                 if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
                     int address;
                     for (address = 0x4000; address < 0x10000; address++) {
-                        Ram[address] = fIn.read() & 0xff;
+                        memory.writeByte(address, fIn.read() & 0xff);
                     }
                 } else {
-                    uncompressZ80(0x4000, 0xC000);
+                    uncompressZ80(memory, 0x4000, 0xC000);
                     if (fIn.available() != 4) {
                         error = 4;
                         fIn.close();
@@ -514,9 +506,9 @@ public class Snapshots {
                     }
                     if (blockLen == 0xffff) { // uncompressed data
                         for(int count = 0; count < 0x4000; count++)
-                            Ram[addr + count] = fIn.read() & 0xff;
+                            memory.writeByte(addr + count, fIn.read() & 0xff);
                     } else {
-                        uncompressZ80(addr, 0x4000);
+                        uncompressZ80(memory, addr, 0x4000);
                     }
                 }
             }

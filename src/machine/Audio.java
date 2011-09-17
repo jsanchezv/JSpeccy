@@ -48,9 +48,9 @@ class Audio {
         }
     }
     
-    synchronized void open(int hz) {
+    synchronized void open(int frameLen) {
         timeRem = (float) 0.0;
-        spf = (float) 69888 / (FREQ / 50);
+        spf = (float) frameLen / (FREQ / 50);
         audiotstates = bufp = level = 0;
         if (line == null)
         {

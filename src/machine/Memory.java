@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  *
  * @author jsanchez
  */
-public class Memory {
+public final class Memory {
     final int PAGE_SIZE = 0x4000;
     
     int[] Rom48k = new int[PAGE_SIZE];
@@ -31,10 +31,14 @@ public class Memory {
     // punteros a las 4 páginas
     int[][] readPages = new int[4][];
     int[][] writePages = new int[4][];
+    // Número de página de RAM de donde sale la pantalla activa
     int screenPage;
-    //boolean[] ROMpage = new boolean[4];
 
-    public int getScreenByte(int address) {
+    public Memory() {
+        setMemoryMap48k();
+    }
+
+    public int readScreenByte(int address) {
         return Ram[screenPage][address & 0x3fff];
     }
 
@@ -46,22 +50,44 @@ public class Memory {
         writePages[address >>> 14][address & 0x3fff] = value;
     }
 
-    public void setMemMap48k() {
+    public void setMemoryMap48k() {
         readPages[0] = Rom48k;
         readPages[1] = Ram[5];
-        readPages[2] = Ram[1];
-        readPages[3] = Ram[2];
+        readPages[2] = Ram[2];
+        readPages[3] = Ram[0];
 
         writePages[0] = fakeROM;
         writePages[1] = Ram[5];
-        writePages[2] = Ram[1];
-        writePages[3] = Ram[2];
+        writePages[2] = Ram[2];
+        writePages[3] = Ram[0];
 
         screenPage = 5;
-//        ROMpage[0] = true;
-//        ROMpage[1] = false;
-//        ROMpage[2] = false;
-//        ROMpage[3] = false;
+    }
+
+    public void setMemoryMap128k() {
+        readPages[0] = Rom128k[0];
+        readPages[1] = Ram[5];
+        readPages[2] = Ram[2];
+        readPages[3] = Ram[0];
+
+        writePages[0] = fakeROM;
+        writePages[1] = Ram[5];
+        writePages[2] = Ram[2];
+        writePages[3] = Ram[0];
+
+        screenPage = 5;
+    }
+
+    public void setMemoryMap128k(int port7ffd) {
+        // Set the high page
+        readPages[3] = Ram[port7ffd & 0x07];
+        writePages[3] = readPages[3];
+
+        // Set the active screen
+        screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
+
+        // Set the active ROM
+        readPages[0] = Rom128k[(port7ffd & 0x10) >>> 4];
     }
 
     public void setScreenPage(int nPage) {
@@ -71,6 +97,10 @@ public class Memory {
     public void loadRoms() {
         if (!loadRomAsFile("spectrum.rom", Rom48k))
             loadRomAsResource("/roms/spectrum.rom", Rom48k);
+        if (!loadRomAsFile("128-0.rom", Rom128k[0]))
+            loadRomAsResource("/roms/128-0.rom", Rom128k[0]);
+        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
+            loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
     }
 
     private boolean loadRomAsResource(String filename, int[] page) {
