@@ -31,7 +31,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int portFE, earBit = 0xbf, kempston;
 //    public int lastInPC, nInPC;
 //    private FileInputStream fIn;
-    private int nFrame, framesByInt;
+    private long nFrame, framesByInt;
     private boolean soundOn;
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
@@ -99,6 +99,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void reset() {
         z80.reset();
+        nFrame = 0;
         audio.audiotstates = 0;
         jscr.invalidateScreen();
     }
@@ -114,7 +115,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         //z80.tEstados = frameStart;
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
-        int counter = framesByInt;
+        long counter = framesByInt;
 
         do {
             z80.statesLimit = 32;
@@ -371,8 +372,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
-            if( tape.isPlaying() )
+            if (tape.isPlaying()) {
                 earBit = tape.getEarBit(nFrame, z80.tEstados);
+                int spkMic = sp_volt[(earBit >>> 5) & 0x02];
+                if (spkMic != speaker) {
+//                au_update();
+                    if (soundOn) {
+                        audio.updateAudio(z80.tEstados, speaker);
+                    }
+                    speaker = spkMic;
+                }
+            }
 
             return keys & earBit;
         }
@@ -432,6 +442,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
             }
 
+            if (tape.isStopped() ) {
             int spkMic = sp_volt[value >> 3 & 3];
             if (spkMic != speaker) {
 //                au_update();
@@ -439,7 +450,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                     audio.updateAudio(z80.tEstados, speaker);
                 }
                 speaker = spkMic;
-            }
+            } }
 
             if (tape.isStopped() && (value & 0x10) == 0) {
                 earBit = 0xbf;
