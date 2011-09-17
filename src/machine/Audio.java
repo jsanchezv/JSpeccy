@@ -75,7 +75,7 @@ class Audio {
     }
 
     synchronized void updateAudio(int tstates, int value) {
-        tstates = tstates - audiotstates;
+        tstates -= audiotstates;
         audiotstates += tstates;
         float time = tstates;
 
@@ -132,8 +132,8 @@ class Audio {
 //        int ayCnt = ay.getSampleCount();
         ay.endFrame();
 //        System.out.println(String.format("Frame: %d bytes. AY Frame: %d bytes", bufp, ayCnt));
-        if (bufp > 960)
-            bufp = 960;
+//        if (bufp > 960)
+//            bufp = 960;
         for(int idx = 0; idx < bufp; idx++) {
             sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
 //            sample = beeper[idx] + ayBufA[idx]; //[idx] + ayBufC[idx];
@@ -143,14 +143,13 @@ class Audio {
         // Si el frame se ha quedado corto de una punta, rellenarlo
         // Copiamos el último sample del beeper y el último sample actualizado del AY
         if (ptr == 1918) {
-            sample = beeper[958] + ayBufA[959] + ayBufB[959] + ayBufC[959];
+            sample = beeper[958] + ayBufA[958] + ayBufB[958] + ayBufC[958];
 //            sample = beeper[958] + ayBufA[959];// + ayBufC[959];
             buf[ptr++] = (byte) sample;
             buf[ptr++] = (byte)(sample >>> 8);
         }
         flushBuffer(ptr);
         bufp = 0;
-
         audiotstates -= Spectrum.FRAMES128k;
     }
 
