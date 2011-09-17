@@ -174,12 +174,15 @@ public class Tape {
         return tapeInserted;
     }
 
+    public boolean isTzxTape() {
+        return tzxTape;
+    }
+
     public boolean play() {
         if (!tapeInserted || statePlay != State.STOP)
             return false;
 
         statePlay = State.START;
-        fastload = true;
         timeLastIn = 0;
         timeout = 1; // espera mínima
         earBit = 0xbf;
@@ -203,13 +206,14 @@ public class Tape {
     }
 
     public boolean rewind() {
-        if (!tapeInserted)
+        if (!tapeInserted || statePlay != State.STOP)
             return false;
 
         if (tzxTape)
             tapePos = 10;
         else
             tapePos = 0;
+
         return true;
     }
 
@@ -227,7 +231,7 @@ public class Tape {
         if (!tapeInserted || statePlay == State.STOP)
             return false;
 
-        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
+//        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
                 cpu.setExecDone(false);
@@ -312,7 +316,7 @@ public class Tape {
         do {
             repeat = false;
 
-            System.out.println(String.format("Tape state: %s", statePlay.toString()));
+//            System.out.println(String.format("Tape state: %s", statePlay.toString()));
             switch (statePlay) {
                 case STOP:
                     cpu.setExecDone(false);
@@ -640,49 +644,83 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
-    public boolean fastload(int Ram[]) {
+    public void fastload(int Ram[]) {
 
         System.out.println("fastload!");
         if (!tapeInserted || cpu == null)
-            return false;
-
-        if (!fastload || tzxTape) {
-            play();
-            return false;
-        }
+            return;
 
         int addr = cpu.getRegIX(); // Address start
-        int len = cpu.getRegDE();  // Length
-        int flag = cpu.getRegA();  // Flag
+//        int len = cpu.getRegDE();  // Length
+//        System.out.println(String.format("Entrada -> IX: %04X DE: %04X AF: %04X",
+//            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
 
         if( tapePos >= tapeBuffer.length ) {
             cpu.setCarryFlag(false);
-            return false;
+            return;
         }
 
         blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
+//        System.out.println(String.format("tapePos: %X. blockLen: %X", tapePos, blockLen));
         tapePos += 2;
-        if( tapeBuffer[tapePos] != flag ) {
-            cpu.setCarryFlag(false);
+
+        // ¿Coincide el flag? (está en el registro A)
+        cpu.xor(tapeBuffer[tapePos]);
+        if (!cpu.isZeroFlag()) {
             tapePos += blockLen;
-            return false;
+            return;
         }
-//        System.arraycopy(tapeBuffer, tapePos + 1, Ram, addr, len);
+
+        // La paridad incluye el byte de flag
+        cpu.setRegA(tapeBuffer[tapePos]);
+
         int count = 0;
-        int nBytes = (len <= blockLen - 2) ? len : blockLen - 1;
-        while (count < nBytes) {
+        int nBytes = cpu.getRegDE();
+        while (count < nBytes && count < blockLen - 1) {
             if( addr > 0x3fff )
-                Ram[addr++] = tapeBuffer[tapePos + count + 1];
-            addr &= 0xffff;
+                Ram[addr] = tapeBuffer[tapePos + count + 1];
+            cpu.xor(tapeBuffer[tapePos + count + 1]);
+            addr = (addr + 1) & 0xffff;
             count++;
         }
+
+        // Se cargarón los bytes pedidos en DE
+        if (count == nBytes) {
+            cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
+            cpu.cp(0x01);
+        }
+        
+        // Hay menos bytes en la cinta de los indicados en DE
+        // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
+        // que se señaliza con CARRY==reset & ZERO==set
+        if (count < nBytes)
+            cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
+        
         cpu.setRegIX(addr);
-        cpu.setRegDE(len - nBytes);
-        if (len == nBytes )
-            cpu.setCarryFlag(true);
-        else
-            cpu.setCarryFlag(false);
+        cpu.setRegDE(nBytes - count);
+
+        //int nBytes = (len <= blockLen - 2) ? len : blockLen - 1;
+//        while (count < nBytes) {
+//            if( addr > 0x3fff )
+//                Ram[addr] = tapeBuffer[tapePos + count + 1];
+//            cpu.xor(tapeBuffer[tapePos + count + 1]);
+//            addr = (addr + 1) & 0xffff;
+//            count++;
+//        }
+//        cpu.setRegIX(addr);
+//        cpu.setRegDE(len - nBytes);
+//        if( len - nBytes >= 0)
+//            cpu.xor(tapeBuffer[tapePos + count + 1]);
+//
+//        if( len - nBytes <= 0)
+//            cpu.cp(0x01);
+//        if (len == nBytes )
+//            cpu.setCarryFlag(true);
+//        else
+//            cpu.setCarryFlag(false);
         tapePos += blockLen;
-        return true;
+//        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
+//            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
+        return;
     }
 }

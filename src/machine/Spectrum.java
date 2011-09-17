@@ -307,8 +307,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && tape.isTapeInserted()&& tape.isStopped()) {
-            if (tape.fastload(z80Ram))
+            if (!tape.isFastload() || tape.isTzxTape())
+                tape.play();
+            else{
+                tape.fastload(z80Ram);
                 return 0xC9; // RET opcode
+            }
         }
 
         return z80Ram[address];
@@ -418,8 +422,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
-        // El interfaz Kempston solo decodifica A5=0
-        if ((port & 0x0020) == 0) {
+        // El interfaz Kempston solo (debería) decodificar A5=0...
+        if ((port & 0x00e0) == 0) {
             //System.out.println(String.format("InPort: %04X", port));
             return kempston;
         }
