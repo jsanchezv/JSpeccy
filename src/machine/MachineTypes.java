@@ -54,14 +54,14 @@ public enum MachineTypes {
                 this.codeModel = CodeModel.SPECTRUM48K;
                 break;
             case SPECTRUM128K: // Spectrum 128K
-                this.longModelName = "ZX Spectrum 128K/+2";
+                this.longModelName = "ZX Spectrum 128K";
                 this.shortModelName = "128";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14364;
+                this.firstScrByte = 14361;
                 this.firstScrUpdate = 14344;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate = (63 - Spectrum.BORDER_WIDTH) * tstatesLine;
@@ -71,16 +71,16 @@ public enum MachineTypes {
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM128K;
                 break;
-            case SPECTRUMPLUS2: // Spectrum +2A/B
-                this.longModelName = "ZX Spectrum +2A/B";
-                this.shortModelName = "+2A";
+            case SPECTRUMPLUS2: // Spectrum +2
+                this.longModelName = "Amstrad ZX Spectrum +2";
+                this.shortModelName = " +2";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14364;
-                this.firstScrUpdate = 14356;
+                this.firstScrByte = 14361;
+                this.firstScrUpdate = 14344;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate = (63 - Spectrum.BORDER_WIDTH) * tstatesLine;
                 this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
@@ -91,7 +91,7 @@ public enum MachineTypes {
                 break;
             case SPECTRUMPLUS3: // Spectrum +3
                 this.longModelName = "ZX Spectrum +3";
-                this.shortModelName = "+3";
+                this.shortModelName = " +3";
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;

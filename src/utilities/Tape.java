@@ -553,11 +553,7 @@ public class Tape {
         }
 
         statePlay = State.STOP;
-        //tapePos += blockLen;
-//        if (tapePos == tapeBuffer.length) {
-//            tapePos = 0;
-//        }
-        if (++idxHeader == nOffsetBlocks) {
+        if (idxHeader == nOffsetBlocks) {
             idxHeader = 0;
         }
         timeLastIn = 0;

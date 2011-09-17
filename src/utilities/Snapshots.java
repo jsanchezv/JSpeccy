@@ -717,6 +717,11 @@ public class Snapshots {
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             memory.reset();
                             break;
+                        case 12: // Plus 2
+                            snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
+                            memory.reset();
+                            break;
                         default:
                             error = 5;
                             fIn.close();
@@ -732,6 +737,11 @@ public class Snapshots {
                         case 4: // 128k
                             snapshotModel = MachineTypes.SPECTRUM128K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
+                            memory.reset();
+                            break;
+                        case 12: // Plus 2
+                            snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             memory.reset();
                             break;
                         default:
@@ -903,14 +913,14 @@ public class Snapshots {
                     hwMode = 4;
                     break;
                 case SPECTRUMPLUS2:
-                    hwMode = 13;
+                    hwMode = 12;
                     break;
                 case SPECTRUMPLUS3:
                     hwMode = 7;
             }
             fOut.write(hwMode);
 
-            if (snapshotModel == MachineTypes.SPECTRUM128K) {
+            if (snapshotModel != MachineTypes.SPECTRUM48K) {
                 fOut.write(last7ffd);
             } else {
                 fOut.write(0x00);
@@ -943,10 +953,13 @@ public class Snapshots {
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 // Página 5, que corresponde a 0x4000-0x7FFF
                 bufLen = compressPageZ80(memory, buffer, 5);
-                if (bufLen == 0x4000)
-                    bufLen = 0xffff; // el bloque no se pudo comprimir
-                fOut.write(bufLen);
-                fOut.write(bufLen >>> 8);
+                if (bufLen == 0x4000) {
+                    fOut.write(0xff);
+                    fOut.write(0xff); // bloque sin compresión
+                } else {
+                    fOut.write(bufLen);
+                    fOut.write(bufLen >>> 8);
+                }
                 fOut.write(8);
                 for (int addr = 0; addr < bufLen; addr++) {
                     fOut.write(buffer[addr]);
@@ -954,10 +967,13 @@ public class Snapshots {
 
                 // Página 2, que corresponde a 0x8000-0xBFFF
                 bufLen = compressPageZ80(memory, buffer, 2);
-                if (bufLen == 0x4000)
-                    bufLen = 0xffff; // el bloque no se pudo comprimir
-                fOut.write(bufLen);
-                fOut.write(bufLen >>> 8);
+                if (bufLen == 0x4000) {
+                    fOut.write(0xff);
+                    fOut.write(0xff); // bloque sin compresión
+                } else {
+                    fOut.write(bufLen);
+                    fOut.write(bufLen >>> 8);
+                }
                 fOut.write(4);
                 for (int addr = 0; addr < bufLen; addr++) {
                     fOut.write(buffer[addr]);
@@ -965,10 +981,13 @@ public class Snapshots {
 
                 // Página 0, que corresponde a 0xC000-0xFFFF
                 bufLen = compressPageZ80(memory, buffer, 0);
-                if (bufLen == 0x4000)
-                    bufLen = 0xffff; // el bloque no se pudo comprimir
-                fOut.write(bufLen);
-                fOut.write(bufLen >>> 8);
+                if (bufLen == 0x4000) {
+                    fOut.write(0xff);
+                    fOut.write(0xff); // bloque sin compresión
+                } else {
+                    fOut.write(bufLen);
+                    fOut.write(bufLen >>> 8);
+                }
                 fOut.write(5);
                 for (int addr = 0; addr < bufLen; addr++) {
                     fOut.write(buffer[addr]);
@@ -976,10 +995,13 @@ public class Snapshots {
             } else { // Mode 128k
                 for (int page = 0; page < 8; page++) {
                     bufLen = compressPageZ80(memory, buffer, page);
-                    if (bufLen == 0x4000)
-                        bufLen = 0xffff; // el bloque no se pudo comprimir
-                    fOut.write(bufLen);
-                    fOut.write(bufLen >>> 8);
+                    if (bufLen == 0x4000) {
+                        fOut.write(0xff);
+                        fOut.write(0xff); // bloque sin compresión
+                    } else {
+                        fOut.write(bufLen);
+                        fOut.write(bufLen >>> 8);
+                    }
                     fOut.write(page + 3);
                     for (int addr = 0; addr < bufLen; addr++) {
                         fOut.write(buffer[addr]);

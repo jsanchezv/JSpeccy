@@ -53,7 +53,7 @@
     </Component>
     <Component class="javax.swing.ButtonGroup" name="hardwareButtonGroup">
       <AuxValues>
-        <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="hardwareButtonGroup.add(spec48kHardware);&#xa;hardwareButtonGroup.add(spec128kHardware);"/>
+        <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="hardwareButtonGroup.add(spec48kHardware);&#xa;hardwareButtonGroup.add(spec128kHardware);&#xa;hardwareButtonGroup.add(specPlus2Hardware);"/>
       </AuxValues>
     </Component>
     <Container class="javax.swing.JDialog" name="tapeBrowserDialog">
@@ -373,6 +373,16 @@
                   </Properties>
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="spec128kHardwareActionPerformed"/>
+                  </Events>
+                </MenuItem>
+                <MenuItem class="javax.swing.JRadioButtonMenuItem" name="specPlus2Hardware">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
+                      <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.specPlus2Hardware.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
+                    </Property>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="specPlus2HardwareActionPerformed"/>
                   </Events>
                 </MenuItem>
               </SubComponents>

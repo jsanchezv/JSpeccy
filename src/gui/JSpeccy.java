@@ -13,9 +13,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicFileChooserUI;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
+import machine.MachineTypes;
 import machine.Spectrum;
 
 /**
@@ -36,7 +34,8 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
         spectrum.setInfoLabels(modelLabel, speedLabel);
-        spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware);
+        spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware,
+            spec128kHardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
             sinclair1Joystick, sinclair2Joystick, cursorJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
@@ -108,6 +107,7 @@ public class JSpeccy extends javax.swing.JFrame {
         hardwareMachineMenu = new javax.swing.JMenu();
         spec48kHardware = new javax.swing.JRadioButtonMenuItem();
         spec128kHardware = new javax.swing.JRadioButtonMenuItem();
+        specPlus2Hardware = new javax.swing.JRadioButtonMenuItem();
         mediaMenu = new javax.swing.JMenu();
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
@@ -141,6 +141,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         hardwareButtonGroup.add(spec48kHardware);
         hardwareButtonGroup.add(spec128kHardware);
+        hardwareButtonGroup.add(specPlus2Hardware);
 
         tapeBrowserDialog.setTitle(bundle.getString("JSpeccy.tapeBrowserDialog.title")); // NOI18N
 
@@ -470,6 +471,14 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         hardwareMachineMenu.add(spec128kHardware);
 
+        specPlus2Hardware.setText(bundle.getString("JSpeccy.specPlus2Hardware.text")); // NOI18N
+        specPlus2Hardware.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                specPlus2HardwareActionPerformed(evt);
+            }
+        });
+        hardwareMachineMenu.add(specPlus2Hardware);
+
         machineMenu.add(hardwareMachineMenu);
 
         jMenuBar1.add(machineMenu);
@@ -738,7 +747,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.stopEmulation();
 
-        spectrum.select48kHardware();
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
         spectrum.reset();
 
         if (!paused)
@@ -751,7 +760,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.stopEmulation();
 
-        spectrum.select128kHardware();
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
         spectrum.reset();
 
         if (!paused)
@@ -776,6 +785,19 @@ public class JSpeccy extends javax.swing.JFrame {
 //            spectrum.tape.setSelectedBlock(row);
 //        }
     }//GEN-LAST:event_closeTapeBrowserButtonActionPerformed
+
+    private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
+        boolean paused = spectrum.isPaused();
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+        spectrum.reset();
+
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_specPlus2HardwareActionPerformed
     
     /**
      * @param args the command line arguments
@@ -838,6 +860,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem sinclair2Joystick;
     private javax.swing.JRadioButtonMenuItem spec128kHardware;
     private javax.swing.JRadioButtonMenuItem spec48kHardware;
+    private javax.swing.JRadioButtonMenuItem specPlus2Hardware;
     private javax.swing.JLabel speedLabel;
     private javax.swing.JDialog tapeBrowserDialog;
     private javax.swing.JTable tapeCatalog;

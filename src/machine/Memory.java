@@ -22,6 +22,7 @@ public final class Memory {
     
     int[] Rom48k = new int[PAGE_SIZE];
     int[][] Rom128k = new int[2][PAGE_SIZE];
+    int[][] RomPlus2 = new int[2][PAGE_SIZE];
     int[][] RomPlus3 = new int[4][PAGE_SIZE];
     // 8 páginas de RAM
     int[][] Ram = new int[8][PAGE_SIZE];
@@ -96,6 +97,21 @@ public final class Memory {
         bankM = 0;
     }
 
+    private void setMemoryMapPlus2() {
+        readPages[0] = RomPlus2[0];
+        writePages[0] = fakeROM;
+
+        readPages[1] = writePages[1] = Ram[5];
+        readPages[2] = writePages[2] = Ram[2];
+        readPages[3] = writePages[3] = Ram[0];
+
+        screenPage = 5;
+        highPage = 0;
+        model128k = true;
+        pagingLocked = false;
+        bankM = 0;
+    }
+
     public void setPort7ffd(int port7ffd) {
 //        System.out.println(String.format("port7ffd = %02x", port7ffd));
         if (pagingLocked || port7ffd == bankM)
@@ -109,7 +125,14 @@ public final class Memory {
         screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
 
         // Set the active ROM
-        readPages[0] = (port7ffd & 0x10) == 0 ? Rom128k[0] : Rom128k[1];
+        switch (spectrumModel) {
+            case SPECTRUM128K:
+                readPages[0] = (port7ffd & 0x10) == 0 ? Rom128k[0] : Rom128k[1];
+                break;
+            case SPECTRUMPLUS2:
+                readPages[0] = (port7ffd & 0x10) == 0 ? RomPlus2[0] : RomPlus2[1];
+                break;
+        }
 
         // Set the page locking state
         pagingLocked = (port7ffd & 0x20) == 0 ? false : true;
@@ -147,16 +170,30 @@ public final class Memory {
                 break;
             case SPECTRUM128K:
                 setMemoryMap128k();
+                break;
+            case SPECTRUMPLUS2:
+                setMemoryMapPlus2();
+                break;
         }
     }
 
     public void loadRoms() {
         if (!loadRomAsFile("spectrum.rom", Rom48k))
             loadRomAsResource("/roms/spectrum.rom", Rom48k);
+
         if (!loadRomAsFile("128-0.rom", Rom128k[0]))
             loadRomAsResource("/roms/128-0.rom", Rom128k[0]);
         if (!loadRomAsFile("128-1.rom", Rom128k[1]))
             loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
+
+        if (!loadRomAsFile("plu2-0.rom", RomPlus2[0]))
+            loadRomAsResource("/roms/plus2-0.rom", RomPlus2[0]);
+        if (!loadRomAsFile("plus2-1.rom", RomPlus2[1]))
+            loadRomAsResource("/roms/plus2-1.rom", RomPlus2[1]);
+//        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
+//            loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
+//        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
+//            loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
     }
 
     private boolean loadRomAsResource(String filename, int[] page) {
