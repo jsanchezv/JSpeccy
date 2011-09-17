@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import machine.Spectrum;
 import z80core.Z80;
 
 /**
@@ -26,9 +27,12 @@ public class Tape {
     private int blockLen;
     private int mask;
     private int bitTime;
-    private enum State { STOP, START, LEADER, SYNC, NEWBYTE, NEWBIT, HALF2, PAUSE };
+    private enum State { STOP, START, LEADER, SYNC, NEWBYTE, NEWBYTE_NOCHG,NEWBIT,
+        HALF2, PAUSE, TZX_HEADER };
     private State statePlay;
     private int earBit;
+    private long timeout;
+    private long timeLastIn;
     private boolean fastload;
     private boolean tapeInserted;
     private boolean tzxTape;
@@ -56,7 +60,23 @@ public class Tape {
         statePlay = State.STOP;
         tapeInserted = tzxTape = false;
         tapePos = 0;
+        timeout = 0;
         fastload = true;
+        earBit = 0xbf;
+    }
+
+    public void notifyTstates(long tstates) {
+        if (timeout == 0)
+            return;
+
+        timeout -= tstates;
+        if (timeout > 0)
+            return;
+
+        //System.out.println("timeout: " + timeout);
+        timeout = 0;
+        doPlay();
+
     }
 
     public boolean insert(File filename) {
@@ -96,7 +116,19 @@ public class Tape {
         tapeBuffer = null;
     }
 
-    public int getEarBit() {
+    public int getEarBit(int frames, int tstates) {
+        if (isStopped())
+            return earBit;
+
+        if (timeLastIn == 0) {
+            timeLastIn = frames * Spectrum.FRAMES48k + tstates;
+            return earBit;
+        }
+
+        long now = frames * Spectrum.FRAMES48k + tstates;
+        notifyTstates(now - timeLastIn);
+        timeLastIn = now;
+
         return earBit;
     }
 
@@ -124,15 +156,18 @@ public class Tape {
         if (!tapeInserted || statePlay != State.STOP)
             return false;
 
-        cpu.setTimeout(4); // espera mínima
         statePlay = State.START;
         fastload = false;
+        timeLastIn = 0;
+        timeout = 1; // espera mínima
+        earBit = 0xbf;
         return true;
     }
 
     public boolean doPlay() {
         if (!tapeInserted || statePlay == State.STOP)
             return false;
+
         if (tzxTape)
             return playTzx();
         else
@@ -145,6 +180,7 @@ public class Tape {
 
         switch (statePlay) {
             case STOP:
+                timeLastIn = 0;
                 break;
             case START:
                 if( tapePos == tapeBuffer.length )
@@ -155,21 +191,21 @@ public class Tape {
                 System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
                 earBit = 0xbf;
-                cpu.setTimeout(LEADER_LENGHT);
+                timeout = LEADER_LENGHT;
                 statePlay = State.LEADER;
                 break;
             case LEADER:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
                 if (--leaderPulses != 0) {
-                    cpu.setTimeout(LEADER_LENGHT);
+                    timeout = LEADER_LENGHT;
                     break;
                 }
-                cpu.setTimeout(SYNC1_LENGHT);
+                timeout = SYNC1_LENGHT;
                 statePlay = State.SYNC;
                 break;
             case SYNC:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(SYNC2_LENGHT);
+                timeout = SYNC2_LENGHT;
                 statePlay = State.NEWBYTE;
                 break;
             case NEWBYTE:
@@ -180,12 +216,12 @@ public class Tape {
                     bitTime = ZERO_LENGHT;
                 else
                     bitTime = ONE_LENGHT;
-                cpu.setTimeout(bitTime);
+                timeout = bitTime;
                 statePlay = State.HALF2;
                 break;
             case HALF2:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(bitTime);
+                timeout = bitTime;
                 mask >>>= 1;
                 if (mask == 0) {
                     tapePos++;
@@ -198,16 +234,17 @@ public class Tape {
                 break;
             case PAUSE:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(END_BLOCK_PAUSE); // 1 seg. pausa
+                timeout = END_BLOCK_PAUSE; // 1 seg. pausa
                 System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
                     tapeBuffer.length, tapePos));
                 if( tapePos == tapeBuffer.length ) {
                     statePlay = State.STOP;
                     tapePos = 0;
+                    timeLastIn = 0;
                     //fastload = true;
                 }
                 else {
-                    statePlay = State.STOP; // START
+                    statePlay = State.START; // START
                     //fastload = true;
                 }
                 fastload = true;
@@ -216,86 +253,114 @@ public class Tape {
     }
 
     public boolean playTzx() {
-        if (!tapeInserted || statePlay == State.STOP)
+
+        boolean repeat;
+        if (!tapeInserted || statePlay == State.STOP) {
             return false;
-
-        switch (statePlay) {
-            case STOP:
-                break;
-            case START:
-                if( tapePos == tapeBuffer.length )
-                    tapePos = 10;
-
-                decodeTzxHeader();
-                System.out.println("blockLen = " + blockLen);
-                earBit = 0xbf;
-                cpu.setTimeout(leaderLenght);
-                statePlay = State.LEADER;
-                break;
-            case LEADER:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
-                if (--leaderPulses != 0) {
-                    cpu.setTimeout(leaderLenght);
-                    break;
-                }
-                cpu.setTimeout(sync1Lenght);
-                statePlay = State.SYNC;
-                break;
-            case SYNC:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(sync2Lenght);
-                statePlay = State.NEWBYTE;
-                break;
-            case NEWBYTE:
-                mask = 0x80; // se empieza por el bit 7
-            case NEWBIT:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
-                if ((tapeBuffer[tapePos] & mask) == 0)
-                    bitTime = zeroLenght;
-                else
-                    bitTime = oneLenght;
-                cpu.setTimeout(bitTime);
-                statePlay = State.HALF2;
-                break;
-            case HALF2:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(bitTime);
-                mask >>>= 1;
-                if (mask == 0) {
-                    tapePos++;
-                    if( --blockLen > 0)
-                        statePlay = State.NEWBYTE;
-                    else
-                        statePlay = State.PAUSE;
-                } else
-                    statePlay = State.NEWBIT;
-                break;
-            case PAUSE:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
-                cpu.setTimeout(endBlockPause); // 1 seg. pausa
-                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
-                    tapeBuffer.length, tapePos));
-                if( tapePos == tapeBuffer.length ) {
-                    statePlay = State.STOP;
-                    tapePos = 10;
-                    //fastload = true;
-                }
-                else {
-                    statePlay = State.START;
-                    //fastload = true;
-                }
         }
+
+        do {
+            repeat = false;
+            switch (statePlay) {
+                case STOP:
+                    timeLastIn = 0;
+                    break;
+                case START:
+                    if (tapePos == tapeBuffer.length) {
+                        tapePos = 10;
+                    }
+
+                    //earBit = 0xbf;
+                    statePlay = State.TZX_HEADER;
+                    repeat = true;
+                    break;
+                case LEADER:
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    if (--leaderPulses != 0) {
+                        timeout = leaderLenght;
+                        break;
+                    }
+                    timeout = sync1Lenght;
+                    statePlay = State.SYNC;
+                    break;
+                case SYNC:
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    timeout = sync2Lenght;
+                    statePlay = State.NEWBYTE;
+                    break;
+                case NEWBYTE_NOCHG:
+                    // este cambio es para que se deshaga al entrar en el case
+                    // de NEWBIT.
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                case NEWBYTE:
+                    mask = 0x80; // se empieza por el bit 7
+                case NEWBIT:
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    if ((tapeBuffer[tapePos] & mask) == 0) {
+                        bitTime = zeroLenght;
+                    } else {
+                        bitTime = oneLenght;
+                    }
+                    timeout = bitTime;
+                    statePlay = State.HALF2;
+                    break;
+                case HALF2:
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    timeout = bitTime;
+                    mask >>>= 1;
+                    if (mask == 0) {
+                        tapePos++;
+                        if (--blockLen > 0) {
+                            statePlay = State.NEWBYTE;
+                        } else {
+//                            System.out.println(String.format("Last byte: %02x",
+//                                    tapeBuffer[tapePos-1]));
+                            statePlay = State.PAUSE;
+                        }
+                    } else {
+                        statePlay = State.NEWBIT;
+                    }
+                    break;
+                case PAUSE:
+                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    if (endBlockPause == 0) {
+                        statePlay = State.TZX_HEADER;
+                        repeat = true;
+                        continue;
+                    }
+
+                    timeout = endBlockPause;
+                    if (tapePos == tapeBuffer.length) {
+                        statePlay = State.STOP;
+                        tapePos = 10;
+                    } else {
+                        statePlay = State.TZX_HEADER;
+                    }
+                    break;
+                case TZX_HEADER:
+                    decodeTzxHeader();
+                    if (tapePos == tapeBuffer.length) {
+//                        System.out.println(String.format("Last Ear: %02x", earBit));
+                        //earBit = earBit == 0xbf ? 0xff : 0xbf;
+                        statePlay = State.STOP;
+                        tapePos = 10;
+                        return true;
+                    }
+                    //earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    repeat = true;
+            }
+        } while (repeat);
         return true;
     }
 
     private void decodeTzxHeader() {
-        boolean cont = true;
-        while (cont) {
-            System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
-                    tapeBuffer.length, tapePos));
-
+        boolean repeat = true;
+        while (repeat) {
+            if (tapePos == tapeBuffer.length)
+                return;
+            
             switch (tapeBuffer[tapePos]) {
-                case 10: // Standard speed data block
+                case 0x10: // Standard speed data block
                     leaderLenght = LEADER_LENGHT;
                     sync1Lenght = SYNC1_LENGHT;
                     sync2Lenght = SYNC2_LENGHT;
@@ -307,13 +372,76 @@ public class Tape {
                     blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
                     tapePos += 5;
                     leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-                    cont = false;
+                    timeout = leaderLenght;
+                    statePlay = State.LEADER;
+                    repeat = false;
                     break;
-                case 32: // Archive Info
+                case 0x11: // Turbo speed data block
+                    leaderLenght = (tapeBuffer[tapePos + 1] +
+                            (tapeBuffer[tapePos + 2] << 8));
+                    sync1Lenght = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8));
+                    sync2Lenght = (tapeBuffer[tapePos + 5]
+                        + (tapeBuffer[tapePos + 6] << 8));
+                    zeroLenght = (tapeBuffer[tapePos + 7]
+                        + (tapeBuffer[tapePos + 8] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 9]
+                        + (tapeBuffer[tapePos + 10] << 8));
+                    leaderPulses = (tapeBuffer[tapePos + 11]
+                        + (tapeBuffer[tapePos + 12] << 8));
+                    bitsLastByte = tapeBuffer[tapePos + 13];
+                    endBlockPause = (tapeBuffer[tapePos + 14]
+                        + (tapeBuffer[tapePos + 15] << 8)) * 3500;
+                    blockLen = tapeBuffer[tapePos + 16] +
+                            (tapeBuffer[tapePos + 17] << 8) +
+                            (tapeBuffer[tapePos + 18] << 16);
+                    tapePos += 19;
+                    timeout = leaderLenght;
+                    statePlay = State.LEADER;
+                    repeat = false;
+                    break;
+                case 0x14: // Pure Data Block
+                    zeroLenght = (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 3]
+                        + (tapeBuffer[tapePos + 4] << 8));
+                    bitsLastByte = tapeBuffer[tapePos + 5];
+                    endBlockPause = (tapeBuffer[tapePos + 6]
+                        + (tapeBuffer[tapePos + 7] << 8)) * 3500;
+                    blockLen = tapeBuffer[tapePos + 8] +
+                            (tapeBuffer[tapePos + 9] << 8) +
+                            (tapeBuffer[tapePos + 10] << 16);
+                    tapePos += 11;
+                    statePlay = State.NEWBYTE_NOCHG;
+                    repeat = false;
+                    break;
+                case 0x21: // Group start
+                    blockLen = tapeBuffer[tapePos + 1];
+                    tapePos += blockLen + 2;
+                    break;
+                case 0x22: // Group end
+                    tapePos++;
+                    break;
+                case 0x30: // Text description
+                    blockLen = tapeBuffer[tapePos + 1];
+                    tapePos += blockLen + 2;
+                    break;
+                case 0x32: // Archive Info
                     blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
-                    tapePos = blockLen + 3;
+                    tapePos += blockLen + 3;
+                    break;
+                case 0x35: // Custom Info Block
+                    blockLen = tapeBuffer[tapePos + 11] + (tapeBuffer[tapePos + 12] << 8) +
+                            (tapeBuffer[tapePos + 13] << 16) + (tapeBuffer[tapePos + 14] << 24);
+                    tapePos += blockLen + 11;
+                    break;
+                default:
+                    System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
+                    repeat = false;
             }
         }
+        System.out.println(String.format("tapeBufferLength: %d, tapePos: %d, blockLen: %d",
+                    tapeBuffer.length, tapePos, blockLen));
     }
 
     public void stop() {
@@ -324,7 +452,7 @@ public class Tape {
         tapePos += blockLen;
         if( tapePos == tapeBuffer.length )
             if (tzxTape)
-                tapePos = 9;
+                tapePos = 10;
             else
                 tapePos = 0;
     }
@@ -334,7 +462,7 @@ public class Tape {
             return false;
 
         if (tzxTape)
-            tapePos = 9;
+            tapePos = 10;
         else
             tapePos = 0;
         return true;
@@ -342,6 +470,7 @@ public class Tape {
 
     public boolean fastload(int Ram[]) {
 
+        System.out.println("fastload!");
         if (!tapeInserted || cpu == null)
             return false;
 

@@ -31,8 +31,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int portFE, earBit = 0xbf, kempston;
 //    public int lastInPC, nInPC;
 //    private FileInputStream fIn;
-    private int nFrame;
-    private boolean soundOn = true;
+    private int nFrame, framesByInt;
+    private boolean soundOn;
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
 
@@ -56,22 +56,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
+    public Tape tape;
 //    private ScheduledThreadPoolExecutor stpe;
     private boolean paused;
 //    private boolean loading;
-
-    public Tape tape;
 
     public Spectrum() {
         z80 = new Z80(this);
         loadRom();
         nFrame = 0;
+        framesByInt = 1;
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
         kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
         audio = new Audio();
         audio.open(3500000);
+        soundOn = true;
         paused = true;
         tape = new Tape(z80);
 //        lastInPC = nInPC = 0;
@@ -113,37 +114,42 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         //z80.tEstados = frameStart;
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
-        z80.statesLimit = 32;
-        z80.setINTLine(true);
-        z80.execute();
-        z80.setINTLine(false);
-        z80.statesLimit = 14335;
-        z80.execute();
-        jscr.updateInterval(14328, z80.tEstados);
-        //System.out.println(String.format("t-states: %d", z80.tEstados));
-        int fromTstates;
-        // El último byte de pantalla se muestra en el estado 57236
-        while (z80.statesLimit < 57237) {
-            fromTstates = z80.tEstados + 1;
-            z80.statesLimit = fromTstates + 15;
+        int counter = framesByInt;
+
+        do {
+            z80.statesLimit = 32;
+            z80.setINTLine(true);
             z80.execute();
-            jscr.updateInterval(fromTstates, z80.tEstados);
-        }
+            z80.setINTLine(false);
+            z80.statesLimit = 14335;
+            z80.execute();
+            jscr.updateInterval(14328, z80.tEstados);
+            //System.out.println(String.format("t-states: %d", z80.tEstados));
+            int fromTstates;
+            // El último byte de pantalla se muestra en el estado 57236
+            while (z80.statesLimit < 57237) {
+                fromTstates = z80.tEstados + 1;
+                z80.statesLimit = fromTstates + 15;
+                z80.execute();
+                jscr.updateInterval(fromTstates, z80.tEstados);
+            }
 
-        z80.statesLimit = FRAMES48k;
-        z80.execute();
+            z80.statesLimit = FRAMES48k;
+            z80.execute();
 
-        audio.updateAudio(z80.tEstados, speaker);
-        audio.audiotstates -= FRAMES48k;
+            
+            audio.updateAudio(z80.tEstados, speaker);
+            audio.audiotstates -= FRAMES48k;
 //        System.out.println(String.format("Bytes en buffer: %d", audio.bufp));
 //        audio.bufp = audio.flush(audio.bufp);
 
-        //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
-        z80.tEstados -= FRAMES48k;
+            //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
+            z80.tEstados -= FRAMES48k;
 
-        if (++nFrame % 16 == 0) {
-            jscr.toggleFlash();
-        }
+            if (++nFrame % 16 == 0) {
+                jscr.toggleFlash();
+            }
+        } while (--counter != 0);
 
         if (jscr.screenUpdated || jscr.nBorderChanges > 0) {
             jscr.repaint();
@@ -220,10 +226,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-//        if( address == 0x0556 && tape.isTapeInserted() && tape.isFastload() ) {
-//            tape.fastload(z80Ram);
-//            return 0xC9; // RET opcode
-//        }
+        if (address == 0x0556 && tape.isTapeInserted() && tape.isFastload()) {
+            tape.fastload(z80Ram);
+            return 0xC9; // RET opcode
+        }
 
         return z80Ram[address];
     }
@@ -231,7 +237,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int peek8(int address) {
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            z80.tEstados += delayTstates[z80.tEstados];;
         }
         z80.tEstados += 3;
 
@@ -257,7 +263,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         int lsb, msb;
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            z80.tEstados += delayTstates[z80.tEstados];;
         }
         z80.tEstados += 3;
         lsb = z80Ram[address];
@@ -277,7 +283,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        poke8((address + 1) & 0xffff, word >>> 8);
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];
+            z80.tEstados += delayTstates[z80.tEstados];;
             if (address < 0x5b00) {
                 jscr.screenUpdated(address);
             }
@@ -306,20 +312,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void contendedStates(int address, int tstates) {
         //address &= 0xffff;
         if ((address & 0xC000) == 0x4000) {
-            for (int idx = 0; idx < tstates; idx++)
-//                System.out.println(String.format("t-States: %d\taddress:%d\ttstates %d",
-//                    z80.tEstados, address, tstates));
-            {
+            for (int idx = 0; idx < tstates; idx++) {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
             }
         } else {
             z80.tEstados += tstates;
         }
-    }
-
-    public void timeoutEvent() {
-        //System.out.println(String.format("tstates: %d", tstates));
-        tape.doPlay();
     }
 
     public int inPort(int port) {
@@ -374,7 +372,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //            }
 
             if( tape.isPlaying() )
-                earBit = tape.getEarBit();
+                earBit = tape.getEarBit(nFrame, z80.tEstados);
 
             return keys & earBit;
         }
@@ -516,6 +514,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados++;
+    }
+
+    public void execDone(int tstates) {
+        if (tape.isPlaying())
+            tape.notifyTstates(tstates);
     }
 
     public void keyPressed(KeyEvent evt) {
@@ -973,9 +976,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if (soundOn) {
             audio = new Audio();
             audio.open(3500000);
+            framesByInt = 1;
         } else {
             audio.bufp = audio.flush(audio.bufp);
             audio.close();
+            framesByInt = 5;
         }
     }
 

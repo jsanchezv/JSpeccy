@@ -67,6 +67,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
         playTapeMediaMenu = new javax.swing.JMenuItem();
+        rewindTapeMediaMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -251,6 +252,14 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         tapeMediaMenu.add(playTapeMediaMenu);
 
+        rewindTapeMediaMenu.setText(bundle.getString("JSpeccy.rewindTapeMediaMenu.text")); // NOI18N
+        rewindTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                rewindTapeMediaMenuActionPerformed(evt);
+            }
+        });
+        tapeMediaMenu.add(rewindTapeMediaMenu);
+
         mediaMenu.add(tapeMediaMenu);
 
         jMenuBar1.add(mediaMenu);
@@ -374,6 +383,11 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_openTapeMediaMenuActionPerformed
+
+    private void rewindTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rewindTapeMediaMenuActionPerformed
+        // TODO add your handling code here:
+        spectrum.tape.rewind();
+    }//GEN-LAST:event_rewindTapeMediaMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -407,6 +421,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem playTapeMediaMenu;
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
+    private javax.swing.JMenuItem rewindTapeMediaMenu;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
     private javax.swing.JMenu tapeMediaMenu;

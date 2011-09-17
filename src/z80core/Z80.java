@@ -59,10 +59,10 @@ import java.util.Arrays;
 public class Z80 {
 
     private final MemIoOps MemIoImpl;
-    private int timeout;
-
     // Número de estados T que se llevan ejecutados
     public int tEstados;
+
+    private boolean execDone;
 
     // Hay que ejecutar hasta estos tEstados
     public int statesLimit;
@@ -223,17 +223,9 @@ public class Z80 {
     // Constructor de la clase
     public Z80(MemIoOps memoria) {
         MemIoImpl = memoria;
-        tEstados = timeout = 0;
+        tEstados = 0;
+        execDone = false;
         reset();
-    }
-
-    // Iniciar timeout en testados para generar un timeoutEvent
-    public final void setTimeout(int tstates) {
-        timeout = tstates;
-    }
-
-    public final int getTimeout() {
-        return timeout;
     }
 
     // Acceso a registros de 8 bits
@@ -1402,6 +1394,10 @@ public class Z80 {
         tEstados += delay;
     }
 
+    public final void setExecDone(boolean notify) {
+        execDone = notify;
+    }
+
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
      * simular la contended memory del Spectrum.
@@ -1409,7 +1405,8 @@ public class Z80 {
     public final int execute() {
 
         while (tEstados < statesLimit) {
-            int tmpstates = tEstados;
+            int tmp = tEstados;
+
             // Primero se comprueba NMI
             if (activeNMI) {
                 activeNMI = false;
@@ -1420,18 +1417,8 @@ public class Z80 {
             // Ahora se comprueba si al final de la instrucción anterior se
             // encontró una interrupción enmascarable y, de ser así, se procesa.
             if (activeINT) {
-                if (ffIFF1 && !pendingEI) {
+                if (ffIFF1 && !pendingEI)
                     interrupcion();
-//                    if (timeout > 0) {
-//                        timeout -= (tEstados - tmpstates);
-//                        tmpstates = tEstados;
-//                        if (timeout < 4) {
-//                            System.out.println("Timeout Int: " + timeout);
-//                            timeout = 0;
-//                            MemIoImpl.timeoutEvent();
-//                        }
-//                    }
-                }
             }
 
             regR++;
@@ -1445,15 +1432,9 @@ public class Z80 {
                 pendingEI = false;
             }
 
-            if (timeout > 0) {
-                timeout -= (tEstados - tmpstates);
-                // 7 es el número de ciclos de muchas instrucciones...
-                if (timeout < 8) {
-                    //System.out.println("Timeout: " + timeout);
-                    timeout = 0;
-                    MemIoImpl.timeoutEvent();
-                }
-            }
+            if (execDone)
+                MemIoImpl.execDone(tEstados - tmp);
+
         } /* del while */
         return tEstados;
     }

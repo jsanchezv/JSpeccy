@@ -193,7 +193,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //        if (doubleSize) {
 //            gcImg.drawImage(bImgScr, escalaOp, BORDER_WIDTH * 2, BORDER_WIDTH * 2);
 //        } else {
-            gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
+        gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
 //        }
 
         if (nBorderChanges == 0) {
