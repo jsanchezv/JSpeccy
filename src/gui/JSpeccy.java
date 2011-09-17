@@ -20,8 +20,8 @@ import machine.Spectrum;
 public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
-    File currentDir;
-    JFileChooser jFile;
+    File currentDirSnapshot, currentDirTape;;
+    JFileChooser jFileSnapshot, jFileTape;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
@@ -63,6 +63,10 @@ public class JSpeccy extends javax.swing.JFrame {
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
         resetMachineMenu = new javax.swing.JMenuItem();
+        mediaMenu = new javax.swing.JMenu();
+        tapeMediaMenu = new javax.swing.JMenu();
+        openTapeMediaMenu = new javax.swing.JMenuItem();
+        playTapeMediaMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -225,6 +229,31 @@ public class JSpeccy extends javax.swing.JFrame {
 
         jMenuBar1.add(machineMenu);
 
+        mediaMenu.setText(bundle.getString("JSpeccy.mediaMenu.text")); // NOI18N
+
+        tapeMediaMenu.setText(bundle.getString("JSpeccy.tapeMediaMenu.text")); // NOI18N
+
+        openTapeMediaMenu.setText(bundle.getString("JSpeccy.openTapeMediaMenu.text")); // NOI18N
+        openTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                openTapeMediaMenuActionPerformed(evt);
+            }
+        });
+        tapeMediaMenu.add(openTapeMediaMenu);
+
+        playTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F8, 0));
+        playTapeMediaMenu.setText(bundle.getString("JSpeccy.playTapeMediaMenu.text")); // NOI18N
+        playTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playTapeMediaMenuActionPerformed(evt);
+            }
+        });
+        tapeMediaMenu.add(playTapeMediaMenu);
+
+        mediaMenu.add(tapeMediaMenu);
+
+        jMenuBar1.add(mediaMenu);
+
         setJMenuBar(jMenuBar1);
 
         pack();
@@ -233,24 +262,22 @@ public class JSpeccy extends javax.swing.JFrame {
     private void fileOpenSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileOpenSnapshotActionPerformed
         // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
-        if( jFile == null ) {
-            jFile = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
-            jFile.setFileFilter(new FileFilterSnapshot());
-            currentDir = jFile.getCurrentDirectory();
+        if( jFileSnapshot == null ) {
+            jFileSnapshot = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
+            jFileSnapshot.setFileFilter(new FileFilterSnapshot());
+            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
         }
         else
-            jFile.setCurrentDirectory(currentDir);
+            jFileSnapshot.setCurrentDirectory(currentDirSnapshot);
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = jFile.showOpenDialog(getContentPane());
+        int status = jFileSnapshot.showOpenDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             //spectrum.stopEmulation();
-            currentDir = jFile.getCurrentDirectory();
-            spectrum.loadSnapshot(jFile.getSelectedFile());
-//            jscr.invalidateScreen();
-//            spectrum.startEmulation();
+            currentDirSnapshot = jFileSnapshot.getCurrentDirectory();
+            spectrum.loadSnapshot(jFileSnapshot.getSelectedFile());
         }
         if (!paused)
             spectrum.startEmulation();
@@ -315,8 +342,37 @@ public class JSpeccy extends javax.swing.JFrame {
             silenceSoundToggleButton.setSelected(silenceMachineMenu.isSelected());
 
         spectrum.toggleSound();
-        spectrum.toggleTape();
     }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
+
+    private void playTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playTapeMediaMenuActionPerformed
+        // TODO add your handling code here:
+        spectrum.toggleTape();
+    }//GEN-LAST:event_playTapeMediaMenuActionPerformed
+
+    private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed
+        // TODO add your handling code here:
+        boolean paused = spectrum.isPaused();
+        if( jFileTape == null ) {
+            jFileTape = new JFileChooser("/home/jsanchez/src/JSpeccy/dist");
+            jFileTape.setFileFilter(new FileFilterTape());
+            currentDirTape = jFileTape.getCurrentDirectory();
+        }
+        else
+            jFileTape.setCurrentDirectory(currentDirTape);
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        int status = jFileTape.showOpenDialog(getContentPane());
+        if( status == JFileChooser.APPROVE_OPTION ) {
+            //spectrum.stopEmulation();
+            currentDirTape = jFileTape.getCurrentDirectory();
+            spectrum.tape.eject();
+            spectrum.tape.insert(jFileTape.getSelectedFile());
+        }
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_openTapeMediaMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -340,15 +396,19 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JMenu machineMenu;
+    private javax.swing.JMenu mediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JButton openSnapshotButton;
+    private javax.swing.JMenuItem openTapeMediaMenu;
     private javax.swing.JMenu optionsMenu;
     private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
     private javax.swing.JToggleButton pauseToggleButton;
+    private javax.swing.JMenuItem playTapeMediaMenu;
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
+    private javax.swing.JMenu tapeMediaMenu;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     private javax.swing.JToolBar toolbarMenu;
     // End of variables declaration//GEN-END:variables

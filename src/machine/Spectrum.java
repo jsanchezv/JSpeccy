@@ -59,7 +59,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private boolean paused;
     private boolean loading;
 
-    private Tape tape;
+    public Tape tape;
 
     public Spectrum() {
         z80 = new Z80(this);
@@ -74,7 +74,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         paused = true;
         loading = false;
         tape = new Tape(z80);
-        tape.insert("/home/jsanchez/src/JSpeccy/dist/chopin.tap");
+        //tape.insert("/home/jsanchez/src/JSpeccy/dist/Babaliba.tap");
 //        z80.setTimeout(2168);
 //        stpe = new ScheduledThreadPoolExecutor(1);
 //        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
@@ -218,10 +218,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             jscr.m1regR = z80.getRegR();
         }
 
-//        if( address == 0x0556) { // LD_BYTES routine in Spectrum ROM
-//            tape.fastload(z80Ram);
-//            return 0xC9; // RET opcode
-//        }
+        if( address == 0x0556 && tape.isFastload() ) { // LD_BYTES routine in Spectrum ROM
+            tape.fastload(z80Ram);
+            return 0xC9; // RET opcode
+        }
 
         return z80Ram[address];
     }
@@ -317,7 +317,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void timeoutEvent() {
         //System.out.println(String.format("tstates: %d", tstates));
-        tape.play();
+        tape.doPlay();
     }
 
     public int inPort(int port) {
@@ -968,9 +968,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void toggleTape() {
-        if (loading == false) {
+        if (tape.isPlaying() == false) {
             tape.play();
-            loading = true;
         } else {
             tape.stop();
             loading = false;

@@ -1419,38 +1419,24 @@ public class Z80 {
 
             // Ahora se comprueba si al final de la instrucción anterior se
             // encontró una interrupción enmascarable y, de ser así, se procesa.
-//            if( (tEstados - ntEstadosInt) > 31 )
-//                activeINT = false;
-
             if (activeINT) {
                 if (ffIFF1 && !pendingEI) {
                     interrupcion();
-                    if (timeout > 0) {
-                        timeout -= (tEstados - tmpstates);
-                        tmpstates = tEstados;
-                        if (timeout < 4) {
-                            //System.out.println("Timeout: " + timeout);
-                            timeout = 0;
-                            MemIoImpl.timeoutEvent();
-                        }
-                    }
+//                    if (timeout > 0) {
+//                        timeout -= (tEstados - tmpstates);
+//                        tmpstates = tEstados;
+//                        if (timeout < 4) {
+//                            System.out.println("Timeout Int: " + timeout);
+//                            timeout = 0;
+//                            MemIoImpl.timeoutEvent();
+//                        }
+//                    }
                 }
             }
 
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
-            if (timeout > 0) {
-                timeout -= (tEstados - tmpstates);
-                tmpstates = tEstados;
-                if (timeout < 4) {
-                    //System.out.println("Timeout: " + timeout);
-                    timeout = 0;
-                    MemIoImpl.timeoutEvent();
-                }
-            }
-//            if( regPC > 0x8100 )
-//                System.out.println(String.format("%04X %02X\t%d", regPC, opCode, tEstados-4));
-            regPC = (regPC + 1) & 0xffff;
+            regPC = ++regPC & 0xffff;
             decodeOpcode(opCode);
 
             // Si está pendiente la activación de la interrupciones y el
@@ -1461,7 +1447,8 @@ public class Z80 {
 
             if (timeout > 0) {
                 timeout -= (tEstados - tmpstates);
-                if (timeout < 7) {
+                // 7 es el número de ciclos de muchas instrucciones...
+                if (timeout < 8) {
                     //System.out.println("Timeout: " + timeout);
                     timeout = 0;
                     MemIoImpl.timeoutEvent();
