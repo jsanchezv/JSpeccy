@@ -29,12 +29,12 @@ class Audio {
     // Buffer de sonido para el frame actual, hay más espacio del necesario.
     private final byte[] buf = new byte[2048];
     // Un frame completo lleno de ceros para enviarlo como aperitivo.
-    private final int[] beeper = new int[962];
+    private final int[] beeper = new int[965];
     private final byte[] nullbuf = new byte[1920];
     // Buffer de sonido para el AY
-    private final int[] ayBufA = new int[962];
-    private final int[] ayBufB = new int[962];
-    private final int[] ayBufC = new int[962];
+    private final int[] ayBufA = new int[965];
+    private final int[] ayBufB = new int[965];
+    private final int[] ayBufC = new int[965];
 //    private final int[] ayNull = new int[961];
     private int bufp;
     private int level;
@@ -75,7 +75,7 @@ class Audio {
     }
 
     synchronized void updateAudio(int tstates, int value) {
-        tstates -= audiotstates;
+        tstates = tstates - audiotstates;
         audiotstates += tstates;
         float time = tstates;
 
@@ -132,8 +132,8 @@ class Audio {
 //        int ayCnt = ay.getSampleCount();
         ay.endFrame();
 //        System.out.println(String.format("Frame: %d bytes. AY Frame: %d bytes", bufp, ayCnt));
-//        if (bufp > 960)
-//            bufp = 960;
+        if (bufp > 960)
+            bufp = 960;
         for(int idx = 0; idx < bufp; idx++) {
             sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
 //            sample = beeper[idx] + ayBufA[idx]; //[idx] + ayBufC[idx];
@@ -143,13 +143,14 @@ class Audio {
         // Si el frame se ha quedado corto de una punta, rellenarlo
         // Copiamos el último sample del beeper y el último sample actualizado del AY
         if (ptr == 1918) {
-            sample = beeper[958] + ayBufA[958] + ayBufB[958] + ayBufC[958];
+            sample = beeper[958] + ayBufA[959] + ayBufB[959] + ayBufC[959];
 //            sample = beeper[958] + ayBufA[959];// + ayBufC[959];
             buf[ptr++] = (byte) sample;
             buf[ptr++] = (byte)(sample >>> 8);
         }
         flushBuffer(ptr);
         bufp = 0;
+
         audiotstates -= Spectrum.FRAMES128k;
     }
 
