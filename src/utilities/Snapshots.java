@@ -149,6 +149,7 @@ public class Snapshots {
 
             if (fIn.available() != 49179) {
                 error = 3;
+                fIn.close();
                 return false;
             }
 
@@ -209,6 +210,7 @@ public class Snapshots {
 
             if (fIn.available() < 30) {
                 error = 3;
+                fIn.close();
                 return false;
             }
 
@@ -216,6 +218,11 @@ public class Snapshots {
             regBC = fIn.read() | (fIn.read() << 8) & 0xffff;
             regHL = fIn.read() | (fIn.read() << 8) & 0xffff;
             regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
+            if( regPC == 0) {  // de momento, solo se soporta el Z80 v1.0
+                error = 5;
+                fIn.close();
+                return false;
+            }
             regSP = fIn.read() | (fIn.read() << 8) & 0xffff;
             regI = fIn.read() & 0xff;
             regR = fIn.read() & 0x7f;
@@ -256,7 +263,7 @@ public class Snapshots {
                         } else {
                             int nreps = fIn.read() & 0xff;
                             int value = fIn.read() & 0xff;
-                            for(int cnt = 0; cnt < nreps; cnt++)
+                            while(nreps-- > 0)
                                 Ram[address++] = value;
                         }
                     }
@@ -267,6 +274,7 @@ public class Snapshots {
 //                    System.out.println(String.format("Byte: %02x", fIn.read()));
                 if (fIn.available() != 4 || address < 0xC000) {
                     error = 4;
+                    fIn.close();
                     return false;
                 }
             }
@@ -274,10 +282,6 @@ public class Snapshots {
             fIn.close();
 
             tstates = 0;
-            if( regPC == 0) {  // de momento, solo se soporta el Z80 v1.0
-                error = 5;
-                return false;
-            }
 
         } catch (IOException ex) {
             error = 4;
