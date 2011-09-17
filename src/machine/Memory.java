@@ -33,7 +33,7 @@ public final class Memory {
     int[][] writePages = new int[4][];
     // Número de página de RAM de donde sale la pantalla activa
     int screenPage, highPage;
-    boolean mode128k;
+    boolean model128k;
 
     public Memory() {
         setMemoryMap48k();
@@ -63,7 +63,7 @@ public final class Memory {
         writePages[3] = Ram[0];
 
         screenPage = 5;
-        mode128k = false;
+        model128k = false;
     }
 
     public void setMemoryMap128k() {
@@ -76,7 +76,7 @@ public final class Memory {
 
         screenPage = 5;
         highPage = 0;
-        mode128k = true;
+        model128k = true;
     }
 
     public void setMemoryMap128k(int port7ffd) {
@@ -88,11 +88,12 @@ public final class Memory {
         screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
 
         // Set the active ROM
-        readPages[0] = Rom128k[(port7ffd & 0x10) >>> 4];
-
-        mode128k = true;
+        readPages[0] = (port7ffd & 0x10) == 0 ? Rom128k[0] : Rom128k[1];
     }
 
+    // "La Abadía del Crimen" pone la página 7 en 0xC000 y selecciona la
+    // pantalla de la página 7. A partir de ahí, la modifica en 0xC000 en
+    // lugar de hacerlo en 0x4000, donde siempre está la página 5.
     public boolean isScreenByte(int addr) {
         switch(addr >>> 14) {
             case 0: // Address 0x0000-0x3fff
@@ -103,7 +104,7 @@ public final class Memory {
                     return false;
                 break;
             case 3: // Address 0xc000-0xffff
-                if (!mode128k || highPage != screenPage || addr > 0xdaff)
+                if (!model128k || highPage != screenPage || addr > 0xdaff)
                     return false;
         }
         return true;

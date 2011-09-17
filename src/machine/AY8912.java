@@ -45,9 +45,6 @@ public final class AY8912 {
     private int ayCycle;
     // Channel periods
     private int periodA, periodB, periodC, periodN;
-    // Channel half periods
-//    private int hPeriodA, hPeriodB, hPeriodC;
-//    private boolean firstPeriodA, firstPeriodB, firstPeriodC;
     // Channel period counters
     private int counterA, counterB, counterC;
     // Channel amplitudes
@@ -100,26 +97,22 @@ public final class AY8912 {
     private int[] bufA;
     private int[] bufB;
     private int[] bufC;
-    private int[] chanA = new int [4440];
-    private int[] chanB = new int [4440];
-    private int[] chanC = new int [4440];
+    private int[] chanA = new int[4440];
+    private int[] chanB = new int[4440];
+    private int[] chanC = new int[4440];
     private int pbuf;
     // Precalculate sample positions
-    private int[] samplePos = new int[961];
+    private int[] samplePos = new int[965];
     private final double Divider = 4.6164;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
-    private boolean invA, invB, invC;
     private boolean disableToneA, disableToneB, disableToneC;
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
-//    private int volA, volB, volC;
     private int audiotstates;
 
     AY8912(int clock) {
         clockFreq = clock;
-//        ayCycle = clockFreq >>> 5;
-//        spf = (int) (((Spectrum.FRAMES128k / 16) / (48000 / 50)) * 10000);
         maxAmplitude = 8000;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
@@ -154,9 +147,8 @@ public final class AY8912 {
         return regAY[addressLatch];
     }
 
-    public void writeRegister(int value, long frame, int tstates) {
+    public void writeRegister(int value, int tstates) {
 
-//        int tmp;
         regAY[addressLatch] = value & 0xff;
 
         switch (addressLatch) {
@@ -177,7 +169,7 @@ public final class AY8912 {
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
-                periodN = (value & 0x1f);
+                periodN = value & 0x1f;
                 if (periodN == 0) {
                     periodN = 1;
                 }
@@ -201,8 +193,6 @@ public final class AY8912 {
 //                if (envA) {
 //                    System.out.println("Envelope Chan A");
 //                }
-//                System.out.println(String.format("Change amp A at frame %d, %d tstates to %d with counterA = %d",
-//                        frame, tstates, value & 0x0f, counterA));
                 break;
             case AmplitudeB:
                 regAY[addressLatch] &= 0x1f;
@@ -211,8 +201,6 @@ public final class AY8912 {
 //                if (envB) {
 //                    System.out.println("Envelope Chan B");
 //                }
-//                System.out.println(String.format("Change amp B at frame %d, %d tstates to %d with counterB = %d",
-//                        frame, tstates, value & 0x0f, counterB));
                 break;
             case AmplitudeC:
                 regAY[addressLatch] &= 0x1f;
@@ -221,8 +209,6 @@ public final class AY8912 {
 //                if (envC) {
 //                    System.out.println("Envelope Chan C");
 //                }
-//                System.out.println(String.format("Change amp C at frame %d, %d tstates to %d with counterC = %d",
-//                        frame, tstates, value & 0x0f, counterC));
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
@@ -231,7 +217,6 @@ public final class AY8912 {
                     envelopePeriod = 1;
                 }
                 envelopePeriod <<= 1;
-
 //                System.out.println(String.format("envPeriod: %d", envelopePeriod));
                 break;
             case EnvelopeShapeCycle:
@@ -259,7 +244,6 @@ public final class AY8912 {
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
-//        int  steps = (int)(((tstates - audiotstates) / 4.6164f) * 10000);
         while (audiotstates < tstates) {
             audiotstates += 16;
 
@@ -289,7 +273,6 @@ public final class AY8912 {
                     rng ^= 0x28000;
                 }
                 rng >>>= 1;
-//                System.out.println("toneN: " + toneN);
             }
 
             if (envA || envB || envC) {
@@ -353,7 +336,7 @@ public final class AY8912 {
 //        System.out.println(String.format("endFrame: ticks = %d", ticks));
 //        double timePos;
         int pos;
-        for (int sample = 0; sample < 960; sample++) {
+        for (int sample = 0; sample < 961; sample++) {
 //            timePos = sample * Divider;
 //            pos = (int) timePos;
 //            timePos -= pos;
@@ -376,16 +359,16 @@ public final class AY8912 {
 //                bufC[sample] = (int)(chanC[pos] * (1-timePos) + chanC[pos+1] * timePos);
 //            }
             pos = samplePos[sample];
-            bufA[sample] = chanA[pos];
-            bufB[sample] = chanB[pos];
-            bufC[sample] = chanC[pos];
+            bufA[sample] = (chanA[pos] + chanA[pos+1] + chanA[pos+2] + chanA[pos+3]) >>> 2;
+            bufB[sample] = (chanB[pos] + chanB[pos+1] + chanB[pos+2] + chanB[pos+3]) >>> 2;
+            bufC[sample] = (chanC[pos] + chanC[pos+1] + chanC[pos+2] + chanC[pos+3]) >>> 2;
         }
         pbuf = 0;
         audiotstates -= Spectrum.FRAMES128k;
-        if (audiotstates < 0) {
-            System.out.println("audiotstates < 0!");
-            audiotstates = 0;
-        }
+//        if (audiotstates < 0) {
+//            System.out.println("audiotstates < 0!");
+//            audiotstates = 0;
+//        }
     }
 
     public void reset() {
@@ -402,7 +385,6 @@ public final class AY8912 {
         Attack = true;
         amplitudeEnv = 0;
         envIncr = 1;
-        invA = invB = invC = false;
     }
 
     public void setBufferChannels(int[] bChanA, int[] bChanB, int[] bChanC) {

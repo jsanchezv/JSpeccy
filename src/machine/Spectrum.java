@@ -619,7 +619,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             } else {
                 if (ay8912.getAddressLatch() < 14)
                     ay8912.updateAY(z80.tEstados);
-                ay8912.writeRegister(value, nFrame, z80.tEstados);
+                ay8912.writeRegister(value, z80.tEstados);
             }
         }
         //preIO(port);
