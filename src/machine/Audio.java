@@ -18,12 +18,12 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 class Audio {
-    static final int FREQ = 48000;
+    static final int FREQ = 44100;
     SourceDataLine line;
     DataLine.Info infoDataLine;
     AudioFormat fmt;
     SourceDataLine sdl;
-    private final byte buf[] = new byte[8192];
+    private final byte buf[] = new byte[4096];
     int bufp;
     int level;
     public int audiotstates;

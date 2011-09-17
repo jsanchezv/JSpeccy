@@ -297,6 +297,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             System.out.println("No se pudo leer el fichero spectrum.rom");
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         return true;
     }
 
@@ -437,7 +438,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
         // El interfaz Kempston solo (debería) decodificar A5=0...
-        if ((port & 0x00e0) == 0) {
+        if ((port & 0x0020) == 0) {
             //System.out.println(String.format("InPort: %04X", port));
             return kempston;
         }
@@ -614,6 +615,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void keyPressed(KeyEvent evt) {
         int key = evt.getKeyCode();
+        //System.out.println(evt.getKeyText(key));
         switch (key) {
             // Fila B - SPACE
             case KeyEvent.VK_SPACE:

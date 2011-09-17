@@ -37,11 +37,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         addKeyListener(spectrum);
         spectrum.startEmulation();
-        keyboard = new JFrame("Spectrum Keyboard");
-        keyboard.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        keyboard.getContentPane().add(new JSpeccyKeyboard(keyboard), BorderLayout.CENTER);
-        keyboard.setResizable(false);
-        keyboard.pack();
+        keyboard = null;
     }
     
     /** This method is called from within the constructor to
@@ -187,6 +183,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         fileMenu.setText(bundle.getString("JSpeccy.fileMenu.text")); // NOI18N
 
+        fileOpenSnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0));
         fileOpenSnapshot.setText(bundle.getString("JSpeccy.fileOpenSnapshot.text")); // NOI18N
         fileOpenSnapshot.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -288,6 +285,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         helpMenu.setText(bundle.getString("JSpeccy.helpMenu.text")); // NOI18N
 
+        imageHelpMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0));
         imageHelpMenu.setText(bundle.getString("JSpeccy.imageHelpMenu.text")); // NOI18N
         imageHelpMenu.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -424,7 +422,14 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_rewindTapeMediaMenuActionPerformed
 
     private void imageHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageHelpMenuActionPerformed
-        // TODO add your handling code here:        
+        // TODO add your handling code here:
+        if (keyboard == null) {
+            keyboard = new JFrame("Spectrum Keyboard");
+            keyboard.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+            keyboard.getContentPane().add(new KeyboardImage(keyboard), BorderLayout.CENTER);
+            keyboard.setResizable(false);
+            keyboard.pack();
+        }
         keyboard.setVisible(true);
     }//GEN-LAST:event_imageHelpMenuActionPerformed
     
