@@ -234,14 +234,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             z80.execute(spectrumModel.lengthINT);
             z80.setINTLine(false);
             z80.execute(spectrumModel.firstScrByte);
-            updateInterval(spectrumModel.firstScrUpdate, z80.tEstados);
+            updateScreen(spectrumModel.firstScrUpdate, z80.tEstados);
             //System.out.println(String.format("t-states: %d", z80.tEstados));
             //int fromTstates;
             // El último byte de pantalla se muestra en el estado 57236
             while (z80.tEstados < spectrumModel.lastScrUpdate) {
                 int fromTstates = z80.tEstados + 1;
                 z80.execute(fromTstates + 15);
-                updateInterval(fromTstates, z80.tEstados);
+                updateScreen(fromTstates, z80.tEstados);
             }
 
             z80.execute(spectrumModel.tstatesFrame);
@@ -285,41 +285,43 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
          * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
          * en juegos como el TV-game.
          */
-        if (screenUpdated || nBorderChanges > 0 || framesByInt > 1) {
-//            System.out.print(System.currentTimeMillis() + " ");
-            if (nBorderChanges > 0) {
-                if (nBorderChanges == 1) {
-                    intArrayFill(imgData, Paleta[portFE & 0x07]);
-                    nBorderChanges = 0;
-                } else {
-                    nBorderChanges = 1;
-                }
-                gcBorderImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
-                                        Spectrum.BORDER_WIDTH, null);
-                gcTvImage.drawImage(borderImage, 0, 0, null);
-                jscr.repaint();
-            } else {
-                firstLine = (bufAddr[firstLine & 0x1fff]) >>> 8;
-                lastLine = (bufAddr[lastLine & 0x1fff]) >>> 8;
+        if (borderDirty) {
+            updateBorder(spectrumModel.tstatesFrame);
+            lastChgBorder = 0;
+        }
 
-                gcTvImage.drawImage(screenImage, Spectrum.BORDER_WIDTH,
-                                    Spectrum.BORDER_WIDTH, null);
-                if (jscr.isDoubleSized()) {
-                    jscr.repaint(BORDER_WIDTH * 2 + leftCol * 8, (BORDER_WIDTH + firstLine) * 2,
-                        (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2);
-                }  else {
-                    jscr.repaint(BORDER_WIDTH + leftCol * 8, BORDER_WIDTH  + firstLine,
-                        (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1);
+        if (borderDirty || framesByInt > 1) {
+            if (nBorderChanges == 0) {
+                borderDirty = false;
+            } else {
+                nBorderChanges = 0;
+                screenDirty = false;
+                gcTvImage.drawImage(inProgressImage, 0, 0, null);
+                jscr.repaint();
+//                System.out.println("Repaint border");
+            }
+        }
+        
+        if (screenDirty) {
+            screenDirty = false;
+            gcTvImage.drawImage(inProgressImage, 0, 0, null);
+            firstLine = repaintTable[firstLine & 0x1fff];
+            lastLine = repaintTable[lastLine & 0x1fff];
+
+            if (jscr.isDoubleSized()) {
+                jscr.repaint(BORDER_WIDTH * 2 + leftCol * 8, (BORDER_WIDTH + firstLine) * 2,
+                    (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2);
+            } else {
+                jscr.repaint(BORDER_WIDTH + leftCol * 8, BORDER_WIDTH + firstLine,
+                    (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1);
+//                System.out.println("Repaint screen");
+//                    jscr.repaint(BORDER_WIDTH, BORDER_WIDTH, 256, 192);
 //                    System.out.println(String.format("repaint x: %d, y: %d, width: %d, height: %d",
 //                     BORDER_WIDTH + leftCol * 8, BORDER_WIDTH  + firstLine,
 //                     (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1));
-                }
-            }
-
-            if (nBorderChanges == 0) {
-                screenUpdated = false;
             }
         }
+
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
@@ -367,7 +369,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (memory.isScreenByte(address)) {
-                screenUpdated(address);
+                screenWrite(address);
             }
         }
         z80.tEstados += 3;
@@ -398,7 +400,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (memory.isScreenByte(address)) {
-                screenUpdated(address);
+                screenWrite(address);
             }
         }
         z80.tEstados += 3;
@@ -410,7 +412,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (memory.isScreenByte(address)) {
-                screenUpdated(address);
+                screenWrite(address);
             }
         }
         z80.tEstados += 3;
@@ -526,6 +528,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 //                if( (value & 0x07) == 0x07 )
 //                    System.out.println(String.format("tstates: %d border: %d",
 //                        z80.tEstados, value&0x07));
+                borderDirty = true;
                 updateBorder(z80.tEstados);
             }
 
@@ -889,6 +892,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     // Tabla de correspondencia entre la dirección de pantalla del Spectrum
     // y la dirección que le corresponde en el BufferedImage.
     private final int bufAddr[] = new int[0x1800];
+    // Tabla para hacer más rápido el redibujado
+    private final int repaintTable[] = new int[0x1800];
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     public final int scrAddr[] = new int[192];
@@ -923,16 +928,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
     private BufferedImage tvImage;     // imagen actualizada al final de cada frame
-    private BufferedImage borderImage; // imagen del borde
-    private int imgData[];
-    private BufferedImage screenImage; // imagen de la pantalla
-    private int imgDataScr[];
-    private Graphics2D gcBorderImage, gcTvImage;
+    private BufferedImage inProgressImage; // imagen del borde
+    private int dataInProgress[];
+    private Graphics2D gcTvImage;
     // t-states del último cambio de border
     private int lastChgBorder;
     // veces que ha cambiado el borde en el último frame
     private int nBorderChanges;
-    private boolean screenUpdated;
+    private boolean screenDirty, borderDirty;;
     // t-states del ciclo contended por I=0x40-0x7F o -1
     private int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
@@ -945,16 +948,46 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
                                     BufferedImage.TYPE_INT_RGB);
         gcTvImage = tvImage.createGraphics();
-        borderImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
-        gcBorderImage = borderImage.createGraphics();
-        imgData = ((DataBufferInt) borderImage.getRaster().getDataBuffer()).getBankData()[0];
-        screenImage = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
-        imgDataScr = ((DataBufferInt) screenImage.getRaster().getDataBuffer()).getBankData()[0];
+        inProgressImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        dataInProgress = ((DataBufferInt)
+            inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
 
         lastChgBorder = 0;
         m1contended = -1;
         Arrays.fill(dirtyByte, true);
-        screenUpdated = false;
+        screenDirty = false;
+        borderDirty = true;
+
+        //Inicialización de la tabla de direcciones de pantalla
+        /* Hay una entrada en la tabla con la dirección del primer byte
+         * de cada fila de la pantalla.
+         */
+        int row, col, scan;
+        for (int linea = 0; linea < 24; linea++) {
+            int idx, lsb, msb, addr;
+            lsb = ((linea & 0x07) << 5);
+            msb = linea & 0x18;
+            addr = (msb << 8) + lsb;
+            idx = linea << 3;
+            for (scan = 0; scan < 8; scan++, addr += 256) {
+                scrAddr[scan + idx] = 0x4000 + addr;
+            }
+        }
+
+        for (int address = 0x4000; address < 0x5800; address++) {
+            row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+            col = address & 0x1f;
+            scan = (address & 0x700) >>> 8;
+
+            repaintTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
+            bufAddr[address & 0x1fff] = row * 2560 + (scan + BORDER_WIDTH) * 320 +
+                col * 8 + BORDER_WIDTH;
+            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
+        }
+
+        for (int address = 0x5800; address < 0x5B00; address++) {
+            attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
+        }
     }
 
     public BufferedImage getTvImage() {
@@ -965,7 +998,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
             if (memory.readScreenByte(addrAttr) > 0x7f) {
-                screenUpdated(addrAttr);
+                screenWrite(addrAttr);
             }
         }
     }
@@ -986,154 +1019,129 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     private int tStatesToScrPix48k(int tstates) {
 
         tstates %= spectrumModel.tstatesFrame;
+
         int row = tstates / spectrumModel.tstatesLine;
         int col = tstates % spectrumModel.tstatesLine;
 
-        // Eliminamos las partes que no se ven por arriba y por abajo
-        if (row < (64 - BORDER_WIDTH - 1) || row > (256 + BORDER_WIDTH - 1)) {
-            return -1;
+        // Quitamos las líneas que no se ven por arriba y por abajo
+        if (row < (64 - BORDER_WIDTH) || row > (256 + BORDER_WIDTH - 1)) {
+            return 0xf0cab0ba;
         }
 
-        // Caso especial de la primera línea del borde
-        if (row == (64 - BORDER_WIDTH - 1) && (col > (200 + BORDER_WIDTH / 2)))
-            return -1;
-        
-        // Caso especial de la última línea del borde
-        if (row == (256 + BORDER_WIDTH - 1) && col > 128 + BORDER_WIDTH / 2)
-            return -1;
+        // Caso especial de la última línea
+        if (row == (256 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2))
+            return 0xf0cab0ba;
 
-        // Se elimina la parte de la pantalla y la del borde que no se ve
-        if (row > 63 && row < 256 + BORDER_WIDTH - 1) {
-            if (col < 128 || (col > 127 + BORDER_WIDTH / 2 && col < 200)
-                    || col > (199 + BORDER_WIDTH / 2)) {
-                return -1;
-            }
+        // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
+        // y la parte izquierda del borde que tampoco se ve
+        if (col > (127 + BORDER_WIDTH / 2) && col < 200 + (24 - BORDER_WIDTH / 2))
+            return 0xf0cab0ba;
 
-            // 176 t-estados de línea es en medio de la zona de retrazo
-            if (col < 176) {
-                col += 128 - BORDER_WIDTH * 2 - 48;
-            } else {
-//            row -= BORDER_WIDTH - 1;
-                col -= 200;
-            }
-            row -= BORDER_WIDTH - 1;
+        // Quitamos la parte correspondiente a SCREEN$
+        if (row > 63 && row < 256 && col < 128) {
+            return 0xf0cab0ba;
+        }
+
+        // 176 t-estados de línea es en medio de la zona de retrazo
+        if (col > 176) {
+            row++;
+            col -= 200 + (24 - BORDER_WIDTH / 2);
         } else {
-            // Partes superior e inferior del borde
-            if( col > 128 + BORDER_WIDTH && col < 200)
-                return -1;
+            col += BORDER_WIDTH / 2;
         }
-//        if (col < (199 + BORDER_WIDTH / 2)) {
-//
-//        }
-//            col -= 200;
-//        } else {
-//            col -= 128;
-//        }
+        row -= BORDER_WIDTH;
 
-        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
+
+
+//        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
         
         // No se puede dibujar en el borde con precisión de pixel.
-        int mod = col % 8;
-        col -= mod;
-        if (mod > 3) {
-            col += 4;
-        }
+//        int mod = col % 8;
+//        col -= mod;
+//        if (mod > 3) {
+//            col += 4;
+//        }
 
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
 
-        int pix = row * SCREEN_WIDTH;
-
-        if (col < (128 + BORDER_WIDTH / 2)) {
-            return pix + col * 2 + BORDER_WIDTH;
-        }
-        if (col > (199 + (48 - BORDER_WIDTH) / 2)) {
-            return pix + (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
-        } else {
-            return pix + SCREEN_WIDTH;
-        }
+        return row * SCREEN_WIDTH +  col * 2;
     }
 
     private int tStatesToScrPix128k(int tstates) {
 
-        // Si los tstates son < 3420 (15 * 228), no estamos en la zona visible
-        if (tstates < (3420 + ((48 - BORDER_WIDTH) * spectrumModel.tstatesLine))) {
-            return 0;
-        }
-
-        // Se evita la zona no visible inferior
-        if (tstates > (256 + BORDER_WIDTH) * spectrumModel.tstatesLine) {
-            return imgData.length - 1;
-        }
-
-        tstates -= 3420 + ((48 - BORDER_WIDTH) * spectrumModel.tstatesLine);
+        tstates %= spectrumModel.tstatesFrame;
 
         int row = tstates / spectrumModel.tstatesLine;
         int col = tstates % spectrumModel.tstatesLine;
 
-        // No se puede dibujar en el borde con precisión de pixel.
-        int mod = col % 8;
-        col -= mod;
-        if (mod > 3) {
-            col += 4;
+        // Quitamos las líneas que no se ven por arriba y por abajo
+        if (row < (63 - BORDER_WIDTH) || row > (255 + BORDER_WIDTH - 1)) {
+            return 0xf0cab0ba;
         }
+
+        // Caso especial de la última línea
+        if (row == (255 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2))
+            return 0xf0cab0ba;
+
+        // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
+        // y la parte izquierda del borde que tampoco se ve
+        if (col > (127 + BORDER_WIDTH / 2) && col < 204 + (24 - BORDER_WIDTH / 2))
+            return 0xf0cab0ba;
+
+        // Quitamos la parte correspondiente a SCREEN$
+        if (row > 62 && row < 255 && col < 128) {
+            return 0xf0cab0ba;
+        }
+
+        // 176 t-estados de línea es en medio de la zona de retrazo
+        if (col > 176) {
+            row++;
+            col -= 204 + (24 - BORDER_WIDTH / 2);
+        } else {
+            col += BORDER_WIDTH / 2;
+        }
+        row -= (BORDER_WIDTH - 1);
+
+
+
+//        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
+
+        // No se puede dibujar en el borde con precisión de pixel.
+//        int mod = col % 8;
+//        col -= mod;
+//        if (mod > 3) {
+//            col += 4;
+//        }
 
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
 
-        int pix = row * SCREEN_WIDTH;
-
-        if (col < (128 + BORDER_WIDTH / 2)) {
-            return pix + col * 2 + BORDER_WIDTH;
-        }
-        if (col > (199 + (48 - BORDER_WIDTH) / 2)) {
-            return pix + (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
-        } else {
-            return pix + SCREEN_WIDTH;
-        }
+        return row * SCREEN_WIDTH +  col * 2;
     }
 
     public void updateBorder(int tstates) {
-        int startPix, endPix, color;
+        int nowColor = Paleta[portFE & 0x07];
+        int idxColor;
 
-        if (tstates < lastChgBorder) {
-            //startPix = tStatesToScrPix(lastChgBorder);
-            startPix = states2border[lastChgBorder];
-            if (startPix < imgData.length - 1) {
-                color = Paleta[portFE & 0x07];
-                for (int count = startPix; count < imgData.length - 1; count++) {
-                    imgData[count] = color;
-                }
-            }
-            lastChgBorder = 0;
+        while(lastChgBorder++ < tstates) {
+            idxColor = states2border[lastChgBorder];
+            if (idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor])
+                continue;
+
+            dataInProgress[idxColor] = nowColor;
+            dataInProgress[idxColor + 1] = nowColor;
+            dataInProgress[idxColor + 2] = nowColor;
+            dataInProgress[idxColor + 3] = nowColor;
+            dataInProgress[idxColor + 4] = nowColor;
+            dataInProgress[idxColor + 5] = nowColor;
+            dataInProgress[idxColor + 6] = nowColor;
+            dataInProgress[idxColor + 7] = nowColor;
             nBorderChanges++;
         }
-
-        startPix = states2border[lastChgBorder];
-        //startPix = tStatesToScrPix(lastChgBorder);
-        if (startPix > imgData.length - 1) {
-            lastChgBorder = tstates;
-            return;
-        }
-
-        //endPix = tStatesToScrPix(tstates);
-        endPix = states2border[tstates];
-        if (endPix > imgData.length - 1) {
-            endPix = imgData.length - 1;
-        }
-
-        if (startPix < endPix) {
-            color = Paleta[portFE & 0x07];
-            for (int count = startPix; count < endPix; count++) {
-                imgData[count] = color;
-            }
-        }
-        lastChgBorder = tstates;
-        nBorderChanges++;
     }
 
-    int lastAddr;
-    public void updateInterval(int fromTstates, int toTstates) {
+    public void updateScreen(int fromTstates, int toTstates) {
         int fromAddr, addrBuf;
         int paper, ink;
         int scrByte, attr;
@@ -1163,8 +1171,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     rightCol = column;
             }
 
-
-            lastAddr = fromAddr;
 //            System.out.println("Addr: " + fromAddr);
             scrByte = attr = 0;
             // si m1contended != -1 es que hay que emular el efecto snow.
@@ -1178,7 +1184,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 if (mod == 0 || mod == 1) {
                     addr = (fromAddr & 0xff00) | m1regR;
                     scrByte = memory.readScreenByte(addr);
-                    attr = memory.readScreenByte(scr2attr[fromAddr & 0x1fff]);
+                    attr = memory.readScreenByte(addr & 0x1fff);
                     //System.out.println("Snow even");
                 }
                 if (mod == 2 || mod == 3) {
@@ -1199,18 +1205,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             paper = Paper[attr];
             for (int mask = 0x80; mask != 0; mask >>= 1) {
                 if ((scrByte & mask) != 0) {
-                    imgDataScr[addrBuf++] = ink;
+                    dataInProgress[addrBuf++] = ink;
                 } else {
-                    imgDataScr[addrBuf++] = paper;
+                    dataInProgress[addrBuf++] = paper;
                 }
             }
             dirtyByte[fromAddr] = false;
-            screenUpdated = true;
+            screenDirty = true;
             fromTstates += 4;
         }
     }
 
-    public void screenUpdated(int address) {
+    public void screenWrite(int address) {
         address &= 0x1fff;
         if (address < 6144) {
             dirtyByte[address] = true;
@@ -1230,54 +1236,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void invalidateScreen(boolean invalidateBorder) {
-        if(invalidateBorder)
-            nBorderChanges = 1;
-        screenUpdated = true;
+        if(invalidateBorder) {
+            borderDirty = true;
+        }
+        screenDirty = true;
         Arrays.fill(dirtyByte, true);
-        //intArrayFill(imgData, Paleta[portFE & 0x07]);
-    }
-
-    public void intArrayFill(int[] array, int value) {
-        int len = array.length;
-        if (len > 0) {
-            array[0] = value;
-        }
-
-        for (int idx = 1; idx < len; idx += idx) {
-            System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
-        }
     }
 
     private void buildScreenTables48k() {
-        int row, col, scan;
-
-        //Inicialización de la tabla de direcciones de pantalla
-        /* Hay una entrada en la tabla con la dirección del primer byte
-         * de cada fila de la pantalla.
-         */
-        for (int linea = 0; linea < 24; linea++) {
-            int idx, lsb, msb, addr;
-            lsb = ((linea & 0x07) << 5);
-            msb = linea & 0x18;
-            addr = (msb << 8) + lsb;
-            idx = linea << 3;
-            for (scan = 0; scan < 8; scan++, addr += 256) {
-                scrAddr[scan + idx] = 0x4000 + addr;
-            }
-        }
-
-        for (int address = 0x4000; address < 0x5800; address++) {
-            row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
-            col = address & 0x1f;
-            scan = (address & 0x700) >>> 8;
-
-            bufAddr[address & 0x1fff] = row * 2048 + scan * 256 + col * 8;
-            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
-        }
-
-        for (int address = 0x5800; address < 0x5B00; address++) {
-            attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
-        }
+        int col, scan;
 
         Arrays.fill(states2scr, -1);
         for (int tstates = 14336; tstates < 57344; tstates += 4) {
@@ -1289,9 +1256,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             states2scr[tstates - 8] = scrAddr[scan] + col;
         }
 
-        Arrays.fill(states2border, -1);
-        for (int tstates = 0; tstates < states2border.length - 1; tstates++) {
-            states2border[tstates] = tStatesToScrPix48k(tstates);
+        Arrays.fill(states2border, 0xf0cab0ba);
+        for (int tstates = 4; tstates < states2border.length - 1; tstates += 4) {
+            states2border[tstates] = tStatesToScrPix48k(tstates - 4);
+//            if (states2border[tstates] == imgData.length)
+//                System.out.println("Array fuera de rango!!!");
 //            System.out.println(String.format("tstates: %d, states2border[tstates]: %d",
 //                    tstates, states2border[tstates]));
         }
@@ -1313,35 +1282,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     private void buildScreenTables128k() {
-        int row, col, scan;
-
-        //Inicialización de la tabla de direcciones de pantalla
-        /* Hay una entrada en la tabla con la dirección del primer byte
-         * de cada fila de la pantalla.
-         */
-        for (int linea = 0; linea < 24; linea++) {
-            int idx, lsb, msb, addr;
-            lsb = ((linea & 0x07) << 5);
-            msb = linea & 0x18;
-            addr = (msb << 8) + lsb;
-            idx = linea << 3;
-            for (scan = 0; scan < 8; scan++, addr += 256) {
-                scrAddr[scan + idx] = 0x4000 + addr;
-            }
-        }
-
-        for (int address = 0x4000; address < 0x5800; address++) {
-            row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
-            col = address & 0x1f;
-            scan = (address & 0x700) >>> 8;
-
-            bufAddr[address & 0x1fff] = row * 2048 + scan * 256 + col * 8;
-            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
-        }
-
-        for (int address = 0x5800; address < 0x5B00; address++) {
-            attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
-        }
+        int col, scan;
 
         Arrays.fill(states2scr, -1);
         for (int tstates = 14364; tstates < 58140; tstates += 4) {
