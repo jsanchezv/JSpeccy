@@ -125,7 +125,7 @@ public class Tape {
 
 //        tapePos = offsetBlocks[block];
         idxHeader = block;
-        lsm.setSelectionInterval(block, block);
+//        lsm.setSelectionInterval(block, block);
     }
 
     public String getCleanMsg(int offset, int len) {
@@ -473,7 +473,6 @@ public class Tape {
         fastload = true;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
-            fastload = false;
             findTZXOffsetBlocks();
 //            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
@@ -602,6 +601,7 @@ public class Tape {
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
+                lsm.setSelectionInterval(idxHeader, idxHeader);
                 updateTapeIcon();
                 cpu.setExecDone(false);
                 timeLastIn = 0;
@@ -610,9 +610,9 @@ public class Tape {
                 if (idxHeader == nOffsetBlocks) {
                     idxHeader = 0;
                 }
-//                System.out.println(String.format("Playing tap block :%d", idxHeader));
                 lsm.setSelectionInterval(idxHeader, idxHeader);
-                tapePos = offsetBlocks[idxHeader++];
+//                System.out.println(String.format("Playing tap block :%d", idxHeader));
+                tapePos = offsetBlocks[idxHeader];
                 blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
                 tapePos += 2;
 //                System.out.println("blockLen = " + blockLen);
@@ -674,7 +674,9 @@ public class Tape {
                     statePlay = State.STOP;
                     idxHeader = 0;
                     timeout = 1;
+                    lsm.setSelectionInterval(idxHeader, idxHeader);
                 } else {
+                    idxHeader++;
                     statePlay = State.START; // START
                 }
         }
@@ -1212,38 +1214,57 @@ public class Tape {
 
     public void fastload(Memory memory) {
 
-        System.out.println("fastload!");
         if (!tapeInserted || cpu == null) {
             return;
         }
 
-        int addr = cpu.getRegIX(); // Address start
-//        int flag = cpu.getRegA();
-//        int len = cpu.getRegDE();  // Length
-//        System.out.println(String.format("Entrada -> IX: %04X DE: %04X AF: %04X",
-//            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
+        System.out.println("fastload!");
 
-        if (tapePos >= tapeBuffer.length) {
+        if (idxHeader == nOffsetBlocks) {
             cpu.setCarryFlag(false);
             fastload = false;
             return;
         }
 
-        blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
+        if(tzxTape) {            
+            // Fastload only with Standard Speed Tape Blocks
+            while (idxHeader < nOffsetBlocks) {
+                tapePos = offsetBlocks[idxHeader];
+                if (tapeBuffer[tapePos] == 0x10)
+                    break;
+                    idxHeader++;
+            }
+
+            if (idxHeader == nOffsetBlocks) {
+                cpu.setCarryFlag(false);
+                fastload = false;
+                idxHeader = 0;
+                lsm.setSelectionInterval(idxHeader, idxHeader);
+                return;
+            }
+
+            lsm.setSelectionInterval(idxHeader, idxHeader);
+            blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
+            tapePos += 5;
+        } else {
+            tapePos = offsetBlocks[idxHeader];
+            blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
 //        System.out.println(String.format("tapePos: %X. blockLen: %X", tapePos, blockLen));
-        tapePos += 2;
+            tapePos += 2;
+        }
 
         // ¿Coincide el flag? (está en el registro A)
         if (cpu.getRegA() != tapeBuffer[tapePos]) {
             cpu.xor(tapeBuffer[tapePos]);
-            tapePos += blockLen;
+            idxHeader++;
             return;
         }
         // La paridad incluye el byte de flag
         cpu.setRegA(tapeBuffer[tapePos]);
 
         int count = 0;
-        int nBytes = cpu.getRegDE();
+        int addr = cpu.getRegIX();    // Address start
+        int nBytes = cpu.getRegDE();  // Lenght
         while (count < nBytes && count < blockLen - 1) {
             if (addr > 0x3fff) {
                 memory.writeByte(addr, tapeBuffer[tapePos + count + 1]);
@@ -1267,8 +1288,10 @@ public class Tape {
         }
         cpu.setRegIX(addr);
         cpu.setRegDE(nBytes - count);
+        idxHeader++;
+        lsm.setSelectionInterval(idxHeader, idxHeader);
 
-        tapePos += blockLen;
+//        tapePos += blockLen;
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
         return;

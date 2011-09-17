@@ -52,7 +52,8 @@ public class Snapshots {
         "UNSUPPORTED_SNAPSHOT",
         "FILE_WRITE_ERROR",
         "SNA_REGSP_ERROR",
-        "SNAP_EXTENSION_ERROR"
+        "SNAP_EXTENSION_ERROR",
+        "SNA_DONT_SUPPORT_PLUS3"
     };
 
     public Snapshots() {
@@ -443,6 +444,11 @@ public class Snapshots {
             return false;
         }
 
+        if (snapshotModel == MachineTypes.SPECTRUMPLUS3) {
+            error = 9;
+            return false;
+        }
+
         try {
             try {
                 fOut = new BufferedOutputStream(new FileOutputStream(filename));
@@ -717,9 +723,19 @@ public class Snapshots {
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             memory.reset();
                             break;
+                        case 7: // +3
+                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
+                            memory.reset();
+                            break;
                         case 12: // Plus 2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
                             memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
+                            memory.reset();
+                            break;
+                        case 13: // +2A
+                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
                             memory.reset();
                             break;
                         default:
@@ -739,9 +755,19 @@ public class Snapshots {
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             memory.reset();
                             break;
+                        case 7: // +3
+                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
+                            memory.reset();
+                            break;
                         case 12: // Plus 2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
                             memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
+                            memory.reset();
+                            break;
+                        case 13: // +2A
+                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
                             memory.reset();
                             break;
                         default:
@@ -916,7 +942,7 @@ public class Snapshots {
                     hwMode = 12;
                     break;
                 case SPECTRUMPLUS3:
-                    hwMode = 7;
+                    hwMode = 13; // +2A ID
             }
             fOut.write(hwMode);
 
@@ -945,7 +971,8 @@ public class Snapshots {
             fOut.write(0x00); // M.G.T. type
             fOut.write(0x00); // Disciple inhibit button status
             fOut.write(0xff); // Disciple inhibit flag
-            last1ffd = 0;
+            if (snapshotModel != MachineTypes.SPECTRUMPLUS3)
+                last1ffd = 0;
             fOut.write(last1ffd);
 
             int buffer[] = new int[0x4000];

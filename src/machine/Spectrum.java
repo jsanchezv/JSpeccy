@@ -32,7 +32,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     private Memory memory;
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
-    public int portFE, earBit = 0xbf, port7ffd;
+    public int portFE, earBit = 0xbf, port7ffd, port1ffd;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean soundOn, enabledAY, resetPending;
     private static final byte delayTstates[] =
@@ -47,7 +47,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public Tape tape;
     private boolean paused;
     private javax.swing.JLabel modelLabel, speedLabel;
-    private JMenuItem hardwareMenu48k, hardwareMenu128k, hardwareMenuPlus2;
+    private JMenuItem hardwareMenu48k, hardwareMenu128k,
+            hardwareMenuPlus2, hardwareMenuPlus3;
     private JMenuItem joystickNone, joystickKempston,
             joystickSinclair1, joystickSinclair2, joystickCursor;
 
@@ -62,9 +63,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         super("SpectrumThread");
         z80 = new Z80(this);
         memory = new Memory();
-        Arrays.fill(contendedRamPage, false);
-        Arrays.fill(contendedIOPage, false);
-        contendedRamPage[1] = contendedIOPage[1] = true;
         memory.loadRoms();
         initGFX();
         nFrame = speedometer = 0;
@@ -93,11 +91,27 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         memory.setSpectrumModel(spectrumModel);
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
-        if (spectrumModel == MachineTypes.SPECTRUM48K) {
-            buildScreenTables48k();
-        } else {
-            buildScreenTables128k();
+
+        Arrays.fill(contendedRamPage, false);
+        Arrays.fill(contendedIOPage, false);
+        switch (spectrumModel) {
+            case SPECTRUM48K:
+                buildScreenTables48k();
+                contendedRamPage[1] = contendedIOPage[1] = true;
+                break;
+            case SPECTRUM128K:
+            case SPECTRUMPLUS2:
+                buildScreenTables128k();
+                contendedRamPage[1] = contendedIOPage[1] = true;
+                break;
+            case SPECTRUMPLUS3:
+                buildScreenTablesPlus3();
+                Arrays.fill(contendedRamPage, false);
+                Arrays.fill(contendedIOPage, false);
+                contendedRamPage[1] = true;
+                break;
         }
+        
         issue3 = true;
         SwingUtilities.invokeLater(new Runnable() {
 
@@ -156,10 +170,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         ay8912.reset();
         audio.reset();
         keyboard.reset();
-        contendedRamPage[3] = contendedIOPage[3] = false;
         nFrame = 0;
         portFE = 0;
-        port7ffd = 0;
+        port7ffd = port1ffd = 0;
         ULAplusMode = false;
         paletteGroup = 0;
         invalidateScreen(true);
@@ -192,10 +205,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void setHardwareMenuItems(JMenuItem hw48k, JMenuItem hw128k,
-        JMenuItem hwPlus2) {
+        JMenuItem hwPlus2, JMenuItem hwPlus3) {
         hardwareMenu48k = hw48k;
         hardwareMenu128k = hw128k;
         hardwareMenuPlus2 = hwPlus2;
+        hardwareMenuPlus3 = hwPlus3;
     }
 
     public void setScreenComponent(JSpeccyScreen jScr) {
@@ -239,7 +253,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
             while (z80.tEstados < spectrumModel.lastScrUpdate) {
                 int fromTstates = z80.tEstados + 1;
-                z80.execute(fromTstates + 11);
+                z80.execute(fromTstates + 7);
                 updateScreen(fromTstates, z80.tEstados);
             }
             
@@ -261,11 +275,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             z80.tEstados -= spectrumModel.tstatesFrame;
 
             nFrame++;
-            if (ULAplusMode) {
-            } else {
-                if (nFrame % 16 == 0) {
-                    toggleFlash();
-                }
+            if (!ULAplusMode && nFrame % 16 == 0) {
+                toggleFlash();
             }
 
             if (nFrame % 50 == 0) {
@@ -354,7 +365,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && tape.isTapeInserted() && tape.isStopped()) {
-            if (!tape.isFastload() || tape.isTzxTape()) {
+            if (!tape.isFastload()) {
                 tape.play();
             } else {
                 tape.fastload(memory);
@@ -362,6 +373,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 return 0xC9; // RET opcode
             }
         }
+
+//        if (address == 0x05E2 && tape.isPlaying()) {
+//            tape.stop();
+//        }
+        
         return memory.readByte(address);
     }
 
@@ -432,7 +448,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void contendedStates(int address, int tstates) {
-        if (contendedRamPage[address >>> 14]) {
+        if (contendedRamPage[address >>> 14]
+                && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
             }
@@ -470,7 +487,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
 
         if (enabledAY) {
+            /* On the 128K/+2, reading from BFFDh will return the floating bus
+             * value as normal for unattached ports, but on the +2A/+3, it will
+             * return the same as reading from FFFDh */
             if ((port & 0xC002) == 0xC000) {
+                return ay8912.readRegister();
+            }
+
+            if (spectrumModel == MachineTypes.SPECTRUMPLUS3 &&
+                    (port & 0xC002) == 0x8000) {
                 return ay8912.readRegister();
             }
         }
@@ -486,46 +511,46 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
 //        System.out.println(String.format("InPort: %04X at %d t-states", port, z80.tEstados));
         int floatbus = 0xff;
-        int addr = 0;
-        int tstates = z80.tEstados;
-        if (tstates < spectrumModel.firstScrByte || tstates > spectrumModel.lastScrUpdate) {
-            return floatbus;
-        }
+        // El +3 no tiene bus flotante, responde siempre con 0xFF a puertos no usados
+        if (spectrumModel != MachineTypes.SPECTRUMPLUS3) {
+            int addr = 0;
+            int tstates = z80.tEstados;
+            if (tstates < spectrumModel.firstScrByte || tstates > spectrumModel.lastScrUpdate) {
+                return floatbus;
+            }
 
-        int col = (tstates % spectrumModel.tstatesLine) - spectrumModel.outOffset;
-        if (col > 124) {
-            return floatbus;
-        }
+            int col = (tstates % spectrumModel.tstatesLine) - spectrumModel.outOffset;
+            if (col > 124) {
+                return floatbus;
+            }
 
-        int row = tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
+            int row = tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
 
-        switch (col % 8) {
-            case 0:
-                addr = scrAddr[row] + col / 4;
-                floatbus = memory.readScreenByte(addr);
-                break;
-            case 1:
-                addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
-                floatbus = memory.readScreenByte(addr);
-                break;
-            case 2:
-                addr = scrAddr[row] + col / 4 + 1;
-                floatbus = memory.readScreenByte(addr);
-                break;
-            case 3:
-                addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
-                floatbus = memory.readScreenByte(addr);
-                break;
-        }
+            switch (col % 8) {
+                case 0:
+                    addr = scrAddr[row] + col / 4;
+                    floatbus = memory.readScreenByte(addr);
+                    break;
+                case 1:
+                    addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
+                    floatbus = memory.readScreenByte(addr);
+                    break;
+                case 2:
+                    addr = scrAddr[row] + col / 4 + 1;
+                    floatbus = memory.readScreenByte(addr);
+                    break;
+                case 3:
+                    addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
+                    floatbus = memory.readScreenByte(addr);
+                    break;
+            }
 
-        /*
-         * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
-         * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
-         */
-        if (spectrumModel != MachineTypes.SPECTRUM48K) {
-            if ((port & 0x8002) == 0) {
-                if (spectrumModel == MachineTypes.SPECTRUM128K ||
-                    spectrumModel == MachineTypes.SPECTRUMPLUS2) {
+            /*
+             * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
+             * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
+             */
+            if (spectrumModel != MachineTypes.SPECTRUM48K) {
+                if ((port & 0x8002) == 0) {
                     memory.setPort7ffd(floatbus);
                     // Si ha cambiado la pantalla visible hay que invalidar
                     if ((port7ffd & 0x08) != (floatbus & 0x08)) {
@@ -533,7 +558,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     }
                     // En el 128k las páginas impares son contended
                     contendedRamPage[3] = contendedIOPage[3] =
-                        (floatbus & 0x01) != 0 ? true : false;
+                            (floatbus & 0x01) != 0 ? true : false;
                     port7ffd = floatbus;
                 }
             }
@@ -562,7 +587,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 speaker = spkMic;
             }
 
-            if (tape.isStopped()) {
+            if (tape.isStopped() && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
                 int issueMask = issue3 ? 0x10 : 0x18;
@@ -576,7 +601,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             portFE = value;
         }
 
-        if (spectrumModel != MachineTypes.SPECTRUM48K) {
+        if (spectrumModel == MachineTypes.SPECTRUM128K ||
+                spectrumModel == MachineTypes.SPECTRUMPLUS2) {
             if ((port & 0x8002) == 0) {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
@@ -589,6 +615,46 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     invalidateScreen(true);
                 }
                 port7ffd = value;
+            }
+        }
+
+        if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+            // Port 0x7ffd decodes with bit15 and bit1 reset, bit14 set
+            if ((port & 0xC002) == 0x4000) {
+                memory.setPort7ffd(value);
+                 // En el +3 las páginas 4 a 7 son contended
+                contendedRamPage[3] = memory.getPlus3HighPage() > 3 ? true : false;
+                // Si ha cambiado la pantalla visible hay que invalidar
+                if (((port7ffd ^ value) & 0x08) != 0) {
+                    invalidateScreen(true);
+                }
+                port7ffd = value;
+            }
+
+            // Port 0x1ffd decodes with bit1, bit13, bit14 & bit15 reset,
+            // bit12 set.
+            if ((port & 0xF002) == 0x1000) {
+                memory.setPort1ffd(value);
+                if (memory.getPlus3RamMode()) {
+                    switch ((value & 0x06) >> 1) {
+                        case 0:
+                            Arrays.fill(contendedRamPage, false);
+                            break;
+                        case 1:
+                            Arrays.fill(contendedRamPage, true);
+                            break;
+                        case 2:
+                        case 3:
+                            Arrays.fill(contendedRamPage, true);
+                            contendedRamPage[3] = false;
+                    }
+                } else {
+                    contendedRamPage[0] = contendedRamPage[2]= false;
+                    contendedRamPage[1] = true;
+                    contendedRamPage[3] = memory.getPlus3HighPage() > 3 ? true : false;
+                }
+
+                port1ffd = value;
             }
         }
 
@@ -629,7 +695,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     green = (green << 5) | (green << 2) | (green & 0x03);
                     ULAplusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
                         (red << 16) | (green << 8) | blue;
-//                    paletteChanged = true;
                 }
                 invalidateScreen(true);
             }
@@ -715,6 +780,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
                     hardwareMenuPlus2.setSelected(true);
                     break;
+                case SPECTRUMPLUS3:
+                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                    hardwareMenuPlus3.setSelected(true);
+                    break;
             }
 
             z80.setRegI(snap.getRegI());
@@ -775,8 +844,31 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
                 port7ffd = snap.getPort7ffd();
                 memory.setPort7ffd(port7ffd);
-                contendedRamPage[3] = contendedIOPage[3] =
-                        (port7ffd & 0x01) != 0 ? true : false;
+                if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+                    port1ffd = snap.getPort1ffd();
+                    memory.setPort1ffd(port1ffd);
+                    if (memory.getPlus3RamMode()) {
+                        switch ((port1ffd & 0x06) >> 1) {
+                            case 0:
+                                Arrays.fill(contendedRamPage, false);
+                                break;
+                            case 1:
+                                Arrays.fill(contendedRamPage, true);
+                                break;
+                            case 2:
+                            case 3:
+                                Arrays.fill(contendedRamPage, true);
+                                contendedRamPage[3] = false;
+                        }
+                    } else {
+                        contendedRamPage[0] = contendedRamPage[2] = false;
+                        contendedRamPage[1] = true;
+                        contendedRamPage[3] = memory.getPlus3HighPage() > 3 ? true : false;
+                    }
+                } else {
+                    contendedRamPage[3] = contendedIOPage[3] =
+                            (port7ffd & 0x01) != 0 ? true : false;
+                }
             }
 
             if (snap.getAYEnabled() || snap.getSnapshotModel().hasAY8912()) {
@@ -828,6 +920,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         if (spectrumModel != MachineTypes.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
+            if (spectrumModel == MachineTypes.SPECTRUMPLUS3)
+                snap.setPort1ffd(port1ffd);
             int ayLatch = ay8912.getAddressLatch();
             snap.setPortfffd(ayLatch);
             for (int reg = 0; reg < 16; reg++) {
@@ -1424,6 +1518,47 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 delayTstates[frame++] = 1;
                 delayTstates[frame++] = 0;
                 delayTstates[frame++] = 0;
+            }
+        }
+    }
+
+    private void buildScreenTablesPlus3() {
+        int col, scan;
+
+        Arrays.fill(states2scr, -1);
+        for (int tstates = 14364; tstates < 58140; tstates += 4) {
+            col = (tstates % 228) / 4;
+            if (col > 31) {
+                continue;
+            }
+
+            scan = tstates / 228 - 63;
+            states2scr[tstates - 8] = scrAddr[scan] + col;
+        }
+
+        Arrays.fill(states2border, 0xf0cab0ba);
+        for (int tstates = 0; tstates < spectrumModel.tstatesFrame; tstates += 4) {
+            states2border[tstates] = tStatesToScrPix128k(tstates);
+            states2border[tstates + 1] = states2border[tstates];
+            states2border[tstates + 2] = states2border[tstates];
+            states2border[tstates + 3] = states2border[tstates];
+        }
+
+        // Diga lo que diga la FAQ de WoS, los estados de espera comienzan
+        // en 14361 y no en 14365. El programa TSTP3 de Pedro Gimeno lo
+        // confirma. Gracias Pedro!.
+        Arrays.fill(delayTstates, (byte) 0x00);
+        for (int idx = 14361; idx < 58040; idx += 228) {
+            for (int ndx = 0; ndx < 128; ndx += 8) {
+                int frame = idx + ndx;
+                delayTstates[frame++] = 1;
+                delayTstates[frame++] = 0;
+                delayTstates[frame++] = 7;
+                delayTstates[frame++] = 6;
+                delayTstates[frame++] = 5;
+                delayTstates[frame++] = 4;
+                delayTstates[frame++] = 3;
+                delayTstates[frame++] = 2;
             }
         }
     }

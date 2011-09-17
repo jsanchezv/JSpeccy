@@ -18,24 +18,24 @@ import java.util.logging.Logger;
  * @author jsanchez
  */
 public final class Memory {
-    final int PAGE_SIZE = 0x4000;
+    private final int PAGE_SIZE = 0x4000;
     
-    int[] Rom48k = new int[PAGE_SIZE];
-    int[][] Rom128k = new int[2][PAGE_SIZE];
-    int[][] RomPlus2 = new int[2][PAGE_SIZE];
-    int[][] RomPlus3 = new int[4][PAGE_SIZE];
+    private int[] Rom48k = new int[PAGE_SIZE];
+    private int[][] Rom128k = new int[2][PAGE_SIZE];
+    private int[][] RomPlus2 = new int[2][PAGE_SIZE];
+    private int[][] RomPlus3 = new int[4][PAGE_SIZE];
     // 8 páginas de RAM
-    int[][] Ram = new int[8][PAGE_SIZE];
+    private int[][] Ram = new int[8][PAGE_SIZE];
     // RAM falsa para dejar que escriba en páginas de ROM sin afectar a la
     // ROM de verdad. Esto evita tener que comprobar en cada escritura si la
     // página es de ROM o de RAM.
-    int[] fakeROM = new int[PAGE_SIZE];
+    private int[] fakeROM = new int[PAGE_SIZE];
     // punteros a las 4 páginas
-    int[][] readPages = new int[4][];
-    int[][] writePages = new int[4][];
+    private int[][] readPages = new int[4][];
+    private int[][] writePages = new int[4][];
     // Número de página de RAM de donde sale la pantalla activa
-    int screenPage, highPage, bankM, bankP;
-    boolean model128k, pagingLocked;
+    private int screenPage, highPage, bankM, bankP;
+    private boolean model128k, pagingLocked, plus3RamMode;
     MachineTypes spectrumModel;
 
     public Memory() {
@@ -93,7 +93,7 @@ public final class Memory {
         screenPage = 5;
         highPage = 0;
         model128k = true;
-        pagingLocked = false;
+        pagingLocked = plus3RamMode = false;
         bankM = 0;
     }
 
@@ -108,8 +108,23 @@ public final class Memory {
         screenPage = 5;
         highPage = 0;
         model128k = true;
-        pagingLocked = false;
+        pagingLocked = plus3RamMode = false;
         bankM = 0;
+    }
+
+    private void setMemoryMapPlus3() {
+        readPages[0] = RomPlus3[0];
+        writePages[0] = fakeROM;
+
+        readPages[1] = writePages[1] = Ram[5];
+        readPages[2] = writePages[2] = Ram[2];
+        readPages[3] = writePages[3] = Ram[0];
+
+        screenPage = 5;
+        highPage = 0;
+        model128k = true;
+        pagingLocked = plus3RamMode = false;
+        bankM = bankP = 0;
     }
 
     public void setPort7ffd(int port7ffd) {
@@ -117,12 +132,20 @@ public final class Memory {
         if (pagingLocked || port7ffd == bankM)
             return;
 
-        // Set the high page
-        highPage = port7ffd & 0x07;
-        readPages[3] = writePages[3] = Ram[highPage];
+        bankM = port7ffd;
+
+        // Set the page locking state
+        pagingLocked = (port7ffd & 0x20) == 0 ? false : true;
 
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
+
+        if (plus3RamMode)
+            return;
+
+        // Set the high page
+        highPage = port7ffd & 0x07;
+        readPages[3] = writePages[3] = Ram[highPage];
 
         // Set the active ROM
         switch (spectrumModel) {
@@ -132,12 +155,92 @@ public final class Memory {
             case SPECTRUMPLUS2:
                 readPages[0] = (port7ffd & 0x10) == 0 ? RomPlus2[0] : RomPlus2[1];
                 break;
+            case SPECTRUMPLUS3:
+                doPagingPlus3();
+                break;
         }
+    }
 
-        // Set the page locking state
-        pagingLocked = (port7ffd & 0x20) == 0 ? false : true;
+    public void setPort1ffd(int port1ffd) {
+        port1ffd &= 0x07;
+        if (pagingLocked || port1ffd == bankP)
+            return;
 
-        bankM = port7ffd;
+        bankP = port1ffd;
+
+        doPagingPlus3();
+    }
+
+    private void doPagingPlus3() {
+        // Paging mode normal (bit0 of 0x1ffd to 0)
+        if ((bankP & 0x01) == 0) {
+            int rom = ((bankM & 0x10) >>> 4) | ((bankP & 0x04) >>> 1);
+
+            readPages[0] = RomPlus3[rom];
+            writePages[0] = fakeROM;
+            plus3RamMode = false;
+        } else {
+            // Special paging mode (all pages are RAM)
+            plus3RamMode = true;
+            switch ((bankP & 0x06) >>> 1) {
+                case 0:
+                    readPages[0] = Ram[0];
+                    writePages[0] = Ram[0];
+                    readPages[1] = Ram[1];
+                    writePages[1] = Ram[1];
+                    readPages[2] = Ram[2];
+                    writePages[2] = Ram[2];
+                    readPages[3] = Ram[3];
+                    writePages[3] = Ram[3];
+                    highPage = 3;
+                    break;
+                case 1:
+                    readPages[0] = Ram[4];
+                    writePages[0] = Ram[4];
+                    readPages[1] = Ram[5];
+                    writePages[1] = Ram[5];
+                    readPages[2] = Ram[6];
+                    writePages[2] = Ram[6];
+                    readPages[3] = Ram[7];
+                    writePages[3] = Ram[7];
+                    highPage = 7;
+                    break;
+                case 2:
+                    readPages[0] = Ram[4];
+                    writePages[0] = Ram[4];
+                    readPages[1] = Ram[5];
+                    writePages[1] = Ram[5];
+                    readPages[2] = Ram[6];
+                    writePages[2] = Ram[6];
+                    readPages[3] = Ram[3];
+                    writePages[3] = Ram[3];
+                    highPage = 3;
+                    break;
+                case 3:
+                    readPages[0] = Ram[4];
+                    writePages[0] = Ram[4];
+                    readPages[1] = Ram[7];
+                    writePages[1] = Ram[7];
+                    readPages[2] = Ram[6];
+                    writePages[2] = Ram[6];
+                    readPages[3] = Ram[3];
+                    writePages[3] = Ram[3];
+                    highPage = 3;
+                    break;
+            }
+        }
+    }
+
+    public int getPlus3HighPage() {
+        return highPage;
+    }
+
+//    public int getPlus3ScreenPage() {
+//        return screenPage;
+//    }
+
+    public boolean getPlus3RamMode() {
+        return plus3RamMode;
     }
 
     // "La Abadía del Crimen" pone la página 7 en 0xC000 y selecciona la
@@ -174,6 +277,8 @@ public final class Memory {
             case SPECTRUMPLUS2:
                 setMemoryMapPlus2();
                 break;
+            case SPECTRUMPLUS3:
+                setMemoryMapPlus3();
         }
     }
 
@@ -186,14 +291,20 @@ public final class Memory {
         if (!loadRomAsFile("128-1.rom", Rom128k[1]))
             loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
 
-        if (!loadRomAsFile("plu2-0.rom", RomPlus2[0]))
+        if (!loadRomAsFile("plus2-0.rom", RomPlus2[0]))
             loadRomAsResource("/roms/plus2-0.rom", RomPlus2[0]);
         if (!loadRomAsFile("plus2-1.rom", RomPlus2[1]))
             loadRomAsResource("/roms/plus2-1.rom", RomPlus2[1]);
-//        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
-//            loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
-//        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
-//            loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
+
+        if (!loadRomAsFile("plus3-0.rom", RomPlus3[0]))
+            loadRomAsResource("/roms/plus3-0.rom", RomPlus3[0]);
+        if (!loadRomAsFile("plus3-1.rom", RomPlus3[1]))
+            loadRomAsResource("/roms/plus3-1.rom", RomPlus3[1]);
+        if (!loadRomAsFile("plus3-2.rom", RomPlus3[2]))
+            loadRomAsResource("/roms/plus3-2.rom", RomPlus3[2]);
+        if (!loadRomAsFile("plus3-3.rom", RomPlus3[3]))
+            loadRomAsResource("/roms/plus3-3.rom", RomPlus3[3]);
+
     }
 
     private boolean loadRomAsResource(String filename, int[] page) {

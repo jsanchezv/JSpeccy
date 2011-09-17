@@ -60,7 +60,7 @@
  *          era falso. Gracias a Woodster por el programa de test y por informarme
  *          del fallo. Thanks!, Woodster. :)
  *          Creo también los métodos isHalted/setHalted para acceder al flag. De paso,
- *          duplico el método push para que tenga dos parámetros y pdoer usarla así
+ *          duplico el método push para que tenga dos parámetros y poder usarla así
  *          con los registros de propósito general, para que sea más rápido.
  *
  *          23/08/2010 Increíble!. Después de tanto tiempo, aún he tenido que
