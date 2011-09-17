@@ -118,6 +118,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private void doReset() {
         z80.reset();
         memory.setMemoryMap128k();
+        contendedPage[3] = false;
         nFrame = 0;
         audio.audiotstates = 0;
         Arrays.fill(rowKey, 0xff);
@@ -247,14 +248,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
         do {
             z80.setINTLine(true);
-            z80.execute(36); // La INT dura 32 t-states
+            z80.execute(36); // La INT dura 36 t-states en el 128k
             z80.setINTLine(false);
             z80.execute(14363);
             updateInterval(14356, z80.tEstados);
             //System.out.println(String.format("t-states: %d", z80.tEstados));
             //int fromTstates;
             // El último byte de pantalla se muestra en el estado 57236
-            while (z80.tEstados < 58140) {
+            while (z80.tEstados < 58040) {
                 int fromTstates = z80.tEstados + 1;
                 z80.execute(fromTstates + 15);
                 updateInterval(fromTstates, z80.tEstados);
@@ -511,34 +512,49 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         int floatbus = 0xff;
         int addr = 0;
         int tstates = z80.tEstados;
-        if (tstates < 14336 || tstates > 57248) {
+//        if (tstates < 14336 || tstates > 57248) {
+        if (tstates < 14364 || tstates > 58040) {
             return floatbus;
         }
 
-        int col = (tstates % 224) - 3;
+        int col = (tstates % 228) -  1; // - 3;
         if (col > 124) {
             return floatbus;
         }
 
-        int row = tstates / 224 - 64;
+        int row = tstates / 228 - 63; // - 64
 
         switch (col % 8) {
             case 0:
                 addr = scrAddr[row] + col / 4;
+                floatbus = memory.readScreenByte(addr);
                 break;
             case 1:
                 addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
+                floatbus = memory.readScreenByte(addr);
                 break;
             case 2:
                 addr = scrAddr[row] + col / 4 + 1;
+                floatbus = memory.readScreenByte(addr);
                 break;
             case 3:
                 addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
+                floatbus = memory.readScreenByte(addr);
                 break;
-            default:
-                return floatbus;
+//            default:
+//                return floatbus;
         }
-        floatbus = memory.readScreenByte(addr);
+        
+        if ((port & 0x8002) == 0) {
+            memory.setMemoryMap128k(floatbus);
+            // En el 128k las páginas impares son contended
+            contendedPage[3] = (floatbus & 0x01) != 0 ? true : false;
+            // Si ha cambiado la pantalla visible hay que invalidar
+            if( (port7ffd & 0x08) != (floatbus & 0x08))
+                invalidateScreen();
+            port7ffd = floatbus;
+        }
+//        floatbus = memory.readScreenByte(addr);
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
 //                    tstates, addr, floatbus));
         return floatbus;
@@ -622,21 +638,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
      */
     private void postIO(int port) {
         if ((port & 0x0001) != 0) {
-            if ((port & 0xc000) == 0x4000) {
+            if (contendedPage[port >>> 14]) {
                 // A0 == 1 y es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
-//                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
-//                z80.tEstados++;
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
-//                z80.tEstados++;
-//                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
-//                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
-//                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
+
             } else {
                 // A0 == 1 y no es contended RAM
                 z80.tEstados += 3;
-//                z80.addTEstados(3);
             }
         } else {
 //            if ((port & 0xc000) == 0x4000) {
@@ -645,18 +655,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 //                z80.tEstados += 3;
 //            } else {
             // A0 == 0 y no es contended RAM
-            z80.tEstados += delayTstates[z80.tEstados] + 3;
-//            z80.tEstados += 3;
-//            z80.addTEstados(delayTstates[z80.getTEstados()] + 3);
-            // }
+                z80.tEstados += delayTstates[z80.tEstados] + 3;
+//            }
         }
     }
 
     private void preIO(int port) {
-        if ((port & 0xc000) == 0x4000) {
+        if (contendedPage[port >>> 14]) {
             // A0 == 1 y es contended RAM
             z80.tEstados += delayTstates[z80.tEstados];
-//            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados++;
 //        z80.addTEstados(1);
@@ -1380,8 +1387,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     private int tStatesToScrPix128k(int tstates) {
 
-        // Si los tstates son < 3648 (16 * 228), no estamos en la zona visible
-        if (tstates < (3648 + ((48 - BORDER_WIDTH) * 228))) {
+        // Si los tstates son < 3420 (15 * 228), no estamos en la zona visible
+        if (tstates < (3420 + ((48 - BORDER_WIDTH) * 228))) {
             return 0;
         }
 
@@ -1390,7 +1397,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             return imgData.length - 1;
         }
 
-        tstates -= 3648 + ((48 - BORDER_WIDTH) * 228);
+        tstates -= 3420 + ((48 - BORDER_WIDTH) * 228);
 
         int row = tstates / 228;
         int col = tstates % 228;
@@ -1654,7 +1661,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             states2border[tstates] = tStatesToScrPix128k(tstates);
 
         Arrays.fill(delayTstates, (byte) 0x00);
-        for (int idx = 14361; idx < 58137; idx += 228) {
+        for (int idx = 14361; idx < 58040; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;

@@ -66,22 +66,18 @@ public final class Memory {
 
     public void setMemoryMap128k() {
         readPages[0] = Rom128k[0];
-        readPages[1] = Ram[5];
-        readPages[2] = Ram[2];
-        readPages[3] = Ram[0];
-
         writePages[0] = fakeROM;
-        writePages[1] = Ram[5];
-        writePages[2] = Ram[2];
-        writePages[3] = Ram[0];
+
+        readPages[1] = writePages[1] = Ram[5];
+        readPages[2] = writePages[2] = Ram[2];
+        readPages[3] = writePages[3] = Ram[0];
 
         screenPage = 5;
     }
 
     public void setMemoryMap128k(int port7ffd) {
         // Set the high page
-        readPages[3] = Ram[port7ffd & 0x07];
-        writePages[3] = readPages[3];
+        readPages[3] = writePages[3] = Ram[port7ffd & 0x07];
 
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
