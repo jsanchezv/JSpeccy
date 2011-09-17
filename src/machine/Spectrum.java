@@ -167,7 +167,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 toggleFlash();
             }
 
-            tape.notifyTstates(nFrame, z80.tEstados);
+            //tape.notifyTstates(nFrame, z80.tEstados);
 //            if (tape.isPlaying())
 //                earBit = tape.getEarBit(nFrame, z80.tEstados);
 
@@ -438,40 +438,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((port & 0x0001) == 0) {
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                   z80.tEstados, z80.getRegPC()));
+//            System.out.println(String.format("InPort: %04X", port));
             res = ~res & 0xff;
             for (int row = 0, mask = 0x01; row < 8; row++, mask <<= 1) {
                 if ((res & mask) != 0) {
                     keys &= rowKey[row];
                 }
             }
-
-//            if (lastInPC == z80.getRegPC())
-//                nInPC++;
-//            else {
-//                lastInPC = z80.getRegPC();
-//                nInPC = 1;
-//            }
-//
-//            if (nInPC > 255 && tape.isStopped())
-//                tape.play();
-
-//            int noise = 0xff;
-//            if ( (portFE & 0x18) == 8 ) {
-//                noise &= (z80.getRegR() & 0x40);
-//            }
-
-//            earBit = tape.getEarBit();
-//            if (tape.isPlaying()) {
-////                earBit = tape.getEarBit();
-//                int spkMic = sp_volt[(earBit >>> 5) & 0x02];
-//                if (spkMic != speaker) {
-////                au_update();
-////                    if (soundOn) {
-//                        audio.updateAudio(z80.tEstados, speaker);
-////                    }
-//                    speaker = spkMic;
-//                }
-//            }
 
             return keys & tape.getEarBit();
         }
@@ -513,15 +486,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void outPort(int port, int value) {
         preIO(port);
-//        int tEstados = z80.tEstados;
-        //contendedIO(port);
-//        if( (port & 0x0001) == 0 ){
-//            System.out.println(String.format("%07d %5d PW %04x %02x %d",
-//                   nFrame, tEstados, port, value,
-//                  (tEstados < oldstate ? (tEstados+(69888-oldstate)) : (tEstados-oldstate))));
-//            oldstate = tEstados;
-//        }
-        //postIO(port);
 
         if ((port & 0x0001) == 0) {
             if ((portFE & 0x07) != (value & 0x07)) {
@@ -543,7 +507,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             //}
 
             if (tape.isStopped()) {
-                if ((value & 0x10) == 0)
+                if ((value & 0x10) == 0) // and con 0x18 para emular un Issue 2
                     tape.setEarBit(false);
                 else
                     tape.setEarBit(true);

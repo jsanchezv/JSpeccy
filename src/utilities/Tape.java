@@ -73,7 +73,7 @@ public class Tape {
         tapePos = 0;
         timeout = timeLastIn = 0;
         fastload = false;
-        earBit = 0xbf;
+        earBit = 0xff;
     }
 
     public void notifyTstates(long frames, int tstates) {
@@ -122,12 +122,13 @@ public class Tape {
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
         fastload = true;
-        earBit = 0xbf;
+//        earBit = 0xbf;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
             fastload = false;
             tapePos = 10; // saltamos la cabecera
         }
+        cpu.setExecDone(false);
         return true;
     }
 
@@ -141,7 +142,7 @@ public class Tape {
     }
 
     public void setEarBit(boolean earValue) {
-        earBit = earValue == false ? 0xbf : 0xff;
+        earBit = earValue ? 0xff : 0xbf;
     }
 
     public boolean isPlaying() {
@@ -434,7 +435,6 @@ public class Tape {
                         timeout = endBlockPause;
                         statePlay = State.TZX_HEADER;
                     }
-                    earBit = 0xbf;
                     break;
             }
         } while (repeat);
