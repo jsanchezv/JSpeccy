@@ -368,21 +368,21 @@ public class Snapshots {
 
             if (snaLen == 49179) { // 48K
                 for (int addr = 0x4000; addr < 0x10000; addr++) {
-                    memory.writeByte(addr, (int) fIn.read() & 0xff);
+                    memory.writeByte(addr, fIn.read() & 0xff);
                 }
                 regPC = 0x72; // dirección de RETN en la ROM
             } else {
                 boolean loaded[] = new boolean[8];
                 int highPage[] = new int[0x4000];
                 for (int addr = 0x4000; addr < 0xC000; addr++) {
-                    memory.writeByte(addr, (int) fIn.read() & 0xff);
+                    memory.writeByte(addr, fIn.read() & 0xff);
                 }
 
                 // Hasta que leamos el último valor del puerto 0x7ffd no sabemos
                 // en qué página hay que poner los últimos 16K. Los leemos en
                 // un buffer temporal y luego los copiamos (que remedio!!!)
                 for (int addr = 0x0000; addr < 0x4000; addr++) {
-                    highPage[addr] = (int) fIn.read() & 0xff;
+                    highPage[addr] = fIn.read() & 0xff;
                 }
                 
                 // En modo 128, la página 5 está en 0x4000 y la 2 en 0x8000.
@@ -391,10 +391,11 @@ public class Snapshots {
                 last7ffd = fIn.read() & 0xff;
                 // Si la página de memoria en 0xC000 era la 2 o la 5, ésta se
                 // habrá grabado dos veces, y esta segunda copia es redundante.
-                if ((last7ffd & 0x07) != 2 && (last7ffd & 0x07) != 5) {
-                    memory.setPort7ffd(last7ffd);
+                int page = last7ffd & 0x07;
+                if (page != 2 && page != 5) {
+//                    memory.setPort7ffd(last7ffd);
                     for (int addr = 0; addr < 0x4000; addr++) {
-                        memory.writeByte(addr + 0xC000, highPage[addr]);
+                        memory.writeByte(page, addr, highPage[addr]);
                     }
                     loaded[last7ffd & 0x07] = true;
                 }
@@ -406,11 +407,10 @@ public class Snapshots {
                     return false;
                 }
                 
-                for (int page = 0; page < 8; page++) {
+                for (page = 0; page < 8; page++) {
                     if (!loaded[page]) {
-                        memory.setPort7ffd(page);
-                        for (int addr = 0xC000; addr < 0x10000; addr++) {
-                            memory.writeByte(addr, (int) fIn.read() & 0xff);
+                        for (int addr = 0; addr < 0x4000; addr++) {
+                            memory.writeByte(page, addr, fIn.read() & 0xff);
                         }
                     }
                     // El formato SNA no guarda los registros del AY
@@ -424,6 +424,7 @@ public class Snapshots {
             fIn.close();
 
             issue3 = true; // esto no se guarda en los SNA, algo hay que poner...
+            joystick = Joystick.NONE; // idem
             tstates = 0;
 
         } catch (IOException ex) {
@@ -509,13 +510,11 @@ public class Snapshots {
                 saved[last7ffd & 0x07] = true;
                 for (int page = 0; page < 8; page++) {
                     if (!saved[page]) {
-                        memory.setPort7ffd(page);
-                        for (int addr = 0xC000; addr < 0x10000; addr++) {
-                            fOut.write(memory.readByte(addr));
+                        for (int addr = 0; addr < 0x4000; addr++) {
+                            fOut.write(memory.readByte(page, addr));
                         }
                     }
                 }
-                memory.setPort7ffd(last7ffd);
             }
 
             fOut.close();
@@ -528,33 +527,84 @@ public class Snapshots {
         return true;
     }
 
-    private boolean uncompressZ80(Memory memory, int address, int length) {
+    private int uncompressZ80(int buffer[], int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
+        int address = 0;
         try {
-            int endAddr = address + length;
-            while (fIn.available() > 0 && address < endAddr) {
+//            int endAddr = address + length;
+            while (fIn.available() > 0 && address < length) {
                 int mem = fIn.read() & 0xff;
                 if (mem != 0xED) {
-                    memory.writeByte(address++, mem);
+                    buffer[address++] = mem;
                 } else {
                     int mem2 = fIn.read() & 0xff;
                     if (mem2 != 0xED) {
-                        memory.writeByte(address++, 0xED);
-                        memory.writeByte(address++, mem2);
+                        buffer[address++] = 0xED;
+                        buffer[address++] = mem2;
                     } else {
                         int nreps = fIn.read() & 0xff;
                         int value = fIn.read() & 0xff;
                         while (nreps-- > 0) {
-                            memory.writeByte(address++, value);
+                            buffer[address++] = value;
                         }
                     }
                 }
             }
         } catch (IOException ex) {
             Logger.getLogger(Snapshots.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
+            return 0;
         }
-        return true;
+        return address;
+    }
+
+    private int countRepeatedByte(Memory memory, int page, int address, int value) {
+        int count = 0;
+
+        while(address < 0x4000 && count < 254 &&
+                value == memory.readByte(page, address++))
+            count++;
+
+        return count;
+    }
+    
+    private int compressPageZ80(Memory memory, int buffer[], int page) {
+        int address = 0;
+        int addrDst = 0;
+        int value, nReps;
+
+        while (address < 0x4000) {
+            value = memory.readByte(page, address++);
+            nReps = countRepeatedByte(memory, page, address, value);
+            if (value == 0xED) {
+                if(nReps == 0) {
+                    // El byte que sigue a ED siempre se representa sin
+                    // comprimir, aunque hayan repeticiones.
+                    buffer[addrDst++] = 0xED;
+                    buffer[addrDst++] = memory.readByte(page, address++);
+                } else {
+                    // Varios ED consecutivos siempre se comprimen, aunque
+                    // hayan menos de 5.
+                    buffer[addrDst++] = 0xED;
+                    buffer[addrDst++] = 0xED;
+                    buffer[addrDst++] = nReps + 1;
+                    buffer[addrDst++] = 0xED;
+                    address += nReps;
+                }
+            } else {
+                if (nReps < 4) {
+                    // Si hay menos de 5 valores consecutivos iguales
+                    // no se comprimen.
+                    buffer[addrDst++] = value;
+                } else {
+                    buffer[addrDst++] = 0xED;
+                    buffer[addrDst++] = 0xED;
+                    buffer[addrDst++] = nReps + 1;
+                    buffer[addrDst++] = value;
+                    address += nReps;
+                }
+            }
+        }
+        return addrDst;
     }
 
     private boolean loadZ80(File filename, Memory memory) {
@@ -618,16 +668,29 @@ public class Snapshots {
                 memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                 memory.reset();
                 if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
-                    int address;
-                    for (address = 0x4000; address < 0x10000; address++) {
-                        memory.writeByte(address, fIn.read() & 0xff);
+                    // Segmento 0x4000-0x7FFF a página 5
+                    for (int address = 0; address < 0x4000; address++) {
+                        memory.writeByte(5, address, fIn.read() & 0xff);
+                    }
+                    // Segmento 0x8000-0xBFFF a página 2
+                    for (int address = 0; address < 0x4000; address++) {
+                        memory.writeByte(2, address, fIn.read() & 0xff);
+                    }
+                    // Segmento 0xC000-0xFFFF a página 0
+                    for (int address = 0; address < 0x4000; address++) {
+                        memory.writeByte(0, address, fIn.read() & 0xff);
                     }
                 } else {
-                    uncompressZ80(memory, 0x4000, 0xC000);
-                    if (fIn.available() != 4) {
+                    int buffer[] = new int[0xC000];
+                    int len = uncompressZ80(buffer, buffer.length);
+                    if (len != 0xC000 || fIn.available() != 4) {
                         error = 4;
                         fIn.close();
                         return false;
+                    }
+
+                    for (int address = 0; address < buffer.length; address++) {
+                        memory.writeByte(address + 0x4000, buffer[address]);
                     }
                 }
             } else {
@@ -711,38 +774,44 @@ public class Snapshots {
                     }
                 }
 
+                int buffer[] = new int[0x4000];
                 while (fIn.available() > 0) {
-                    int addr;
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
                     if (snapshotModel == MachineTypes.SPECTRUM48K) {
                         switch (ramPage) {
                             case 4:  // 0x8000-0xbfff
-                                addr = 0x8000;
+                                ramPage = 2;
                                 break;
                             case 5:  // 0xC000-0xFFFF
-                                addr = 0xC000;
+                                ramPage = 0;
                                 break;
                             case 8:  // 0x4000-0x7FFF
-                                addr = 0x4000;
+                                ramPage = 5;
                                 break;
-                            default:
-                                addr = 0;
                         }
                     } else { // snapshotModel == 128K
-                        if (ramPage >= 3 && ramPage <= 10) {
-                            memory.setPort7ffd(ramPage - 3);
-                            addr = 0xC000;
-                        } else {
-                            addr = 0;
+                        if (ramPage < 3 || ramPage > 10) {
+                            continue;
                         }
+                        ramPage -= 3;
                     }
+
                     if (blockLen == 0xffff) { // uncompressed data
-                        for (int count = 0; count < 0x4000; count++) {
-                            memory.writeByte(addr + count, fIn.read() & 0xff);
+                        for (int addr = 0; addr < 0x4000; addr++) {
+                            memory.writeByte(ramPage, addr, fIn.read() & 0xff);
                         }
                     } else {
-                        uncompressZ80(memory, addr, 0x4000);
+                        int len = uncompressZ80(buffer, 0x4000);
+                        if (len != 0x4000) {
+                            error = 5;
+                            fIn.close();
+                            return false;
+                        }
+
+                        for (int address = 0; address < buffer.length; address++) {
+                            memory.writeByte(ramPage, address, buffer[address]);
+                        }
                     }
                 }
             }
@@ -831,6 +900,12 @@ public class Snapshots {
                     break;
                 case SPECTRUM128K:
                     hwMode = 4;
+                    break;
+                case SPECTRUMPLUS2:
+                    hwMode = 13;
+                    break;
+                case SPECTRUMPLUS3:
+                    hwMode = 7;
             }
             fOut.write(hwMode);
 
@@ -862,36 +937,45 @@ public class Snapshots {
             last1ffd = 0;
             fOut.write(last1ffd);
 
+            int buffer[] = new int[0x4000];
+            int bufLen;
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
-                fOut.write(0xff);
-                fOut.write(0xff); // bloque sin comprimir
-                fOut.write(4);    // 0x8000-0xbfff
-                for (int addr = 0x8000; addr < 0xC000; addr++) {
-                    fOut.write(memory.readByte(addr));
+                // Página 5, que corresponde a 0x4000-0x7FFF
+                bufLen = compressPageZ80(memory, buffer, 5);
+                fOut.write(bufLen);
+                fOut.write(bufLen >>> 8);
+                fOut.write(8);
+                for (int addr = 0; addr < bufLen; addr++) {
+                    fOut.write(buffer[addr]);
                 }
-                fOut.write(0xff);
-                fOut.write(0xff); // bloque sin comprimir
-                fOut.write(5);    // 0xC000-0xffff
-                for (int addr = 0xC000; addr < 0x10000; addr++) {
-                    fOut.write(memory.readByte(addr));
+
+                // Página 2, que corresponde a 0x8000-0xBFFF
+                bufLen = compressPageZ80(memory, buffer, 2);
+                fOut.write(bufLen);
+                fOut.write(bufLen >>> 8);
+                fOut.write(4);
+                for (int addr = 0; addr < bufLen; addr++) {
+                    fOut.write(buffer[addr]);
                 }
-                fOut.write(0xff);
-                fOut.write(0xff); // bloque sin comprimir
-                fOut.write(8);    // 0x4000-0x7fff
-                for (int addr = 0x4000; addr < 0x8000; addr++) {
-                    fOut.write(memory.readByte(addr));
+
+                // Página 0, que corresponde a 0xC000-0xFFFF
+                bufLen = compressPageZ80(memory, buffer, 0);
+                fOut.write(bufLen);
+                fOut.write(bufLen >>> 8);
+                fOut.write(5);
+                for (int addr = 0; addr < bufLen; addr++) {
+                    fOut.write(buffer[addr]);
                 }
             } else { // Mode 128k
                 for (int page = 0; page < 8; page++) {
-                    fOut.write(0xff);
-                    fOut.write(0xff); // bloque sin comprimir
+                    bufLen = compressPageZ80(memory, buffer, page);
+                    fOut.write(bufLen);
+                    fOut.write(bufLen >>> 8);
                     fOut.write(page + 3);
-                    memory.setPort7ffd(page);
-                    for (int addr = 0xC000; addr < 0x10000; addr++) {
-                        fOut.write(memory.readByte(addr));
+                    for (int addr = 0; addr < bufLen; addr++) {
+                        fOut.write(buffer[addr]);
                     }
                 }
-                memory.setPort7ffd(last7ffd);
             }
 
             fOut.close();

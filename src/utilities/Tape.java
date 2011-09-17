@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
@@ -34,6 +35,8 @@ public class Tape {
     private String filenameLabel;
 //    private File tapeName;
     private int tapeBuffer[];
+    private int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
+    private int nOffsetBlocks;
     private int tapePos;
     private int blockLen;
     private int mask;
@@ -82,6 +85,8 @@ public class Tape {
         earBit = 0xbf;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
+        nOffsetBlocks = 0;
+        Arrays.fill(offsetBlocks, 0);
     }
 
     public void setSpectrumModel(MachineTypes model) {
@@ -134,11 +139,20 @@ public class Tape {
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
         fastload = true;
-//        earBit = 0xbf;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
             fastload = false;
-            tapePos = 10; // saltamos la cabecera
+            findTZXOffsetBlocks();
+            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
+//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
+//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
+//            }
+        } else {
+            findTAPOffsetBlocks();
+            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
+//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
+//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
+//            }
         }
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
@@ -204,10 +218,10 @@ public class Tape {
         statePlay = State.STOP;
         tapePos += blockLen;
         if( tapePos == tapeBuffer.length )
-            if (tzxTape)
-                tapePos = 10;
-            else
-                tapePos = 0;
+//            if (tzxTape)
+//                tapePos = 10;
+//            else
+        tapePos = 0;
         timeLastIn = 0;
         cpu.setExecDone(false);
         updateTapeIcon();
@@ -217,10 +231,10 @@ public class Tape {
         if (!tapeInserted || statePlay != State.STOP)
             return false;
 
-        if (tzxTape)
-            tapePos = 10;
-        else
-            tapePos = 0;
+//        if (tzxTape)
+//            tapePos = 10;
+//        else
+          tapePos = 0;
 
         return true;
     }
@@ -233,6 +247,20 @@ public class Tape {
             return playTzx();
         else
             return playTap();
+    }
+
+    private int findTAPOffsetBlocks() {
+        nOffsetBlocks = 0;
+
+        int offset = 0;
+        Arrays.fill(offsetBlocks, 0);
+        while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
+            offsetBlocks[nOffsetBlocks++] = offset;
+            int len = tapeBuffer[offset] + (tapeBuffer[offset + 1] << 8);
+            offset += len + 2;
+        }
+
+        return nOffsetBlocks;
     }
 
     private boolean playTap() {
@@ -311,6 +339,122 @@ public class Tape {
                 }
         }
         return true;
+    }
+
+    private boolean isTZXHeader(int offset) {
+        if (tapeBuffer[offset] == 'Z' && tapeBuffer[offset + 1] == 'X' &&
+            tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a' &&
+            tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e' &&
+            tapeBuffer[offset + 6] == '!') {
+            return true;
+        }
+        return false;
+    }
+
+    private int findTZXOffsetBlocks() {
+        nOffsetBlocks = 0;
+
+        int offset = 0; // saltamos la cabecera del TZX
+        int len;
+        Arrays.fill(offsetBlocks, 0);
+        while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
+            offsetBlocks[nOffsetBlocks++] = offset;
+            if (isTZXHeader(offset)) {
+                offset += 10;
+                continue;
+            }
+            
+            switch (tapeBuffer[offset]) {
+                case 0x10: // Standard speed data block
+                    len = tapeBuffer[offset + 3] + (tapeBuffer[offset + 4] << 8);
+                    offset += len + 5;
+                    break;
+                case 0x11: // Turbo speed data block
+                    len = tapeBuffer[offset + 16] +
+                         (tapeBuffer[offset + 17] << 8) +
+                         (tapeBuffer[offset + 18] << 16);
+                    offset += len + 19;
+                    break;
+                case 0x12: // Pure Tone Block
+//                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8);
+                    offset += 5;
+                    break;
+                case 0x13: // Pulse Sequence Block
+                    len = tapeBuffer[offset + 1];
+                    offset += len * 2 + 2;
+                    break;
+                case 0x14: // Pure Data Block
+                    len = tapeBuffer[offset + 8] +
+                         (tapeBuffer[offset + 9] << 8) +
+                         (tapeBuffer[offset + 10] << 16);
+                    offset += len + 11;
+                    break;
+                case 0x15: // Direct Data Block
+                    len = tapeBuffer[offset + 6] +
+                         (tapeBuffer[offset + 7] << 8) +
+                         (tapeBuffer[offset + 8] << 16);
+                    offset += len + 9;
+                    break;
+                case 0x18: // CSW Recording Block
+                case 0x19: // Generalized Data Block
+                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8) +
+                         (tapeBuffer[offset + 3] << 16) + (tapeBuffer[offset + 4] << 24);
+                    offset += len + 5;
+                    break;
+                case 0x20: // Pause (silence) or 'Stop the Tape' command
+                case 0x23: // Jump to Block
+                case 0x24: // Loop Start
+                    offset += 3;
+                    break;
+                case 0x21: // Group Start
+                    len = tapeBuffer[offset + 1];
+                    offset += len + 2;
+                    break;
+                case 0x22: // Group End
+                case 0x25: // Loop End
+                case 0x27: // Return from Sequence
+                    offset++;
+                    break;
+                case 0x26: // Call Sequence
+                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8);
+                    offset += len * 2 + 3;
+                    break;
+                case 0x28: // Select Block
+                case 0x32: // Archive Info
+                    len = tapeBuffer[offset + 1] + (tapeBuffer[offset + 2] << 8);
+                    offset += len + 3;
+                    break;
+                case 0x2A: // Stop the tape if in 48K mode
+                    offset += 5;
+                    break;
+                case 0x2B: // Set Signal Level
+                    offset += 6;
+                    break;
+                case 0x30: // Text Description
+                    len = tapeBuffer[offset + 1];
+                    offset += len + 2;
+                    break;
+                case 0x31: // Message Block
+                    len = tapeBuffer[offset + 2];
+                    offset += len + 3;
+                    break;
+                case 0x33: // Hardware Type
+                    len = tapeBuffer[offset + 1];
+                    offset += len * 3 + 2;
+                    break;
+                case 0x35: // Custom Info Block
+                    len = tapeBuffer[offset + 17] + (tapeBuffer[offset + 18] << 8) +
+                         (tapeBuffer[offset + 19] << 16) + (tapeBuffer[offset + 20] << 24);
+                    offset += len + 21;
+                    break;
+                case 0x5A: // "Glue" Block
+                    offset += 10;
+                    break;
+                default:
+                    System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
+            }
+        }
+        return nOffsetBlocks;
     }
 
     private boolean playTzx() {
@@ -482,6 +626,11 @@ public class Tape {
         while (repeat) {
             if (tapePos == tapeBuffer.length)
                 return;
+
+            if (isTZXHeader(tapePos)) {
+                tapePos += 10;
+                continue;
+            }
             
             switch (tapeBuffer[tapePos]) {
                 case 0x10: // Standard speed data block
@@ -491,8 +640,8 @@ public class Tape {
                     zeroLenght = ZERO_LENGHT;
                     oneLenght = ONE_LENGHT;
                     bitsLastByte = 8;
-                    endBlockPause = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                    endBlockPause = (tapeBuffer[tapePos + 1] +
+                                    (tapeBuffer[tapePos + 2] << 8)) * 3500;
                     if (endBlockPause == 0)
                         endBlockPause = END_BLOCK_PAUSE;
                     blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
@@ -504,23 +653,23 @@ public class Tape {
                     break;
                 case 0x11: // Turbo speed data block
                     leaderLenght = (tapeBuffer[tapePos + 1] +
-                            (tapeBuffer[tapePos + 2] << 8));
-                    sync1Lenght = (tapeBuffer[tapePos + 3]
-                        + (tapeBuffer[tapePos + 4] << 8));
-                    sync2Lenght = (tapeBuffer[tapePos + 5]
-                        + (tapeBuffer[tapePos + 6] << 8));
-                    zeroLenght = (tapeBuffer[tapePos + 7]
-                        + (tapeBuffer[tapePos + 8] << 8));
-                    oneLenght = (tapeBuffer[tapePos + 9]
-                        + (tapeBuffer[tapePos + 10] << 8));
-                    leaderPulses = (tapeBuffer[tapePos + 11]
-                        + (tapeBuffer[tapePos + 12] << 8));
+                                   (tapeBuffer[tapePos + 2] << 8));
+                    sync1Lenght = (tapeBuffer[tapePos + 3] +
+                                  (tapeBuffer[tapePos + 4] << 8));
+                    sync2Lenght = (tapeBuffer[tapePos + 5] +
+                                  (tapeBuffer[tapePos + 6] << 8));
+                    zeroLenght = (tapeBuffer[tapePos + 7] +
+                                 (tapeBuffer[tapePos + 8] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 9] +
+                                (tapeBuffer[tapePos + 10] << 8));
+                    leaderPulses = (tapeBuffer[tapePos + 11] +
+                                   (tapeBuffer[tapePos + 12] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 13];
-                    endBlockPause = (tapeBuffer[tapePos + 14]
-                        + (tapeBuffer[tapePos + 15] << 8)) * 3500;
+                    endBlockPause = (tapeBuffer[tapePos + 14] +
+                                    (tapeBuffer[tapePos + 15] << 8)) * 3500;
                     blockLen = tapeBuffer[tapePos + 16] +
-                            (tapeBuffer[tapePos + 17] << 8) +
-                            (tapeBuffer[tapePos + 18] << 16);
+                              (tapeBuffer[tapePos + 17] << 8) +
+                              (tapeBuffer[tapePos + 18] << 16);
                     tapePos += 19;
                     timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
@@ -529,9 +678,9 @@ public class Tape {
                     break;
                 case 0x12: // Pure Tone Block
                     leaderLenght = (tapeBuffer[tapePos + 1] +
-                            (tapeBuffer[tapePos + 2] << 8));
-                    leaderPulses = (tapeBuffer[tapePos + 3]
-                        + (tapeBuffer[tapePos + 4] << 8));
+                                   (tapeBuffer[tapePos + 2] << 8));
+                    leaderPulses = (tapeBuffer[tapePos + 3] +
+                                   (tapeBuffer[tapePos + 4] << 8));
                     tapePos += 5;
                     statePlay = State.PURE_TONE_NOCHG;
                     repeat = false;
@@ -543,29 +692,29 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x14: // Pure Data Block
-                    zeroLenght = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8));
-                    oneLenght = (tapeBuffer[tapePos + 3]
-                        + (tapeBuffer[tapePos + 4] << 8));
+                    zeroLenght = (tapeBuffer[tapePos + 1] +
+                                 (tapeBuffer[tapePos + 2] << 8));
+                    oneLenght = (tapeBuffer[tapePos + 3] +
+                                (tapeBuffer[tapePos + 4] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 5];
-                    endBlockPause = (tapeBuffer[tapePos + 6]
-                        + (tapeBuffer[tapePos + 7] << 8)) * 3500;
+                    endBlockPause = (tapeBuffer[tapePos + 6] +
+                                    (tapeBuffer[tapePos + 7] << 8)) * 3500;
                     blockLen = tapeBuffer[tapePos + 8] +
-                            (tapeBuffer[tapePos + 9] << 8) +
-                            (tapeBuffer[tapePos + 10] << 16);
+                              (tapeBuffer[tapePos + 9] << 8) +
+                              (tapeBuffer[tapePos + 10] << 16);
                     tapePos += 11;
                     statePlay = State.NEWBYTE_NOCHG;
                     repeat = false;
                     break;
                 case 0x15: // Direct Data Block
-                    zeroLenght = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8));
-                    endBlockPause = (tapeBuffer[tapePos + 3]
-                        + (tapeBuffer[tapePos + 4] << 8)) * 3500;
+                    zeroLenght = (tapeBuffer[tapePos + 1] +
+                                 (tapeBuffer[tapePos + 2] << 8));
+                    endBlockPause = (tapeBuffer[tapePos + 3] +
+                                    (tapeBuffer[tapePos + 4] << 8)) * 3500;
                     bitsLastByte = tapeBuffer[tapePos + 5];
                     blockLen = tapeBuffer[tapePos + 6] +
-                            (tapeBuffer[tapePos + 7] << 8) +
-                            (tapeBuffer[tapePos + 8] << 16);
+                              (tapeBuffer[tapePos + 7] << 8) +
+                              (tapeBuffer[tapePos + 8] << 16);
                     tapePos += 9;
                     statePlay = State.NEWDR_BYTE;
                     repeat = false;
@@ -634,7 +783,7 @@ public class Tape {
                     break;
                 case 0x2B: // Set Signal Level
                     earBit = tapeBuffer[tapePos + 5] == 0 ? 0xbf : 0xff;
-                    tapePos += blockLen + 6;
+                    tapePos += 6;
                     break;
                 case 0x30: // Text Description
                     blockLen = tapeBuffer[tapePos + 1];

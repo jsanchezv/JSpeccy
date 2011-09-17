@@ -31,13 +31,13 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         spectrum.setInfoLabels(modelLabel, speedLabel);
         spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware);
-        spectrum.setJoystickMenuItems(kempstonJoystick, sinclair1Joystick,
-                                      sinclair2Joystick, cursorJoystick);
+        spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
+            sinclair1Joystick, sinclair2Joystick, cursorJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
         jscr.setScreenImage(spectrum.getTvImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
-        addKeyListener(spectrum);
+        addKeyListener(spectrum.getKeyboard());
         spectrum.start();
         spectrum.startEmulation();
     }

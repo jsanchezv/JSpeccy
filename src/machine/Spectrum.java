@@ -6,8 +6,6 @@ package machine;
 
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.File;
@@ -28,14 +26,13 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
+public class Spectrum extends Thread implements z80core.MemIoOps {
 
     private Z80 z80;
     private Memory memory;
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
-    private int rowKey[] = new int[8];
-    public int portFE, earBit = 0xbf, kempston, port7ffd;
+    public int portFE, earBit = 0xbf, port7ffd;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean soundOn, enabledAY, resetPending;
     private static final byte delayTstates[] =
@@ -44,14 +41,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private Timer timerFrame;
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
+    private Keyboard keyboard;
     private Audio audio;
     private AY8912 ay8912;
     public Tape tape;
     private boolean paused;
     private javax.swing.JLabel modelLabel, speedLabel;
     private JMenuItem hardwareMenu48k, hardwareMenu128k;
-    private JMenuItem joystickKempston, joystickSinclair1,
-                      joystickSinclair2, joystickCursor;
+    private JMenuItem joystickNone, joystickKempston,
+        joystickSinclair1, joystickSinclair2, joystickCursor;
     public static enum Joystick { NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR };
     private Joystick joystick;
     private boolean issue3;
@@ -67,10 +65,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         initGFX();
         nFrame = speedometer = 0;
         framesByInt = 1;
-        Arrays.fill(rowKey, 0xff);
         portFE = 0;
         port7ffd = 0;
-        kempston = 0;
         timerFrame = new Timer("SpectrumClock", true);
         ay8912 = new AY8912();
         audio = new Audio();
@@ -80,6 +76,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         select48kHardware();
         resetPending = false;
         joystick = Joystick.NONE;
+        keyboard = new Keyboard();
+        keyboard.setJoystick(joystick);
     }
 
     public final void select48kHardware() {
@@ -168,12 +166,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         memory.reset();
         ay8912.reset();
         audio.reset();
+        keyboard.reset();
         contendedRamPage[3] = contendedIOPage[3] = false;
         nFrame = 0;       
-        Arrays.fill(rowKey, 0xff);
         portFE = 0;
         port7ffd = 0;
-        kempston = 0;
         invalidateScreen();
     }
 
@@ -185,12 +182,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.triggerNMI();
     }
 
-    public void setJoystick(Joystick type) {
-        joystick = type;
+    public Keyboard getKeyboard() {
+        return keyboard;
     }
 
-    public void setJoystickMenuItems(JMenuItem jKempston, JMenuItem jSinclair1,
-        JMenuItem jSinclair2, JMenuItem jCursor) {
+    public void setJoystick(Joystick type) {
+        joystick = type;
+        keyboard.setJoystick(type);
+    }
+
+    public void setJoystickMenuItems(JMenuItem jNone, JMenuItem jKempston,
+        JMenuItem jSinclair1, JMenuItem jSinclair2, JMenuItem jCursor) {
+        joystickNone = jNone;
         joystickKempston = jKempston;
         joystickSinclair1 = jSinclair1;
         joystickSinclair2 = jSinclair2;
@@ -200,6 +203,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     public void setHardwareMenuItems(JMenuItem hw48k, JMenuItem hw128k) {
         hardwareMenu48k = hw48k;
         hardwareMenu128k = hw128k;
+    }
+
+    public void setScreenComponent(JSpeccyScreen jScr) {
+        this.jscr = jScr;
+    }
+
+    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent) {
+        modelLabel = nameComponent;
+        speedLabel = speedComponent;
     }
 
     public void generateFrame() {
@@ -300,15 +312,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
         //System.out.println("execFrame en: " + sleepTime);
-    }
-
-    public void setScreenComponent(JSpeccyScreen jScr) {
-        this.jscr = jScr;
-    }
-
-    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent) {
-        modelLabel = nameComponent;
-        speedLabel = speedComponent;
     }
 
     public int fetchOpcode(int address) {
@@ -435,7 +438,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     }
 
     public int inPort(int port) {
-        int res = port >>> 8;
+//        int res = port >>> 8;
 
 //        if ((port & 0xff) == 0xff) {
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
@@ -459,28 +462,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         if (((port & 0x00e0) == 0 || (port & 0x0020) == 0) &&
                 joystick == Joystick.KEMPSTON) {
 //            System.out.println(String.format("InPort: %04X, PC: %04X", port, z80.getRegPC()));
-            return kempston;
+            return keyboard.readKempstonPort();
+        }
+
+        if ((port & 0x0001) == 0) {
+            return keyboard.readKeyboardPort(port) & tape.getEarBit();
         }
 
         if (enabledAY) {
             if ((port & 0xC002) == 0xC000) {
                 return ay8912.readRegister();
             }
-        }
-
-        if ((port & 0x0001) == 0) {
-            int keys = 0xff;
-//            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
-//                   z80.tEstados, z80.getRegPC()));
-//            System.out.println(String.format("InPort: %04X", port));
-            res = ~res & 0xff;
-            for (int row = 0, mask = 0x01; row < 8; row++, mask <<= 1) {
-                if ((res & mask) != 0) {
-                    keys &= rowKey[row];
-                }
-            }
-
-            return keys & tape.getEarBit();
         }
 
 //        System.out.println(String.format("InPort: %04X at %d t-states", port, z80.tEstados));
@@ -668,513 +660,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
     }
 
-    public void keyPressed(KeyEvent evt) {
-        int key = evt.getKeyCode();
-        //System.out.println(evt.getKeyText(key));
-        switch (key) {
-            // Fila B - SPACE
-            case KeyEvent.VK_SPACE:
-                rowKey[7] &= 0xfe;
-                break;
-            case KeyEvent.VK_CONTROL:
-            case KeyEvent.VK_ALT:
-                rowKey[7] &= 0xfd; // Symbol-Shift
-                break;
-            case KeyEvent.VK_M:
-                rowKey[7] &= 0xfb;
-                break;
-            case KeyEvent.VK_N:
-                rowKey[7] &= 0xf7;
-                break;
-            case KeyEvent.VK_B:
-                rowKey[7] &= 0xef;
-                break;
-            // Fila ENTER - H
-            case KeyEvent.VK_ENTER:
-                rowKey[6] &= 0xfe;
-                break;
-            case KeyEvent.VK_L:
-                rowKey[6] &= 0xfd;
-                break;
-            case KeyEvent.VK_K:
-                rowKey[6] &= 0xfb;
-                break;
-            case KeyEvent.VK_J:
-                rowKey[6] &= 0xf7;
-                break;
-            case KeyEvent.VK_H:
-                rowKey[6] &= 0xef;
-                break;
-            // Fila P - Y
-            case KeyEvent.VK_P:
-                rowKey[5] &= 0xfe;
-                break;
-            case KeyEvent.VK_O:
-                rowKey[5] &= 0xfd;
-                break;
-            case KeyEvent.VK_I:
-                rowKey[5] &= 0xfb;
-                break;
-            case KeyEvent.VK_U:
-                rowKey[5] &= 0xf7;
-                break;
-            case KeyEvent.VK_Y:
-                rowKey[5] &= 0xef;
-                break;
-            // Fila 0 - 6
-            case KeyEvent.VK_0:
-                rowKey[4] &= 0xfe;
-                break;
-            case KeyEvent.VK_9:
-                rowKey[4] &= 0xfd;
-                break;
-            case KeyEvent.VK_8:
-                rowKey[4] &= 0xfb;
-                break;
-            case KeyEvent.VK_7:
-                rowKey[4] &= 0xf7;
-                break;
-            case KeyEvent.VK_6:
-                rowKey[4] &= 0xef; // 6
-                break;
-            // Fila 1 - 5
-            case KeyEvent.VK_1:
-                rowKey[3] &= 0xfe;
-                break;
-            case KeyEvent.VK_2:
-                rowKey[3] &= 0xfd;
-                break;
-            case KeyEvent.VK_3:
-                rowKey[3] &= 0xfb;
-                break;
-            case KeyEvent.VK_4:
-                rowKey[3] &= 0xf7;
-                break;
-            case KeyEvent.VK_5:
-                rowKey[3] &= 0xef;
-                break;
-            // Fila Q - T
-            case KeyEvent.VK_Q:
-                rowKey[2] &= 0xfe;
-                break;
-            case KeyEvent.VK_W:
-                rowKey[2] &= 0xfd;
-                break;
-            case KeyEvent.VK_E:
-                rowKey[2] &= 0xfb;
-                break;
-            case KeyEvent.VK_R:
-                rowKey[2] &= 0xf7;
-                break;
-            case KeyEvent.VK_T:
-                rowKey[2] &= 0xef;
-                break;
-            // Fila A - G
-            case KeyEvent.VK_A:
-                rowKey[1] &= 0xfe;
-                break;
-            case KeyEvent.VK_S:
-                rowKey[1] &= 0xfd;
-                break;
-            case KeyEvent.VK_D:
-                rowKey[1] &= 0xfb;
-                break;
-            case KeyEvent.VK_F:
-                rowKey[1] &= 0xf7;
-                break;
-            case KeyEvent.VK_G:
-                rowKey[1] &= 0xef;
-                break;
-            // Fila CAPS_SHIFT - V
-            case KeyEvent.VK_SHIFT:
-                rowKey[0] &= 0xfe;
-                break;
-            case KeyEvent.VK_Z:
-                rowKey[0] &= 0xfd;
-                break;
-            case KeyEvent.VK_X:
-                rowKey[0] &= 0xfb;
-                break;
-            case KeyEvent.VK_C:
-                rowKey[0] &= 0xf7;
-                break;
-            case KeyEvent.VK_V:
-                rowKey[0] &= 0xef;
-                break;
-            // Teclas de conveniencia, para mayor comodidad de uso
-            case KeyEvent.VK_BACK_SPACE:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xfe; // 0
-                break;
-            case KeyEvent.VK_COMMA:
-                rowKey[7] &= 0xf5; // SYMBOL-SHIFT + N
-                break;
-            case KeyEvent.VK_PERIOD:
-                rowKey[7] &= 0xf9; // SYMBOL-SHIFT + M
-                break;
-            case KeyEvent.VK_MINUS:
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
-                rowKey[6] &= 0xf7; // J
-                break;
-            case KeyEvent.VK_PLUS:
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
-                rowKey[6] &= 0xfb; // K
-                break;
-            case KeyEvent.VK_ALT_GRAPH:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT -- Extended Mode
-                break;
-            case KeyEvent.VK_CAPS_LOCK:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[3] &= 0xfd; // 2  -- Caps Lock
-                break;
-            // Emulación joystick
-            case KeyEvent.VK_LEFT:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
-                    case CURSOR:
-                        rowKey[3] &= 0xef; // 5  -- Left arrow
-                        break;
-                    case KEMPSTON:
-                        kempston |= 0x02;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] &= 0xfe; // 1 -- Left
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xef; // 6  -- Left
-                        break;
-                }
-                break;
-            case KeyEvent.VK_DOWN:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
-                    case CURSOR:
-                        rowKey[4] &= 0xef; // 6  -- Down arrow
-                        break;
-                    case KEMPSTON:
-                        kempston |= 0x04;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] &= 0xfb; // 3 -- Down
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xfb; // 8  -- Down
-                        break;
-                }
-                break;
-            case KeyEvent.VK_UP:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
-                    case CURSOR:
-                        rowKey[4] &= 0xf7; // 7  -- Up arrow
-                        break;
-                    case KEMPSTON:
-                        kempston |= 0x08;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] &= 0xf7; // 4 -- Up
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xfd; // 9 -- Up
-                        break;
-                }
-                break;
-            case KeyEvent.VK_RIGHT:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
-                    case CURSOR:
-                        rowKey[4] &= 0xfb; // 8  -- Right arrow
-                        break;
-                    case KEMPSTON:
-                        kempston |= 0x01;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] &= 0xfd; // 2 -- Right
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xf7; // 7  -- Right
-                        break;
-                }
-                break;
-            case KeyEvent.VK_DELETE:
-                switch (joystick) {
-                    case NONE:
-                        break;
-                    case CURSOR:
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xfe; // 0 -- Fire
-                        break;
-                    case KEMPSTON:
-                        kempston |= 0x10;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] &= 0xef; // 5 -- Fire
-                        break;
-                }
-                break;
-        }
-    }
-
-    public void keyReleased(KeyEvent evt) {
-        int key = evt.getKeyCode();
-        switch (key) {
-            // Fila SPACE - B
-            case KeyEvent.VK_SPACE:
-                rowKey[7] |= 0x01; //Spacebar
-                break;
-            case KeyEvent.VK_CONTROL:
-            case KeyEvent.VK_ALT:
-                rowKey[7] |= 0x02; // Symbol-Shift
-                break;
-            case KeyEvent.VK_M:
-                rowKey[7] |= 0x04; // M
-                break;
-            case KeyEvent.VK_N:
-                rowKey[7] |= 0x08; // N
-                break;
-            case KeyEvent.VK_B:
-                rowKey[7] |= 0x10; // B
-                break;
-            // Fila ENTER - H
-            case KeyEvent.VK_ENTER:
-                rowKey[6] |= 0x01; // ENTER
-                break;
-            case KeyEvent.VK_L:
-                rowKey[6] |= 0x02; // L
-                break;
-            case KeyEvent.VK_K:
-                rowKey[6] |= 0x04; // K
-                break;
-            case KeyEvent.VK_J:
-                rowKey[6] |= 0x08; // J
-                break;
-            case KeyEvent.VK_H:
-                rowKey[6] |= 0x10; // H
-                break;
-            // Fila P - Y
-            case KeyEvent.VK_P:
-                rowKey[5] |= 0x01; // P
-                break;
-            case KeyEvent.VK_O:
-                rowKey[5] |= 0x02; // O
-                break;
-            case KeyEvent.VK_I:
-                rowKey[5] |= 0x04; // I
-                break;
-            case KeyEvent.VK_U:
-                rowKey[5] |= 0x08; // U
-                break;
-            case KeyEvent.VK_Y:
-                rowKey[5] |= 0x10; // Y
-                break;
-            // Fila 0 - 6
-            case KeyEvent.VK_0:
-                rowKey[4] |= 0x01; // 0
-                break;
-            case KeyEvent.VK_9:
-                rowKey[4] |= 0x02; // 9
-                break;
-            case KeyEvent.VK_8:
-                rowKey[4] |= 0x04; // 8
-                break;
-            case KeyEvent.VK_7:
-                rowKey[4] |= 0x08; // 7
-                break;
-            case KeyEvent.VK_6:
-                rowKey[4] |= 0x10; // 6
-                break;
-            // Fila 1 - 5
-            case KeyEvent.VK_1:
-                rowKey[3] |= 0x01; // 1
-                break;
-            case KeyEvent.VK_2:
-                rowKey[3] |= 0x02; // 2
-                break;
-            case KeyEvent.VK_3:
-                rowKey[3] |= 0x04; // 3
-                break;
-            case KeyEvent.VK_4:
-                rowKey[3] |= 0x08; // 4
-                break;
-            case KeyEvent.VK_5:
-                rowKey[3] |= 0x10; // 5
-                break;
-            // Fila Q - T
-            case KeyEvent.VK_Q:
-                rowKey[2] |= 0x01; // Q
-                break;
-            case KeyEvent.VK_W:
-                rowKey[2] |= 0x02; // W
-                break;
-            case KeyEvent.VK_E:
-                rowKey[2] |= 0x04; // E
-                break;
-            case KeyEvent.VK_R:
-                rowKey[2] |= 0x08; // R
-                break;
-            case KeyEvent.VK_T:
-                rowKey[2] |= 0x10; // T
-                break;
-            // Fila A - G
-            case KeyEvent.VK_A:
-                rowKey[1] |= 0x01; // A
-                break;
-            case KeyEvent.VK_S:
-                rowKey[1] |= 0x02; // S
-                break;
-            case KeyEvent.VK_D:
-                rowKey[1] |= 0x04; // D
-                break;
-            case KeyEvent.VK_F:
-                rowKey[1] |= 0x08; // F
-                break;
-            case KeyEvent.VK_G:
-                rowKey[1] |= 0x10; // G
-                break;
-            // Fila CAPS_SHIFT - V
-            case KeyEvent.VK_SHIFT:
-                rowKey[0] |= 0x01; // CAPS-SHIFT
-                break;
-            case KeyEvent.VK_Z:
-                rowKey[0] |= 0x02; // Z
-                break;
-            case KeyEvent.VK_X:
-                rowKey[0] |= 0x04; // X
-                break;
-            case KeyEvent.VK_C:
-                rowKey[0] |= 0x08; // C
-                break;
-            case KeyEvent.VK_V:
-                rowKey[0] |= 0x10; // V
-                break;
-            // Teclas de conveniencia
-            case KeyEvent.VK_BACK_SPACE:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x01; // 0
-                break;
-            case KeyEvent.VK_COMMA:
-                rowKey[7] |= 0x0A; // SYMBOL-SHIFT + N
-                break;
-            case KeyEvent.VK_PERIOD:
-                rowKey[7] |= 0x06; // SYMBOL-SHIFT + M
-                break;
-            case KeyEvent.VK_MINUS:
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
-                rowKey[6] |= 0x08; // J
-                break;
-            case KeyEvent.VK_PLUS:
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
-                rowKey[6] |= 0x04; // K
-                break;
-            case KeyEvent.VK_ALT_GRAPH:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
-                break;
-            case KeyEvent.VK_CAPS_LOCK:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[3] |= 0x02; // 2
-                break;
-            // Emulación de Joysticks
-            case KeyEvent.VK_LEFT:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] |= 0x01; // CAPS
-                    case CURSOR:
-                        rowKey[3] |= 0x10; // 5  -- Left arrow
-                        break;
-                    case KEMPSTON:
-                        kempston &= 0xfd;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] |= 0x01; // 1 -- Left
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x10; // 6 -- Left
-                        break;
-                }
-                break;
-            case KeyEvent.VK_DOWN:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] |= 0x01; // CAPS
-                    case CURSOR:
-                        rowKey[4] |= 0x10; // 6  -- Down arrow
-                        break;
-                    case KEMPSTON:
-                        kempston &= 0xfb;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] |= 0x04; // 3 -- Down
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x04; // 8 -- Down
-                        break;
-                }
-                break;
-            case KeyEvent.VK_UP:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] |= 0x01; // CAPS
-                    case CURSOR:
-                        rowKey[4] |= 0x08; // 7  -- Up arrow
-                        break;
-                    case KEMPSTON:
-                        kempston &= 0xf7;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] |= 0x08; // 4 -- Up
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x02; // 9 -- Up
-                        break;
-                }
-                break;
-            case KeyEvent.VK_RIGHT:
-                switch (joystick) {
-                    case NONE:
-                        rowKey[0] |= 0x01; // CAPS
-                    case CURSOR:
-                        rowKey[4] |= 0x04; // 8  -- Right arrow
-                        break;
-                    case KEMPSTON:
-                        kempston &= 0xfe;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] |= 0x02; // 2 -- Right
-                        break;
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x08; // 7 -- Right
-                        break;
-                }
-                break;
-            case KeyEvent.VK_DELETE:
-                switch (joystick) {
-                    case NONE:
-                        break;
-                    case CURSOR:
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x01;   // 0 -- Fire
-                        break;
-                    case KEMPSTON:
-                        kempston &= 0xef;
-                        break;
-                    case SINCLAIR1:
-                        rowKey[3] |= 0x10;  // 5  -- Fire
-                        break;
-                }
-                break;
-        }
-    }
-
-    public void keyTyped(java.awt.event.KeyEvent evt) {
-        // TODO add your handling code here:
-    }
-
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
         if (snap.loadSnapshot(filename, memory)) {
@@ -1222,10 +707,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             z80.setRegPC(snap.getRegPC());
             z80.setTEstados(snap.getTstates());
             joystick = snap.getJoystick();
+            keyboard.setJoystick(joystick);
             switch (joystick) {
                 case NONE:
-                case CURSOR:
-                    joystickCursor.setSelected(true);
+                    joystickNone.setSelected(true);
                     break;
                 case KEMPSTON:
                     joystickKempston.setSelected(true);
@@ -1235,6 +720,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
                     break;
                 case SINCLAIR2:
                     joystickSinclair2.setSelected(true);
+                    break;
+                case CURSOR:
+                    joystickCursor.setSelected(true);
+                    break;
             }
 
             if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {

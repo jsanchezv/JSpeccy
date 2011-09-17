@@ -58,6 +58,14 @@ public final class Memory {
         writePages[address >>> 14][address & 0x3fff] = value;
     }
 
+    public int readByte(int page, int address) {
+        return Ram[page][address & 0x3fff];
+    }
+
+    public void writeByte(int page, int address, int value) {
+        Ram[page][address & 0x3fff] = value;
+    }
+
     private void setMemoryMap48k() {
         readPages[0] = Rom48k;
         readPages[1] = Ram[5];
