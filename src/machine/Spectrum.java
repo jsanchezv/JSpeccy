@@ -443,9 +443,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
     }
 
-    public void contendedStates(int msbAddr, int tstates) {
+    public void contendedStates(int address, int tstates) {
         //address &= 0xffff;
-        if ((msbAddr & 0xC0) == 0x40) {
+        if ((address & 0xC000) == 0x4000) {
             for (int idx = 0; idx < tstates; idx++) {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
 //                z80.addTEstados(delayTstates[z80.getTEstados()] + 1);
