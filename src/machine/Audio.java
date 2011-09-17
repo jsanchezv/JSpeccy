@@ -17,7 +17,7 @@ import javax.sound.sampled.SourceDataLine;
 
 class Audio
 {
-	byte buf[] = new byte[9600];
+	byte buf[] = new byte[7056]; // espacio para 4 frames de sonido
 	int bufp;
 
 	long div;
@@ -25,7 +25,7 @@ class Audio
 	int acct;
 	int accv0, accv1, level;
     public int audiotstates;
-    private int out1, out2, idxSampl;
+    private int idxSampl;
     private short bufSampl[];
     private double timeRem, spf;
 
@@ -34,11 +34,9 @@ class Audio
 		div = hz;
 		acct = hz;
 		idiv = (1<<30) / hz;
-        out1 = out2 = 0;
         timeRem = 0.0;
-//        spf = ((double)hz / (double)FREQ);
         spf = (double)69888 / ((double)FREQ / (double)50);
-        bufSampl = new short[5];
+        bufSampl = new short[10];
         java.util.Arrays.fill(bufSampl, (short)0);
         idxSampl = 0;
 	}
@@ -122,30 +120,26 @@ loop:
 
         while( time > spf ) {
             if( (value & 0x10) != 0 ) {
-                level = 0x2000;
+                level = 0x7000;
                 if( (value & 0x08) != 0)
                     level *= 1.06;
-                //level = (level + out1 + out2) / 3;
-                addSample((short)level);
             } else {
-                //level = (out1 + out2) / 3;
-                addSample((short)0);
+                level = 0;
             }
+            addSample((short)level);
             level = getSample();
+            addSample((short)level);
             buf[bufp++] = (byte) level;
             buf[bufp++] = (byte) (level >>> 8);
             if( bufp == buf.length )
                 bufp = flush(bufp);
-            addSample((short)level);
-//            out2 = out1;
-//            out1 = level;
             time -= spf;
         }
         timeRem = time;
     }
 
 
-	static final int FREQ = 48000;
+	static final int FREQ = 44100;
 	SourceDataLine line;
     DataLine.Info infoDataLine;
 
@@ -157,7 +151,7 @@ loop:
 			System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
 			SourceDataLine l = (SourceDataLine)AudioSystem.getLine(infoDataLine);
-			l.open(fmt, 4096);
+			l.open(fmt, buf.length);
 			l.start();
 			line = l;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
