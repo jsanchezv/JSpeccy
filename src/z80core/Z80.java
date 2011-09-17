@@ -160,7 +160,7 @@ public class Z80 {
     public final int IM2 = 2;
 
     // halted == true cuando la CPU está ejecutando un HALT (28/03/2010)
-    public boolean halted = false;
+    private boolean halted = false;
 
     /**
      * Registro interno que usa la CPU de la siguiente forma
@@ -652,6 +652,10 @@ public class Z80 {
         return halted;
     }
 
+    public void setHalted(boolean isHalted) {
+        halted = isHalted;
+    }
+
     // Reset
     /* Según el documento de Sean Young, que se encuentra en
      * [http://www.myquest.com/z80undocumented], la mejor manera de emular el
@@ -985,21 +989,21 @@ public class Z80 {
 
     // Operación AND lógica
     private final void and(int valor) {
-        regA = (regA & valor) & 0xff;
+        regA = regA & valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA] | HALFCARRY_MASK;
     }
 
     // Operación XOR lógica
     public final void xor(int valor) {
-        regA = (regA ^ valor) & 0xff;
+        regA = regA ^ valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
 
     // Operación OR lógica
     private final void or(int valor) {
-        regA = (regA | valor) & 0xff;
+        regA = regA | valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
@@ -1387,8 +1391,8 @@ public class Z80 {
         MemIoImpl.fetchOpcode(regPC);
         tEstados++;
         if (halted) {
-            regPC++;
             halted = false;
+            regPC = (regPC + 1) & 0xffff;
         }
         regR++;
         ffIFF2 = ffIFF1;
