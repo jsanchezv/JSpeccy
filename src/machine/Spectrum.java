@@ -5,8 +5,11 @@
 package machine;
 
 import gui.JSpeccyScreen;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -66,6 +69,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public Spectrum() {
         z80 = new Z80(this);
         loadRom();
+        initGFX();
         nFrame = 0;
         framesByInt = 1;
         Arrays.fill(rowKey, 0xff);
@@ -88,7 +92,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void startEmulation() {
         z80.setTEstados(0);
         audio.audiotstates = 0;
-        jscr.invalidateScreen();
+        invalidateScreen();
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
         paused = false;
@@ -97,7 +101,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void stopEmulation() {
         taskFrame.cancel();
         paused = true;
-        audio.bufp = audio.flush(audio.bufp);
+        audio.flush();
     }
 
     public void reset() {
@@ -108,8 +112,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.setExecDone(false);
         z80.reset();
         nFrame = 0;
+        audio.flush();
         audio.audiotstates = 0;
-        jscr.invalidateScreen();
+        invalidateScreen();
     }
 
     public boolean isPaused() {
@@ -136,7 +141,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.setINTLine(false);
             z80.statesLimit = 14335;
             z80.execute();
-            jscr.updateInterval(14328, z80.tEstados);
+            updateInterval(14328, z80.tEstados);
             //System.out.println(String.format("t-states: %d", z80.tEstados));
             int fromTstates;
             // El último byte de pantalla se muestra en el estado 57236
@@ -144,12 +149,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 fromTstates = z80.tEstados + 1;
                 z80.statesLimit = fromTstates + 15;
                 z80.execute();
-                jscr.updateInterval(fromTstates, z80.tEstados);
+                updateInterval(fromTstates, z80.tEstados);
             }
 
             z80.statesLimit = FRAMES48k;
             z80.execute();
-
 
             audio.updateAudio(z80.tEstados, speaker);
             audio.audiotstates -= FRAMES48k;
@@ -160,15 +164,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.tEstados -= FRAMES48k;
 
             if (++nFrame % 16 == 0) {
-                jscr.toggleFlash();
+                toggleFlash();
             }
 
+            tape.notifyTstates(nFrame, z80.tEstados);
 //            if (tape.isPlaying())
 //                earBit = tape.getEarBit(nFrame, z80.tEstados);
 
         } while (--counter > 0);
 
-        if (jscr.screenUpdated || jscr.nBorderChanges > 0) {
+        if (screenUpdated || nBorderChanges > 0) {
+            if (nBorderChanges > 0) {
+                if (nBorderChanges == 1) {
+                    intArrayFill(imgData, Paleta[portFE & 0x07]);
+                    nBorderChanges = 0;
+                } else {
+                    nBorderChanges = 1;
+                }
+            }
+
+            gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
+
+            if (nBorderChanges == 0) {
+                screenUpdated = false;
+            }
             jscr.repaint();
         }
 
@@ -185,8 +204,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //
 //        generateFrame();
 //    }
-    public void setScreen(JSpeccyScreen jscr) {
-        this.jscr = jscr;
+    public void setScreenComponent(JSpeccyScreen jScr) {
+        this.jscr = jScr;
     }
 
     private void loadRom() {
@@ -282,8 +301,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 4;
 
         if ((z80.getRegI() & 0xC0) == 0x40) {
-            jscr.m1contended = z80.tEstados;
-            jscr.m1regR = z80.getRegR();
+            m1contended = z80.tEstados;
+            m1regR = z80.getRegR();
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
@@ -310,7 +329,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (address < 0x5b00) {
-                jscr.screenUpdated(address);
+                screenUpdated(address);
             }
         }
         z80.tEstados += 3;
@@ -346,7 +365,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (address < 0x5b00) {
-                jscr.screenUpdated(address);
+                screenUpdated(address);
             }
         }
         z80.tEstados += 3;
@@ -360,7 +379,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
             if (address < 0x5b00) {
-                jscr.screenUpdated(address);
+                screenUpdated(address);
             }
         }
         z80.tEstados += 3;
@@ -395,7 +414,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        System.out.println(String.format("InPort: %04X", port));
         preIO(port);
         postIO(port);
-        tape.notifyTstates(nFrame, z80.tEstados);
+//        tape.notifyTstates(nFrame, z80.tEstados);
 
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
@@ -437,20 +456,20 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
-            earBit = tape.getEarBit();
-            if (tape.isPlaying()) {
-//                earBit = tape.getEarBit();
-                int spkMic = sp_volt[(earBit >>> 5) & 0x02];
-                if (spkMic != speaker) {
-//                au_update();
-                    if (soundOn) {
-                        audio.updateAudio(z80.tEstados, speaker);
-                    }
-                    speaker = spkMic;
-                }
-            }
+//            earBit = tape.getEarBit();
+//            if (tape.isPlaying()) {
+////                earBit = tape.getEarBit();
+//                int spkMic = sp_volt[(earBit >>> 5) & 0x02];
+//                if (spkMic != speaker) {
+////                au_update();
+////                    if (soundOn) {
+//                        audio.updateAudio(z80.tEstados, speaker);
+////                    }
+//                    speaker = spkMic;
+//                }
+//            }
 
-            return keys & earBit;
+            return keys & tape.getEarBit();
         }
 
         int addr = 0;
@@ -469,16 +488,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
             switch (col % 8) {
                 case 0:
-                    addr = jscr.scrAddr[row] + col / 4;
+                    addr = scrAddr[row] + col / 4;
                     break;
                 case 1:
-                    addr = jscr.scr2attr[(jscr.scrAddr[row] + col / 4) & 0x1fff];
+                    addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
                     break;
                 case 2:
-                    addr = jscr.scrAddr[row] + col / 4 + 1;
+                    addr = scrAddr[row] + col / 4 + 1;
                     break;
                 case 3:
-                    addr = jscr.scr2attr[(jscr.scrAddr[row] + col / 4 + 1) & 0x1fff];
+                    addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
                     break;
                 default:
                     return 0xff;
@@ -505,16 +524,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                if( (value & 0x07) == 0x07 )
 //                    System.out.println(String.format("tstates: %d border: %d",
 //                        z80.tEstados, value&0x07));
-                jscr.updateBorder(z80.tEstados);
+                updateBorder(z80.tEstados);
             }
 
             //if (tape.isStopped()) {
                 int spkMic = sp_volt[value >> 3 & 3];
                 if (spkMic != speaker) {
 //                au_update();
-                    if (soundOn) {
+//                    if (soundOn) {
                         audio.updateAudio(z80.tEstados, speaker);
-                    }
+//                    }
                     speaker = spkMic;
                 }
             //}
@@ -539,7 +558,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        }
         //preIO(port);
         postIO(port);
-        tape.notifyTstates(nFrame, z80.tEstados);
+//        tape.notifyTstates(nFrame, z80.tEstados);
     }
 
     /*
@@ -597,11 +616,18 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void execDone(int tstates) {
-//        if (tape.isPlaying()) {
-//            earBit = tape.getEarBit(nFrame, z80.tEstados);
-//        } else {
-//            z80.setExecDone(false);
-//        }
+        tape.notifyTstates(nFrame, z80.tEstados);
+        if (tape.isPlaying()) {
+            earBit = tape.getEarBit();
+            int spkMic = sp_volt[(earBit >>> 5) & 0x02];
+            if (spkMic != speaker) {
+//                au_update();
+//                if (soundOn) {
+                audio.updateAudio(z80.tEstados, speaker);
+            }
+            speaker = spkMic;
+//            }
+        }
     }
 
     public void keyPressed(KeyEvent evt) {
@@ -1018,7 +1044,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.setTEstados(snap.getTstates());
 
             System.out.println(
-                java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
+              java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                 java.util.ResourceBundle.getBundle("machine/Bundle").getString(
@@ -1060,7 +1086,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             audio.open(3500000);
             framesByInt = 1;
         } else {
-            audio.bufp = audio.flush(audio.bufp);
+            audio.flush();
             audio.close();
             framesByInt = 10;
         }
@@ -1092,11 +1118,346 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         sp_volt[2] = (int) SPEAKER_VOLUME;
         sp_volt[3] = (int) (SPEAKER_VOLUME * 1.25);
     }
-//    private int tapeStates;
-//    private int readTape(int tstates) {
-//        int earIn = 0xbf;
-//        if (tstates < tapeStates)
-//            tstates += FRAMES48k;
-//        return earIn;
-//    }
+
+    /* Sección gráfica */
+    //Vector con los valores correspondientes a lo colores anteriores
+    private static final int[] Paleta = {
+        0x000000, /* negro */
+        0x0000c0, /* azul */
+        0xc00000, /* rojo */
+        0xc000c0, /* magenta */
+        0x00c000, /* verde */
+        0x00c0c0, /* cyan */
+        0xc0c000, /* amarillo */
+        0xc0c0c0, /* blanco */
+        0x000000, /* negro brillante */
+        0x0000ff, /* azul brillante */
+        0xff0000, /* rojo brillante	*/
+        0xff00ff, /* magenta brillante */
+        0x00ff00, /* verde brillante */
+        0x00ffff, /* cyan brillante */
+        0xffff00, /* amarillo brillante */
+        0xffffff /* blanco brillante */};
+
+    // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
+    // corresponde una entrada en la tabla que hace referencia al color
+    // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
+    // ya están cambiados, lo que facilita el tratamiento del FLASH.
+    private static final int Paper[] = new int[256];
+    private static final int Ink[] = new int[256];
+    // Tabla de correspondencia entre la dirección de pantalla y su atributo
+    public final int scr2attr[] = new int[0x1800];
+    // Tabla de correspondencia entre cada atributo y el primer byte del carácter
+    // en la pantalla del Spectrum (la contraria de la anterior)
+    private final int attr2scr[] = new int[768];
+    // Tabla de correspondencia entre la dirección de pantalla del Spectrum
+    // y la dirección que le corresponde en el BufferedImage.
+    private final int bufAddr[] = new int[0x1800];
+    // Tabla que contiene la dirección de pantalla del primer byte de cada
+    // carácter en la columna cero.
+    public final int scrAddr[] = new int[192];
+    // Tabla que indica si un byte de la pantalla ha sido modificado y habrá que
+    // redibujarlo.
+    private final boolean dirtyByte[] = new boolean[0x1800];
+    // Tabla de traslación entre t-states y la dirección de la pantalla del
+    // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
+    private final int states2scr[] = new int[69050];
+    // Tabla de traslación de t-states al pixel correspondiente del borde.
+    private final int states2border[] = new int[FRAMES48k+100];
+    private static final int BORDER_WIDTH = 32;
+    private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+    private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
+
+    static {
+        // Inicialización de las tablas de Paper/Ink
+        /* Para cada valor de atributo, hay dos tablas, donde cada una
+         * ya tiene el color que le corresponde, para no tener que extraerlo
+         */
+        for (int idx = 0; idx < 256; idx++) {
+            int ink = (idx & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
+            int paper = ((idx >>> 3) & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
+            if (idx < 128) {
+                Ink[idx] = Paleta[ink];
+                Paper[idx] = Paleta[paper];
+            } else {
+                Ink[idx] = Paleta[paper];
+                Paper[idx] = Paleta[ink];
+            }
+        }
+    }
+    private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
+    private BufferedImage bImg;
+    private int imgData[];
+    private BufferedImage bImgScr;
+    private int imgDataScr[];
+    // t-states del último cambio de border
+    private int lastChgBorder;
+    // veces que ha cambiado el borde en el último frame
+    public int nBorderChanges;
+    public boolean screenUpdated;
+    // t-states del ciclo contended por I=0x40-0x7F o -1
+    public int m1contended;
+    // valor del registro R cuando se produjo el ciclo m1
+    public int m1regR;
+    private Graphics2D gcImg;
+
+    private void initGFX() {
+        bImg = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        imgData = ((DataBufferInt) bImg.getRaster().getDataBuffer()).getBankData()[0];
+        gcImg = bImg.createGraphics();
+        bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
+        imgDataScr = ((DataBufferInt) bImgScr.getRaster().getDataBuffer()).getBankData()[0];
+        buildScreenTables();
+
+        lastChgBorder = 0;
+        m1contended = -1;
+        Arrays.fill(dirtyByte, true);
+        screenUpdated = false;
+    }
+
+    public BufferedImage getScreenImage() {
+        return bImg;
+    }
+    
+    public synchronized void toggleFlash() {
+        flash = (flash == 0x7f ? 0xff : 0x7f);
+        for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
+            if (z80Ram[addrAttr] > 0x7f) {
+                int address = attr2scr[addrAttr & 0x3ff] & 0x1fff;
+                for (int scan = 0; scan < 8; scan++) {
+                    dirtyByte[address] = true;
+                    address += 256;
+                }
+            }
+        }
+    }
+
+    /*
+     * Cada línea completa de imagen dura 224 T-Estados, divididos en:
+     * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
+     * 24 T-Estados en los que se dibujan los 48 pixeles del borde derecho
+     * 48 T-Estados iniciales de H-Sync y blanking
+     * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
+     *
+     * Cada pantalla consta de 312 líneas divididas en:
+     * 16 líneas en las cuales el haz vuelve a la parte superior de la pantalla
+     * 48 líneas de borde superior
+     * 192 líneas de pantalla
+     * 56 líneas de borde inferior de las cuales se ven solo 48
+     */
+    private int tStatesToScrPix(int tstates) {
+
+        // Si los tstates son < 3584 (16 * 224), no estamos en la zona visible
+        if (tstates < (3584 + ((48 - BORDER_WIDTH) * 224))) {
+            return 0;
+        }
+
+        // Se evita la zona no visible inferior
+        if (tstates > (256 + BORDER_WIDTH) * 224) {
+            return imgData.length - 1;
+        }
+
+        tstates -= 3584 + ((48 - BORDER_WIDTH) * 224);
+
+        int row = tstates / 224;
+        int col = tstates % 224;
+
+        // No se puede dibujar en el borde con precisión de pixel.
+        int mod = col % 8;
+        col -= mod;
+        if (mod > 3) {
+            col += 4;
+        }
+
+//        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
+//                tstates+3584, row, col, mod));
+
+        int pix = row * SCREEN_WIDTH;
+
+        if (col < (128 + BORDER_WIDTH / 2)) {
+            return pix + col * 2 + BORDER_WIDTH;
+        }
+        if (col > (199 + (48 - BORDER_WIDTH) / 2)) {
+            return pix + (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
+        } else {
+            return pix + SCREEN_WIDTH;
+        }
+    }
+
+    public void updateBorder(int tstates) {
+        int startPix, endPix, color;
+
+        if (tstates < lastChgBorder) {
+            //startPix = tStatesToScrPix(lastChgBorder);
+            startPix = states2border[lastChgBorder];
+            if (startPix < imgData.length - 1) {
+                color = Paleta[portFE & 0x07];
+                for (int count = startPix; count < imgData.length - 1; count++) {
+                    imgData[count] = color;
+                }
+            }
+            lastChgBorder = 0;
+            nBorderChanges++;
+        }
+
+        startPix = states2border[lastChgBorder];
+        //startPix = tStatesToScrPix(lastChgBorder);
+        if (startPix > imgData.length - 1) {
+            lastChgBorder = tstates;
+            return;
+        }
+
+        //endPix = tStatesToScrPix(tstates);
+        endPix = states2border[tstates];
+        if (endPix > imgData.length - 1) {
+            endPix = imgData.length - 1;
+        }
+
+        if (startPix < endPix) {
+            color = Paleta[portFE & 0x07];
+            for (int count = startPix; count < endPix; count++) {
+                imgData[count] = color;
+            }
+        }
+        lastChgBorder = tstates;
+        nBorderChanges++;
+    }
+
+    public void updateInterval(int fromTstates, int toTstates) {
+        int fromAddr, addrBuf;
+        int paper, ink;
+        int scrByte, attr;
+        //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
+
+        while (fromTstates % 4 != 0) {
+            fromTstates++;
+        }
+
+        while (fromTstates <= toTstates) {
+            fromAddr = states2scr[fromTstates];
+            if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
+                fromTstates += 4;
+                continue;
+            }
+
+            scrByte = attr = 0;
+            // si m1contended != -1 es que hay que emular el efecto snow.
+            if (m1contended == -1) {
+                scrByte = z80Ram[fromAddr];
+                fromAddr &= 0x1fff;
+                attr = z80Ram[scr2attr[fromAddr]];
+            } else {
+                int addr;
+                int mod = m1contended % 8;
+                if (mod == 0 || mod == 1) {
+                    addr = (fromAddr & 0xff00) | m1regR;
+                    scrByte = z80Ram[addr];
+                    attr = z80Ram[scr2attr[fromAddr & 0x1fff]];
+                    //System.out.println("Snow even");
+                }
+                if (mod == 2 || mod == 3) {
+                    addr = (scr2attr[fromAddr & 0x1fff] & 0xff00) | m1regR;
+                    scrByte = z80Ram[fromAddr];
+                    attr = z80Ram[addr & 0x1fff];
+                    //System.out.println("Snow odd");
+                }
+                fromAddr &= 0x1fff;
+                m1contended = -1;
+            }
+
+            addrBuf = bufAddr[fromAddr];
+            if (attr > 0x7f) {
+                attr &= flash;
+            }
+            ink = Ink[attr];
+            paper = Paper[attr];
+            for (int mask = 0x80; mask != 0; mask >>= 1) {
+                if ((scrByte & mask) != 0) {
+                    imgDataScr[addrBuf++] = ink;
+                } else {
+                    imgDataScr[addrBuf++] = paper;
+                }
+            }
+            dirtyByte[fromAddr] = false;
+            screenUpdated = true;
+            fromTstates += 4;
+        }
+    }
+
+    public void screenUpdated(int address) {
+        if (address < 0x5800) {
+            dirtyByte[address & 0x1fff] = true;
+        } else {
+            int addr = attr2scr[address & 0x3ff] & 0x1fff;
+            for (int scan = 0; scan < 8; scan++) {
+                dirtyByte[addr] = true;
+                addr += 256;
+            }
+        }
+    }
+
+    public void invalidateScreen() {
+        nBorderChanges = 1;
+        screenUpdated = true;
+        Arrays.fill(dirtyByte, true);
+        intArrayFill(imgData, Paleta[portFE & 0x07]);
+    }
+
+    public void intArrayFill(int[] array, int value) {
+        int len = array.length;
+        if (len > 0) {
+            array[0] = value;
+        }
+
+        for (int idx = 1; idx < len; idx += idx) {
+            System.arraycopy(array, 0, array, idx, ((len - idx) < idx) ? (len - idx) : idx);
+        }
+    }
+
+    private void buildScreenTables() {
+        int row, col, scan;
+
+        //Inicialización de la tabla de direcciones de pantalla
+        /* Hay una entrada en la tabla con la dirección del primer byte
+         * de cada fila de la pantalla.
+         */
+        for (int linea = 0; linea < 24; linea++) {
+            int idx, lsb, msb, addr;
+            lsb = ((linea & 0x07) << 5);
+            msb = linea & 0x18;
+            addr = (msb << 8) + lsb;
+            idx = linea << 3;
+            for (scan = 0; scan < 8; scan++, addr += 256) {
+                scrAddr[scan + idx] = 0x4000 + addr;
+            }
+        }
+
+        for (int address = 0x4000; address < 0x5800; address++) {
+            row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+            col = address & 0x1f;
+            scan = (address & 0x700) >>> 8;
+
+            bufAddr[address & 0x1fff] = row * 2048 + scan * 256 + col * 8;
+            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
+        }
+
+        for (int address = 0x5800; address < 0x5B00; address++) {
+            attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
+        }
+
+        Arrays.fill(states2scr, -1);
+        for (int tstates = 14336; tstates < 57344; tstates += 4) {
+            col = (tstates % 224) / 4;
+            if (col > 31) {
+                continue;
+            }
+
+            scan = tstates / 224 - 64;
+            states2scr[tstates - 8] = scrAddr[scan] + col;
+        }
+        
+        for (int tstates = 0; tstates < FRAMES48k+100; tstates++)
+            states2border[tstates] = tStatesToScrPix(tstates);
+
+    }
 }

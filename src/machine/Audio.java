@@ -18,7 +18,7 @@ class Audio {
     static final int FREQ = 22050;
     SourceDataLine line;
     DataLine.Info infoDataLine;
-    byte buf[] = new byte[1764]; // 2 frames de sonido
+    private byte buf[] = new byte[1764]; // 2 frames de sonido
     int bufp;
     int level;
     public int audiotstates;
@@ -58,7 +58,7 @@ class Audio {
             buf[bufp++] = (byte) level;
             buf[bufp++] = (byte) (level >> 8);
             if (bufp == buf.length) {
-                bufp = flush(bufp);
+                bufp = flushBuffer(bufp);
             }
         } else {
             timeRem += time;
@@ -72,7 +72,7 @@ class Audio {
             buf[bufp++] = lsb;
             buf[bufp++] = msb;
             if (bufp == buf.length) {
-                bufp = flush(bufp);
+                bufp = flushBuffer(bufp);
             }
             time -= spf;
         }
@@ -85,11 +85,15 @@ class Audio {
 //            tstates, (short)value, timeRem, (short)level));
     }
 
-    synchronized int flush(int ptr) {
+    private synchronized int flushBuffer(int ptr) {
         if (line != null) {
             line.write(buf, 0, ptr);
         }
         return 0;
+    }
+
+    public void flush() {
+        bufp = flushBuffer(bufp);
     }
 
     synchronized void close() {

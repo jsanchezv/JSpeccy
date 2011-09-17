@@ -26,8 +26,9 @@ public class JSpeccy extends javax.swing.JFrame {
     public JSpeccy() {
         initComponents();
         spectrum = new Spectrum();
-        jscr = new JSpeccyScreen(spectrum);
-        spectrum.setScreen(jscr);
+        jscr = new JSpeccyScreen();
+        spectrum.setScreenComponent(jscr);
+        jscr.setScreenImage(spectrum.getScreenImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum);

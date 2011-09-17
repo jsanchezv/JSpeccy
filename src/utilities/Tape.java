@@ -84,11 +84,12 @@ public class Tape {
 
         long now = frames * Spectrum.FRAMES48k + tstates;
         timeout -= (now - timeLastIn);
+//        System.out.println("timeout: " + timeout);
         timeLastIn = now;
         if (timeout > 0)
             return;
 
-        //System.out.println("timeout: " + timeout);
+//        System.out.println("timeout: " + timeout);
         timeout = 0;
         doPlay();
 
@@ -182,7 +183,7 @@ public class Tape {
         timeLastIn = 0;
         timeout = 1; // espera mínima
         earBit = 0xbf;
-        //cpu.setExecDone(true);
+        cpu.setExecDone(true);
         return true;
     }
 
@@ -198,7 +199,7 @@ public class Tape {
             else
                 tapePos = 0;
         timeLastIn = 0;
-        //cpu.setExecDone(false);
+        cpu.setExecDone(false);
     }
 
     public boolean rewind() {
@@ -226,9 +227,10 @@ public class Tape {
         if (!tapeInserted || statePlay == State.STOP)
             return false;
 
+        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
-                //cpu.setExecDone(false);
+                cpu.setExecDone(false);
                 break;
             case START:
                 if( tapePos == tapeBuffer.length )
@@ -310,9 +312,10 @@ public class Tape {
         do {
             repeat = false;
 
+            System.out.println(String.format("Tape state: %s", statePlay.toString()));
             switch (statePlay) {
                 case STOP:
-                    //cpu.setExecDone(false);
+                    cpu.setExecDone(false);
                     System.out.println("TAPE STOP!");
                     break;
                 case START:
