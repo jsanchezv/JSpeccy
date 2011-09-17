@@ -15,10 +15,10 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 
 class Audio {
-    static final int FREQ = 44100;
+    static final int FREQ = 22050;
     SourceDataLine line;
     DataLine.Info infoDataLine;
-    byte buf[] = new byte[2646]; // 3 frames de sonido
+    byte buf[] = new byte[1764]; // 2 frames de sonido
     int bufp;
     int level;
     public int audiotstates;

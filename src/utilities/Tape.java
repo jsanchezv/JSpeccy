@@ -3,9 +3,11 @@
  * and open the template in the editor.
  *
  * 26/02/2010 Nota al bloque Turbo Mode del formato TZX: algunos programas
- * necesitan empezar con una polaridad concreta. Dos ejemplos son "MASK2 y
+ * necesitan empezar con una polaridad concreta. Dos ejemplos son "MASK" y
  * "Basil the Great Mouse Detective". Al resto de programas que he probado eso
- * les da igual, así que se deja hasta que se demuestre perjudicial.
+ * les da igual, excepto a los juegos de The Edge con su propia protección,
+ * como "Starbike", "Brian Bloodaxe" y "That's the Spirit" que no cargan justamente
+ * por eso. Debería ser algo seleccionado por el usuario.
  * 
  */
 
@@ -74,11 +76,15 @@ public class Tape {
         earBit = 0xbf;
     }
 
-    public void notifyTstates(long tstates) {
-        if (timeout == 0)
+    public void notifyTstates(long frames, int tstates) {
+        if (statePlay == State.STOP)
             return;
+//        if (timeout == 0)
+//            return;
 
-        timeout -= tstates;
+        long now = frames * Spectrum.FRAMES48k + tstates;
+        timeout -= (now - timeLastIn);
+        timeLastIn = now;
         if (timeout > 0)
             return;
 
@@ -114,7 +120,7 @@ public class Tape {
         tapeInserted = true;
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
-        fastload = false;
+        fastload = true;
         earBit = 0xbf;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
@@ -129,20 +135,22 @@ public class Tape {
         tapeBuffer = null;
     }
 
-    public int getEarBit(long frames, int tstates) {
-        if (statePlay == State.STOP)
-            return earBit;
+    public int getEarBit() {
 
 //        if (timeLastIn == 0) {
 //            timeLastIn = frames * Spectrum.FRAMES48k + tstates;
 //            return earBit;
 //        }
 
-        long now = frames * Spectrum.FRAMES48k + tstates;
-        notifyTstates(now - timeLastIn);
-        timeLastIn = now;
+//        long now = frames * Spectrum.FRAMES48k + tstates;
+//        notifyTstates(now - timeLastIn);
+//        timeLastIn = now;
         
         return earBit;
+    }
+
+    public void setEarBit(boolean earValue) {
+        earBit = earValue == false ? 0xbf : 0xff;
     }
 
     public boolean isPlaying() {
@@ -170,7 +178,7 @@ public class Tape {
             return false;
 
         statePlay = State.START;
-        fastload = false;
+        fastload = true;
         timeLastIn = 0;
         timeout = 1; // espera mínima
         earBit = 0xbf;
@@ -485,7 +493,7 @@ public class Tape {
                     timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
                     repeat = false;
-                    earBit = 0xff; // ver nota en la cabecera
+                    //earBit = 0xff; // ver nota en la cabecera
                     break;
                 case 0x12: // Pure Tone Block
                     leaderLenght = (tapeBuffer[tapePos + 1] +
@@ -538,6 +546,8 @@ public class Tape {
                     tapePos++;
                     break;
                 case 0x23: // Jump to Block
+                    System.out.println(String.format("Jump to block %d",
+                            tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)));
                     tapePos += 3;
                     break;
                 case 0x24: // Loop Start

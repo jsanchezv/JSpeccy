@@ -8,6 +8,8 @@ import gui.JSpeccyScreen;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -32,7 +34,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //    public int lastInPC, nInPC;
 //    private FileInputStream fIn;
     private long nFrame, framesByInt;
-    private boolean soundOn;
+    private boolean soundOn, resetPending;
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
 
@@ -74,6 +76,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio.open(3500000);
         soundOn = true;
         paused = true;
+        resetPending = false;
         tape = new Tape(z80);
 //        lastInPC = nInPC = 0;
         //tape.insert("/home/jsanchez/src/JSpeccy/dist/Babaliba.tap");
@@ -98,6 +101,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void reset() {
+        resetPending = true;
+    }
+
+    private void doReset() {
         z80.setExecDone(false);
         z80.reset();
         nFrame = 0;
@@ -116,6 +123,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         //z80.tEstados = frameStart;
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
+        if (resetPending) {
+            resetPending = false;
+            doReset();
+        }
         long counter = framesByInt;
 
         do {
@@ -155,7 +166,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //            if (tape.isPlaying())
 //                earBit = tape.getEarBit(nFrame, z80.tEstados);
 
-        } while (--counter != 0);
+        } while (--counter > 0);
 
         if (jscr.screenUpdated || jscr.nBorderChanges > 0) {
             jscr.repaint();
@@ -179,6 +190,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     private void loadRom() {
+        if (!loadRomAsFile())
+            loadRomAsResource();
+    }
+
+    private boolean loadRomAsResource() {
         InputStream inRom;
 
         try {
@@ -187,17 +203,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 System.out.println(
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
                     "NO_SE_PUDO_LEER_LA_ROM_DESDE_/ROMS/SPECTRUM.ROM"));
-                return;
+                return false;
             }
-            int count;
+
+            int count, value;
             for (count = 0; count < 0x4000; count++) {
-                z80Ram[count] = (int) inRom.read() & 0xff;
+                value = inRom.read();
+                if (value == -1)
+                    break;
+                z80Ram[count] = value & 0xff;
             }
+
             if (count != 0x4000) {
                 System.out.println(
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
                     "NO_SE_PUDO_CARGAR_LA_ROM"));
-                return;
+                return false;
             }
 
             inRom.close();
@@ -209,6 +230,41 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
         System.out.println(
             java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_CARGADA"));
+
+        return true;
+    }
+
+    private boolean loadRomAsFile() {
+        FileInputStream fIn;
+
+        try {
+            try {
+                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+            } catch (FileNotFoundException ex) {
+                System.out.println("No se pudo abrir el fichero spectrum.rom");
+                //Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                return false;
+            }
+
+            int count, value;
+            for (count = 0; count < 0x4000; count++) {
+                value = fIn.read();
+                if (value == -1)
+                    break;
+                z80Ram[count] = value  & 0xff;
+            }
+
+//            if (count != 0x4000) {
+//                System.out.println("No se pudo cargar la ROM");
+//                return false;
+//            }
+
+            fIn.close();
+        } catch (IOException ex) {
+            System.out.println("No se pudo leer el fichero spectrum.rom");
+            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return true;
     }
 
     public int[] getSpectrumMem() {
@@ -336,11 +392,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        }
         //int tstates = z80.tEstados;
         //postIO(port);
-        //System.out.println(String.format("InPort: %04X", port));
+//        System.out.println(String.format("InPort: %04X", port));
         preIO(port);
         postIO(port);
+        tape.notifyTstates(nFrame, z80.tEstados);
 
-        if ((port & 0x00e0) == 0) {
+//        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
+//                    z80.tEstados, z80.getRegPC()));
+        // El interfaz Kempston solo decodifica A5=0
+        if ((port & 0x0020) == 0) {
+            //System.out.println(String.format("InPort: %04X", port));
             return kempston;
         }
 
@@ -376,8 +437,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
+            earBit = tape.getEarBit();
             if (tape.isPlaying()) {
-                earBit = tape.getEarBit(nFrame, z80.tEstados);
+//                earBit = tape.getEarBit();
                 int spkMic = sp_volt[(earBit >>> 5) & 0x02];
                 if (spkMic != speaker) {
 //                au_update();
@@ -446,7 +508,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
             }
 
-            if (tape.isStopped()) {
+            //if (tape.isStopped()) {
                 int spkMic = sp_volt[value >> 3 & 3];
                 if (spkMic != speaker) {
 //                au_update();
@@ -455,12 +517,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                     }
                     speaker = spkMic;
                 }
-            }
+            //}
 
-            if (tape.isStopped() && (value & 0x10) == 0) {
-                earBit = 0xbf;
-            } else {
-                earBit = 0xff;
+            if (tape.isStopped()) {
+                if ((value & 0x10) == 0)
+                    tape.setEarBit(false);
+                else
+                    tape.setEarBit(true);
             }
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
@@ -476,6 +539,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        }
         //preIO(port);
         postIO(port);
+        tape.notifyTstates(nFrame, z80.tEstados);
     }
 
     /*
@@ -533,11 +597,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void execDone(int tstates) {
-        if (tape.isPlaying()) {
-            earBit = tape.getEarBit(nFrame, z80.tEstados);
-        } else {
-            z80.setExecDone(false);
-        }
+//        if (tape.isPlaying()) {
+//            earBit = tape.getEarBit(nFrame, z80.tEstados);
+//        } else {
+//            z80.setExecDone(false);
+//        }
     }
 
     public void keyPressed(KeyEvent evt) {
@@ -961,8 +1025,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
         }
     }
+
     static final int CHANNEL_VOLUME = 26000;
-    static final int SPEAKER_VOLUME = 5000;
+    static final int SPEAKER_VOLUME = 20000;
     private int speaker;
     private static final int sp_volt[];
     static boolean muted = false;
@@ -1023,9 +1088,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
 //		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);
         sp_volt[0] = (int) -SPEAKER_VOLUME;
-        sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.06);
+        sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.25);
         sp_volt[2] = (int) SPEAKER_VOLUME;
-        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.25);
     }
 //    private int tapeStates;
 //    private int readTape(int tstates) {
