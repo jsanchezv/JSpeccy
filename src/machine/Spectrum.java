@@ -147,7 +147,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             // El último byte de pantalla se muestra en el estado 57236
             while (z80.statesLimit < 57237) {
                 fromTstates = z80.tEstados + 1;
-                z80.statesLimit = fromTstates + 15;
+                z80.statesLimit = fromTstates + 12;
                 z80.execute();
                 updateInterval(fromTstates, z80.tEstados);
             }
@@ -193,7 +193,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 }
             }
 
-            gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
+//            gcImg.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
 
             if (nBorderChanges == 0) {
                 screenUpdated = false;
@@ -1035,7 +1035,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     static final int CHANNEL_VOLUME = 26000;
-    static final int SPEAKER_VOLUME = 20000;
+    static final int SPEAKER_VOLUME = 8000;
     private int speaker;
     private static final int sp_volt[];
     static boolean muted = false;
@@ -1181,12 +1181,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
     public int m1regR;
-    private Graphics2D gcImg;
+    //private Graphics2D gcImg;
 
     private void initGFX() {
         bImg = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         imgData = ((DataBufferInt) bImg.getRaster().getDataBuffer()).getBankData()[0];
-        gcImg = bImg.createGraphics();
+//        gcImg = bImg.createGraphics();
         bImgScr = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
         imgDataScr = ((DataBufferInt) bImgScr.getRaster().getDataBuffer()).getBankData()[0];
         buildScreenTables();
@@ -1199,6 +1199,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public BufferedImage getScreenImage() {
         return bImg;
+    }
+
+    public BufferedImage getSpectrumImage() {
+        return bImgScr;
     }
     
     public synchronized void toggleFlash() {

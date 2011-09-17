@@ -20,10 +20,11 @@ import machine.Spectrum;
  */
 public class JSpeccyScreen extends javax.swing.JComponent {
 
-    private BufferedImage bImg;
+    private BufferedImage bImg, bScr;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
+    private Graphics2D gcImg;
     private boolean doubleSize;
     private static final int BORDER_WIDTH = 32;
     private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
@@ -48,8 +49,10 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         setPreferredSize(new java.awt.Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
     }
 
-    public void setScreenImage(BufferedImage scrImg) {
-        bImg = scrImg;
+    public void setScreenImage(BufferedImage fullImg, BufferedImage scrImg) {
+        bImg = fullImg;
+        bScr = scrImg;
+        gcImg = bImg.createGraphics();
     }
 
     public void toggleDoubleSize() {
@@ -79,8 +82,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            Arrays.fill(imgData, idx*2816, idx*2816+352, 0x404040);
 
         //System.out.println("Decode: " + (System.currentTimeMillis() - start));
-        
 
+        gcImg.drawImage(bScr, BORDER_WIDTH, BORDER_WIDTH, null);
         if (doubleSize) {
             gc2.drawImage(bImg, escalaOp, 0, 0);
         } else {

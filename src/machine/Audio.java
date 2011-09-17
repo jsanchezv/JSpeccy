@@ -23,7 +23,7 @@ class Audio {
     DataLine.Info infoDataLine;
     AudioFormat fmt;
     SourceDataLine sdl;
-    private final byte buf[] = new byte[1920]; // 2 frames de sonido
+    private final byte buf[] = new byte[8192]; // 2 frames de sonido a 48 kHz
     int bufp;
     int level;
     public int audiotstates;

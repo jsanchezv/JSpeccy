@@ -30,7 +30,7 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         spectrum.setSpeedLabel(speedLabel);
         spectrum.tape.setTapeIcon(tapeLabel);
-        jscr.setScreenImage(spectrum.getScreenImage());
+        jscr.setScreenImage(spectrum.getScreenImage(), spectrum.getSpectrumImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum);
