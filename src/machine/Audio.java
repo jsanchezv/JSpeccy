@@ -9,16 +9,21 @@
  */
 package machine;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 class Audio {
-    static final int FREQ = 22050;
+    static final int FREQ = 48000;
     SourceDataLine line;
     DataLine.Info infoDataLine;
-    private byte buf[] = new byte[1764]; // 2 frames de sonido
+    AudioFormat fmt;
+    SourceDataLine sdl;
+    private final byte buf[] = new byte[1920]; // 2 frames de sonido
     int bufp;
     int level;
     public int audiotstates;
@@ -26,13 +31,14 @@ class Audio {
 
     Audio() {
         try {
-            AudioFormat fmt = new AudioFormat(FREQ, 16, 1, true, false);
+            fmt = new AudioFormat(FREQ, 16, 1, true, false);
             System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
-            SourceDataLine sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-            sdl.open(fmt, buf.length * 2);
-            sdl.start();
-            line = sdl;
+            sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
+//            sdl.open(fmt, buf.length * 2);
+//            sdl.start();
+//            line = sdl;
+            line = null;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
 //                infoDataLine.getMaxBufferSize(), infoDataLine.getMinBufferSize()));
         } catch (Exception e) {
@@ -45,6 +51,16 @@ class Audio {
         spf = (float) 69888 / ((float) FREQ / (float) 50);
         level = 0;
         audiotstates = 0;
+        if (line == null)
+        {
+            try {
+                sdl.open(fmt, buf.length * 2);
+                sdl.start();
+                line = sdl;
+            } catch (LineUnavailableException ex) {
+                Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 
     synchronized void updateAudio(int tstates, int value) {
@@ -52,29 +68,31 @@ class Audio {
         audiotstates += tstates;
         float time = tstates;
 
-        if (time + timeRem >= spf) {
-            level += ((spf - timeRem) / spf) * value;
-            time -= spf - timeRem;
-            buf[bufp++] = (byte) level;
-            buf[bufp++] = (byte) (level >> 8);
-            if (bufp == buf.length) {
-                bufp = flushBuffer(bufp);
+        synchronized (buf) {
+            if (time + timeRem >= spf) {
+                level += ((spf - timeRem) / spf) * value;
+                time -= spf - timeRem;
+                buf[bufp++] = (byte) level;
+                buf[bufp++] = (byte) (level >> 8);
+                if (bufp == buf.length) {
+                    bufp = flushBuffer(bufp);
+                }
+            } else {
+                timeRem += time;
+                level += (time / spf) * value;
+                return;
             }
-        } else {
-            timeRem += time;
-            level += (time / spf) * value;
-            return;
-        }
 
-        byte lsb = (byte) value;
-        byte msb = (byte) (value >> 8);
-        while (time > spf) {
-            buf[bufp++] = lsb;
-            buf[bufp++] = msb;
-            if (bufp == buf.length) {
-                bufp = flushBuffer(bufp);
+            byte lsb = (byte) value;
+            byte msb = (byte) (value >> 8);
+            while (time > spf) {
+                buf[bufp++] = lsb;
+                buf[bufp++] = msb;
+                if (bufp == buf.length) {
+                    bufp = flushBuffer(bufp);
+                }
+                time -= spf;
             }
-            time -= spf;
         }
 
         // calculamos el nivel de sonido de la parte residual de la muestra
@@ -87,7 +105,9 @@ class Audio {
 
     private synchronized int flushBuffer(int ptr) {
         if (line != null) {
-            line.write(buf, 0, ptr);
+            synchronized (buf) {
+                line.write(buf, 0, ptr);
+            }
         }
         return 0;
     }

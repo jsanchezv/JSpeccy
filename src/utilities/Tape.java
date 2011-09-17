@@ -129,12 +129,14 @@ public class Tape {
             tapePos = 10; // saltamos la cabecera
         }
         cpu.setExecDone(false);
+        updateTapeIcon();
         return true;
     }
 
     public void eject() {
         tapeInserted = false;
         tapeBuffer = null;
+        updateTapeIcon();
     }
 
     public int getEarBit() {
@@ -177,6 +179,7 @@ public class Tape {
         timeLastIn = 0;
         earBit = 0xbf;
         cpu.setExecDone(true);
+        updateTapeIcon();
         return true;
     }
 
@@ -193,6 +196,7 @@ public class Tape {
                 tapePos = 0;
         timeLastIn = 0;
         cpu.setExecDone(false);
+        updateTapeIcon();
     }
 
     public boolean rewind() {
@@ -224,6 +228,7 @@ public class Tape {
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
+                updateTapeIcon();
                 cpu.setExecDone(false);
                 break;
             case START:
@@ -279,19 +284,19 @@ public class Tape {
             case PAUSE:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
                 timeout = END_BLOCK_PAUSE; // 1 seg. pausa
-                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
-                    tapeBuffer.length, tapePos));
+                statePlay = State.PAUSE_STOP;
+//                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
+//                    tapeBuffer.length, tapePos));
+                break;
+            case PAUSE_STOP:
                 if( tapePos == tapeBuffer.length ) {
                     statePlay = State.STOP;
                     tapePos = 0;
                     timeLastIn = 0;
-                    //fastload = true;
                 }
                 else {
                     statePlay = State.START; // START
-                    //fastload = true;
                 }
-                //fastload = true;
         }
         return true;
     }
@@ -305,12 +310,12 @@ public class Tape {
 
         do {
             repeat = false;
-
 //            System.out.println(String.format("Tape state: %s", statePlay.toString()));
             switch (statePlay) {
                 case STOP:
                     cpu.setExecDone(false);
-                    System.out.println("TAPE STOP!");
+                    updateTapeIcon();
+//                    System.out.println("TAPE STOP!");
                     break;
                 case START:
                     if (tapePos == tapeBuffer.length) {
@@ -380,19 +385,12 @@ public class Tape {
                     break;
                 case PAUSE:
                     earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    statePlay = State.TZX_HEADER;
                     if (endBlockPause == 0) {
-                        statePlay = State.TZX_HEADER;
                         repeat = true;
                         break;
                     }
-
-                    timeout = endBlockPause;
-                    if (tapePos == tapeBuffer.length) {
-                        statePlay = State.STOP;
-                        tapePos = 10;
-                    } else {
-                        statePlay = State.TZX_HEADER;
-                    }
+                    timeout = endBlockPause;           
                     break;
                 case TZX_HEADER:
                     decodeTzxHeader();
@@ -692,5 +690,21 @@ public class Tape {
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
         return;
+    }
+
+    private javax.swing.JLabel tapeIcon;
+    public void setTapeIcon(javax.swing.JLabel tapeLabel) {
+        tapeIcon = tapeLabel;
+        updateTapeIcon();
+    }
+
+    private void updateTapeIcon() {
+        if (tapeIcon == null)
+            return;
+
+        if (statePlay == State.STOP)
+            tapeIcon.setEnabled(false);
+        else
+            tapeIcon.setEnabled(true);
     }
 }

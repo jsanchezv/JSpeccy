@@ -28,6 +28,8 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum = new Spectrum();
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
+        spectrum.setSpeedLabel(speedLabel);
+        spectrum.tape.setTapeIcon(tapeLabel);
         jscr.setScreenImage(spectrum.getScreenImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
@@ -45,7 +47,8 @@ public class JSpeccy extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
-        modelLabel = new javax.swing.JLabel();
+        tapeLabel = new javax.swing.JLabel();
+        speedLabel = new javax.swing.JLabel();
         toolbarMenu = new javax.swing.JToolBar();
         openSnapshotButton = new javax.swing.JButton();
         pauseToggleButton = new javax.swing.JToggleButton();
@@ -76,12 +79,22 @@ public class JSpeccy extends javax.swing.JFrame {
         setResizable(false);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
+        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/logo.png"))); // NOI18N
+        jLabel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
         jPanel1.add(jLabel2);
 
-        modelLabel.setText(bundle.getString("JSpeccy.modelLabel.text")); // NOI18N
-        jPanel1.add(modelLabel);
+        tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Akai24x24.png"))); // NOI18N
+        tapeLabel.setText(bundle.getString("JSpeccy.tapeLabel.text")); // NOI18N
+        tapeLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        tapeLabel.setEnabled(false);
+        jPanel1.add(tapeLabel);
+
+        speedLabel.setText(bundle.getString("JSpeccy.speedLabel.text")); // NOI18N
+        speedLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        jPanel1.add(speedLabel);
 
         getContentPane().add(jPanel1, java.awt.BorderLayout.PAGE_END);
 
@@ -413,7 +426,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
-    private javax.swing.JLabel modelLabel;
     private javax.swing.JButton openSnapshotButton;
     private javax.swing.JMenuItem openTapeMediaMenu;
     private javax.swing.JMenu optionsMenu;
@@ -425,6 +437,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem rewindTapeMediaMenu;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
+    private javax.swing.JLabel speedLabel;
+    private javax.swing.JLabel tapeLabel;
     private javax.swing.JMenu tapeMediaMenu;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     private javax.swing.JToolBar toolbarMenu;

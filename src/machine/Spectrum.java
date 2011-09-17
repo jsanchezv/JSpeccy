@@ -36,7 +36,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int portFE, earBit = 0xbf, kempston;
 //    public int lastInPC, nInPC;
 //    private FileInputStream fIn;
-    private long nFrame, framesByInt;
+    private long nFrame, framesByInt, speedometer;
     private boolean soundOn, resetPending;
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
@@ -66,11 +66,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private boolean paused;
 //    private boolean loading;
 
+    private javax.swing.JLabel speedLabel;
+
     public Spectrum() {
         z80 = new Z80(this);
         loadRom();
         initGFX();
-        nFrame = 0;
+        nFrame = speedometer = 0;
         framesByInt = 1;
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
@@ -82,9 +84,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         paused = true;
         resetPending = false;
         tape = new Tape(z80);
-//        lastInPC = nInPC = 0;
-        //tape.insert("/home/jsanchez/src/JSpeccy/dist/Babaliba.tap");
-//        z80.setTimeout(2168);
 //        stpe = new ScheduledThreadPoolExecutor(1);
 //        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
@@ -110,6 +109,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     private void doReset() {
         z80.setExecDone(false);
+        tape.stop();
         z80.reset();
         nFrame = 0;
         audio.flush();
@@ -167,6 +167,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 toggleFlash();
             }
 
+            if (nFrame % 50 == 0) {
+                long now = System.currentTimeMillis();
+                long speed = 100000 / (now - speedometer);
+                speedometer = now;
+                //System.out.println("Speed: " + speed + "%");
+                if (speedLabel != null) {
+                    speedLabel.setText(String.format("%4d%%", speed));
+                }
+        }
+
             //tape.notifyTstates(nFrame, z80.tEstados);
 //            if (tape.isPlaying())
 //                earBit = tape.getEarBit(nFrame, z80.tEstados);
@@ -206,6 +216,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //    }
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
+    }
+
+    public void setSpeedLabel(javax.swing.JLabel speedComponent) {
+        speedLabel = speedComponent;
     }
 
     private void loadRom() {
@@ -1050,7 +1064,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void toggleSound() {
         soundOn = !soundOn;
         if (soundOn) {
-            audio = new Audio();
+//            audio = new Audio();
             audio.open(3500000);
             framesByInt = 1;
         } else {
