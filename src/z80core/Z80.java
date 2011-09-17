@@ -1416,7 +1416,7 @@ public class Z80 {
 
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
-            regPC = ++regPC & 0xffff;
+            regPC = (regPC + 1) & 0xffff;
             decodeOpcode(opCode);
 
             // Si está pendiente la activación de la interrupciones y el

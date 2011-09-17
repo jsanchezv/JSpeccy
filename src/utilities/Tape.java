@@ -137,16 +137,6 @@ public class Tape {
     }
 
     public int getEarBit() {
-
-//        if (timeLastIn == 0) {
-//            timeLastIn = frames * Spectrum.FRAMES48k + tstates;
-//            return earBit;
-//        }
-
-//        long now = frames * Spectrum.FRAMES48k + tstates;
-//        notifyTstates(now - timeLastIn);
-//        timeLastIn = now;
-        
         return earBit;
     }
 
@@ -184,7 +174,6 @@ public class Tape {
 
         statePlay = State.START;
         timeLastIn = 0;
-        timeout = 1; // espera mínima
         earBit = 0xbf;
         cpu.setExecDone(true);
         return true;
@@ -651,11 +640,12 @@ public class Tape {
             return;
 
         int addr = cpu.getRegIX(); // Address start
+//        int flag = cpu.getRegA();
 //        int len = cpu.getRegDE();  // Length
 //        System.out.println(String.format("Entrada -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
 
-        if( tapePos >= tapeBuffer.length ) {
+        if (tapePos >= tapeBuffer.length) {
             cpu.setCarryFlag(false);
             return;
         }
@@ -665,12 +655,11 @@ public class Tape {
         tapePos += 2;
 
         // ¿Coincide el flag? (está en el registro A)
-        cpu.xor(tapeBuffer[tapePos]);
-        if (!cpu.isZeroFlag()) {
+        if (cpu.getRegA() != tapeBuffer[tapePos]) {
+            cpu.xor(tapeBuffer[tapePos]);
             tapePos += blockLen;
             return;
         }
-
         // La paridad incluye el byte de flag
         cpu.setRegA(tapeBuffer[tapePos]);
 
@@ -699,25 +688,6 @@ public class Tape {
         cpu.setRegIX(addr);
         cpu.setRegDE(nBytes - count);
 
-        //int nBytes = (len <= blockLen - 2) ? len : blockLen - 1;
-//        while (count < nBytes) {
-//            if( addr > 0x3fff )
-//                Ram[addr] = tapeBuffer[tapePos + count + 1];
-//            cpu.xor(tapeBuffer[tapePos + count + 1]);
-//            addr = (addr + 1) & 0xffff;
-//            count++;
-//        }
-//        cpu.setRegIX(addr);
-//        cpu.setRegDE(len - nBytes);
-//        if( len - nBytes >= 0)
-//            cpu.xor(tapeBuffer[tapePos + count + 1]);
-//
-//        if( len - nBytes <= 0)
-//            cpu.cp(0x01);
-//        if (len == nBytes )
-//            cpu.setCarryFlag(true);
-//        else
-//            cpu.setCarryFlag(false);
         tapePos += blockLen;
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
