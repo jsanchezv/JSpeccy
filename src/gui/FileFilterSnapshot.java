@@ -15,11 +15,12 @@ import javax.swing.filechooser.FileFilter;
 public class FileFilterSnapshot extends FileFilter {
     public boolean accept(File fIn) {
         return fIn.getName().toLowerCase().endsWith(".sna") ||
-            fIn.isDirectory();
+                fIn.getName().toLowerCase().endsWith(".z80") ||
+                fIn.isDirectory();
     }
 
     public String getDescription() {
         return java.util.ResourceBundle.getBundle("gui/Bundle").getString(
-            "SNA_SNAPSHOT"); // NOI18N
+            "SNAPSHOT_TYPE"); // NOI18N
     }
 }

@@ -8,14 +8,13 @@ import gui.JSpeccyScreen;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utilities.Snapshots;
 import z80core.Z80;
 
 /**
@@ -28,7 +27,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
-    private FileInputStream fIn;
+//    private FileInputStream fIn;
     private int nFrame;
     private boolean soundOn = true;
     public static final int FRAMES48k = 69888;
@@ -866,74 +865,68 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         // TODO add your handling code here:
     }
 
-    public void loadSNA(File filename) {
-        //stopEmulation();
-        z80.reset();
-        try {
-            try {
-                fIn = new FileInputStream(filename);
-            } catch (FileNotFoundException ex) {
-                System.out.println(
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_ABRIR_EL_FICHERO_") + filename);
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-                //startEmulation();
-                return;
-            }
-            z80.setRegI(fIn.read());
-            z80.setRegHLalt((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegDEalt((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegBCalt((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegAFalt((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegHL((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegDE((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegBC((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegIY((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegIX((fIn.read() | (fIn.read() << 8) & 0xffff));
+    public void loadSnapshot(File filename) {
+        Snapshots snap = new Snapshots();
+        if (snap.loadSnapshot(filename)) {
+            z80.reset();
+//        try {
+//            try {
+//                fIn = new FileInputStream(filename);
+//            } catch (FileNotFoundException ex) {
+//                System.out.println(
+//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                    "NO_SE_PUDO_ABRIR_EL_FICHERO_") + filename); //NOI18N
+//                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//                //startEmulation();
+//                return;
+//            }
+            z80.setRegI(snap.getRegI());
+            z80.setRegHLalt(snap.getRegHLalt());
+            z80.setRegDEalt(snap.getRegDEalt());
+            z80.setRegBCalt(snap.getRegBCalt());
+            z80.setRegAFalt(snap.getRegAFalt());
+            z80.setRegHL(snap.getRegHL());
+            z80.setRegDE(snap.getRegDE());
+            z80.setRegBC(snap.getRegBC());
+            z80.setRegIY(snap.getRegIY());
+            z80.setRegIX(snap.getRegIX());
 
-            int iff2EI = fIn.read() & 0xff;
-            if ((iff2EI & 0x02) != 0) {
-                z80.setIFF2(true);
-            }
+            z80.setIFF2(snap.getIFF2());
+            z80.setIFF1(snap.getIFF1());
 
-            if ((iff2EI & 0x01) != 0) {
-                z80.setIFF1(true);
-            }
+            z80.setRegR(snap.getRegR());
+            z80.setRegAF(snap.getRegAF());
+            z80.setRegSP(snap.getRegSP());
+            z80.setIM(snap.getModeIM());
 
-            z80.setRegR(fIn.read());
-            z80.setRegAF((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setRegSP((fIn.read() | (fIn.read() << 8) & 0xffff));
-            z80.setIM(fIn.read() & 0xff);
-
-            int border = fIn.read() & 0x07;
+            int border = snap.getBorder();
             portFE &= 0xf8;
             portFE |= border;
 
             int count;
-            for (count = 0x4000; count < 0x10000; count++) {
-                z80Ram[count] = (int) fIn.read() & 0xff;
-            }
+            for (count = 0x4000; count < 0x10000; count++)
+                z80Ram[count] = snap.getRamAddr(count);
 
-            fIn.close();
-            if (count != 0x10000) {
-                System.out.println(
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"));
-                z80.reset();
-                //startEmulation();
-                return;
-            }
-            z80.setRegPC(0x72);  // código de RETN en la ROM
-        } catch (IOException ex) {
-            System.out.println(
-                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                "NO_SE_PUDO_LEER_EL_FICHERO_") + filename);
-            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//            if (count != 0x10000) {
+//                System.out.println(
+//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"));
+//                z80.reset();
+//                return;
+//            }
+            z80.setRegPC(snap.getRegPC());  // código de RETN en la ROM
+            z80.setTEstados(snap.getTstates());
+//        } catch (IOException ex) {
+//            System.out.println(
+//                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                "NO_SE_PUDO_LEER_EL_FICHERO_") + filename);
+//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        System.out.println(
+//            java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
         }
-        System.out.println(
-            java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
-        //startEmulation();
     }
+    
     static final int CHANNEL_VOLUME = 26000;
     static final int SPEAKER_VOLUME = 5000;
     private int speaker;

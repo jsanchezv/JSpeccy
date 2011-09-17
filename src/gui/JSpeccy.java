@@ -248,7 +248,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if( status == JFileChooser.APPROVE_OPTION ) {
             //spectrum.stopEmulation();
             currentDir = jFile.getCurrentDirectory();
-            spectrum.loadSNA(jFile.getSelectedFile());
+            spectrum.loadSnapshot(jFile.getSelectedFile());
 //            jscr.invalidateScreen();
 //            spectrum.startEmulation();
         }
