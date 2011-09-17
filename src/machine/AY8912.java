@@ -39,10 +39,6 @@ public final class AY8912 {
     private static final int ALTERNATE = 0x02;
     private static final int ATTACK = 0x04;
     private static final int CONTINUE = 0x08;
-    // Host clock frequency
-    private int clockFreq;
-    // AY clock cycle
-    private int ayCycle;
     // Channel periods
     private int periodA, periodB, periodC, periodN;
     // Channel period counters
@@ -103,24 +99,30 @@ public final class AY8912 {
     private int pbuf;
     // Precalculate sample positions
     private int[] samplePos = new int[965];
-    private final double Divider = 4.6164;
+//    private final double Divider = 4.6164;
+    private double divider;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int audiotstates;
+    private MachineTypes spectrumModel;
 
-    AY8912(int clock) {
-        clockFreq = clock;
-        maxAmplitude = 7000;
+    AY8912() {
+        maxAmplitude = 8000;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
 //                    idx, volumeLevel[idx]));
         }
+    }
+
+    public void setSpectrumModel(MachineTypes model) {
+        spectrumModel = model;
+        divider = (double)spectrumModel.tstatesFrame / (960 * 16); //(48000 / 50 = 960)
         for (int pos = 0; pos < samplePos.length; pos++) {
-            samplePos[pos] = (int) (pos * Divider + 0.24f);
+            samplePos[pos] = (int) (pos * divider + 0.24);
         }
         reset();
     }
@@ -366,11 +368,7 @@ public final class AY8912 {
             bufC[sample] = (chanC[pos0] + chanC[pos1] + chanC[pos2]) / 3;
         }
         pbuf = 0;
-        audiotstates -= Spectrum.FRAMES128k;
-//        if (audiotstates < 0) {
-//            System.out.println("audiotstates < 0!");
-//            audiotstates = 0;
-//        }
+        audiotstates -= spectrumModel.tstatesFrame;
     }
 
     public void reset() {
@@ -396,6 +394,6 @@ public final class AY8912 {
     }
 
     public int getSampleCount() {
-        return (int)(pbuf / Divider);
+        return (int)(pbuf / divider);
     }
 }

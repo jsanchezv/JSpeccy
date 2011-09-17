@@ -629,7 +629,7 @@ public class Z80 {
     }
 
     // La línea de NMI se activa por impulso, no por nivel
-    public final void emitNMI() {
+    public final void triggerNMI() {
         activeNMI = true;
     }
 

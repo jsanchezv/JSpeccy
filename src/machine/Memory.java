@@ -34,9 +34,15 @@ public final class Memory {
     // Número de página de RAM de donde sale la pantalla activa
     int screenPage, highPage;
     boolean model128k;
+    MachineTypes spectrumModel;
 
     public Memory() {
-        setMemoryMap48k();
+        spectrumModel = MachineTypes.SPECTRUM48K;
+        reset();
+    }
+
+    public void setSpectrumModel(MachineTypes model) {
+        spectrumModel = model;
     }
 
     public int readScreenByte(int address) {
@@ -112,6 +118,16 @@ public final class Memory {
 
     public void setScreenPage(int nPage) {
         screenPage = nPage;
+    }
+
+    public void reset() {
+        switch(spectrumModel.codeModel) {
+            case SPECTRUM48K:
+                setMemoryMap48k();
+                break;
+            case SPECTRUM128K:
+                setMemoryMap128k();
+        }
     }
 
     public void loadRoms() {

@@ -39,7 +39,9 @@ class Audio {
     private int level;
     private int audiotstates;
     private float timeRem, spf;
-    private AY8912 ay;
+//    private AY8912 ay;
+    private MachineTypes spectrumModel;
+    private boolean enabledAY;
 
     Audio() {
         try {
@@ -54,10 +56,11 @@ class Audio {
         }
     }
     
-    synchronized void open(int frameLen, AY8912 ay8912) {
-        ay = ay8912;
+    synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY) {
+        spectrumModel = model;
+        enabledAY = hasAY;
         timeRem = (float) 0.0;
-        spf = (float) frameLen / (FREQ / 50);
+        spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
         audiotstates = bufp = level = 0;
         if (line == null)
         {
@@ -71,6 +74,7 @@ class Audio {
             }
         }
         ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
+        ay8912.setSpectrumModel(spectrumModel);
     }
 
     synchronized void updateAudio(int tstates, int value) {
@@ -127,35 +131,58 @@ class Audio {
     }
 
     public void endFrame() {
-        int sampleL = 0;
-        int sampleR = 0;
         int ptr = 0;
 //        int ayCnt = ay.getSampleCount();
-        ay.endFrame();
 //        System.out.println(String.format("BeeperChg %d", beeperChg));
 
-        for(int idx = 0; idx < bufp; idx++) {
-            sampleL = beeper[idx] + ayBufA[idx] + ayBufC[idx];
-            sampleR = beeper[idx] + ayBufB[idx] + ayBufC[idx];
-            buf[ptr++] = (byte) sampleL;
-            buf[ptr++] = (byte)(sampleL >>> 8);
-            buf[ptr++] = (byte) sampleR;
-            buf[ptr++] = (byte)(sampleR >>> 8);
+        // El código está repetido, lo que es correcto. Si no se hace así habría
+        // que meter la comprobación de enabledAY dentro del bucle, lo que
+        // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        if (enabledAY) {
+            int sampleL = 0;
+            int sampleR = 0;
+            for (int idx = 0; idx < bufp; idx++) {
+                sampleL = beeper[idx] + ayBufA[idx] + ayBufC[idx];
+                sampleR = beeper[idx] + ayBufB[idx] + ayBufC[idx];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte) (sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte) (sampleR >>> 8);
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            if (ptr == 3836) {
+                sampleL = beeper[958] + ayBufA[959] + ayBufC[959];
+                sampleL = beeper[958] + ayBufB[959] + ayBufC[959];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte) (sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte) (sampleR >>> 8);
+            }
+        } else {
+            byte lsb, msb;
+            for (int idx = 0; idx < bufp; idx++) {
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
+                buf[ptr++] = (byte) lsb;
+                buf[ptr++] = (byte) msb;
+                buf[ptr++] = (byte) lsb;
+                buf[ptr++] = (byte) msb;
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            if (ptr == 3836) {
+                lsb = (byte) beeper[958];
+                msb = (byte) (beeper[958] >>> 8);
+                buf[ptr++] = (byte) lsb;
+                buf[ptr++] = (byte) msb;
+                buf[ptr++] = (byte) lsb;
+                buf[ptr++] = (byte) msb;
+            }
         }
-        // Si el frame se ha quedado corto de una punta, rellenarlo
-        // Copiamos el último sample del beeper y el último sample actualizado del AY
-        if (ptr == 3836) {
-            sampleL = beeper[958] + ayBufA[959] + ayBufC[959];
-            sampleL = beeper[958] + ayBufB[959] + ayBufC[959];
-            buf[ptr++] = (byte) sampleL;
-            buf[ptr++] = (byte)(sampleL >>> 8);
-            buf[ptr++] = (byte) sampleR;
-            buf[ptr++] = (byte)(sampleR >>> 8);
-        }
-
         flushBuffer(ptr);
         bufp = 0;
-        audiotstates -= Spectrum.FRAMES128k;
+        audiotstates -= spectrumModel.tstatesFrame;
     }
 
     synchronized void close() {
@@ -170,5 +197,8 @@ class Audio {
     public void reset() {
         audiotstates = 0;
         bufp = 0;
+        java.util.Arrays.fill(ayBufA, (byte)0);
+        java.util.Arrays.fill(ayBufB, (byte)0);
+        java.util.Arrays.fill(ayBufC, (byte)0);
     }
 }

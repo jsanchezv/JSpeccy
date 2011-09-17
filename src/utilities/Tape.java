@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
+import machine.MachineTypes;
 import machine.Memory;
-import machine.Spectrum;
 import z80core.Z80;
 
 /**
@@ -31,6 +31,7 @@ import z80core.Z80;
 public class Tape {
     private Z80 cpu;
     private FileInputStream tapeFile;
+    private String filenameLabel;
 //    private File tapeName;
     private int tapeBuffer[];
     private int tapePos;
@@ -69,6 +70,7 @@ public class Tape {
     private int endBlockPause;
     private int nLoops;
     private int targetJump;
+    private MachineTypes spectrumModel;
 
     public Tape(Z80 z80) {
         cpu = z80;
@@ -78,6 +80,12 @@ public class Tape {
         timeout = timeLastIn = 0;
         fastload = false;
         earBit = 0xbf;
+        spectrumModel = MachineTypes.SPECTRUM48K;
+        filenameLabel = null;
+    }
+
+    public void setSpectrumModel(MachineTypes model) {
+        spectrumModel = model;
     }
 
     public void notifyTstates(long frames, int tstates) {
@@ -86,7 +94,7 @@ public class Tape {
 //        if (timeout == 0)
 //            return;
 
-        long now = frames * Spectrum.FRAMES128k + tstates;
+        long now = frames * spectrumModel.tstatesFrame + tstates;
         timeout -= (now - timeLastIn);
 //        System.out.println("timeout: " + timeout);
         timeLastIn = now;
@@ -133,6 +141,7 @@ public class Tape {
             tapePos = 10; // saltamos la cabecera
         }
         cpu.setExecDone(false);
+        filenameLabel = filename.getName();
         updateTapeIcon();
         return true;
     }
@@ -140,6 +149,7 @@ public class Tape {
     public void eject() {
         tapeInserted = false;
         tapeBuffer = null;
+        filenameLabel = null;
         updateTapeIcon();
     }
 
@@ -624,9 +634,11 @@ public class Tape {
                     tapePos += blockLen + 3;
                     break;
                 case 0x2A: // Stop the tape if in 48K mode
-                    statePlay = State.STOP;
+                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                        statePlay = State.STOP;
+                        repeat = false;
+                    }
                     tapePos += 5;
-                    repeat = false;
                     break;
                 case 0x2B: // Set Signal Level
                     earBit = tapeBuffer[tapePos + 5] == 0 ? 0xbf : 0xff;
@@ -767,6 +779,7 @@ public class Tape {
 
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
+                tapeIcon.setToolTipText(filenameLabel);
                 tapeIcon.setEnabled(enabledIcon);
             }
         });

@@ -29,7 +29,7 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum = new Spectrum();
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
-        spectrum.setSpeedLabel(speedLabel);
+        spectrum.setInfoLabels(modelLabel, speedLabel);
         spectrum.tape.setTapeIcon(tapeLabel);
         jscr.setScreenImage(spectrum.getTvImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
@@ -51,6 +51,7 @@ public class JSpeccy extends javax.swing.JFrame {
         keyboardImage = new javax.swing.JLabel();
         closeKeyboardHelper = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
+        modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         tapeLabel = new javax.swing.JLabel();
         jSeparator2 = new javax.swing.JSeparator();
@@ -75,6 +76,10 @@ public class JSpeccy extends javax.swing.JFrame {
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
         resetMachineMenu = new javax.swing.JMenuItem();
         nmiMachineMenu = new javax.swing.JMenuItem();
+        jSeparator3 = new javax.swing.JPopupMenu.Separator();
+        hardwareMachineMenu = new javax.swing.JMenu();
+        Spec48kHardwareMenu = new javax.swing.JMenuItem();
+        Spec128kHardwareMenu = new javax.swing.JMenuItem();
         mediaMenu = new javax.swing.JMenu();
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
@@ -106,9 +111,13 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
+        modelLabel.setText(bundle.getString("JSpeccy.modelLabel.text")); // NOI18N
+        modelLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        jPanel1.add(modelLabel);
+
         jLabel1.setText(bundle.getString("JSpeccy.jLabel1.text")); // NOI18N
         jLabel1.setMaximumSize(new java.awt.Dimension(32767, 16));
-        jLabel1.setPreferredSize(new java.awt.Dimension(200, 16));
+        jLabel1.setPreferredSize(new java.awt.Dimension(100, 16));
         jPanel1.add(jLabel1);
 
         tapeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -299,6 +308,27 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         machineMenu.add(nmiMachineMenu);
+        machineMenu.add(jSeparator3);
+
+        hardwareMachineMenu.setText(bundle.getString("JSpeccy.hardwareMachineMenu.text")); // NOI18N
+
+        Spec48kHardwareMenu.setText(bundle.getString("JSpeccy.Spec48kHardwareMenu.text")); // NOI18N
+        Spec48kHardwareMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Spec48kHardwareMenuActionPerformed(evt);
+            }
+        });
+        hardwareMachineMenu.add(Spec48kHardwareMenu);
+
+        Spec128kHardwareMenu.setText(bundle.getString("JSpeccy.Spec128kHardwareMenu.text")); // NOI18N
+        Spec128kHardwareMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Spec128kHardwareMenuActionPerformed(evt);
+            }
+        });
+        hardwareMachineMenu.add(Spec128kHardwareMenu);
+
+        machineMenu.add(hardwareMachineMenu);
 
         jMenuBar1.add(machineMenu);
 
@@ -532,6 +562,14 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_fileSaveSnapshotActionPerformed
+
+    private void Spec48kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec48kHardwareMenuActionPerformed
+        spectrum.select48KHardware();
+    }//GEN-LAST:event_Spec48kHardwareMenuActionPerformed
+
+    private void Spec128kHardwareMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Spec128kHardwareMenuActionPerformed
+        spectrum.select128KHardware();
+    }//GEN-LAST:event_Spec128kHardwareMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -545,6 +583,8 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenuItem Spec128kHardwareMenu;
+    private javax.swing.JMenuItem Spec48kHardwareMenu;
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JButton closeKeyboardHelper;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
@@ -553,6 +593,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenuItem fileSaveSnapshot;
+    private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JLabel jLabel1;
@@ -560,10 +601,12 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
+    private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
+    private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;
     private javax.swing.JButton openSnapshotButton;
     private javax.swing.JMenuItem openTapeMediaMenu;
