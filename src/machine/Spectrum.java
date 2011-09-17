@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package machine;
 
 import gui.JSpeccyScreen;
@@ -14,7 +13,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Timer;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import z80core.Z80;
@@ -23,23 +23,22 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements z80core.MemIoOps, KeyListener {
+public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
+
     private Z80 z80;
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
-
     private FileInputStream fIn;
-
     private int nFrame;
     private boolean soundOn = true;
-
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
+
     static {
-        Arrays.fill(delayTstates, (byte)0x00);
-        for( int idx = 14335; idx < 57343; idx += 224  ) {
-            for( int ndx = 0; ndx < 128; ndx += 8) {
+        Arrays.fill(delayTstates, (byte) 0x00);
+        for (int idx = 14335; idx < 57343; idx += 224) {
+            for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
                 delayTstates[frame++] = 5;
@@ -52,10 +51,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             }
         }
     }
-    private Timer timerFrame;
-    private SpectrumTimer taskFrame;
+//    private Timer timerFrame;
+//    private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
     private Audio audio;
+    private ScheduledThreadPoolExecutor stpe;
+    private boolean paused;
+    private boolean loading;
 
     public Spectrum() {
         z80 = new Z80(this);
@@ -64,21 +66,27 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         Arrays.fill(rowKey, 0xff);
         portFE = 0xff;
         kempston = 0;
-        timerFrame = new Timer("SpectrumClock", true);
+//        timerFrame = new Timer("SpectrumClock", true);
         audio = new Audio();
         audio.open(3500000);
+        paused = true;
+        loading = true;
+        stpe = new ScheduledThreadPoolExecutor(2);
+        stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
 
     public void startEmulation() {
         z80.setTEstados(0);
         audio.audiotstates = 0;
         jscr.invalidateScreen();
-        taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+//        taskFrame = new SpectrumTimer(this);
+//        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+        paused = false;
     }
 
     public void stopEmulation() {
-        taskFrame.cancel();
+//        taskFrame.cancel();
+        paused = true;
         audio.bufp = audio.flush(audio.bufp);
     }
 
@@ -92,7 +100,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
 //        System.out.println("Start frame: " + startFrame);
-             
+
         //z80.tEstados = frameStart;
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
         z80.statesLimit = 32;
@@ -106,12 +114,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         int fromTstates;
         // El último byte de pantalla se muestra en el estado 57236
         while (z80.statesLimit < 57237) {
-            fromTstates = z80.tEstados + 1;     
+            fromTstates = z80.tEstados + 1;
             z80.statesLimit = fromTstates + 15;
             z80.execute();
             jscr.updateInterval(fromTstates, z80.tEstados);
         }
-        
+
         z80.statesLimit = FRAMES48k;
         z80.execute();
 
@@ -119,20 +127,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio.audiotstates -= FRAMES48k;
 //        System.out.println(String.format("Bytes en buffer: %d", audio.bufp));
 //        audio.bufp = audio.flush(audio.bufp);
-        
+
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
         z80.tEstados -= FRAMES48k;
 
-        if (++nFrame % 16 == 0)
+        if (++nFrame % 16 == 0) {
             jscr.toggleFlash();
+        }
 
-        if (jscr.screenUpdated || jscr.nBorderChanges > 0)
+        if (jscr.screenUpdated || jscr.nBorderChanges > 0) {
             jscr.repaint();
+        }
 
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
         //System.out.println("execFrame en: " + sleepTime);
+    }
+
+    public void run() {
+        if (paused) {
+            return;
+        }
+        
+        generateFrame();
     }
 
     public void setScreen(JSpeccyScreen jscr) {
@@ -171,15 +189,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public int fetchOpcode(int address) {
 
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
 //            System.out.println(String.format("getOpcode: %d %d %d",
 //                    z80.tEstados, address, delayTstates[z80.tEstados]));
             z80.tEstados += delayTstates[z80.tEstados];
         }
-        
+
         z80.tEstados += 4;
 
-        if( (z80.getRegI() & 0xC0) == 0x40 ) {
+        if ((z80.getRegI() & 0xC0) == 0x40) {
             jscr.m1contended = z80.tEstados;
             jscr.m1regR = z80.getRegR();
         }
@@ -189,7 +207,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public int peek8(int address) {
 
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
@@ -198,29 +216,31 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void poke8(int address, int value) {
-        
+
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
-            if( address < 0x5b00 )
+            if (address < 0x5b00) {
                 jscr.screenUpdated(address);
+            }
         }
         z80.tEstados += 3;
 
-        if (address > 0x3fff)
+        if (address > 0x3fff) {
             z80Ram[address] = value;
+        }
     }
 
     public int peek16(int address) {
 
         int lsb, msb;
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
         lsb = z80Ram[address];
 
         address = (address + 1) & 0xffff;
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
@@ -233,36 +253,42 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        poke8(address, word & 0xff);
 //        poke8((address + 1) & 0xffff, word >>> 8);
 
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
-            if( address < 0x5b00 )
+            if (address < 0x5b00) {
                 jscr.screenUpdated(address);
+            }
         }
         z80.tEstados += 3;
 
-        if( address > 0x3fff )
+        if (address > 0x3fff) {
             z80Ram[address] = word & 0xff;
+        }
 
         address = (address + 1) & 0xffff;
 
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
-            if( address < 0x5b00 )
+            if (address < 0x5b00) {
                 jscr.screenUpdated(address);
+            }
         }
         z80.tEstados += 3;
 
-        if( address > 0x3fff )
+        if (address > 0x3fff) {
             z80Ram[address] = word >>> 8;
+        }
     }
 
     public void contendedStates(int address, int tstates) {
         //address &= 0xffff;
-        if( (address & 0xC000) == 0x4000 ) {
+        if ((address & 0xC000) == 0x4000) {
             for (int idx = 0; idx < tstates; idx++)
 //                System.out.println(String.format("t-States: %d\taddress:%d\ttstates %d",
 //                    z80.tEstados, address, tstates));
+            {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
+            }
         } else {
             z80.tEstados += tstates;
         }
@@ -283,8 +309,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         preIO(port);
         postIO(port);
 
-        if( (port & 0x00e0) == 0 )
+        if ((port & 0x00e0) == 0) {
             return kempston;
+        }
 
 //        if ((port & 0xC002) == 0xC000 && ay_enabled) {
 //            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
@@ -292,12 +319,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //            }
 //            return ay_reg[ay_idx];
 //        }
-        
-        if( (port & 0x0001) == 0 ) {
+
+        if ((port & 0x0001) == 0) {
+//            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
+//                   z80.tEstados, z80.getRegPC()));
             res = ~res & 0xff;
-            for( int row = 0, mask = 0x01; row < 8; row++, mask <<= 1 ) {
-                if( (res & mask) != 0 )
+            for (int row = 0, mask = 0x01; row < 8; row++, mask <<= 1) {
+                if ((res & mask) != 0) {
                     keys &= rowKey[row];
+                }
             }
 
 //            int noise = 0xff;
@@ -305,22 +335,26 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
+//            if( loading )
+//                earBit = readTape(z80.getTEstados());
             return keys & earBit;
         }
 
         int addr = 0;
-        if( (port & 0xff) == 0xff ) {
+        if ((port & 0xff) == 0xff) {
             int tstates = z80.getTEstados();
-            if( tstates < 14336 || tstates > 57343 )
+            if (tstates < 14336 || tstates > 57343) {
                 return 0xff;
+            }
 
             int col = (tstates % 224) - 3;
-            if( col > 124 )
+            if (col > 124) {
                 return 0xff;
+            }
 
             int row = tstates / 224 - 64;
 
-            switch( col % 8 ) {
+            switch (col % 8) {
                 case 0:
                     addr = jscr.scrAddr[row] + col / 4;
                     break;
@@ -364,15 +398,17 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             int spkMic = sp_volt[value >> 3 & 3];
             if (spkMic != speaker) {
 //                au_update();
-                if( soundOn )
+                if (soundOn) {
                     audio.updateAudio(z80.tEstados, speaker);
+                }
                 speaker = spkMic;
             }
 
-            if( (value & 0x10) == 0)
+            if ((value & 0x10) == 0) {
                 earBit = 0xbf;
-            else
+            } else {
                 earBit = 0xff;
+            }
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
@@ -428,24 +464,24 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //                z80.tEstados += delayTstates[z80.tEstados];
 //                z80.tEstados += 3;
 //            } else {
-                // A0 == 0 y no es contended RAM
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
-           // }
+            // A0 == 0 y no es contended RAM
+            z80.tEstados += delayTstates[z80.tEstados];
+            z80.tEstados += 3;
+            // }
         }
     }
 
     private void preIO(int port) {
-            if ((port & 0xc000) == 0x4000 ) {
-                // A0 == 1 y es contended RAM
-                z80.tEstados += delayTstates[z80.tEstados];
-            }
-            z80.tEstados++;
+        if ((port & 0xc000) == 0x4000) {
+            // A0 == 1 y es contended RAM
+            z80.tEstados += delayTstates[z80.tEstados];
+        }
+        z80.tEstados++;
     }
 
     public void keyPressed(KeyEvent evt) {
         int key = evt.getKeyCode();
-        switch( key ) {
+        switch (key) {
             // Fila B - SPACE
             case KeyEvent.VK_SPACE:
                 rowKey[7] &= 0xfe;
@@ -632,7 +668,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public void keyReleased(KeyEvent evt) {
         int key = evt.getKeyCode();
-        switch( key ) {
+        switch (key) {
             // Fila SPACE - B
             case KeyEvent.VK_SPACE:
                 rowKey[7] |= 0x01; //Spacebar
@@ -833,26 +869,28 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 return;
             }
             z80.setRegI(fIn.read());
-            z80.setRegHLalt( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegDEalt( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegBCalt( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegAFalt( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegHL( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegDE( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegBC( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegIY( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegIX( (fIn.read() | (fIn.read() << 8) & 0xffff) );
+            z80.setRegHLalt((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegDEalt((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegBCalt((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegAFalt((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegHL((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegDE((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegBC((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegIY((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegIX((fIn.read() | (fIn.read() << 8) & 0xffff));
 
             int iff2EI = fIn.read() & 0xff;
-            if( (iff2EI & 0x02) != 0 )
+            if ((iff2EI & 0x02) != 0) {
                 z80.setIFF2(true);
+            }
 
-            if( (iff2EI & 0x01) != 0 )
+            if ((iff2EI & 0x01) != 0) {
                 z80.setIFF1(true);
+            }
 
             z80.setRegR(fIn.read());
-            z80.setRegAF( (fIn.read() | (fIn.read() << 8) & 0xffff) );
-            z80.setRegSP( (fIn.read() | (fIn.read() << 8) & 0xffff) );
+            z80.setRegAF((fIn.read() | (fIn.read() << 8) & 0xffff));
+            z80.setRegSP((fIn.read() | (fIn.read() << 8) & 0xffff));
             z80.setIM(fIn.read() & 0xff);
 
             int border = fIn.read() & 0x07;
@@ -879,32 +917,32 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         System.out.println("Imagen cargada");
         //startEmulation();
     }
+    static final int CHANNEL_VOLUME = 26000;
+    static final int SPEAKER_VOLUME = 5000;
+    private int speaker;
+    private static final int sp_volt[];
+    static boolean muted = false;
+    static int volume = 40; // %
 
-	static final int CHANNEL_VOLUME = 26000;
-	static final int SPEAKER_VOLUME = 5000;
+    void mute(boolean v) {
+        muted = v;
+        setvol();
+    }
 
-	private int speaker;
-	private static final int sp_volt[];
+    int volume(int v) {
+        if (v < 0) {
+            v = 0;
+        } else if (v > 100) {
+            v = 100;
+        }
+        volume = v;
+        setvol();
+        return v;
+    }
 
-	
-	static boolean muted = false;
-	static int volume = 40; // %
-
-	void mute(boolean v) {
-		muted = v;
-		setvol();
-	}
-
-	int volume(int v) {
-		if(v<0) v=0; else if(v>100) v=100;
-		volume = v;
-		setvol();
-		return v;
-	}
-
-	int volumeChg(int chg) {
-		return volume(volume + chg);
-	}
+    int volumeChg(int chg) {
+        return volume(volume + chg);
+    }
 
     public void toggleSound() {
         soundOn = !soundOn;
@@ -917,23 +955,30 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
     }
 
-	static {
-		sp_volt = new int[4];
-		setvol();
-	}
+    static {
+        sp_volt = new int[4];
+        setvol();
+    }
 
-	static void setvol()
-	{
-		double a = muted ? 0 : volume/100.;
-		a *= a;
+    static void setvol() {
+        double a = muted ? 0 : volume / 100.;
+        a *= a;
 
 //      sp_volt[0] = (int)(-SPEAKER_VOLUME*a);
 //		sp_volt[1] = (int)(-SPEAKER_VOLUME*1.06*a);
 //		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
 //		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);
         sp_volt[0] = (int) -SPEAKER_VOLUME;
-		sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.06);
-		sp_volt[2] = (int) SPEAKER_VOLUME;
-		sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
-	}
+        sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.06);
+        sp_volt[2] = (int) SPEAKER_VOLUME;
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
+    }
+
+    private int tapeStates;
+    private int readTape(int tstates) {
+        int earIn = 0xbf;
+        if (tstates < tapeStates)
+            tstates += FRAMES48k;
+        return earIn;
+    }
 }

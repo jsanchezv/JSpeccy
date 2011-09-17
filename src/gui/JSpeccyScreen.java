@@ -21,7 +21,7 @@ import machine.Spectrum;
  *
  * @author  jsanchez
  */
-public class JSpeccyScreen extends javax.swing.JPanel {
+public class JSpeccyScreen extends javax.swing.JComponent {
 
     //Vector con los valores correspondientes a lo colores anteriores
     private static final int[] Paleta = {
