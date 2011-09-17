@@ -87,7 +87,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio.audiotstates = 0;
         jscr.invalidateScreen();
         taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+        timerFrame.scheduleAtFixedRate(taskFrame, 0, 20);
         paused = false;
     }
 
@@ -98,6 +98,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void reset() {
+        z80.setExecDone(false);
         z80.reset();
         nFrame = 0;
         audio.audiotstates = 0;
@@ -138,7 +139,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             z80.statesLimit = FRAMES48k;
             z80.execute();
 
-            
+
             audio.updateAudio(z80.tEstados, speaker);
             audio.audiotstates -= FRAMES48k;
 //        System.out.println(String.format("Bytes en buffer: %d", audio.bufp));
@@ -150,6 +151,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             if (++nFrame % 16 == 0) {
                 jscr.toggleFlash();
             }
+
+//            if (tape.isPlaying())
+//                earBit = tape.getEarBit(nFrame, z80.tEstados);
+
         } while (--counter != 0);
 
         if (jscr.screenUpdated || jscr.nBorderChanges > 0) {
@@ -169,7 +174,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //
 //        generateFrame();
 //    }
-
     public void setScreen(JSpeccyScreen jscr) {
         this.jscr = jscr;
     }
@@ -227,9 +231,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (address == 0x0556 && tape.isTapeInserted() && tape.isFastload()) {
-            tape.fastload(z80Ram);
-            return 0xC9; // RET opcode
+        if (address == 0x0556 && tape.isTapeInserted()) {
+            if (tape.fastload(z80Ram))
+                return 0xC9; // RET opcode
         }
 
         return z80Ram[address];
@@ -238,7 +242,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public int peek8(int address) {
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];;
+            z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
 
@@ -262,9 +266,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
     public int peek16(int address) {
 
-        int lsb, msb;
+        int lsb; //, msb;
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];;
+            z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
         lsb = z80Ram[address];
@@ -275,8 +279,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         }
         z80.tEstados += 3;
 
-        msb = z80Ram[address];
-        return (msb << 8) | lsb;
+        //msb = z80Ram[address];
+        return (z80Ram[address] << 8) | lsb;
     }
 
     public void poke16(int address, int word) {
@@ -284,7 +288,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        poke8((address + 1) & 0xffff, word >>> 8);
 
         if ((address & 0xC000) == 0x4000) {
-            z80.tEstados += delayTstates[z80.tEstados];;
+            z80.tEstados += delayTstates[z80.tEstados];
             if (address < 0x5b00) {
                 jscr.screenUpdated(address);
             }
@@ -442,15 +446,16 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
             }
 
-            if (tape.isStopped() ) {
-            int spkMic = sp_volt[value >> 3 & 3];
-            if (spkMic != speaker) {
+            if (tape.isStopped()) {
+                int spkMic = sp_volt[value >> 3 & 3];
+                if (spkMic != speaker) {
 //                au_update();
-                if (soundOn) {
-                    audio.updateAudio(z80.tEstados, speaker);
+                    if (soundOn) {
+                        audio.updateAudio(z80.tEstados, speaker);
+                    }
+                    speaker = spkMic;
                 }
-                speaker = spkMic;
-            } }
+            }
 
             if (tape.isStopped() && (value & 0x10) == 0) {
                 earBit = 0xbf;
@@ -528,8 +533,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void execDone(int tstates) {
-        if (tape.isPlaying())
-            tape.notifyTstates(tstates);
+        if (tape.isPlaying()) {
+            earBit = tape.getEarBit(nFrame, z80.tEstados);
+        } else {
+            z80.setExecDone(false);
+        }
     }
 
     public void keyPressed(KeyEvent evt) {
@@ -692,23 +700,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 break;
             // Emulación joystick Kempston
             case KeyEvent.VK_LEFT:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[3] &= 0xef; // 5  -- Left arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[3] &= 0xef; // 5  -- Left arrow
                 kempston |= 0x02;
                 break;
             case KeyEvent.VK_DOWN:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xef; // 6  -- Down arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xef; // 6  -- Down arrow
                 kempston |= 0x04;
                 break;
             case KeyEvent.VK_UP:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xf7; // 7  -- Up arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xf7; // 7  -- Up arrow
                 kempston |= 0x08;
                 break;
             case KeyEvent.VK_RIGHT:
-//                rowKey[0] &= 0xfe; // CAPS
-//                rowKey[4] &= 0xfb; // 8  -- Left arrow
+                rowKey[0] &= 0xfe; // CAPS
+                rowKey[4] &= 0xfb; // 8  -- Right arrow
                 kempston |= 0x01;
                 break;
             case KeyEvent.VK_DELETE:
@@ -878,23 +886,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 rowKey[3] |= 0x02; // 2
                 break;
             case KeyEvent.VK_LEFT:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[3] |= 0x10; // 5  -- Left arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[3] |= 0x10; // 5  -- Left arrow
                 kempston &= 0xfd;
                 break;
             case KeyEvent.VK_DOWN:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x10; // 6  -- Down arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x10; // 6  -- Down arrow
                 kempston &= 0xfb;
                 break;
             case KeyEvent.VK_UP:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x08; // 7  -- Up arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x08; // 7  -- Up arrow
                 kempston &= 0xf7;
                 break;
             case KeyEvent.VK_RIGHT:
-//                rowKey[0] |= 0x01; // CAPS
-//                rowKey[4] |= 0x04; // 8  -- Right arrow
+                rowKey[0] |= 0x01; // CAPS
+                rowKey[4] |= 0x04; // 8  -- Right arrow
                 kempston &= 0xfe;
                 break;
             case KeyEvent.VK_DELETE:
@@ -953,8 +961,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
         }
     }
-
-
     static final int CHANNEL_VOLUME = 26000;
     static final int SPEAKER_VOLUME = 5000;
     private int speaker;
@@ -991,7 +997,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         } else {
             audio.bufp = audio.flush(audio.bufp);
             audio.close();
-            framesByInt = 5;
+            framesByInt = 10;
         }
     }
 
@@ -1021,7 +1027,6 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         sp_volt[2] = (int) SPEAKER_VOLUME;
         sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
     }
-
 //    private int tapeStates;
 //    private int readTape(int tstates) {
 //        int earIn = 0xbf;
