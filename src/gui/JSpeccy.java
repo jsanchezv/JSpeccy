@@ -219,6 +219,7 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         machineMenu.add(silenceMachineMenu);
 
+        resetMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
         resetMachineMenu.setText(bundle.getString("JSpeccy.resetMachineMenu.text")); // NOI18N
         resetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

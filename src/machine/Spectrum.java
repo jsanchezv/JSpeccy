@@ -29,6 +29,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
+//    public int lastInPC, nInPC;
 //    private FileInputStream fIn;
     private int nFrame;
     private boolean soundOn = true;
@@ -57,7 +58,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private Audio audio;
 //    private ScheduledThreadPoolExecutor stpe;
     private boolean paused;
-    private boolean loading;
+//    private boolean loading;
 
     public Tape tape;
 
@@ -72,8 +73,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio = new Audio();
         audio.open(3500000);
         paused = true;
-        loading = false;
         tape = new Tape(z80);
+//        lastInPC = nInPC = 0;
         //tape.insert("/home/jsanchez/src/JSpeccy/dist/Babaliba.tap");
 //        z80.setTimeout(2168);
 //        stpe = new ScheduledThreadPoolExecutor(1);
@@ -218,10 +219,11 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             jscr.m1regR = z80.getRegR();
         }
 
-        if( address == 0x0556 && tape.isFastload() ) { // LD_BYTES routine in Spectrum ROM
-            tape.fastload(z80Ram);
-            return 0xC9; // RET opcode
-        }
+        // LD_BYTES routine in Spectrum ROM at address 0x0556
+//        if( address == 0x0556 && tape.isTapeInserted() && tape.isFastload() ) {
+//            tape.fastload(z80Ram);
+//            return 0xC9; // RET opcode
+//        }
 
         return z80Ram[address];
     }
@@ -356,12 +358,22 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 }
             }
 
+//            if (lastInPC == z80.getRegPC())
+//                nInPC++;
+//            else {
+//                lastInPC = z80.getRegPC();
+//                nInPC = 1;
+//            }
+//
+//            if (nInPC > 255 && tape.isStopped())
+//                tape.play();
+
 //            int noise = 0xff;
 //            if ( (portFE & 0x18) == 8 ) {
 //                noise &= (z80.getRegR() & 0x40);
 //            }
 
-            if( loading )
+            if( tape.isPlaying() )
                 earBit = tape.getEarBit();
 
             return keys & earBit;
@@ -431,7 +443,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 speaker = spkMic;
             }
 
-            if (!loading && (value & 0x10) == 0) {
+            if (tape.isStopped() && (value & 0x10) == 0) {
                 earBit = 0xbf;
             } else {
                 earBit = 0xff;
@@ -968,11 +980,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     }
 
     public void toggleTape() {
-        if (tape.isPlaying() == false) {
+        if (tape.isStopped()) {
             tape.play();
         } else {
             tape.stop();
-            loading = false;
         }
     }
 
