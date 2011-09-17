@@ -32,7 +32,8 @@ public final class Memory {
     int[][] readPages = new int[4][];
     int[][] writePages = new int[4][];
     // Número de página de RAM de donde sale la pantalla activa
-    int screenPage;
+    int screenPage, highPage;
+    boolean mode128k;
 
     public Memory() {
         setMemoryMap48k();
@@ -62,6 +63,7 @@ public final class Memory {
         writePages[3] = Ram[0];
 
         screenPage = 5;
+        mode128k = false;
     }
 
     public void setMemoryMap128k() {
@@ -73,17 +75,38 @@ public final class Memory {
         readPages[3] = writePages[3] = Ram[0];
 
         screenPage = 5;
+        highPage = 0;
+        mode128k = true;
     }
 
     public void setMemoryMap128k(int port7ffd) {
         // Set the high page
-        readPages[3] = writePages[3] = Ram[port7ffd & 0x07];
+        highPage = port7ffd & 0x07;
+        readPages[3] = writePages[3] = Ram[highPage];
 
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 5 : 7;
 
         // Set the active ROM
         readPages[0] = Rom128k[(port7ffd & 0x10) >>> 4];
+
+        mode128k = true;
+    }
+
+    public boolean isScreenByte(int addr) {
+        switch(addr >>> 14) {
+            case 0: // Address 0x0000-0x3fff
+            case 2: // Address 0x8000-0xbfff
+                return false;
+            case 1: // Address 0x4000-0x7fff
+                if (addr > 0x5aff)
+                    return false;
+                break;
+            case 3: // Address 0xc000-0xffff
+                if (!mode128k || highPage != screenPage || addr > 0xdaff)
+                    return false;
+        }
+        return true;
     }
 
     public void setScreenPage(int nPage) {

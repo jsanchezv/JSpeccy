@@ -132,8 +132,8 @@ class Audio {
 //        int ayCnt = ay.getSampleCount();
         ay.endFrame();
 //        System.out.println(String.format("Frame: %d bytes. AY Frame: %d bytes", bufp, ayCnt));
-        if (bufp > 960)
-            bufp = 960;
+//        if (bufp > 960)
+//            bufp = 960;
         for(int idx = 0; idx < bufp; idx++) {
             sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
 //            sample = beeper[idx] + ayBufA[idx]; //[idx] + ayBufC[idx];

@@ -162,60 +162,18 @@ public final class AY8912 {
         switch (addressLatch) {
             case FineToneA:
             case CoarseToneA:
-//                tmp = periodA;
                 regAY[CoarseToneA] &= 0x0f;
                 periodA = regAY[CoarseToneA] * 256 + regAY[FineToneA];
-//                counterA += periodA - tmp;
-//                if (counterA <= 0)
-//                    counterA = 1;
-//                if (counterA >= periodA) {
-//                    counterA = 0;
-//                    toneA = !toneA;
-//                }
-//                System.out.println(String.format("Channel A reg %d at frame %d, %d tstates to %d with counterA = %d",
-//                        addressLatch, frame, tstates, periodA, counterA));
-//                if (periodA == 0)
-//                    periodA = 1;
-//                periodA <<= 1;
-//                periodA *= spf;
                 break;
             case FineToneB:
             case CoarseToneB:
-//                tmp = periodB;
                 regAY[CoarseToneB] &= 0x0f;
                 periodB = regAY[CoarseToneB] * 256 + regAY[FineToneB];
-//                counterB += periodB - tmp;
-//                if (counterB <= 0)
-//                    counterB = 1;
-//                if (counterB >= periodB) {
-//                    counterB = 0;
-//                    toneB = !toneB;
-//                }
-//                System.out.println(String.format("Channel B reg %d at frame %d, %d tstates to %d with counterB = %d",
-//                        addressLatch, frame, tstates, periodB, counterB));
-//                if (periodB == 0)
-//                    periodB = 1;
-//                periodB <<= 1;
-//                periodB *= spf;
                 break;
             case FineToneC:
             case CoarseToneC:
-//                tmp = periodC;
                 regAY[CoarseToneC] &= 0x0f;
                 periodC = regAY[CoarseToneC] * 256 + regAY[FineToneC];
-//                counterC += periodC - tmp;
-//                if (counterC <= 0)
-//                    counterC = 1;
-//                if (counterC >= periodC) {
-//                    counterC = 0;
-//                    toneC = !toneC;
-//                }
-//                System.out.println(String.format("Channel C reg %d at frame %d, %d tstates to %d with counterC = %d",
-//                        addressLatch, frame, tstates, periodC, counterC));
-//                if (periodC == 0)
-//                    periodC = 1;
-//                periodC <<= 1;
-//                periodC *= spf;
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
@@ -223,7 +181,6 @@ public final class AY8912 {
                 if (periodN == 0) {
                     periodN = 1;
                 }
-//                periodN *= spf;
                 periodN <<= 1;
 //                System.out.println(String.format("Noise Period: %d", periodN));
                 break;
@@ -275,11 +232,11 @@ public final class AY8912 {
                 }
                 envelopePeriod <<= 1;
 
-//                System.out.println(String.format("envPeriod: %d, shapePeriod: %d",
-//                    envelopePeriod, shapePeriod));
+//                System.out.println(String.format("envPeriod: %d", envelopePeriod));
                 break;
             case EnvelopeShapeCycle:
                 regAY[addressLatch] &= 0x0f;
+//                System.out.println(String.format("envShape: %02x", value & 0x0f));
                 envelopeCounter = 0;
                 if ((value & ATTACK) != 0) {
                     amplitudeEnv = 0;
@@ -342,26 +299,23 @@ public final class AY8912 {
                     if (!Continue) {
                         amplitudeEnv += envIncr;
                     }
-                    
+
                     if (amplitudeEnv < 0 || amplitudeEnv > 15) {
                         if ((regAY[EnvelopeShapeCycle] & CONTINUE) == 0) {
                             amplitudeEnv = 0;
                             Continue = true;
-                        }
+                        } else {
+                            if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
+                                envIncr *= -1;
+                                Attack = !Attack;
+                            }
 
-                        if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
-                            envIncr *= -1;
-                            Attack = !Attack;
-                        }
-                        amplitudeEnv = Attack ? 0 : 15;
-
-                        if ((regAY[EnvelopeShapeCycle] & HOLD) != 0) {
-                            Continue = true;
-//                            if (Attack) {
-//                                amplitudeEnv = 15;
-//                            } else {
-//                                amplitudeEnv = 0;
-//                            }
+                            if ((regAY[EnvelopeShapeCycle] & HOLD) != 0) {
+                                amplitudeEnv = Attack ? 15 : 0;
+                                Continue = true;
+                            } else {
+                                amplitudeEnv = Attack ? 0 : 15;
+                            }
                         }
                     }
                 }

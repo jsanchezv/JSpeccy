@@ -391,8 +391,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         if (contendedPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
 //            z80.addTEstados(delayTstates[z80.getTEstados()]);
-            if (address < 0x5b00) {
-                screenUpdated(address);
+            if (memory.isScreenByte(address)) {
+                screenUpdated(address & 0x7fff);
             }
         }
         z80.tEstados += 3;
@@ -431,7 +431,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         if (contendedPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
 //            z80.addTEstados(delayTstates[z80.getTEstados()]);
-            if (address < 0x5b00) {
+            if (memory.isScreenByte(address)) {
                 screenUpdated(address);
             }
         }
@@ -445,7 +445,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         if (contendedPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
 //            z80.addTEstados(delayTstates[z80.getTEstados()]);
-            if (address < 0x5b00) {
+            if (memory.isScreenByte(address)) {
                 screenUpdated(address);
             }
         }
@@ -601,7 +601,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         }
 
         if ((port & 0x8002) == 0) {
-//            System.out.println(String.format("outPort: %04X %02x", port, value));
+//            System.out.println(String.format("outPort: %04X %02x at %d t-states",
+//            port, value, z80.tEstados));
 
             memory.setMemoryMap128k(value);
             // En el 128k las páginas impares son contended
