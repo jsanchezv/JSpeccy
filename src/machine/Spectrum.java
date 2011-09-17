@@ -26,7 +26,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private Z80 z80;
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
-    public int portFE;
+    public int portFE, earBit = 0xbf;
 
     private FileInputStream fIn;
 
@@ -83,6 +83,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         taskFrame.cancel();
         //audio.step(z80.tEstados - au_time, 0);
         au_time = z80.tEstados;
+        audio.bufp = audio.flush(audio.bufp);
     }
 
     public void reset() {
@@ -122,6 +123,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 //        audio.level -= audio.level>>8;
         audio.updateAudio(z80.tEstados, speaker);
         audio.audiotstates -= FRAMES48k;
+//        System.out.println(String.format("Bytes en buffer: %d", audio.bufp));
+//        audio.bufp = audio.flush(audio.bufp);
         
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
         z80.tEstados -= FRAMES48k;
@@ -148,6 +151,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         try {
             try {
                 fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+//                fIn = new FileInputStream("spectrum.rom");
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero spectrum.rom");
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -291,12 +295,12 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         if( (port & 0x00e0) == 0 )
             return 0;
 
-        if ((port & 0xC002) == 0xC000 && ay_enabled) {
-            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
-                return 0xFF;
-            }
-            return ay_reg[ay_idx];
-        }
+//        if ((port & 0xC002) == 0xC000 && ay_enabled) {
+//            if (ay_idx >= 14 && (ay_reg[7] >> ay_idx - 8 & 1) == 0) {
+//                return 0xFF;
+//            }
+//            return ay_reg[ay_idx];
+//        }
         
         if( (port & 0x0001) == 0 ) {
             res = ~res & 0xff;
@@ -304,10 +308,13 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 if( (res & mask) != 0 )
                     keys &= rowKey[row];
             }
-            if ( (portFE & 0x10) == 0 )
-                keys &= 0xbf;
 
-            return keys;
+//            int noise = 0xff;
+//            if ( (portFE & 0x18) == 8 ) {
+//                noise &= (z80.getRegR() & 0x40);
+//            }
+
+            return keys & earBit;
         }
 
         if( (port & 0xff) == 0xff ) {
@@ -355,6 +362,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
         if ((port & 0x0001) == 0) {
             if ((portFE & 0x07) != (value & 0x07)) {
+//                if( (value & 0x07) == 0x07 )
+//                    System.out.println(String.format("tstates: %d border: %d",
+//                        z80.tEstados, value&0x07));
                 jscr.updateBorder(z80.tEstados);
             }
 
@@ -365,6 +375,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 speaker = spkMic;
             }
 
+            if( (value & 0x10) == 0)
+                earBit = 0xbf;
+            else
+                earBit = 0xff;
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }

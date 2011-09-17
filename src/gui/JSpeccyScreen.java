@@ -198,6 +198,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
             } else {
                 gc2.drawImage(bImg, 0, 0, this);
             }
+//            intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+//            nBorderChanges = 0;
             //System.out.println("Draw border");
         }
 
@@ -206,7 +208,9 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         } else {
             gc2.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, this);
         }
-        screenUpdated = false;
+
+        if( nBorderChanges == 0)
+            screenUpdated = false;
         //System.out.println("ms: " + (System.currentTimeMillis() - start));
         //System.out.println("");
     }
@@ -274,12 +278,15 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                 }
             }
             lastChgBorder = 0;
+            nBorderChanges++;
+            screenUpdated = true;
         }
 
         startPix = tStatesToScrPix(lastChgBorder);
         if (startPix > imgData.length - 1) {
             lastChgBorder = tstates;
             nBorderChanges++;
+            screenUpdated = true;
             return;
         }
 

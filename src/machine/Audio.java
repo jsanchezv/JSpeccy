@@ -22,7 +22,7 @@ class Audio {
     int idiv, mul;
     int acct;
     int accv0, accv1, level;
-    public int audiotstates;
+    public int audiotstates, out1;
     private float timeRem, spf;
 
     void open(int hz) {
@@ -31,6 +31,7 @@ class Audio {
         idiv = (1 << 30) / hz;
         timeRem = (float)0.0;
         spf = (float)69888 / ((float)FREQ / (float)50);
+        level = out1 = 0;
     }
 
     void step(int time, int volume) {
@@ -99,9 +100,11 @@ class Audio {
         audiotstates += tstates;
         float time = tstates;
 
-        if (time + timeRem > spf) {
+        if (time + timeRem >= spf) {
             level += ((spf - timeRem) / spf) * value;
             time -= spf - timeRem;
+            level = (level + out1) / 2;
+            out1 = level;
             buf[bufp++] = (byte)level;
             buf[bufp++] = (byte)(level >> 8);
             if (bufp == buf.length) {
@@ -109,15 +112,15 @@ class Audio {
             }
         } else {
             timeRem += time;
-            level += (int) (value * (time / spf));
+            level += (value * (time / spf));
             return;
         }
 
-        byte lsb = (byte) value;
-        byte msb = (byte) (value >> 8);
         while (time > spf) {
-            buf[bufp++] = lsb;
-            buf[bufp++] = msb;
+            level = (value + out1) / 2;
+            out1 = level;
+            buf[bufp++] = (byte)level;
+            buf[bufp++] = (byte)(level >> 8);
             if (bufp == buf.length) {
                 bufp = flush(bufp);
             }
@@ -142,7 +145,7 @@ class Audio {
             System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
             SourceDataLine l = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-            l.open(fmt, buf.length * 2);
+            l.open(fmt, buf.length);
             l.start();
             line = l;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
@@ -156,6 +159,7 @@ class Audio {
 
     synchronized int flush(int p) {
         SourceDataLine l = line;
+//        System.out.println(l.getBufferSize() + " " + l.available());
         if (l != null) {
             l.write(buf, 0, p);
         }
