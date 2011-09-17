@@ -66,6 +66,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio = new Audio();
         audio.open(3500000);
         ay(true);
+        volume(100);
     }
 
     public void startEmulation() {
@@ -118,7 +119,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //au_update();
         //au_time -= FRAMES48k;
         //audio.level -= audio.level>>8;
-        audio.updateAudio(z80.tEstados, portFE);
+        audio.updateAudio(z80.tEstados, speaker);
         audio.audiotstates -= FRAMES48k;
         
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
@@ -356,14 +357,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 jscr.updateBorder(z80.tEstados);
             }
 
-//            int spkMic = sp_volt[value >> 3 & 3];
-//            if (spkMic != speaker) {
-//                au_update();
-//                speaker = spkMic;
-//            }
+            int spkMic = sp_volt[value >> 3 & 3];
+            if (spkMic != speaker) {
+                //au_update();
+                audio.updateAudio(z80.tEstados, speaker);
+                speaker = spkMic;
+            }
 
-            if( (portFE & 0x18) != (value & 0x18) )
-                audio.updateAudio(z80.tEstados, portFE);
+//            if( (portFE & 0x18) != (value & 0x18) )
+//                audio.updateAudio(z80.tEstados, portFE);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;

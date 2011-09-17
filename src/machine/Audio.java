@@ -17,7 +17,7 @@ import javax.sound.sampled.SourceDataLine;
 
 class Audio
 {
-	byte buf[] = new byte[7056]; // espacio para 4 frames de sonido
+	byte buf[] = new byte[7680]; // espacio para 4 frames de sonido
 	int bufp;
 
 	long div;
@@ -27,6 +27,7 @@ class Audio
     public int audiotstates;
     private int idxSampl;
     private short bufSampl[];
+    private float coeff[] = { (float)1/16, (float)1/4, (float)3/8, (float)1/4, (float)1/16 };
     private double timeRem, spf;
 
 	void open(int hz)
@@ -36,7 +37,7 @@ class Audio
 		idiv = (1<<30) / hz;
         timeRem = 0.0;
         spf = (double)69888 / ((double)FREQ / (double)50);
-        bufSampl = new short[10];
+        bufSampl = new short[5];
         java.util.Arrays.fill(bufSampl, (short)0);
         idxSampl = 0;
 	}
@@ -96,15 +97,15 @@ loop:
 	}
 
     synchronized void addSample(short sample) {
-        bufSampl[idxSampl++] = sample;
-        if( idxSampl == bufSampl.length )
-            idxSampl = 0;
+        bufSampl[++idxSampl % bufSampl.length] = sample;
+//        if( idxSampl == bufSampl.length )
+//            idxSampl = 0;
     }
 
     synchronized short getSample() {
-        int sample = 0;
+        float sample = 0;
         for( int idx = 0; idx < bufSampl.length; idx ++)
-            sample += bufSampl[idx];
+            sample += bufSampl[(idxSampl + idx) % bufSampl.length] * coeff[idx];
         return (short)(sample / bufSampl.length);
     }
 
@@ -115,31 +116,23 @@ loop:
         double time = tstates;
         time += timeRem;
 
-//        System.out.println(String.format("tstates: %d audiotstates: %d nSamples: %d Rem: %d",
-//                tstates, audiotstates, nSamples, tstatesRem));
-
         while( time > spf ) {
-            if( (value & 0x10) != 0 ) {
-                level = 0x7000;
-                if( (value & 0x08) != 0)
-                    level *= 1.06;
-            } else {
-                level = 0;
-            }
-            addSample((short)level);
+            addSample((short)value);
             level = getSample();
-            addSample((short)level);
+            //addSample((short)level);
             buf[bufp++] = (byte) level;
-            buf[bufp++] = (byte) (level >>> 8);
+            buf[bufp++] = (byte) (level >> 8);
             if( bufp == buf.length )
                 bufp = flush(bufp);
             time -= spf;
         }
         timeRem = time;
+//        System.out.println(String.format("tstates: %d speaker: %04x timeRem: %f",
+//            tstates, value, timeRem));
     }
 
 
-	static final int FREQ = 44100;
+	static final int FREQ = 48000;
 	SourceDataLine line;
     DataLine.Info infoDataLine;
 
@@ -151,7 +144,7 @@ loop:
 			System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
 			SourceDataLine l = (SourceDataLine)AudioSystem.getLine(infoDataLine);
-			l.open(fmt, buf.length);
+			l.open(fmt, buf.length * 2);
 			l.start();
 			line = l;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
