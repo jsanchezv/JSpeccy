@@ -30,6 +30,9 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         spectrum.setInfoLabels(modelLabel, speedLabel);
+        spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware);
+        spectrum.setJoystickMenuItems(kempstonJoystick, sinclair1Joystick,
+                                      sinclair2Joystick, cursorJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
         jscr.setScreenImage(spectrum.getTvImage());
         getContentPane().add(jscr,BorderLayout.CENTER);
@@ -61,6 +64,7 @@ public class JSpeccy extends javax.swing.JFrame {
         toolbarMenu = new javax.swing.JToolBar();
         openSnapshotButton = new javax.swing.JButton();
         pauseToggleButton = new javax.swing.JToggleButton();
+        fastEmulationToggleButton = new javax.swing.JToggleButton();
         doubleSizeToggleButton = new javax.swing.JToggleButton();
         silenceSoundToggleButton = new javax.swing.JToggleButton();
         resetSpectrumButton = new javax.swing.JButton();
@@ -189,6 +193,19 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         toolbarMenu.add(pauseToggleButton);
+
+        fastEmulationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_fwd.png"))); // NOI18N
+        fastEmulationToggleButton.setText(bundle.getString("JSpeccy.fastEmulationToggleButton.text")); // NOI18N
+        fastEmulationToggleButton.setToolTipText(bundle.getString("JSpeccy.fastEmulationToggleButton.toolTipText")); // NOI18N
+        fastEmulationToggleButton.setFocusable(false);
+        fastEmulationToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        fastEmulationToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        fastEmulationToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fastEmulationToggleButtonActionPerformed(evt);
+            }
+        });
+        toolbarMenu.add(fastEmulationToggleButton);
 
         doubleSizeToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag+.png"))); // NOI18N
         doubleSizeToggleButton.setToolTipText(bundle.getString("JSpeccy.doubleSizeToggleButton.toolTipText")); // NOI18N
@@ -492,7 +509,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_thisIsTheEndMyFriendActionPerformed
 
     private void doubleSizeOptionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doubleSizeOptionActionPerformed
-        // TODO add your handling code here:
         Object source = evt.getSource();
         if( source instanceof javax.swing.JCheckBoxMenuItem )
             doubleSizeToggleButton.setSelected(doubleSizeOption.isSelected());
@@ -505,7 +521,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
 
     private void pauseMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseMachineMenuActionPerformed
-        // TODO add your handling code here:
         Object source = evt.getSource();
         if( source instanceof javax.swing.JCheckBoxMenuItem )
             pauseToggleButton.setSelected(pauseMachineMenu.isSelected());
@@ -519,7 +534,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_pauseMachineMenuActionPerformed
 
     private void resetMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetMachineMenuActionPerformed
-        // TODO add your handling code here:
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         int ret = JOptionPane.showConfirmDialog(getContentPane(),
                   bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("RESET_SPECTRUM"),
@@ -530,7 +544,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_resetMachineMenuActionPerformed
 
     private void silenceSoundToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_silenceSoundToggleButtonActionPerformed
-        // TODO add your handling code here:
         Object source = evt.getSource();
         if( source instanceof javax.swing.JToggleButton )
             silenceMachineMenu.setSelected(silenceSoundToggleButton.isSelected());
@@ -541,12 +554,10 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
 
     private void playTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playTapeMediaMenuActionPerformed
-        // TODO add your handling code here:
         spectrum.toggleTape();
     }//GEN-LAST:event_playTapeMediaMenuActionPerformed
 
     private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed
-        // TODO add your handling code here:
         boolean paused = spectrum.isPaused();
         if( OpenTapeDlg == null ) {
             OpenTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
@@ -682,6 +693,10 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
+
+    private void fastEmulationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fastEmulationToggleButtonActionPerformed
+        spectrum.toggleSpeed();
+    }//GEN-LAST:event_fastEmulationToggleButtonActionPerformed
     
     /**
      * @param args the command line arguments
@@ -701,6 +716,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
     private javax.swing.JButton exitButton;
+    private javax.swing.JToggleButton fastEmulationToggleButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenuItem fileSaveSnapshot;

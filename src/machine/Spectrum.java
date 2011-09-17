@@ -17,6 +17,7 @@ import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import utilities.Snapshots;
@@ -48,8 +49,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     public Tape tape;
     private boolean paused;
     private javax.swing.JLabel modelLabel, speedLabel;
+    private JMenuItem hardwareMenu48k, hardwareMenu128k;
+    private JMenuItem joystickKempston, joystickSinclair1,
+                      joystickSinclair2, joystickCursor;
     public static enum Joystick { NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR };
-    Joystick joystick;
+    private Joystick joystick;
+    private boolean issue3;
 
     public Spectrum() {
         super("SpectrumThread");
@@ -87,6 +92,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
         buildScreenTables48k();
+        issue3 = true;
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
@@ -105,6 +111,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
         buildScreenTables128k();
+        issue3 = true;
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
@@ -180,6 +187,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     public void setJoystick(Joystick type) {
         joystick = type;
+    }
+
+    public void setJoystickMenuItems(JMenuItem jKempston, JMenuItem jSinclair1,
+        JMenuItem jSinclair2, JMenuItem jCursor) {
+        joystickKempston = jKempston;
+        joystickSinclair1 = jSinclair1;
+        joystickSinclair2 = jSinclair2;
+        joystickCursor = jCursor;
+    }
+
+    public void setHardwareMenuItems(JMenuItem hw48k, JMenuItem hw128k) {
+        hardwareMenu48k = hw48k;
+        hardwareMenu128k = hw128k;
     }
 
     public void generateFrame() {
@@ -503,7 +523,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
          * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
          * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
          */
-        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
+        if (spectrumModel == MachineTypes.SPECTRUM128K) {
             if ((port & 0x8002) == 0) {
                 memory.setPort7ffd(floatbus);
                 // En el 128k las páginas impares son contended
@@ -542,7 +562,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             if (tape.isStopped()) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
-                if ((value & 0x10) == 0) {
+                int issueMask = issue3 ? 0x10 : 0x18;
+                if ((value & issueMask) == 0) {
                     tape.setEarBit(false);
                 } else {
                     tape.setEarBit(true);
@@ -552,7 +573,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             portFE = value;
         }
 
-        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+        if (spectrumModel != MachineTypes.SPECTRUM48K) {
             if ((port & 0x8002) == 0) {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
@@ -568,7 +589,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             }
         }
 
-        if (soundOn && enabledAY && (port & 0x8002) == 0x8000) {
+        if (enabledAY && (port & 0x8002) == 0x8000) {
             if ((port & 0x4000) != 0) {
                 ay8912.setAddressLatch(value);
             } else {
@@ -637,10 +658,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     public void execDone(int tstates) {
         tape.notifyTstates(nFrame, z80.tEstados);
-        if (tape.isPlaying()) {
+        if (soundOn && tape.isPlaying()) {
             earBit = tape.getEarBit();
             int spkMic = (earBit == 0xbf) ? -2000 : 2000;
-            if (soundOn && spkMic != speaker) {
+            if (spkMic != speaker) {
                 audio.updateAudio(z80.tEstados, speaker);
                 speaker = spkMic;
             }
@@ -1162,9 +1183,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             switch(snap.getSnapshotModel()) {
                 case SPECTRUM48K:
                     select48kHardware();
+                    hardwareMenu48k.setSelected(true);
                     break;
                 case SPECTRUM128K:
                     select128kHardware();
+                    hardwareMenu128k.setSelected(true);
                     break;
             }
 
@@ -1191,23 +1214,37 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             portFE &= 0xf8;
             portFE |= border;
 
-            //int count;
-//            for (int count = 0x4000; count < 0x10000; count++) {
-//                memory.writeByte(count, snap.getRamAddr(count));
-//            }
+            // Solo los 48k pueden ser Issue2. El resto son todos Issue3.
+            if (snap.getSnapshotModel() == MachineTypes.SPECTRUM48K) {
+                issue3 = snap.isIssue3();
+            }
 
             z80.setRegPC(snap.getRegPC());
             z80.setTEstados(snap.getTstates());
+            joystick = snap.getJoystick();
+            switch (joystick) {
+                case NONE:
+                case CURSOR:
+                    joystickCursor.setSelected(true);
+                    break;
+                case KEMPSTON:
+                    joystickKempston.setSelected(true);
+                    break;
+                case SINCLAIR1:
+                    joystickSinclair1.setSelected(true);
+                    break;
+                case SINCLAIR2:
+                    joystickSinclair2.setSelected(true);
+            }
 
-            if (snap.getSnapshotModel() != MachineTypes.CodeModel.SPECTRUM48K) {
+            if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
                 port7ffd = snap.getPort7ffd();
                 memory.setPort7ffd(port7ffd);
                 contendedRamPage[3] = contendedIOPage[3] =
                     (port7ffd & 0x01) != 0 ? true : false;
             }
 
-            if (snap.getAYEnabled() ||
-                snap.getSnapshotModel() == MachineTypes.CodeModel.SPECTRUM128K) {
+            if (snap.getAYEnabled() || snap.getSnapshotModel().hasAY8912()) {
                 enabledAY = true;
                 for(int reg = 0; reg < 16; reg++) {
                     ay8912.setAddressLatch(reg);
@@ -1217,18 +1254,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             }
 
             System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
-                    "IMAGEN_CARGADA"));
+                    "SNAPSHOT_LOADED"));
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                     ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
+                    "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public void saveSnapshot(File filename) {
         Snapshots snap = new Snapshots();
 
-        snap.setSnapshotModel(spectrumModel.codeModel);
+        snap.setSnapshotModel(spectrumModel);
         snap.setRegI(z80.getRegI());
         snap.setRegHLalt(z80.getRegHLalt());
         snap.setRegDEalt(z80.getRegDEalt());
@@ -1251,6 +1288,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
         snap.setRegPC(z80.getRegPC());
         snap.setTstates(z80.getTEstados());
+        snap.setJoystick(joystick);
+        snap.setIssue3(issue3);
 
         if (spectrumModel != MachineTypes.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
@@ -1265,11 +1304,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
         if (snap.saveSnapshot(filename, memory)) {
             System.out.println(
-                    ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_GUARDADA"));
+                    ResourceBundle.getBundle("machine/Bundle").getString("SNAPSHOT_SAVED"));
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                     ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"), JOptionPane.ERROR_MESSAGE);
+                    "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
         }
     }
 //    static final int CHANNEL_VOLUME = 26000;
@@ -1303,11 +1342,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         soundOn = !soundOn;
         if (soundOn) {
             audio.open(spectrumModel, ay8912, enabledAY);
-            framesByInt = 1;
         } else {
             audio.flush();
             audio.close();
+        }
+    }
+
+    public void toggleSpeed() {
+        if (framesByInt == 1) {
+            if (soundOn)
+                toggleSound();
             framesByInt = 10;
+        } else {
+            framesByInt = 1;
+            toggleSound();
         }
     }
 
@@ -1775,7 +1823,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates - 8] = scrAddr[scan] + col;
+            states2scr[tstates - 12] = scrAddr[scan] + col;
         }
 
         for (int tstates = 0; tstates < states2border.length - 1; tstates++) {

@@ -89,8 +89,8 @@ public class Tape {
     }
 
     public void notifyTstates(long frames, int tstates) {
-        if (statePlay == State.STOP)
-            return;
+//        if (statePlay == State.STOP)
+//            return;
 //        if (timeout == 0)
 //            return;
 
@@ -226,7 +226,7 @@ public class Tape {
     }
 
     private boolean doPlay() {
-        if (!tapeInserted || statePlay == State.STOP)
+        if (!tapeInserted)
             return false;
 
         if (tzxTape)
@@ -236,14 +236,12 @@ public class Tape {
     }
 
     private boolean playTap() {
-        if (!tapeInserted || statePlay == State.STOP)
-            return false;
-
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
                 updateTapeIcon();
                 cpu.setExecDone(false);
+                timeLastIn = 0;
                 break;
             case START:
                 if( tapePos == tapeBuffer.length )
@@ -259,7 +257,7 @@ public class Tape {
                 break;
             case LEADER:
                 earBit = earBit == 0xbf ? 0xff : 0xbf;
-                if (--leaderPulses != 0) {
+                if (--leaderPulses > 0) {
                     timeout = LEADER_LENGHT;
                     break;
                 }
@@ -306,7 +304,7 @@ public class Tape {
                 if( tapePos == tapeBuffer.length ) {
                     statePlay = State.STOP;
                     tapePos = 0;
-                    timeLastIn = 0;
+                    timeout = 1;
                 }
                 else {
                     statePlay = State.START; // START
@@ -316,20 +314,14 @@ public class Tape {
     }
 
     private boolean playTzx() {
-
         boolean repeat;
-        if (!tapeInserted || statePlay == State.STOP) {
-            return false;
-        }
 
         do {
             repeat = false;
-//            System.out.println(String.format("Tape state: %s", statePlay.toString()));
             switch (statePlay) {
                 case STOP:
                     cpu.setExecDone(false);
                     updateTapeIcon();
-//                    System.out.println("TAPE STOP!");
                     break;
                 case START:
                     if (tapePos == tapeBuffer.length) {

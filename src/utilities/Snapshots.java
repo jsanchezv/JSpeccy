@@ -4,6 +4,8 @@
  */
 package utilities;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import machine.MachineTypes;
 import machine.Memory;
+import machine.Spectrum.Joystick;
 
 /**
  *
@@ -31,11 +34,13 @@ public class Snapshots {
     private int lastfffd;
     private int last1ffd;
     int psgRegs[] = new int[16];
-    private MachineTypes.CodeModel snapshotModel;
+    private MachineTypes snapshotModel;
     private int border;
     private int tstates;
-    private FileInputStream fIn;
-    private FileOutputStream fOut;
+    private Joystick joystick;
+    private boolean issue3;
+    private BufferedInputStream fIn;
+    private BufferedOutputStream fOut;
     private boolean snapLoaded;
     private int error;
     private final String errorString[] = {
@@ -59,11 +64,11 @@ public class Snapshots {
         return snapLoaded;
     }
 
-    public MachineTypes.CodeModel getSnapshotModel() {
+    public MachineTypes getSnapshotModel() {
         return snapshotModel;
     }
 
-    public void setSnapshotModel(MachineTypes.CodeModel model) {
+    public void setSnapshotModel(MachineTypes model) {
         snapshotModel = model;
     }
 
@@ -262,6 +267,22 @@ public class Snapshots {
         tstates = value;
     }
 
+    public Joystick getJoystick() {
+        return joystick;
+    }
+
+    public void setJoystick(Joystick model) {
+        joystick = model;
+    }
+
+    public boolean isIssue3() {
+        return issue3;
+    }
+
+    public void setIssue3(boolean version) {
+        issue3 = version;
+    }
+
     public String getErrorString() {
         return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
             errorString[error]);
@@ -292,7 +313,7 @@ public class Snapshots {
     private boolean loadSNA(File filename, Memory memory) {
         try {
             try {
-                fIn = new FileInputStream(filename);
+                fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
                 error = 2;
                 return false;
@@ -301,13 +322,13 @@ public class Snapshots {
             int snaLen = fIn.available();
             switch (snaLen) {
                 case 49179: // 48K
-                    snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                    snapshotModel = MachineTypes.SPECTRUM48K;
                     memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                     memory.reset();
                     break;
                 case 131103: // 128k
                 case 147487: // snapshot de 128k con una página repetida
-                    snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                    snapshotModel = MachineTypes.SPECTRUM128K;
                     memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                     memory.reset();
                     break;
@@ -402,6 +423,7 @@ public class Snapshots {
 
             fIn.close();
 
+            issue3 = true; // esto no se guarda en los SNA, algo hay que poner...
             tstates = 0;
 
         } catch (IOException ex) {
@@ -415,14 +437,14 @@ public class Snapshots {
     private boolean saveSNA(File filename, Memory memory) {
 
         // Si la pila está muy baja, no hay donde almacenar el registro SP
-        if (snapshotModel == MachineTypes.CodeModel.SPECTRUM48K && regSP < 0x4002) {
+        if (snapshotModel == MachineTypes.SPECTRUM48K && regSP < 0x4002) {
             error = 7;
             return false;
         }
 
         try {
             try {
-                fOut = new FileOutputStream(filename);
+                fOut = new BufferedOutputStream(new FileOutputStream(filename));
             } catch (FileNotFoundException ex) {
                 error = 2;
                 return false;
@@ -461,7 +483,7 @@ public class Snapshots {
             fOut.write(regAF);
             fOut.write(regAF >>> 8);
 
-            if (snapshotModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 regSP = (regSP - 1) & 0xffff;
                 memory.writeByte(regSP, regPC >>> 8);
                 regSP = (regSP - 1) & 0xffff;
@@ -477,7 +499,7 @@ public class Snapshots {
                 fOut.write(memory.readByte(addr));
             }
             
-            if (snapshotModel != MachineTypes.CodeModel.SPECTRUM48K) {
+            if (snapshotModel != MachineTypes.SPECTRUM48K) {
                 boolean saved[] = new boolean[8];
                 saved[2] = saved[5] = true;
                 fOut.write(regPC);
@@ -538,7 +560,7 @@ public class Snapshots {
     private boolean loadZ80(File filename, Memory memory) {
         try {
             try {
-                fIn = new FileInputStream(filename);
+                fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
                 error = 2;
                 return false;
@@ -575,10 +597,24 @@ public class Snapshots {
             iff2 = fIn.read() != 0 ? true : false;
             int byte29 = fIn.read() & 0xff;
             modeIM = byte29 & 0x03;
+            issue3 = (byte29 & 0x04) == 0 ? true : false;
+            switch (byte29 >>> 6) {
+                case 0: // Cursor/AGF/Protek Joystick
+                    joystick = Joystick.CURSOR;
+                    break;
+                case 1: // Kempston joystick
+                    joystick = Joystick.KEMPSTON;
+                    break;
+                case 2:
+                    joystick = Joystick.SINCLAIR1;
+                    break;
+                case 3:
+                    joystick = Joystick.SINCLAIR2;
+            }
 
-            // Si regPC == 0, es un z80 v1.0
+            // Si regPC != 0, es un z80 v1.0
             if (regPC != 0) {
-                snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                snapshotModel = MachineTypes.SPECTRUM48K;
                 memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                 memory.reset();
                 if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
@@ -608,12 +644,12 @@ public class Snapshots {
                 if (hdrLen == 23) { // Z80 v2
                     switch (hwMode) {
                         case 0: // 48k
-                            snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                            snapshotModel = MachineTypes.SPECTRUM48K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             memory.reset();
                             break;
                         case 3: // 128k
-                            snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                            snapshotModel = MachineTypes.SPECTRUM128K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             memory.reset();
                             break;
@@ -625,12 +661,12 @@ public class Snapshots {
                 } else { // Z80 v3
                     switch (hwMode) {
                         case 0: // 48k
-                            snapshotModel = MachineTypes.CodeModel.SPECTRUM48K;
+                            snapshotModel = MachineTypes.SPECTRUM48K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             memory.reset();
                             break;
                         case 4: // 128k
-                            snapshotModel = MachineTypes.CodeModel.SPECTRUM128K;
+                            snapshotModel = MachineTypes.SPECTRUM128K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             memory.reset();
                             break;
@@ -679,7 +715,7 @@ public class Snapshots {
                     int addr;
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
-                    if (snapshotModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                    if (snapshotModel == MachineTypes.SPECTRUM48K) {
                         switch (ramPage) {
                             case 4:  // 0x8000-0xbfff
                                 addr = 0x8000;
@@ -728,7 +764,7 @@ public class Snapshots {
 
         try {
             try {
-                fOut = new FileOutputStream(filename);
+                fOut = new BufferedOutputStream(new FileOutputStream(filename));
             } catch (FileNotFoundException ex) {
                 error = 2;
                 return false;
@@ -767,6 +803,21 @@ public class Snapshots {
             fOut.write(iff);
             iff = iff2 ? 0x01 : 0x00;
             fOut.write(iff);
+            if (!issue3)
+                modeIM |= 0x04;
+            switch (joystick) {
+                case NONE:
+                case CURSOR:
+                    break;
+                case KEMPSTON:
+                    modeIM |= 0x40;
+                    break;
+                case SINCLAIR1:
+                    modeIM |= 0x80;
+                    break;
+                case SINCLAIR2:
+                    modeIM |= 0xC0;
+            }
             fOut.write(modeIM);
             // Hasta aquí la cabecera v1.0, ahora viene lo propio de la v3.x
             fOut.write(55);
@@ -783,7 +834,7 @@ public class Snapshots {
             }
             fOut.write(hwMode);
 
-            if (snapshotModel == MachineTypes.CodeModel.SPECTRUM128K) {
+            if (snapshotModel == MachineTypes.SPECTRUM128K) {
                 fOut.write(last7ffd);
             } else {
                 fOut.write(0x00);
@@ -811,7 +862,7 @@ public class Snapshots {
             last1ffd = 0;
             fOut.write(last1ffd);
 
-            if (snapshotModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 fOut.write(0xff);
                 fOut.write(0xff); // bloque sin comprimir
                 fOut.write(4);    // 0x8000-0xbfff

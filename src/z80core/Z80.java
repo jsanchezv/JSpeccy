@@ -63,6 +63,11 @@
  *          duplico el método push para que tenga dos parámetros y pdoer usarla así
  *          con los registros de propósito general, para que sea más rápido.
  *
+ *          23/08/2010 Increíble!. Después de tanto tiempo, aún he tenido que
+ *          corregir la instrucción LD SP, IX(IY) que realizaba los 2 estados de
+ *          contención sobre PC en lugar de sobre IR que es lo correcto. De paso
+ *          he verificado que todos los usos de getRegIR() son correctos.
+ *
  */
 package z80core;
 
@@ -1475,8 +1480,8 @@ public class Z80 {
                 memptr = (regA << 8) | ((memptr + 1) & 0xff);
                 break;
             case 0x03:       /*INC BC*/
-                incRegBC();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                incRegBC();
                 break;
             case 0x04:       /*INC B*/
                 regB = inc8(regB);
@@ -1505,8 +1510,8 @@ public class Z80 {
                 flagFalt = work8;
                 break;
             case 0x09:       /*ADD HL,BC*/
-                setRegHL(add16(getRegHL(), getRegBC()));
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                setRegHL(add16(getRegHL(), getRegBC()));
                 break;
             case 0x0A:       /*LD A,(BC)*/
                 memptr = getRegBC();
@@ -1514,8 +1519,8 @@ public class Z80 {
                 memptr = (memptr + 1) & 0xffff;
                 break;
             case 0x0B:       /*DEC BC*/
-                decRegBC();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                decRegBC();
                 break;
             case 0x0C:       /*INC C*/
                 regC = inc8(regC);
@@ -1557,8 +1562,8 @@ public class Z80 {
                 memptr = (regA << 8) | ((memptr + 1) & 0xff);
                 break;
             case 0x13: {     /*INC DE*/
-                incRegDE();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                incRegDE();
                 break;
             }
             case 0x14: {     /*INC D*/
@@ -1592,8 +1597,8 @@ public class Z80 {
                 break;
             }
             case 0x19: {     /*ADD HL,DE*/
-                setRegHL(add16(getRegHL(), getRegDE()));
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                setRegHL(add16(getRegHL(), getRegDE()));
                 break;
             }
             case 0x1A: {     /*LD A,(DE)*/
@@ -1603,8 +1608,8 @@ public class Z80 {
                 break;
             }
             case 0x1B: {     /*DEC DE*/
-                decRegDE();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                decRegDE();
                 break;
             }
             case 0x1C: {     /*INC E*/
@@ -1651,8 +1656,8 @@ public class Z80 {
                 break;
             }
             case 0x23: {     /*INC HL*/
-                incRegHL();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                incRegHL();
                 break;
             }
             case 0x24: {     /*INC H*/
@@ -1682,9 +1687,9 @@ public class Z80 {
                 break;
             }
             case 0x29: {     /*ADD HL,HL*/
+                MemIoImpl.contendedStates(getPairIR(), 7);
                 work16 = getRegHL();
                 setRegHL(add16(work16, work16));
-                MemIoImpl.contendedStates(getPairIR(), 7);
                 break;
             }
             case 0x2A: {     /*LD HL,(nn)*/
@@ -1695,8 +1700,8 @@ public class Z80 {
                 break;
             }
             case 0x2B: {     /*DEC HL*/
-                decRegHL();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                decRegHL();
                 break;
             }
             case 0x2C: {     /*INC L*/
@@ -1740,21 +1745,21 @@ public class Z80 {
                 break;
             }
             case 0x33: {     /*INC SP*/
-                regSP = (regSP + 1) & 0xffff;
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                regSP = (regSP + 1) & 0xffff;
                 break;
             }
             case 0x34: {     /*INC (HL)*/
                 work16 = getRegHL();
-                work8 = inc8(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
+                work8 = inc8(MemIoImpl.peek8(work16));            
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
             case 0x35: {     /*DEC (HL)*/
                 work16 = getRegHL();
-                work8 = dec8(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
+                work8 = dec8(MemIoImpl.peek8(work16));
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -1778,8 +1783,8 @@ public class Z80 {
                 break;
             }
             case 0x39: {     /*ADD HL,SP*/
-                setRegHL(add16(getRegHL(), regSP));
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                setRegHL(add16(getRegHL(), regSP));
                 break;
             }
             case 0x3A: {     /*LD A,(nn)*/
@@ -1790,8 +1795,8 @@ public class Z80 {
                 break;
             }
             case 0x3B: {     /*DEC SP*/
-                regSP = (regSP - 1) & 0xffff;
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                regSP = (regSP - 1) & 0xffff;
                 break;
             }
             case 0x3C: {     /*INC A*/
@@ -2683,8 +2688,8 @@ public class Z80 {
                 break;
             case 0xF9:       /*LD SP,HL*/
                 //System.out.println(String.format("PC: %04x\tt-states: %d",regPC-1, tEstados));
-                regSP = getRegHL();
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                regSP = getRegHL();
                 break;
             case 0xFA:       /*JP M,nn*/
                 memptr = MemIoImpl.peek16(regPC);
@@ -3886,13 +3891,13 @@ public class Z80 {
         regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x09: {     /* ADD IX,BC */
-                regIXY = add16(regIXY, getRegBC());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                regIXY = add16(regIXY, getRegBC());
                 break;
             }
             case 0x19: {     /* ADD IX,DE */
-                regIXY = add16(regIXY, getRegDE());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                regIXY = add16(regIXY, getRegDE());
                 break;
             }
             case 0x21: {     /*LD IX,nn*/
@@ -3908,8 +3913,8 @@ public class Z80 {
                 break;
             }
             case 0x23: {     /*INC IX*/
-                regIXY = (regIXY + 1) & 0xffff;
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                regIXY = (regIXY + 1) & 0xffff;
                 break;
             }
             case 0x24: {     /*INC IXh*/
@@ -3926,8 +3931,8 @@ public class Z80 {
                 break;
             }
             case 0x29: {     /*ADD IX,IX*/
-                regIXY = add16(regIXY, regIXY);
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                regIXY = add16(regIXY, regIXY);
                 break;
             }
             case 0x2A: {     /*LD IX,(nn)*/
@@ -3938,8 +3943,8 @@ public class Z80 {
                 break;
             }
             case 0x2B: {     /*DEC IX*/
-                regIXY = (regIXY - 1) & 0xffff;
                 MemIoImpl.contendedStates(getPairIR(), 2);
+                regIXY = (regIXY - 1) & 0xffff;
                 break;
             }
             case 0x2C: {     /*INC IXl*/
@@ -3982,8 +3987,8 @@ public class Z80 {
                 break;
             }
             case 0x39: {     /*ADD IX,SP*/
-                regIXY = add16(regIXY, regSP);
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                regIXY = add16(regIXY, regSP);
                 break;
             }
             case 0x44: {     /*LD B,IXh*/
@@ -4338,8 +4343,8 @@ public class Z80 {
                 break;
             }
             case 0xF9: {     /*LD SP,IX*/
+                MemIoImpl.contendedStates(getPairIR(), 2);
                 regSP = regIXY;
-                MemIoImpl.contendedStates(regPC, 2);
                 break;
             }
             default: {
@@ -5650,8 +5655,8 @@ public class Z80 {
                 break;
             }
             case 0x42: {     /*SBC HL,BC*/
-                sbc16(getRegBC());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                sbc16(getRegBC());
                 break;
             }
             case 0x43: {     /*LD (nn),BC*/
@@ -5711,8 +5716,8 @@ public class Z80 {
                 break;
             }
             case 0x4A: {     /*ADC HL,BC*/
-                adc16(getRegBC());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                adc16(getRegBC());
                 break;
             }
             case 0x4B: {     /*LD BC,(nn)*/
@@ -5741,8 +5746,8 @@ public class Z80 {
                 break;
             }
             case 0x52: {     /*SBC HL,DE*/
-                sbc16(getRegDE());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                sbc16(getRegDE());
                 break;
             }
             case 0x53: {     /*LD (nn),DE*/
@@ -5775,8 +5780,8 @@ public class Z80 {
                 break;
             }
             case 0x5A: {     /*ADC HL,DE*/
-                adc16(getRegDE());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                adc16(getRegDE());
                 break;
             }
             case 0x5B: {     /*LD DE,(nn)*/
@@ -5809,8 +5814,8 @@ public class Z80 {
                 break;
             }
             case 0x62: {     /*SBC HL,HL*/
-                sbc16(getRegHL());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                sbc16(getRegHL());
                 break;
             }
             case 0x63: {     /*LD (nn),HL*/
@@ -5834,8 +5839,8 @@ public class Z80 {
                 break;
             }
             case 0x6A: {     /*ADC HL,HL*/
-                adc16(getRegHL());
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                adc16(getRegHL());
                 break;
             }
             case 0x6B: {     /*LD HL,(nn)*/
@@ -5859,8 +5864,8 @@ public class Z80 {
                 break;
             }
             case 0x72: {     /*SBC HL,SP*/
-                sbc16(regSP);
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                sbc16(regSP);
                 break;
             }
             case 0x73: {     /*LD (nn),SP*/
@@ -5883,8 +5888,8 @@ public class Z80 {
                 break;
             }
             case 0x7A: {     /*ADC HL,SP*/
-                adc16(regSP);
                 MemIoImpl.contendedStates(getPairIR(), 7);
+                adc16(regSP);
                 break;
             }
             case 0x7B: {     /*LD SP,(nn)*/

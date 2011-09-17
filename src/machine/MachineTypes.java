@@ -58,7 +58,7 @@ public enum MachineTypes {
                 this.scanLines = 311;
                 this.lengthINT = 36;
                 this.firstScrByte = 14364;
-                this.firstScrUpdate = 14356;
+                this.firstScrUpdate = 14344;
                 this.lastScrUpdate = 58040;
                 this.outOffset = 1;
                 this.hasAY8912 = true;

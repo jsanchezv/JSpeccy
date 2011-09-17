@@ -75,6 +75,7 @@ class Audio {
         }
         ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
         ay8912.setSpectrumModel(spectrumModel);
+        ay8912.reset();
     }
 
     synchronized void updateAudio(int tstates, int value) {
@@ -139,7 +140,7 @@ class Audio {
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
         if (enabledAY) {
-            int sample = 0;
+            int sample;
             for (int idx = 0; idx < bufp; idx++) {
                 sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
                 buf[ptr++] = (byte) sample;

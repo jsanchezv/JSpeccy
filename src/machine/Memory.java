@@ -5,6 +5,7 @@
 
 package machine;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -33,7 +34,7 @@ public final class Memory {
     int[][] writePages = new int[4][];
     // Número de página de RAM de donde sale la pantalla activa
     int screenPage, highPage, bankM, bankP;
-    boolean model128k;
+    boolean model128k, pagingLocked;
     MachineTypes spectrumModel;
 
     public Memory() {
@@ -83,11 +84,13 @@ public final class Memory {
         screenPage = 5;
         highPage = 0;
         model128k = true;
+        pagingLocked = false;
         bankM = 0;
     }
 
     public void setPort7ffd(int port7ffd) {
-        if (port7ffd == bankM)
+//        System.out.println(String.format("port7ffd = %02x", port7ffd));
+        if (pagingLocked || port7ffd == bankM)
             return;
 
         // Set the high page
@@ -99,6 +102,10 @@ public final class Memory {
 
         // Set the active ROM
         readPages[0] = (port7ffd & 0x10) == 0 ? Rom128k[0] : Rom128k[1];
+
+        // Set the page locking state
+        pagingLocked = (port7ffd & 0x20) == 0 ? false : true;
+
         bankM = port7ffd;
     }
 
@@ -126,7 +133,7 @@ public final class Memory {
     }
 
     public void reset() {
-        switch(spectrumModel.codeModel) {
+        switch(spectrumModel) {
             case SPECTRUM48K:
                 setMemoryMap48k();
                 break;
@@ -150,9 +157,10 @@ public final class Memory {
         try {
             inRom = Spectrum.class.getResourceAsStream(filename);
             if (inRom == null) {
-                System.out.println(
+                String msg =
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_LEER_LA_ROM_DESDE_/ROMS/SPECTRUM.ROM"));
+                    "RESOURCE_ROM_ERROR");
+                System.out.println(String.format("%s: %s", msg, filename));
                 return false;
             }
 
@@ -165,33 +173,40 @@ public final class Memory {
             }
 
             if (count != 0x4000) {
-                System.out.println(
+                String msg =
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_CARGAR_LA_ROM"));
+                    "ROM_SIZE_EROR");
+                System.out.println(String.format("%s: %s", msg, filename));
                 return false;
             }
 
             inRom.close();
         } catch (IOException ex) {
-            System.out.println(
+            String msg =
                 java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                "NO_SE_PUDO_LEER_EL_FICHERO_SPECTRUM.ROM"));
+                "RESOURCE_ROM_ERROR");
+            System.out.println(String.format("%s: %s", msg, filename));
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println(
-            java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_CARGADA"));
+        String msg =
+            java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+            "ROM_RESOURCE_LOADED");
+        System.out.println(String.format("%s: %s", msg, filename));
 
         return true;
     }
 
     private boolean loadRomAsFile(String filename, int[] page) {
-        FileInputStream fIn;
+        BufferedInputStream fIn;
 
         try {
             try {
-                fIn = new FileInputStream(filename);
+                fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
-                System.out.println("No se pudo abrir el fichero " + filename);
+                String msg =
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "FILE_ROM_ERROR");
+                System.out.println(String.format("%s: %s", msg, filename));
                 //Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
             }
@@ -204,16 +219,27 @@ public final class Memory {
                 page[count] = value  & 0xff;
             }
 
-//            if (count != 0x4000) {
-//                System.out.println("No se pudo cargar la ROM");
-//                return false;
-//            }
+            if (count != 0x4000) {
+                String msg =
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "ROM_SIZE_EROR");
+                System.out.println(String.format("%s: %s", msg, filename));
+                return false;
+            }
 
             fIn.close();
         } catch (IOException ex) {
-            System.out.println("No se pudo leer el fichero " + filename);
+            String msg =
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "FILE_ROM_ERROR");
+            System.out.println(String.format("%s: %s", msg, filename));
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
+
+        String msg =
+            java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+            "ROM_FILE_LOADED");
+        System.out.println(String.format("%s: %s", msg, filename));
 
         return true;
     }
