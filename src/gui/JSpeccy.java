@@ -10,7 +10,6 @@ import java.awt.BorderLayout;
 import java.io.File;
 import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import machine.Spectrum;
 
@@ -23,7 +22,6 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccyScreen jscr;
     File currentDirSnapshot, currentDirTape;
     JFileChooser jFileSnapshot, jFileTape;
-    JFrame keyboard;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
@@ -38,7 +36,6 @@ public class JSpeccy extends javax.swing.JFrame {
         addKeyListener(spectrum);
         spectrum.start();
         spectrum.startEmulation();
-        keyboard = null;
     }
     
     /** This method is called from within the constructor to
@@ -48,10 +45,15 @@ public class JSpeccy extends javax.swing.JFrame {
      */
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
+        keyboardHelper = new javax.swing.JDialog(this);
+        keyboardImage = new javax.swing.JLabel();
+        closeKeyboardHelper = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
         tapeLabel = new javax.swing.JLabel();
+        jSeparator2 = new javax.swing.JSeparator();
         speedLabel = new javax.swing.JLabel();
         toolbarMenu = new javax.swing.JToolBar();
         openSnapshotButton = new javax.swing.JButton();
@@ -71,6 +73,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
         resetMachineMenu = new javax.swing.JMenuItem();
+        nmiMachineMenu = new javax.swing.JMenuItem();
         mediaMenu = new javax.swing.JMenu();
         tapeMediaMenu = new javax.swing.JMenu();
         openTapeMediaMenu = new javax.swing.JMenuItem();
@@ -80,26 +83,55 @@ public class JSpeccy extends javax.swing.JFrame {
         imageHelpMenu = new javax.swing.JMenuItem();
         aboutHelpMenu = new javax.swing.JMenuItem();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        keyboardHelper.setTitle(bundle.getString("JSpeccy.keyboardHelper.title")); // NOI18N
+
+        keyboardImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Spectkey.png"))); // NOI18N
+        keyboardImage.setText(bundle.getString("JSpeccy.keyboardImage.text")); // NOI18N
+        keyboardHelper.getContentPane().add(keyboardImage, java.awt.BorderLayout.PAGE_START);
+        keyboardImage.getAccessibleContext().setAccessibleParent(null);
+
+        closeKeyboardHelper.setText(bundle.getString("JSpeccy.closeKeyboardHelper.text")); // NOI18N
+        closeKeyboardHelper.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                closeKeyboardHelperActionPerformed(evt);
+            }
+        });
+        keyboardHelper.getContentPane().add(closeKeyboardHelper, java.awt.BorderLayout.PAGE_END);
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle(bundle.getString("JSpeccy.title")); // NOI18N
         setResizable(false);
 
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
-        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/logo.png"))); // NOI18N
-        jLabel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
-        jPanel1.add(jLabel2);
+        jLabel1.setText(bundle.getString("JSpeccy.jLabel1.text")); // NOI18N
+        jLabel1.setMaximumSize(new java.awt.Dimension(32767, 16));
+        jLabel1.setPreferredSize(new java.awt.Dimension(200, 16));
+        jPanel1.add(jLabel1);
 
+        tapeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Akai24x24.png"))); // NOI18N
         tapeLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
         tapeLabel.setEnabled(false);
+        tapeLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        tapeLabel.setPreferredSize(new java.awt.Dimension(36, 26));
+        tapeLabel.setRequestFocusEnabled(false);
         jPanel1.add(tapeLabel);
 
+        jSeparator2.setOrientation(javax.swing.SwingConstants.VERTICAL);
+        jSeparator2.setMaximumSize(new java.awt.Dimension(5, 32767));
+        jSeparator2.setMinimumSize(new java.awt.Dimension(3, 16));
+        jSeparator2.setPreferredSize(new java.awt.Dimension(3, 16));
+        jSeparator2.setRequestFocusEnabled(false);
+        jPanel1.add(jSeparator2);
+
+        speedLabel.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         speedLabel.setText(bundle.getString("JSpeccy.speedLabel.text")); // NOI18N
         speedLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        speedLabel.setPreferredSize(new java.awt.Dimension(40, 18));
+        speedLabel.setRequestFocusEnabled(false);
         jPanel1.add(speedLabel);
 
         getContentPane().add(jPanel1, java.awt.BorderLayout.PAGE_END);
@@ -249,6 +281,14 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         machineMenu.add(resetMachineMenu);
+
+        nmiMachineMenu.setText(bundle.getString("JSpeccy.nmiMachineMenu.text")); // NOI18N
+        nmiMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                nmiMachineMenuActionPerformed(evt);
+            }
+        });
+        machineMenu.add(nmiMachineMenu);
 
         jMenuBar1.add(machineMenu);
 
@@ -433,14 +473,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void imageHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageHelpMenuActionPerformed
         // TODO add your handling code here:
-        if (keyboard == null) {
-            keyboard = new JFrame("Spectrum Keyboard");
-            keyboard.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-            keyboard.getContentPane().add(new KeyboardImage(keyboard), BorderLayout.CENTER);
-            keyboard.setResizable(false);
-            keyboard.pack();
-        }
-        keyboard.setVisible(true);
+        keyboardHelper.setResizable(false);
+        keyboardHelper.pack();
+        keyboardHelper.setVisible(true);
     }//GEN-LAST:event_imageHelpMenuActionPerformed
 
     private void aboutHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutHelpMenuActionPerformed
@@ -450,6 +485,16 @@ public class JSpeccy extends javax.swing.JFrame {
             bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
             JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_aboutHelpMenuActionPerformed
+
+    private void nmiMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nmiMachineMenuActionPerformed
+        // TODO add your handling code here:
+        spectrum.triggerNMI();
+    }//GEN-LAST:event_nmiMachineMenuActionPerformed
+
+    private void closeKeyboardHelperActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeKeyboardHelperActionPerformed
+        // TODO add your handling code here:
+        keyboardHelper.setVisible(false);
+    }//GEN-LAST:event_closeKeyboardHelperActionPerformed
     
     /**
      * @param args the command line arguments
@@ -464,6 +509,7 @@ public class JSpeccy extends javax.swing.JFrame {
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem aboutHelpMenu;
+    private javax.swing.JButton closeKeyboardHelper;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
     private javax.swing.JButton exitButton;
@@ -471,12 +517,16 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JMenuItem imageHelpMenu;
-    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSeparator jSeparator2;
+    private javax.swing.JDialog keyboardHelper;
+    private javax.swing.JLabel keyboardImage;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
+    private javax.swing.JMenuItem nmiMachineMenu;
     private javax.swing.JButton openSnapshotButton;
     private javax.swing.JMenuItem openTapeMediaMenu;
     private javax.swing.JMenu optionsMenu;

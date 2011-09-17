@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.SwingUtilities;
 import machine.Spectrum;
 import z80core.Z80;
 
@@ -748,6 +749,7 @@ public class Tape {
     }
 
     private javax.swing.JLabel tapeIcon;
+    private boolean enabledIcon;
     public void setTapeIcon(javax.swing.JLabel tapeLabel) {
         tapeIcon = tapeLabel;
         updateTapeIcon();
@@ -758,8 +760,14 @@ public class Tape {
             return;
 
         if (statePlay == State.STOP)
-            tapeIcon.setEnabled(false);
+            enabledIcon = false;
         else
-            tapeIcon.setEnabled(true);
+            enabledIcon = true;
+
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                tapeIcon.setEnabled(enabledIcon);
+            }
+        });
     }
 }

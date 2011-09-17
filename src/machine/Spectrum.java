@@ -20,6 +20,7 @@ import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import utilities.Snapshots;
 import utilities.Tape;
 import z80core.Z80;
@@ -34,7 +35,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
-    private long nFrame, framesByInt, speedometer;
+    private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean soundOn, resetPending;
     public static final int FRAMES48k = 69888;
     private static final byte delayTstates[] = new byte[FRAMES48k + 100];
@@ -141,6 +142,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         return paused;
     }
 
+    public void triggerNMI() {
+        z80.emitNMI();
+    }
+
     public void generateFrame() {
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
@@ -190,11 +195,16 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
             if (nFrame % 50 == 0) {
                 long now = System.currentTimeMillis();
-                long speed = 100000 / (now - speedometer);
+                speed = 100000 / (now - speedometer);
                 speedometer = now;
-//                System.out.println("Speed: " + speed + "%");
-                if (speedLabel != null) {
-                    speedLabel.setText(String.format("%4d%%", speed));
+                if (speed != prevSpeed) {
+                    prevSpeed = speed;
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            speedLabel.setText(String.format("%4d%%", speed));
+                        }
+                    });
+//                    System.out.println(String.format("Time: %d Speed: %d%%",now, speed));
                 }
             }
         } while (--counter > 0);
