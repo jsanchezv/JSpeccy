@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
+import machine.Memory;
 import machine.Spectrum;
 import z80core.Z80;
 
@@ -687,7 +688,7 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
-    public void fastload(int Ram[]) {
+    public void fastload(Memory memory) {
 
         System.out.println("fastload!");
         if (!tapeInserted || cpu == null)
@@ -721,7 +722,7 @@ public class Tape {
         int nBytes = cpu.getRegDE();
         while (count < nBytes && count < blockLen - 1) {
             if( addr > 0x3fff )
-                Ram[addr] = tapeBuffer[tapePos + count + 1];
+                memory.writeByte(addr, tapeBuffer[tapePos + count + 1]);
             cpu.xor(tapeBuffer[tapePos + count + 1]);
             addr = (addr + 1) & 0xffff;
             count++;

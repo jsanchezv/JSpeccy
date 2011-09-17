@@ -32,7 +32,8 @@ import z80core.Z80;
 public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
     private Z80 z80;
-    private int z80Ram[] = new int[0x10000];
+    private Memory memory;
+    //private int z80Ram[] = new int[0x10000];
     private int rowKey[] = new int[8];
     public int portFE, earBit = 0xbf, kempston;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
@@ -68,7 +69,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     public Spectrum() {
         super("SpectrumThread");
         z80 = new Z80(this);
-        loadRom();
+        memory = new Memory();
+        memory.loadRoms();
+        memory.setMemMap48k();
         initGFX();
         nFrame = speedometer = 0;
         framesByInt = 1;
@@ -247,84 +250,84 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         speedLabel = speedComponent;
     }
 
-    private void loadRom() {
-        if (!loadRomAsFile())
-            loadRomAsResource();
-    }
-
-    private boolean loadRomAsResource() {
-        InputStream inRom;
-
-        try {
-            inRom = Spectrum.class.getResourceAsStream("/roms/spectrum.rom");
-            if (inRom == null) {
-                System.out.println(
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_LEER_LA_ROM_DESDE_/ROMS/SPECTRUM.ROM"));
-                return false;
-            }
-
-            int count, value;
-            for (count = 0; count < 0x4000; count++) {
-                value = inRom.read();
-                if (value == -1)
-                    break;
-                z80Ram[count] = value & 0xff;
-            }
-
-            if (count != 0x4000) {
-                System.out.println(
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "NO_SE_PUDO_CARGAR_LA_ROM"));
-                return false;
-            }
-
-            inRom.close();
-        } catch (IOException ex) {
-            System.out.println(
-                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                "NO_SE_PUDO_LEER_EL_FICHERO_SPECTRUM.ROM"));
-            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        System.out.println(
-            java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_CARGADA"));
-
-        return true;
-    }
-
-    private boolean loadRomAsFile() {
-        FileInputStream fIn;
-
-        try {
-            try {
-                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
-            } catch (FileNotFoundException ex) {
-                System.out.println("No se pudo abrir el fichero spectrum.rom");
-                //Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-                return false;
-            }
-
-            int count, value;
-            for (count = 0; count < 0x4000; count++) {
-                value = fIn.read();
-                if (value == -1)
-                    break;
-                z80Ram[count] = value  & 0xff;
-            }
-
-//            if (count != 0x4000) {
-//                System.out.println("No se pudo cargar la ROM");
+//    private void loadRom() {
+//        if (!loadRomAsFile())
+//            loadRomAsResource();
+//    }
+//
+//    private boolean loadRomAsResource() {
+//        InputStream inRom;
+//
+//        try {
+//            inRom = Spectrum.class.getResourceAsStream("/roms/spectrum.rom");
+//            if (inRom == null) {
+//                System.out.println(
+//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                    "NO_SE_PUDO_LEER_LA_ROM_DESDE_/ROMS/SPECTRUM.ROM"));
 //                return false;
 //            }
-
-            fIn.close();
-        } catch (IOException ex) {
-            System.out.println("No se pudo leer el fichero spectrum.rom");
-            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return true;
-    }
+//
+//            int count, value;
+//            for (count = 0; count < 0x4000; count++) {
+//                value = inRom.read();
+//                if (value == -1)
+//                    break;
+//                z80Ram[count] = value & 0xff;
+//            }
+//
+//            if (count != 0x4000) {
+//                System.out.println(
+//                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                    "NO_SE_PUDO_CARGAR_LA_ROM"));
+//                return false;
+//            }
+//
+//            inRom.close();
+//        } catch (IOException ex) {
+//            System.out.println(
+//                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+//                "NO_SE_PUDO_LEER_EL_FICHERO_SPECTRUM.ROM"));
+//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        System.out.println(
+//            java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_CARGADA"));
+//
+//        return true;
+//    }
+//
+//    private boolean loadRomAsFile() {
+//        FileInputStream fIn;
+//
+//        try {
+//            try {
+//                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+//            } catch (FileNotFoundException ex) {
+//                System.out.println("No se pudo abrir el fichero spectrum.rom");
+//                //Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//                return false;
+//            }
+//
+//            int count, value;
+//            for (count = 0; count < 0x4000; count++) {
+//                value = fIn.read();
+//                if (value == -1)
+//                    break;
+//                z80Ram[count] = value  & 0xff;
+//            }
+//
+////            if (count != 0x4000) {
+////                System.out.println("No se pudo cargar la ROM");
+////                return false;
+////            }
+//
+//            fIn.close();
+//        } catch (IOException ex) {
+//            System.out.println("No se pudo leer el fichero spectrum.rom");
+//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//
+//        return true;
+//    }
 
 //    public int[] getSpectrumMem() {
 //        return z80Ram;
@@ -352,12 +355,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             if (!tape.isFastload() || tape.isTzxTape())
                 tape.play();
             else{
-                tape.fastload(z80Ram);
+                tape.fastload(memory);
                 invalidateScreen(); // thank's Andrew Owen
                 return 0xC9; // RET opcode
             }
         }
-        return z80Ram[address];
+        return memory.readByte(address);
     }
 
     public int peek8(int address) {
@@ -369,7 +372,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 3;
 //        z80.addTEstados(3);
 
-        return z80Ram[address];
+        return memory.readByte(address);
     }
 
     public void poke8(int address, int value) {
@@ -384,21 +387,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 3;
 //        z80.addTEstados(3);
 
-        if (address > 0x3fff) {
-            z80Ram[address] = value;
-        }
+        memory.writeByte(address, value);
     }
 
     public int peek16(int address) {
 
-        int lsb; //, msb;
+        int lsb;
         if ((address & 0xC000) == 0x4000) {
             z80.tEstados += delayTstates[z80.tEstados];
 //            z80.addTEstados(delayTstates[z80.getTEstados()]);
         }
         z80.tEstados += 3;
 //        z80.addTEstados(3);
-        lsb = z80Ram[address];
+        lsb = memory.readByte(address);
 
         address = (address + 1) & 0xffff;
         if ((address & 0xC000) == 0x4000) {
@@ -409,7 +410,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 //        z80.addTEstados(3);
 
         //msb = z80Ram[address];
-        return (z80Ram[address] << 8) | lsb;
+        return (memory.readByte(address) << 8) | lsb;
     }
 
     public void poke16(int address, int word) {
@@ -426,9 +427,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 3;
 //        z80.addTEstados(3);
 
-        if (address > 0x3fff) {
-            z80Ram[address] = word & 0xff;
-        }
+        memory.writeByte(address, word & 0xff);
 
         address = (address + 1) & 0xffff;
 
@@ -442,9 +441,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
         z80.tEstados += 3;
 //        z80.addTEstados(3);
 
-        if (address > 0x3fff) {
-            z80Ram[address] = word >>> 8;
-        }
+        memory.writeByte(address, word >>> 8);
     }
 
     public void contendedStates(int address, int tstates) {
@@ -540,7 +537,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             default:
                 return floatbus;
         }
-        floatbus = z80Ram[addr];
+        floatbus = memory.readByte(addr);
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
 //                    tstates, addr, floatbus));
         return floatbus;
@@ -1079,7 +1076,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
             int count;
             for (count = 0x4000; count < 0x10000; count++) {
-                z80Ram[count] = snap.getRamAddr(count);
+                memory.writeByte(count, snap.getRamAddr(count));
             }
 
             z80.setRegPC(snap.getRegPC());  // código de RETN en la ROM
@@ -1119,7 +1116,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 
         int count;
         for (count = 0x4000; count < 0x10000; count++) {
-            snap.setRamAddr(count, z80Ram[count]);
+            snap.setRamAddr(count, memory.readByte(count));
         }
 
         snap.setRegPC(z80.getRegPC());
@@ -1308,7 +1305,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
-            if (z80Ram[addrAttr] > 0x7f) {
+            if (memory.getScreenByte(addrAttr) > 0x7f) {
                 int address = attr2scr[addrAttr & 0x3ff] & 0x1fff;
                 for (int scan = 0; scan < 8; scan++) {
                     dirtyByte[address] = true;
@@ -1429,22 +1426,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
             scrByte = attr = 0;
             // si m1contended != -1 es que hay que emular el efecto snow.
             if (m1contended == -1) {
-                scrByte = z80Ram[fromAddr];
+                scrByte = memory.getScreenByte(fromAddr);
                 fromAddr &= 0x1fff;
-                attr = z80Ram[scr2attr[fromAddr]];
+                attr = memory.getScreenByte(scr2attr[fromAddr]);
             } else {
                 int addr;
                 int mod = m1contended % 8;
                 if (mod == 0 || mod == 1) {
                     addr = (fromAddr & 0xff00) | m1regR;
-                    scrByte = z80Ram[addr];
-                    attr = z80Ram[scr2attr[fromAddr & 0x1fff]];
+                    scrByte = memory.getScreenByte(addr);
+                    attr = memory.getScreenByte(scr2attr[fromAddr & 0x1fff]);
                     //System.out.println("Snow even");
                 }
                 if (mod == 2 || mod == 3) {
                     addr = (scr2attr[fromAddr & 0x1fff] & 0xff00) | m1regR;
-                    scrByte = z80Ram[fromAddr];
-                    attr = z80Ram[addr & 0x1fff];
+                    scrByte = memory.getScreenByte(fromAddr);
+                    attr = memory.getScreenByte(addr & 0x1fff);
                     //System.out.println("Snow odd");
                 }
                 fromAddr &= 0x1fff;
