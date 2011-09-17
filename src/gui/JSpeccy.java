@@ -10,6 +10,7 @@ import java.awt.BorderLayout;
 import java.io.File;
 import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import machine.Spectrum;
 
@@ -20,8 +21,9 @@ import machine.Spectrum;
 public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
-    File currentDirSnapshot, currentDirTape;;
+    File currentDirSnapshot, currentDirTape;
     JFileChooser jFileSnapshot, jFileTape;
+    JFrame keyboard;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
@@ -35,6 +37,11 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         addKeyListener(spectrum);
         spectrum.startEmulation();
+        keyboard = new JFrame("Spectrum Keyboard");
+        keyboard.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        keyboard.getContentPane().add(new JSpeccyKeyboard(keyboard), BorderLayout.CENTER);
+        keyboard.setResizable(false);
+        keyboard.pack();
     }
     
     /** This method is called from within the constructor to
@@ -72,6 +79,8 @@ public class JSpeccy extends javax.swing.JFrame {
         openTapeMediaMenu = new javax.swing.JMenuItem();
         playTapeMediaMenu = new javax.swing.JMenuItem();
         rewindTapeMediaMenu = new javax.swing.JMenuItem();
+        helpMenu = new javax.swing.JMenu();
+        imageHelpMenu = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -87,7 +96,6 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel1.add(jLabel2);
 
         tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Akai24x24.png"))); // NOI18N
-        tapeLabel.setText(bundle.getString("JSpeccy.tapeLabel.text")); // NOI18N
         tapeLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
         tapeLabel.setEnabled(false);
         jPanel1.add(tapeLabel);
@@ -278,6 +286,18 @@ public class JSpeccy extends javax.swing.JFrame {
 
         jMenuBar1.add(mediaMenu);
 
+        helpMenu.setText(bundle.getString("JSpeccy.helpMenu.text")); // NOI18N
+
+        imageHelpMenu.setText(bundle.getString("JSpeccy.imageHelpMenu.text")); // NOI18N
+        imageHelpMenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                imageHelpMenuActionPerformed(evt);
+            }
+        });
+        helpMenu.add(imageHelpMenu);
+
+        jMenuBar1.add(helpMenu);
+
         setJMenuBar(jMenuBar1);
 
         pack();
@@ -402,6 +422,11 @@ public class JSpeccy extends javax.swing.JFrame {
         // TODO add your handling code here:
         spectrum.tape.rewind();
     }//GEN-LAST:event_rewindTapeMediaMenuActionPerformed
+
+    private void imageHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageHelpMenuActionPerformed
+        // TODO add your handling code here:        
+        keyboard.setVisible(true);
+    }//GEN-LAST:event_imageHelpMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -420,6 +445,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JButton exitButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
+    private javax.swing.JMenu helpMenu;
+    private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
