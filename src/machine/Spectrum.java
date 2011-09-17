@@ -66,14 +66,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         audio = new Audio();
         audio.open(3500000);
         ay(true);
-        volume(100);
+        //volume(100);
     }
 
     public void startEmulation() {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
         z80.tEstados = 0;
-        au_time = audio.audiotstates = 0;
+        au_time = -14335;
+        audio.audiotstates = 0;
         au_reset();
         jscr.invalidateScreen();
     }
@@ -116,9 +117,9 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         z80.statesLimit = FRAMES48k;
         z80.execute();
 
-        //au_update();
-        //au_time -= FRAMES48k;
-        //audio.level -= audio.level>>8;
+//        au_update();
+//        au_time -= FRAMES48k;
+//        audio.level -= audio.level>>8;
         audio.updateAudio(z80.tEstados, speaker);
         audio.audiotstates -= FRAMES48k;
         
@@ -359,13 +360,10 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 
             int spkMic = sp_volt[value >> 3 & 3];
             if (spkMic != speaker) {
-                //au_update();
+//                au_update();
                 audio.updateAudio(z80.tEstados, speaker);
                 speaker = spkMic;
             }
-
-//            if( (portFE & 0x18) != (value & 0x18) )
-//                audio.updateAudio(z80.tEstados, portFE);
 
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
@@ -858,7 +856,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     /* audio (thanks Jan) */
 
 	static final int CHANNEL_VOLUME = 26000;
-	static final int SPEAKER_VOLUME = 49000;
+	static final int SPEAKER_VOLUME = 30000;
 
 	boolean ay_enabled;
 
@@ -1009,7 +1007,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
 	private int au_val, au_dt;
 
 	private void au_update() {
-		int t = z80.tEstados;
+		int t = z80.tEstados - 14335;
 		au_time += (t -= au_time);
 
 		int dv = au_value() - au_val;
