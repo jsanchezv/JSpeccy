@@ -113,14 +113,14 @@ public final class AY8912 {
 
     AY8912(int clock) {
         clockFreq = clock;
-        maxAmplitude = 8000;
+        maxAmplitude = 7000;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
 //                    idx, volumeLevel[idx]));
         }
         for (int pos = 0; pos < samplePos.length; pos++) {
-            samplePos[pos] = (int) (pos * Divider);
+            samplePos[pos] = (int) (pos * Divider + 0.24f);
         }
         reset();
     }
@@ -335,7 +335,7 @@ public final class AY8912 {
     public void endFrame() {
 //        System.out.println(String.format("endFrame: ticks = %d", ticks));
 //        double timePos;
-        int pos;
+        int pos0, pos1, pos2;
         for (int sample = 0; sample < 961; sample++) {
 //            timePos = sample * Divider;
 //            pos = (int) timePos;
@@ -358,10 +358,12 @@ public final class AY8912 {
 //            } else {
 //                bufC[sample] = (int)(chanC[pos] * (1-timePos) + chanC[pos+1] * timePos);
 //            }
-            pos = samplePos[sample];
-            bufA[sample] = (chanA[pos] + chanA[pos+1] + chanA[pos+2] + chanA[pos+3]) >>> 2;
-            bufB[sample] = (chanB[pos] + chanB[pos+1] + chanB[pos+2] + chanB[pos+3]) >>> 2;
-            bufC[sample] = (chanC[pos] + chanC[pos+1] + chanC[pos+2] + chanC[pos+3]) >>> 2;
+            pos0 = samplePos[sample];
+            pos1 = pos0 + 1;
+            pos2 = pos0 + 2;
+            bufA[sample] = (chanA[pos0] + chanA[pos1] + chanA[pos2]) / 3;
+            bufB[sample] = (chanB[pos0] + chanB[pos1] + chanB[pos2]) / 3;
+            bufC[sample] = (chanC[pos0] + chanC[pos1] + chanC[pos2]) / 3;
         }
         pbuf = 0;
         audiotstates -= Spectrum.FRAMES128k;

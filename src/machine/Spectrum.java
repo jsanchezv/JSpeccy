@@ -1162,7 +1162,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
     }
 
     static final int CHANNEL_VOLUME = 26000;
-    static final int SPEAKER_VOLUME = 8000;
+    static final int SPEAKER_VOLUME = 11000;
     private int speaker;
     private static final int sp_volt[];
     static boolean muted = false;
@@ -1222,10 +1222,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, KeyListener {
 //		sp_volt[1] = (int)(-SPEAKER_VOLUME*1.06*a);
 //		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
 //		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);
-        sp_volt[0] = (int) -SPEAKER_VOLUME;
-        sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.25);
+        sp_volt[0] = 0;//(int) -SPEAKER_VOLUME;
+        sp_volt[1] = 0;//(int) (-SPEAKER_VOLUME * 1.06);
         sp_volt[2] = (int) SPEAKER_VOLUME;
-        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.25);
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
     }
 
     /* Sección gráfica */
