@@ -19,6 +19,7 @@ public class FileFilterSnapshot extends FileFilter {
     }
 
     public String getDescription() {
-        return "Snapshot de tipo SNA (.sna)";
+        return java.util.ResourceBundle.getBundle("gui/Bundle").getString(
+            "SNA_SNAPSHOT"); // NOI18N
     }
 }

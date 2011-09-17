@@ -71,7 +71,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
         audio.open(3500000);
         paused = true;
         loading = true;
-        stpe = new ScheduledThreadPoolExecutor(2);
+        stpe = new ScheduledThreadPoolExecutor(1);
         stpe.scheduleAtFixedRate(this, 0, 20, TimeUnit.MILLISECONDS);
     }
 
@@ -92,8 +92,12 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
 
     public void reset() {
         z80.reset();
-        z80.setTEstados(0);
         audio.audiotstates = 0;
+        jscr.invalidateScreen();
+    }
+
+    public boolean isPaused() {
+        return paused;
     }
 
     public void generateFrame() {
@@ -163,7 +167,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
         try {
             inRom = Spectrum.class.getResourceAsStream("/roms/spectrum.rom");
             if (inRom == null) {
-                System.out.println("No se pudo leer la ROM desde /roms/spectrum.rom");
+                System.out.println(
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "NO_SE_PUDO_LEER_LA_ROM_DESDE_/ROMS/SPECTRUM.ROM"));
                 return;
             }
             int count;
@@ -171,16 +177,21 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
                 z80Ram[count] = (int) inRom.read() & 0xff;
             }
             if (count != 0x4000) {
-                System.out.println("No se pudo cargar la ROM");
+                System.out.println(
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "NO_SE_PUDO_CARGAR_LA_ROM"));
                 return;
             }
 
             inRom.close();
         } catch (IOException ex) {
-            System.out.println("No se pudo leer el fichero spectrum.rom");
+            System.out.println(
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "NO_SE_PUDO_LEER_EL_FICHERO_SPECTRUM.ROM"));
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("ROM cargada");
+        System.out.println(
+            java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_CARGADA"));
     }
 
     public int[] getSpectrumMem() {
@@ -863,7 +874,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
             try {
                 fIn = new FileInputStream(filename);
             } catch (FileNotFoundException ex) {
-                System.out.println("No se pudo abrir el fichero " + filename);
+                System.out.println(
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "NO_SE_PUDO_ABRIR_EL_FICHERO_") + filename);
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 //startEmulation();
                 return;
@@ -904,17 +917,22 @@ public class Spectrum implements Runnable, z80core.MemIoOps, KeyListener {
 
             fIn.close();
             if (count != 0x10000) {
-                System.out.println("No se pudo cargar la imagen");
+                System.out.println(
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "NO_SE_PUDO_CARGAR_LA_IMAGEN"));
                 z80.reset();
                 //startEmulation();
                 return;
             }
             z80.setRegPC(0x72);  // código de RETN en la ROM
         } catch (IOException ex) {
-            System.out.println("No se pudo leer el fichero " + filename);
+            System.out.println(
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "NO_SE_PUDO_LEER_EL_FICHERO_") + filename);
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("Imagen cargada");
+        System.out.println(
+            java.util.ResourceBundle.getBundle("machine/Bundle").getString("IMAGEN_CARGADA"));
         //startEmulation();
     }
     static final int CHANNEL_VOLUME = 26000;
