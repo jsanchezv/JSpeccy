@@ -36,6 +36,7 @@ public class JSpeccy extends javax.swing.JFrame {
         getContentPane().add(jscr,BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum);
+        spectrum.start();
         spectrum.startEmulation();
         keyboard = null;
     }

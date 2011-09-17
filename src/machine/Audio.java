@@ -22,13 +22,16 @@ import javax.sound.sampled.SourceDataLine;
 
 class Audio {
     static final int FREQ = 48000;
-    SourceDataLine line;
-    DataLine.Info infoDataLine;
-    AudioFormat fmt;
-    SourceDataLine sdl;
-    private final byte buf[] = new byte[8192];
-    int bufp;
-    int level;
+    private SourceDataLine line;
+    private DataLine.Info infoDataLine;
+    private AudioFormat fmt;
+    private SourceDataLine sdl;
+    // Buffer de sonido para el frame actual, hay más espacio del necesario.
+    private final byte buf[] = new byte[2048];
+    // Un frame completo lleno de ceros para enviarlo como aperitivo.
+    private final byte nullbuf[] = new byte[1920];
+    private int bufp;
+    private int level;
     public int audiotstates;
     private float timeRem, spf;
 
@@ -38,12 +41,8 @@ class Audio {
             System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
             sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-//            sdl.open(fmt, buf.length * 2);
-//            sdl.start();
-//            line = sdl;
             line = null;
-//            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
-//                infoDataLine.getMaxBufferSize(), infoDataLine.getMinBufferSize()));
+            java.util.Arrays.fill(nullbuf, (byte)0);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -52,14 +51,13 @@ class Audio {
     synchronized void open(int hz) {
         timeRem = (float) 0.0;
         spf = (float) 69888 / (FREQ / 50);
-        level = 0;
-        audiotstates = 0;
+        audiotstates = bufp = level = 0;
         if (line == null)
         {
             try {
-                sdl.open(fmt, buf.length);
-                //System.out.println("Audio buffersize = "  + sdl.getBufferSize() + " bytes");
-                sdl.start();
+                sdl.open(fmt, nullbuf.length * 2); // Espacio para dos frames
+                // No se llama al método start hasta tener el primer buffer
+//                sdl.start();
                 line = sdl;
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
@@ -73,7 +71,7 @@ class Audio {
         float time = tstates;
 
         synchronized (buf) {
-            if (time + timeRem >= spf) {
+            if (time + timeRem > spf) {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
                 buf[bufp++] = (byte) level;
@@ -110,6 +108,13 @@ class Audio {
     private synchronized int flushBuffer(int ptr) {
         if (line != null) {
             synchronized (buf) {
+                // Si al ir a escribir el frame la línea no está funcionando,
+                // iniciar el envío y estrenar el sonido con un magnífico frame
+                // lleno de ceros.
+                if (!line.isRunning()) {
+                    line.start();
+                    line.write(nullbuf, 0, nullbuf.length); // y una magdalena
+                }
                 line.write(buf, 0, ptr);
             }
         }
@@ -117,12 +122,26 @@ class Audio {
     }
 
     public void flush() {
+        bufp = level = 0;
+        timeRem = 0.0f;
+        if (line != null)
+            line.flush();
+    }
+
+    public void endFrame() {
+//        System.out.println("Frame: " + bufp + " bytes");
+        // Si el frame se ha quedado corto de una punta, rellenarlo
+        if (bufp == 1918) {
+            buf[bufp++] = (byte) level;
+            buf[bufp++] = (byte) (level >> 8);
+        }
         bufp = flushBuffer(bufp);
     }
 
     synchronized void close() {
         if (line != null) {
             line.stop();
+            line.flush();
             line.close();
             line = null;
         }

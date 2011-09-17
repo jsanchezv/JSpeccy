@@ -51,6 +51,17 @@
  *          interrupciones, cosa que en realidad, estaba pensada desde el
  *          principio.
  *
+ *          28/03/2010 Se corrige un problema con el manejo de las interrupciones.
+ *          Para ello es necesario introducir el flag 'halted'. El problema surgía
+ *          únicamente cuando la INT se producía cuando la instrucción a la que
+ *          apunta PC es un HALT pero éste aún no se ha ejecutado. En ese caso,
+ *          el HALT se ejecutará a la vuelta de la interrupción. Hasta ahora,
+ *          la dirección de retorno de la INT que se guardaba en el stack era la
+ *          de PC+1 como si el HALT ya se hubiera ejecutado, cuando esto último
+ *          era falso. Gracias a Woodster por el programa de test y por informarme
+ *          del fallo. Thanks!, Woodster. :)
+ *          Creo también el método isHalted para acceder al flag.
+ *
  */
 package z80core;
 
@@ -60,7 +71,7 @@ public class Z80 {
 
     private final MemIoOps MemIoImpl;
     // Número de estados T que se llevan ejecutados
-    private int tEstados;
+    public int tEstados;
 
     private boolean execDone;
 
@@ -145,6 +156,8 @@ public class Z80 {
     public final int IM0 = 0;
     public final int IM1 = 1;
     public final int IM2 = 2;
+
+    public boolean halted = false;
 
     /**
      * Registro interno que usa la CPU de la siguiente forma
@@ -632,6 +645,10 @@ public class Z80 {
         modeINT = modo;
     }
 
+    public final boolean isHalted() {
+        return halted;
+    }
+
     // Reset
     /* Según el documento de Sean Young, que se encuentra en
      * [http://www.myquest.com/z80undocumented], la mejor manera de emular el
@@ -665,6 +682,7 @@ public class Z80 {
         pendingEI = false;
         activeNMI = false;
         activeINT = false;
+        halted = false;
 
         setIM(IM0);
 
@@ -1323,13 +1341,14 @@ public class Z80 {
     public final void interruption() {
 
         //System.out.println(String.format("INT at %d T-States", tEstados));
-        int tmp = tEstados; // peek8 modifica los tEstados
+//        int tmp = tEstados; // peek8 modifica los tEstados
         // Si estaba en un HALT esperando una INT, lo saca de la espera
-        if (MemIoImpl.peek8(regPC) == 0x76) {
-            regPC++;
+        if (halted) {
+            halted = false;
+            regPC = (regPC +1) & 0xffff;
         }
 
-        tEstados = tmp + 7;
+        tEstados += 7;
 
         regR++;
         ffIFF1 = false;
@@ -1993,6 +2012,7 @@ public class Z80 {
             }
             case 0x76: {     /*HALT*/
                 regPC--;
+                halted = true;
                 break;
             }
             case 0x77: {     /*LD (HL),A*/
