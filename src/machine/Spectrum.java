@@ -150,8 +150,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private void loadRom() {
         try {
             try {
-                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
-//                fIn = new FileInputStream("spectrum.rom");
+//                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+                fIn = new FileInputStream("spectrum.rom");
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero spectrum.rom");
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -429,15 +429,15 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
                 z80.tEstados += 3;
             }
         } else {
-            if ((port & 0xc000) == 0x4000) {
-                // A0 == 0 y es contended RAM
-                z80.tEstados += delayTstates[z80.tEstados];
-                z80.tEstados += 3;
-            } else {
+//            if ((port & 0xc000) == 0x4000) {
+//                // A0 == 0 y es contended RAM
+//                z80.tEstados += delayTstates[z80.tEstados];
+//                z80.tEstados += 3;
+//            } else {
                 // A0 == 0 y no es contended RAM
                 z80.tEstados += delayTstates[z80.tEstados];
                 z80.tEstados += 3;
-            }
+           // }
         }
     }
 
@@ -870,7 +870,7 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     /* audio (thanks Jan) */
 
 	static final int CHANNEL_VOLUME = 26000;
-	static final int SPEAKER_VOLUME = 30000;
+	static final int SPEAKER_VOLUME = 30500;
 
 	boolean ay_enabled;
 

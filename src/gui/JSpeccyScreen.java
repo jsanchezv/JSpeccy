@@ -24,7 +24,7 @@ import machine.Spectrum;
 public class JSpeccyScreen extends javax.swing.JPanel {
 
     //Vector con los valores correspondientes a lo colores anteriores
-    public static final int[] Paleta = {
+    private static final int[] Paleta = {
         0x000000, /* negro */
         0x0000c0, /* azul */
         0xc00000, /* rojo */
@@ -148,8 +148,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                     address += 256;
                 }
             }
-//        if(nBorderChanges == 0 )
-//            nBorderChanges = 1;
+        if(nBorderChanges == 0 ) {
+            nBorderChanges = 1;
+            screenUpdated = true;
+        }
     }
 
     public void toggleDoubleSize() {
@@ -206,7 +208,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         if (doubleSize) {
             gc2.drawImage(bImgScr, escalaOp, BORDER_WIDTH * 2, BORDER_WIDTH * 2);
         } else {
-            gc2.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, this);
+            gc2.drawImage(bImgScr, BORDER_WIDTH, BORDER_WIDTH, null);
         }
 
         if( nBorderChanges == 0)
@@ -257,10 +259,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         int pix = row * SCREEN_WIDTH;
 
         if (col < (128 + BORDER_WIDTH / 2)) {
-            return pix += col * 2 + BORDER_WIDTH;
+            return pix + col * 2 + BORDER_WIDTH;
         }
         if (col > (199 + (48 - BORDER_WIDTH) / 2)) {
-            return pix += (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
+            return pix + (col - (200 + (48 - BORDER_WIDTH) / 2)) * 2 + SCREEN_WIDTH;
         } else {
             return pix + SCREEN_WIDTH;
         }

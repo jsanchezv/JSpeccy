@@ -25,7 +25,7 @@ class Audio {
     public int audiotstates, out1;
     private float timeRem, spf;
 
-    void open(int hz) {
+    synchronized void open(int hz) {
         div = hz;
         acct = hz;
         idiv = (1 << 30) / hz;
@@ -145,7 +145,7 @@ class Audio {
             System.out.println(fmt);
             infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
             SourceDataLine l = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-            l.open(fmt, buf.length);
+            l.open(fmt, buf.length * 2);
             l.start();
             line = l;
 //            System.out.println(String.format("maxBufferSize: %d minBufferSize: %d",
