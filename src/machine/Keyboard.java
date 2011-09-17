@@ -71,8 +71,9 @@ public class Keyboard implements KeyListener {
     }
 
     public void keyPressed(KeyEvent evt) {
+
         int key = evt.getKeyCode();
-//        System.out.println(evt.getKeyText(key));
+
         switch (key) {
             // Fila B - SPACE
             case KeyEvent.VK_SPACE:
@@ -323,7 +324,9 @@ public class Keyboard implements KeyListener {
     }
 
     public void keyReleased(KeyEvent evt) {
+        
         int key = evt.getKeyCode();
+
         switch (key) {
             // Fila SPACE - B
             case KeyEvent.VK_SPACE:

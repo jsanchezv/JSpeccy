@@ -260,8 +260,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
             z80.tEstados -= spectrumModel.tstatesFrame;
 
-            if (++nFrame % 16 == 0 && !ULAplusMode) {
-                toggleFlash();
+            nFrame++;
+            if (ULAplusMode) {
+            } else {
+                if (nFrame % 16 == 0) {
+                    toggleFlash();
+                }
             }
 
             if (nFrame % 50 == 0) {
@@ -582,7 +586,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
                 if (((port7ffd ^ value) & 0x08) != 0) {
-                    invalidateScreen(false);
+                    invalidateScreen(true);
                 }
                 port7ffd = value;
             }
@@ -618,14 +622,16 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     if ((value & 0x01) == 0x01) {
                         blue |= 0x01;
                     }
-                    blue = (blue << 5) | (blue << 2) | (blue & 0x07);
+                    blue = (blue << 5) | (blue << 2) | (blue & 0x03);
                     int red = (value & 0x1C) >> 2;
-                    red = (red << 5) | (red << 2) | (red & 0x07);
+                    red = (red << 5) | (red << 2) | (red & 0x03);
                     int green = (value & 0xE0) >> 5;
-                    green = (green << 5) | (green << 2) | (green & 0x07);
+                    green = (green << 5) | (green << 2) | (green & 0x03);
                     ULAplusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
                         (red << 16) | (green << 8) | blue;
+//                    paletteChanged = true;
                 }
+                invalidateScreen(true);
             }
         }
         //preIO(port);
@@ -1018,7 +1024,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     private int paletteGroup;
     // Is ULAplus mode active?
     private boolean ULAplusMode;
-    // ULAplus calculated color palette
+    // ULAplus precomputed color palette
     private int ULAplusPalette[][];
 
     private void initGFX() {
@@ -1201,13 +1207,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
     public void updateBorder(int tstates) {
         int nowColor = Paleta[portFE & 0x07];
+
+        if(ULAplusMode) {
+            nowColor = ULAplusPalette[0][(portFE & 0x07) | 0x08];
+        } else {
+            nowColor = Paleta[portFE & 0x07];
+        }
         int idxColor;
 
         if (tstates < lastChgBorder)
             return;
 
-        while (lastChgBorder < tstates) {
-            idxColor = states2border[lastChgBorder++];
+       tstates -= 4;
+        
+        while (lastChgBorder <= tstates) {
+            idxColor = states2border[lastChgBorder];
+            lastChgBorder += 4;
             if (idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
                 continue;
             }
@@ -1328,9 +1343,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void invalidateScreen(boolean invalidateBorder) {
-        if (invalidateBorder) {
-            borderChanged = true;
-        }
+        borderChanged = invalidateBorder;
         screenDirty = true;
         Arrays.fill(dirtyByte, true);
     }
