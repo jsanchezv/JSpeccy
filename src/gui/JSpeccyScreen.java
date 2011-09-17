@@ -65,7 +65,7 @@ public class JSpeccyScreen extends javax.swing.JPanel {
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[69050];
 
-    private static final int BORDER_WIDTH = 40;
+    private static final int BORDER_WIDTH = 32;
     private static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
     private static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
 
@@ -148,10 +148,10 @@ public class JSpeccyScreen extends javax.swing.JPanel {
                     address += 256;
                 }
             }
-        if(nBorderChanges == 0 ) {
-            nBorderChanges = 1;
-            screenUpdated = true;
-        }
+//        if(nBorderChanges == 0 ) {
+//            nBorderChanges = 1;
+//            screenUpdated = true;
+//        }
     }
 
     public void toggleDoubleSize() {
@@ -188,13 +188,13 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         // no queda otra que dibujarlo todo.
         if (nBorderChanges > 0 || (nBorderChanges == 0 && !screenUpdated)) {
             if (nBorderChanges == 1) {
-                intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
-                //updateBorder(lastChgBorder - 1);
+                //intArrayFill(imgData, Paleta[speccy.portFE & 0x07]);
+                updateBorder(lastChgBorder - 1);
                 nBorderChanges = 0;
             } else {
                 nBorderChanges = 1;
             }
-
+            
             if (doubleSize) {
                 gc2.drawImage(bImg, escalaOp, 0, 0);
             } else {
@@ -287,8 +287,8 @@ public class JSpeccyScreen extends javax.swing.JPanel {
         startPix = tStatesToScrPix(lastChgBorder);
         if (startPix > imgData.length - 1) {
             lastChgBorder = tstates;
-            nBorderChanges++;
-            screenUpdated = true;
+//            nBorderChanges++;
+//            screenUpdated = true;
             return;
         }
 

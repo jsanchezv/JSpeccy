@@ -72,23 +72,23 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     public void startEmulation() {
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
-        z80.tEstados = 0;
-        au_time = -14335;
+        z80.setTEstados(0);
+//        au_time = -14335;
         audio.audiotstates = 0;
-        au_reset();
+//        au_reset();
         jscr.invalidateScreen();
     }
 
     public void stopEmulation() {
         taskFrame.cancel();
         //audio.step(z80.tEstados - au_time, 0);
-        au_time = z80.tEstados;
+//        au_time = z80.tEstados;
         audio.bufp = audio.flush(audio.bufp);
     }
 
     public void reset() {
         z80.reset();
-        au_reset();
+//        au_reset();
     }
 
     public void generateFrame() {
@@ -129,9 +129,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
         //System.out.println(String.format("End frame. t-states: %d", z80.tEstados));
         z80.tEstados -= FRAMES48k;
 
-        if (++nFrame % 16 == 0) {
+        if (++nFrame % 16 == 0)
             jscr.toggleFlash();
-        }
 
         if( jscr.screenUpdated )
             jscr.repaint();
@@ -150,8 +149,8 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
     private void loadRom() {
         try {
             try {
-//                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
-                fIn = new FileInputStream("spectrum.rom");
+                fIn = new FileInputStream("/home/jsanchez/src/JSpeccy/dist/spectrum.rom");
+//                fIn = new FileInputStream("spectrum.rom");
             } catch (FileNotFoundException ex) {
                 System.out.println("No se pudo abrir el fichero spectrum.rom");
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
@@ -317,32 +316,35 @@ public class Spectrum implements z80core.MemIoOps, KeyListener {
             return keys & earBit;
         }
 
+        int addr = 0;
         if( (port & 0xff) == 0xff ) {
-            int tstates = z80.tEstados;
+            int tstates = z80.getTEstados();
             if( tstates < 14336 || tstates > 57343 )
                 return 0xff;
 
-            int row = tstates / 224 - 64;
             int col = (tstates % 224) - 3;
-            
             if( col > 124 )
                 return 0xff;
 
-            int mod = col % 8;
-            switch( mod ) {
+            int row = tstates / 224 - 64;
+
+            switch( col % 8 ) {
                 case 0:
-                    floatbus = z80Ram[jscr.scrAddr[row] + col / 4];
+                    addr = jscr.scrAddr[row] + col / 4;
                     break;
                 case 1:
-                    floatbus = z80Ram[jscr.scr2attr[(jscr.scrAddr[row] + col / 4) & 0x1fff]];
+                    addr = jscr.scr2attr[(jscr.scrAddr[row] + col / 4) & 0x1fff];
                     break;
                 case 2:
-                    floatbus = z80Ram[jscr.scrAddr[row] + col / 4 + 1];
+                    addr = jscr.scrAddr[row] + col / 4 + 1;
                     break;
                 case 3:
-                    floatbus = z80Ram[jscr.scr2attr[(jscr.scrAddr[row] + col / 4 + 1) & 0x1fff]];
+                    addr = jscr.scr2attr[(jscr.scrAddr[row] + col / 4 + 1) & 0x1fff];
                     break;
+                default:
+                    return 0xff;
             }
+            floatbus = z80Ram[addr];
         }
         return floatbus;
     }

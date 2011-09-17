@@ -95,7 +95,6 @@ class Audio {
     }
 
     synchronized void updateAudio(int tstates, int value) {
-
         tstates = tstates - audiotstates;
         audiotstates += tstates;
         float time = tstates;
