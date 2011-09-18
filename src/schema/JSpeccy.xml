@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 3 de septiembre de 2010, 9:58
+    Created on : 4 de septiembre de 2010, 12:04
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -32,7 +32,8 @@
         <ns0:RomPlus33>plus3-3.rom</ns0:RomPlus33>
     </ns0:MemorySettings>
     <ns0:TapeSettings>
-        <ns0:fastload>true</ns0:fastload>
+        <ns0:flashload>true</ns0:flashload>
+        <ns0:accelerateLoading>true</ns0:accelerateLoading>
     </ns0:TapeSettings>
     <ns0:KeyboardJoystickSettings>
         <ns0:JoystickModel>0</ns0:JoystickModel>

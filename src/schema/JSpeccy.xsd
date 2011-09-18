@@ -38,7 +38,8 @@
     </xsd:complexType>
     <xsd:complexType name="TapeType">
         <xsd:sequence>
-            <xsd:element name="fastload" type="xsd:boolean" default="true"/>
+            <xsd:element name="flashload" type="xsd:boolean" default="true"/>
+            <xsd:element name="accelerateLoading" type="xsd:boolean" default="true"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="KeyboardJoystickType">

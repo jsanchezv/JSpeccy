@@ -79,13 +79,15 @@ public class Tape {
     private int endBlockPause;
     private int nLoops;
     private int loopStart;
+    private final TapeNotify tapeNotify;
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
     private ListSelectionModel lsm;
     private TapeType settings;
 
-    public Tape(TapeType tapeSettings, Z80 z80) {
+    public Tape(TapeType tapeSettings, Z80 z80, TapeNotify notifyObject) {
         settings = tapeSettings;
+        tapeNotify = notifyObject;
         cpu = z80;
         statePlay = State.STOP;
         tapeInserted = tzxTape = false;
@@ -514,12 +516,12 @@ public class Tape {
         return statePlay == State.STOP ? true : false;
     }
 
-    public boolean isFastload() {
-        return settings.isFastload();
+    public boolean isFlashLoad() {
+        return settings.isFlashload();
     }
 
-    public void setFastload(boolean fastmode) {
-        settings.setFastload(fastmode);
+    public void setFlashLoad(boolean fastmode) {
+        settings.setFlashload(fastmode);
     }
 
     public boolean isTapeInserted() {
@@ -541,6 +543,7 @@ public class Tape {
         earBit = 0xbf;
         cpu.setExecDone(true);
         updateTapeIcon();
+        tapeNotify.tapeStart();
         return true;
     }
 
@@ -553,9 +556,10 @@ public class Tape {
         if (idxHeader == nOffsetBlocks) {
             idxHeader = 0;
         }
-        timeLastIn = 0;
-        cpu.setExecDone(false);
-        updateTapeIcon();
+//        timeLastIn = 0;
+//        cpu.setExecDone(false);
+//        updateTapeIcon();
+//        tapeNotify.tapeStop();
     }
 
     public boolean rewind() {
@@ -603,6 +607,7 @@ public class Tape {
                 updateTapeIcon();
                 cpu.setExecDone(false);
                 timeLastIn = 0;
+                tapeNotify.tapeStop();
                 break;
             case START:
                 if (idxHeader == nOffsetBlocks) {
@@ -673,6 +678,7 @@ public class Tape {
                     idxHeader = 0;
                     timeout = 1;
                     lsm.setSelectionInterval(idxHeader, idxHeader);
+                    tapeNotify.tapeStop();
                 } else {
                     idxHeader++;
                     statePlay = State.START; // START
@@ -806,6 +812,7 @@ public class Tape {
                 case STOP:
                     cpu.setExecDone(false);
                     updateTapeIcon();
+                    tapeNotify.tapeStop();
                     break;
                 case START:
                     if (idxHeader == nOffsetBlocks) {
@@ -952,6 +959,7 @@ public class Tape {
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
                         statePlay = State.STOP;
+                        tapeNotify.tapeStop();
                         repeat = true;
                     } else {
                         timeout = endBlockPause;
@@ -1074,17 +1082,11 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x18: // CSW Recording Block
-//                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)
-//                        + (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
-                    //tapePos += blockLen + 5;
                     idxHeader++;
                     System.out.println("CSW Block not supported!. Skipping...");
                     break;
                 case 0x19: // Generalized Data Block
                     //printGDBHeader(tapePos);
-//                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8)
-//                        + (tapeBuffer[tapePos + 3] << 16) + (tapeBuffer[tapePos + 4] << 24);
-//                    tapePos += blockLen + 5;
                     idxHeader++;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
@@ -1097,12 +1099,9 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x21: // Group Start
-//                    blockLen = tapeBuffer[tapePos + 1];
-//                    tapePos += blockLen + 2;
                     idxHeader++;
                     break;
                 case 0x22: // Group End
-//                    tapePos++;
                     idxHeader++;
                     break;
                 case 0x23: // Jump to Block
@@ -1111,7 +1110,6 @@ public class Tape {
                     break;
                 case 0x24: // Loop Start
                     nLoops = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
-//                    tapePos += 3;
                     loopStart = ++idxHeader;
                     break;
                 case 0x25: // Loop End
@@ -1122,60 +1120,42 @@ public class Tape {
                     idxHeader = loopStart;
                     break;
                 case 0x26: // Call Sequence
-//                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
-//                    tapePos += blockLen * 2 + 3;
                     idxHeader++;
                     break;
                 case 0x27: // Return from Sequence
-//                    tapePos++;
                     idxHeader++;
                     break;
                 case 0x28: // Select Block
-//                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
-//                    tapePos += blockLen + 3;
                     idxHeader++;
                     break;
                 case 0x2A: // Stop the tape if in 48K mode
-                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                    if (spectrumModel == MachineTypes.SPECTRUM48K) {
                         statePlay = State.STOP;
                         repeat = false;
+//                        tapeNotify.tapeStop();
                     }
-//                    tapePos += 5;
                     idxHeader++;
                     break;
                 case 0x2B: // Set Signal Level
                     earBit = tapeBuffer[tapePos + 5] == 0 ? 0xbf : 0xff;
-//                    tapePos += 6;
                     idxHeader++;
                     break;
                 case 0x30: // Text Description
-//                    blockLen = tapeBuffer[tapePos + 1];
-//                    tapePos += blockLen + 2;
                     idxHeader++;
                     break;
                 case 0x31: // Message Block
-//                    blockLen = tapeBuffer[tapePos + 2];
-//                    tapePos += blockLen + 3;
                     idxHeader++;
                     break;
                 case 0x32: // Archive Info
-//                    blockLen = tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8);
-//                    tapePos += blockLen + 3;
                     idxHeader++;
                     break;
                 case 0x33: // Hardware Type
-//                    blockLen = tapeBuffer[tapePos + 1];
-//                    tapePos += blockLen * 3 + 2;
                     idxHeader++;
                     break;
                 case 0x35: // Custom Info Block
-//                    blockLen = tapeBuffer[tapePos + 17] + (tapeBuffer[tapePos + 18] << 8)
-//                        + (tapeBuffer[tapePos + 19] << 16) + (tapeBuffer[tapePos + 20] << 24);
-//                    tapePos += blockLen + 21;
                     idxHeader++;
                     break;
                 case 0x5A: // "Glue" Block
-//                    tapePos += 10;
                     idxHeader++;
                     break;
                 default:
@@ -1210,13 +1190,13 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
-    public void fastload(Memory memory) {
+    public void flashLoad(Memory memory) {
 
         if (!tapeInserted || cpu == null) {
             return;
         }
 
-        System.out.println("fastload!");
+        System.out.println("flashload!");
 
         if (idxHeader == nOffsetBlocks) {
             cpu.setCarryFlag(false);
@@ -1225,25 +1205,33 @@ public class Tape {
         }
 
         if(tzxTape) {            
-            // Fastload only with Standard Speed Tape Blocks
+            // Fastload only with Standard Speed Tape Blocks (and some
+            // identified erroneusly as Turbo Blocks
+            // (Midnight Resistance 128k as an example)
             while (idxHeader < nOffsetBlocks) {
                 tapePos = offsetBlocks[idxHeader];
-                if (tapeBuffer[tapePos] == 0x10)
+                if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11)
                     break;
                     idxHeader++;
             }
 
             if (idxHeader == nOffsetBlocks) {
                 cpu.setCarryFlag(false);
-//                fastload = false;
                 idxHeader = 0;
                 lsm.setSelectionInterval(idxHeader, idxHeader);
                 return;
             }
 
             lsm.setSelectionInterval(idxHeader, idxHeader);
-            blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
-            tapePos += 5;
+            if (tapeBuffer[tapePos] == 0x10) {
+                blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
+                tapePos += 5;
+            } else {
+                blockLen = tapeBuffer[tapePos + 16]
+                        + (tapeBuffer[tapePos + 17] << 8)
+                        + (tapeBuffer[tapePos + 18] << 16);
+                    tapePos += 19;
+            }
         } else {
             tapePos = offsetBlocks[idxHeader];
             blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
@@ -1264,9 +1252,7 @@ public class Tape {
         int addr = cpu.getRegIX();    // Address start
         int nBytes = cpu.getRegDE();  // Lenght
         while (count < nBytes && count < blockLen - 1) {
-//            if (addr > 0x3fff) {
             memory.writeByte(addr, (byte)tapeBuffer[tapePos + count + 1]);
-//            }
             cpu.xor(tapeBuffer[tapePos + count + 1]);
             addr = (addr + 1) & 0xffff;
             count++;
@@ -1315,6 +1301,7 @@ public class Tape {
 
         SwingUtilities.invokeLater(new Runnable() {
 
+            @Override
             public void run() {
                 tapeIcon.setToolTipText(filenameLabel);
                 tapeIcon.setEnabled(enabledIcon);

@@ -12,13 +12,17 @@ import java.util.TimerTask;
  * @author jsanchez
  */
 public class SpectrumTimer extends TimerTask {
+
     private Spectrum spectrum;
 
     public SpectrumTimer(Spectrum spectrum) {
         this.spectrum = spectrum;
     }
 
+    @Override
     public void run() {
+
         spectrum.generateFrame();
+
     }
 }

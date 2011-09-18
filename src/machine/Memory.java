@@ -72,6 +72,16 @@ public final class Memory {
         Ram[page][address & 0x3fff] = value;
     }
 
+    public void loadPage(int page, byte[] buffer) {
+        byte target[] = Ram[page];
+        System.arraycopy(buffer, 0, target, 0, target.length);
+    }
+
+    public void savePage(int page, byte[] buffer) {
+        byte source[] = Ram[page];
+        System.arraycopy(source, 0, buffer, 0, buffer.length);
+    }
+
     private void setMemoryMap48k() {
         readPages[0] = Rom48k;
         readPages[1] = Ram[5];

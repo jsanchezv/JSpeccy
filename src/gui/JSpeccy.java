@@ -40,6 +40,8 @@ public class JSpeccy extends javax.swing.JFrame {
     JFileChooser openSnapshotDlg, saveSnapshotDlg, OpenTapeDlg;
     ListSelectionModel lsm;
     JSpeccySettingsType settings;
+    SettingsDialog settingsDialog;
+
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
@@ -198,6 +200,7 @@ public class JSpeccy extends javax.swing.JFrame {
             silenceSoundToggleButton.setSelected(true);
         }
 
+        settingsDialog = new SettingsDialog(settings);
         spectrum.start();
     }
     
@@ -248,6 +251,7 @@ public class JSpeccy extends javax.swing.JFrame {
         sinclair1Joystick = new javax.swing.JRadioButtonMenuItem();
         sinclair2Joystick = new javax.swing.JRadioButtonMenuItem();
         cursorJoystick = new javax.swing.JRadioButtonMenuItem();
+        jMenuItem1 = new javax.swing.JMenuItem();
         machineMenu = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
@@ -558,6 +562,14 @@ public class JSpeccy extends javax.swing.JFrame {
 
     optionsMenu.add(joystickOptionMenu);
 
+    jMenuItem1.setText(bundle.getString("JSpeccy.jMenuItem1.text")); // NOI18N
+    jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            jMenuItem1ActionPerformed(evt);
+        }
+    });
+    optionsMenu.add(jMenuItem1);
+
     jMenuBar1.add(optionsMenu);
 
     machineMenu.setText(bundle.getString("JSpeccy.machineMenu.text")); // NOI18N
@@ -576,7 +588,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     machineMenu.add(pauseMachineMenu);
 
-    silenceMachineMenu.setText(bundle.getString("JSpeccy.silenceMachineMenu.text")); // NOI18N
+    silenceMachineMenu.setText(bundle.getString("JSpeccy.silenceMachineMenu.text_1")); // NOI18N
     silenceMachineMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             silenceSoundToggleButtonActionPerformed(evt);
@@ -981,12 +993,17 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
+
+    private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
+        settingsDialog.showDialog(getContentPane(), "User Settings");
+    }//GEN-LAST:event_jMenuItem1ActionPerformed
     
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 new JSpeccy().setVisible(true);
             }
@@ -1012,6 +1029,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;

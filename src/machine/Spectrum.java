@@ -27,7 +27,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum extends Thread implements z80core.MemIoOps {
+public class Spectrum extends Thread implements z80core.MemIoOps, utilities.TapeNotify {
 
     private Z80 z80;
     private Memory memory;
@@ -58,14 +58,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR
     };
     private Joystick joystick;
-    private boolean issue3, loadingNoise, frameInProgress;
     private SpectrumType spectrumSettings;
+    private TapeType tapeSettings;
 
     public Spectrum(JSpeccySettingsType settings) {
         super("SpectrumThread");
         spectrumSettings = (SpectrumType) settings.getSpectrumSettings();
         MemoryType memSettings = (MemoryType) settings.getMemorySettings();
-        TapeType tapeSettings = (TapeType) settings.getTapeSettings();
+        tapeSettings = (TapeType) settings.getTapeSettings();
         z80 = new Z80(this);
         memory = new Memory(memSettings);
         initGFX();
@@ -76,10 +76,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         ay8912 = new AY8912();
         audio = new Audio();
         soundOn = spectrumSettings.isSoundEnabled();
-        loadingNoise = spectrumSettings.isLoadingNoise();
         paused = true;
-        resetPending = frameInProgress = false;
-        tape = new Tape(tapeSettings, z80);
+        resetPending = false;
+        tape = new Tape(tapeSettings, z80, this);
 
         keyboard = new Keyboard();
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
@@ -136,22 +135,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             case SPECTRUM48K:
                 buildScreenTables48k();
                 enabledAY = spectrumSettings.isAYEnabled48K();
-                issue3 = !spectrumSettings.isIssue2();
                 break;
             case SPECTRUM128K:
             case SPECTRUMPLUS2:
                 buildScreenTables128k();
-                issue3 = true;
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 contendedIOPage[1] = false;
-                issue3 = true;
                 break;
         }
         
         SwingUtilities.invokeLater(new Runnable() {
 
+            @Override
             public void run() {
                 switch (spectrumModel) {
                     case SPECTRUM48K:
@@ -212,13 +209,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             audio.close();
         }
 
-        while(frameInProgress) {
-            try {
-                System.out.println("Frame in progress");
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        try {
+            sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -244,10 +238,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         return paused;
     }
 
-    public boolean isFrameInProgress() {
-        return frameInProgress;
-    }
-
     public void triggerNMI() {
         z80.triggerNMI();
     }
@@ -262,6 +252,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         
         SwingUtilities.invokeLater(new Runnable() {
 
+            @Override
             public void run() {
                 switch (joystick) {
                     case NONE:
@@ -310,7 +301,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void generateFrame() {
-        frameInProgress = true;
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
 //        System.out.println("Start frame: " + startFrame);
@@ -345,7 +335,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 z80.execute(fromTstates + 7);
                 updateScreen(fromTstates, z80.tEstados);
             }
-            
+
             z80.execute(spectrumModel.tstatesFrame);
 
             if (borderChanged) {
@@ -376,6 +366,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                     prevSpeed = speed;
                     SwingUtilities.invokeLater(new Runnable() {
 
+                        @Override
                         public void run() {
                             speedLabel.setText(String.format("%4d%%", speed));
                         }
@@ -433,13 +424,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             }
         }
 
-        frameInProgress = false;
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
         //System.out.println("execFrame en: " + sleepTime);
     }
 
+    @Override
     public int fetchOpcode(int address) {
 
         if (contendedRamPage[address >>> 14]) {
@@ -454,10 +445,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && tape.isTapeInserted() && tape.isStopped()) {
-            if (!tape.isFastload()) {
-                tape.play();
+            if (!tape.isFlashLoad()) {
+                toggleTape();
             } else {
-                tape.fastload(memory);
+                tape.flashLoad(memory);
                 invalidateScreen(true); // thanks Andrew Owen
                 return 0xC9; // RET opcode
             }
@@ -470,6 +461,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         return memory.readByte(address) & 0xff;
     }
 
+    @Override
     public int peek8(int address) {
 
         if (contendedRamPage[address >>> 14]) {
@@ -480,6 +472,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         return memory.readByte(address) & 0xff;
     }
 
+    @Override
     public void poke8(int address, int value) {
 
         if (contendedRamPage[address >>> 14]) {
@@ -493,6 +486,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         memory.writeByte(address, (byte)value);
     }
 
+    @Override
     public int peek16(int address) {
 
         int lsb;
@@ -511,6 +505,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         return ((memory.readByte(address) << 8) & 0xff00 | lsb);
     }
 
+    @Override
     public void poke16(int address, int word) {
 
         if (contendedRamPage[address >>> 14]) {
@@ -536,6 +531,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         memory.writeByte(address, (byte)(word >>> 8));
     }
 
+    @Override
     public void contendedStates(int address, int tstates) {
         if (contendedRamPage[address >>> 14]
                 && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
@@ -547,6 +543,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
     }
 
+    @Override
     public int inPort(int port) {
 
 //        if ((port & 0xff) == 0xff) {
@@ -658,6 +655,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         return floatbus & 0xff;
     }
 
+    @Override
     public void outPort(int port, int value) {
 
         preIO(port);
@@ -680,7 +678,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             if (tape.isStopped() && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
-                int issueMask = issue3 ? 0x10 : 0x18;
+                int issueMask;
+                if (spectrumModel == MachineTypes.SPECTRUM48K)
+                    issueMask = spectrumSettings.isIssue2() ? 0x18 : 0x10;
+                else
+                    // los modelos que no son el 48k son todos Issue3
+                    issueMask = 0x10;
+
                 if ((value & issueMask) == 0) {
                     tape.setEarBit(false);
                 } else {
@@ -841,9 +845,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 //        z80.addTEstados(1);
     }
 
+    @Override
     public void execDone(int tstates) {
         tape.notifyTstates(nFrame, z80.tEstados);
-        if (soundOn && loadingNoise && tape.isPlaying()) {
+        if (soundOn && spectrumSettings.isLoadingNoise() && tape.isPlaying()) {
             earBit = tape.getEarBit();
             int spkMic = (earBit == 0xbf) ? -2000 : 2000;
             if (spkMic != speaker) {
@@ -898,7 +903,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
             // Solo los 48k pueden ser Issue2. El resto son todos Issue3.
             if (snap.getSnapshotModel() == MachineTypes.SPECTRUM48K) {
-                issue3 = snap.isIssue3();
+                spectrumSettings.setIssue2(!snap.isIssue3());
             }
 
             z80.setRegPC(snap.getRegPC());
@@ -985,7 +990,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         snap.setRegPC(z80.getRegPC());
         snap.setTstates(z80.getTEstados());
         snap.setJoystick(joystick);
-        snap.setIssue3(issue3);
+        snap.setIssue3(!spectrumSettings.isIssue2());
 
         if (spectrumModel != MachineTypes.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
@@ -1041,17 +1046,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         if (soundOn) {
             audio.open(spectrumModel, ay8912, enabledAY);
         } else {
+            if (enabledAY)
+                ay8912.endFrame();
+            audio.endFrame();
             audio.flush();
             audio.close();
         }
     }
 
     public void toggleSpeed() {
+
+        stopEmulation();
         if (framesByInt == 1) {
             if (soundOn) {
                 toggleSound();
             }
-            framesByInt = 10;
+            framesByInt = 50;
         } else {
             framesByInt = 1;
             toggleSound();
@@ -1059,6 +1069,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             // al volver a velocidad lenta hay que actualizar la pantalla
             jscr.repaint();
         }
+        startEmulation();
     }
 
     public void toggleTape() {
@@ -1609,6 +1620,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 delayTstates[frame++] = 3;
                 delayTstates[frame++] = 2;
             }
+        }
+    }
+
+    @Override
+    public void tapeStart() {
+        if (tapeSettings.isAccelerateLoading() && framesByInt == 1) {
+            toggleSpeed();
+        }
+    }
+
+    @Override
+    public void tapeStop() {
+        if (tapeSettings.isAccelerateLoading() && framesByInt > 1) {
+            toggleSpeed();
         }
     }
 }
