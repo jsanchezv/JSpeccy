@@ -608,7 +608,7 @@ public final class Memory {
      *     Thanks Woodster. :)
      *
      */
-    public void multifacePageIn() {
+    public void pageMultiface() {
         if (mfPagedIn || plus3RamMode)
             return;
 
@@ -637,22 +637,31 @@ public final class Memory {
      * caso, la ROM que entra es, por obligación, la del Spectrum 48k
      * (ROM1 para el 128k/+2 y ROM3 para el +2A/+3.
      */
-    public void multifacePageOut() {
+    public void unpageMultiface() {
         if (!mfPagedIn)
             return;
         
         mfPagedIn = false;
+        
+        if (IF2RomPaged) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+            writePages[1] = fakeROM;
+            return;
+        }
+        
+        if (IF1RomPaged) {
+            readPages[0] = readPages[1] = IF1Rom[0];
+            writePages[1] = fakeROM;
+            return;
+        }
+        
 //        System.out.println("Multiface paged OUT");
         switch (spectrumModel) {
             case SPECTRUM16K:
             case SPECTRUM48K:
-                if (IF2RomPaged) {
-                    readPages[0] = IF2Rom[0];
-                    readPages[1] = IF2Rom[1];
-                } else {
-                    readPages[0] = Rom48k[0];
-                    readPages[1] = Rom48k[1];
-                }
+                readPages[0] = Rom48k[0];
+                readPages[1] = Rom48k[1];
                 writePages[1] = fakeROM;
                 break;
             case SPECTRUM128K:
@@ -722,29 +731,37 @@ public final class Memory {
         return IF2RomPaged;
     }
     
+    /*
+     * La ROM del IF1 es de 8K y cuando es paginada replica las direcciones
+     * entre 0x0000-0x1FFF en 0x2000-0x3FFF. Gracias a mcleod_ideafix por
+     * investigarlo. :)
+     */
     public void pageIF1Rom() {
         if (IF1RomPaged)
             return;
         
         IF1RomPaged = true;
-        readPages[0] = IF1Rom[0];
+        readPages[0] = readPages[1] = IF1Rom[0];
     }
     
     public void unpageIF1Rom() {
-        if (!IF1RomPaged)
+        if (!IF1RomPaged) {
             return;
-        
+        }
+
         IF1RomPaged = false;
+
+        if (IF2RomPaged) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+            return;
+        }
+
         switch (spectrumModel) {
             case SPECTRUM16K:
             case SPECTRUM48K:
-                if (IF2RomPaged) {
-                    readPages[0] = IF2Rom[0];
-                    readPages[1] = IF2Rom[1];
-                } else {
-                    readPages[0] = Rom48k[0];
-                    readPages[1] = Rom48k[1];
-                }
+                readPages[0] = Rom48k[0];
+                readPages[1] = Rom48k[1];
                 break;
             case SPECTRUM128K:
                 if (pagingLocked) {

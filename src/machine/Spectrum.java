@@ -552,7 +552,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         
         if (address == 0x0066 && multiface && !memory.isPlus3RamMode()) {
             memory.setMultifaceLocked(false);
-            memory.multifacePageIn();
+            memory.pageMultiface();
             return memory.readByte(address) & 0xff;
         }
 
@@ -677,14 +677,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         // Interface I
         if (connectedIF1) {
+            // Port 0xE7
             if ((port & 0x0018) == 0) {
-                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
+                System.out.println(String.format("IN from %02x. PC = %04x",
+                    port & 0xff, z80.getRegPC()));
             }
+            
+            // Port 0xEF
             if ((port & 0x0018) == 0x08) {
-                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
+                System.out.println(String.format("IN from %02x. PC = %04x",
+                    port & 0xff, z80.getRegPC()));
+                return 0xFB; // GAP bit
             }
+            
+            // Port 0xF7
             if ((port & 0x0018) == 0x10) {
-                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
+                System.out.println(String.format("IN from %02x. PC = %04x",
+                    port & 0xff, z80.getRegPC()));
             }
         }
         
@@ -695,34 +704,34 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     if (mf128on48k) {
                         // MF128 en el Spectrum 48k
                         if ((port & 0xff) == 0xbf && !memory.isMultifaceLocked()) {
-                            memory.multifacePageIn();
+                            memory.pageMultiface();
                         }
                         if ((port & 0xff) == 0x3f && memory.isMultifacePaged()) {
-                            memory.multifacePageOut();
+                            memory.unpageMultiface();
                         }
                     } else {
                         // MF1 en el Spectrum 48k
                         if ((port & 0xff) == 0x9f) {
-                            memory.multifacePageIn();
+                            memory.pageMultiface();
                         }
                         // Este puerto es el mismo que el Kempston. De hecho, el
                         // MF1 incorporaba un puerto Kempston...
                         if ((port & 0xff) == 0x1f && memory.isMultifacePaged()) {
-                            memory.multifacePageOut();
+                            memory.unpageMultiface();
                         }
                     }
                     break;
                 case SPECTRUM128K:
                     if ((port & 0xff) == 0xbf && !memory.isMultifaceLocked()) {
-                        memory.multifacePageIn();
+                        memory.pageMultiface();
                     }
                     if ((port & 0xff) == 0x3f && memory.isMultifacePaged()) {
-                        memory.multifacePageOut();
+                        memory.unpageMultiface();
                     }
                     break;
                 case SPECTRUMPLUS3:
                     if ((port & 0xff) == 0xbf && memory.isMultifacePaged()) {
-                        memory.multifacePageOut();
+                        memory.unpageMultiface();
                     }
 
                     if ((port & 0xff) == 0x3f) {
@@ -736,7 +745,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                         }
 
                         if (!memory.isMultifaceLocked()) {
-                            memory.multifacePageIn();
+                            memory.pageMultiface();
                         }
                     }
             }
@@ -868,14 +877,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         try {
             // Interface I
             if (connectedIF1) {
+                // Port 0xE7
                 if ((port & 0x0018) == 0) {
-                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
+                        port & 0xff, value, z80.getRegPC()));
                 }
+                
+                // Port 0xEF
                 if ((port & 0x0018) == 0x08) {
-                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
+                        port & 0xff, value, z80.getRegPC()));
                 }
+                
+                // Port 0xF7
                 if ((port & 0x0018) == 0x10) {
-                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
+                        port & 0xff, value, z80.getRegPC()));
                 }
             }
         
@@ -1297,7 +1314,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 settings.getSpectrumSettings().setMf128On48K(mf128on48k);
 
                 if (snap.isMFPagedIn()) {
-                    memory.multifacePageIn();
+                    memory.pageMultiface();
                 }
                 memory.setMultifaceLocked(snap.isMFLockout());
             }
