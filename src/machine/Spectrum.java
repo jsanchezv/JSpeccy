@@ -10,8 +10,10 @@ import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -740,17 +742,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         }
 
-        if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
-            if ((port & 0xF002) == 0x2000) {
-                System.out.println("Reading FDC status port");
-                return 0x80; // ready to fly
-            }
-
-            if ((port & 0xF002) == 0x3000) {
-                System.out.println("Reading FDC data port");
-                return 0;
-            }
-        }
+//        if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+//            if ((port & 0xF002) == 0x2000) {
+//                System.out.println("Reading FDC status port");
+//                return 0x80; // ready to fly
+//            }
+//
+//            if ((port & 0xF002) == 0x3000) {
+//                System.out.println("Reading FDC data port");
+//                return 0;
+//            }
+//        }
 
         /*
          * El interfaz Kempston solo (debería) decodificar A5=0...
@@ -980,11 +982,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     return;
                 }
 
-                if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
-                    if ((port & 0xF002) == 0x3000) {
-                        System.out.println(String.format("Writing FDC data port with %02x", value));
-                    }
-                }
+//                if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+//                    if ((port & 0xF002) == 0x3000) {
+//                        System.out.println(String.format("Writing FDC data port with %02x", value));
+//                    }
+//                }
             }
 
             if (enabledAY && (port & 0x8002) == 0x8000) {
@@ -1080,20 +1082,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
-
-
-
             } else {
                 // A0 == 1 y no es contended RAM
                 z80.tEstados += 3;
-
-
             }
         } else {
             // A0 == 0
             z80.tEstados += delayTstates[z80.tEstados] + 3;
-
-
         }
     }
 
@@ -1101,38 +1096,27 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if (contendedIOPage[port >>> 14]) {
             // A0 == 1 y es contended RAM
             z80.tEstados += delayTstates[z80.tEstados];
-
-
         }
         z80.tEstados++;
 //        z80.addTEstados(1);
-
-
     }
 
     @Override
     public void execDone(int tstates) {
         if (tape.isTapeRecording()) {
             tape.setPulse((portFE & 0x08) != 0);
-
-
         }
 
         tape.notifyTstates(nFrame, z80.tEstados);
 
-
         if (enabledSound && specSettings.isLoadingNoise() && tape.isTapePlaying()) {
             earBit = tape.getEarBit();
 
-
             int spkMic = (earBit == 0xbf) ? 0 : 4000;
-
 
             if (spkMic != speaker) {
                 audio.updateAudio(z80.tEstados, speaker);
                 speaker = spkMic;
-
-
             }
         }
     }
@@ -1140,57 +1124,30 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
 
-
         if (memory.isIF2RomEnabled()) {
             memory.ejectIF2Rom();
         }
 
-
         if (snap.loadSnapshot(filename, memory)) {
-
             switch (snap.getSnapshotModel()) {
                 case SPECTRUM16K:
                     selectHardwareModel(MachineTypes.SPECTRUM16K, false);
-
-
                     break;
-
-
                 case SPECTRUM48K:
                     selectHardwareModel(MachineTypes.SPECTRUM48K, false);
-
-
                     break;
-
-
                 case SPECTRUM128K:
                     selectHardwareModel(MachineTypes.SPECTRUM128K, false);
-
-
                     break;
-
-
                 case SPECTRUMPLUS2:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS2, false);
-
-
                     break;
-
-
                 case SPECTRUMPLUS2A:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, false);
-
-
                     break;
-
-
                 case SPECTRUMPLUS3:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS3, false);
-
-
                     break;
-
-
             }
 
             doReset();
@@ -1219,8 +1176,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             z80.setTEstados(snap.getTstates());
 
-
-
             int border = snap.getBorder();
             portFE &= 0xf8;
             portFE |= border;
@@ -1232,7 +1187,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 issue2 = snap.isIssue2();
 
-
                 if (snap.isIF2RomPresent()) {
                     SwingUtilities.invokeLater(new Runnable() {
 
@@ -1240,98 +1194,60 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                         public void run() {
                             guiComponents.insertIF2RomMenu.setEnabled(false);
                             guiComponents.ejectIF2RomMenu.setEnabled(true);
-
-
                         }
                     });
-
-
                 } else {
                     memory.ejectIF2Rom();
-
-
                 }
             }
 
             Joystick snapJoystick = snap.getJoystick();
 
-
             if (snapJoystick != Joystick.NONE) {
                 joystick = snapJoystick;
-                setJoystick(
-                    joystick);
-
-
+                setJoystick(joystick);
             }
 
             if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
                 port7ffd = snap.getPort7ffd();
                 memory.setPort7ffd(port7ffd);
 
-
                 if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                     port1ffd = snap.getPort1ffd();
                     memory.setPort1ffd(port1ffd);
-
 
                     if (memory.isPlus3RamMode()) {
                         switch (port1ffd & 0x06) {
                             case 0:
                                 Arrays.fill(contendedRamPage, false);
-
-
                                 break;
-
-
                             case 2:
                                 Arrays.fill(contendedRamPage, true);
-
-
                                 break;
-
-
                             case 4:
                             case 6:
                                 Arrays.fill(contendedRamPage, true);
-                                contendedRamPage[
-
-3] = false;
-
-
+                                contendedRamPage[3] = false;
                         }
                     } else {
                         contendedRamPage[0] = contendedRamPage[2] = false;
-                        contendedRamPage[
-
-1] = true;
-                        contendedRamPage[
-
-3] = memory.getPlus3HighPage() > 3;
-
-
+                        contendedRamPage[1] = true;
+                        contendedRamPage[3] = memory.getPlus3HighPage() > 3;
                     }
                 } else {
                     contendedRamPage[3] = contendedIOPage[3] =
                         (port7ffd & 0x01) != 0;
-
-
                 }
             }
 
             if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
                 enabledAY = true;
 
-
-                for (int reg = 0; reg
-                    < 16; reg++) {
+                for (int reg = 0; reg < 16; reg++) {
                     ay8912.setAddressLatch(reg);
                     ay8912.writeRegister(snap.getPsgReg(reg));
-
-
                 }
                 ay8912.setAddressLatch(snap.getPortfffd());
-
-
             }
 
             if (snap.isULAplus()) {
@@ -1339,34 +1255,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 ULAplusMode = snap.isULAplusEnabled();
                 paletteGroup = snap.getULAplusRegister();
 
-
-                for (int register = 0; register
-                    < 64; register++) {
+                for (int register = 0; register < 64; register++) {
                     int color = snap.getULAplusColor(register);
                     ULAplus[register >>> 4][register & 0x0f] = color;
 
-
                     int blue = (color & 0x03) << 1;
-
-
                     if ((color & 0x01) == 0x01) {
                         blue |= 0x01;
-
-
                     }
                     blue = (blue << 5) | (blue << 2) | (blue & 0x03);
-
 
                     int red = (color & 0x1C) >> 2;
                     red = (red << 5) | (red << 2) | (red & 0x03);
 
-
                     int green = (color & 0xE0) >> 5;
                     green = (green << 5) | (green << 2) | (green & 0x03);
+
                     ULAplusPalette[register >>> 4][register & 0x0f] =
                         (red << 16) | (green << 8) | blue;
-
-
                 }
             }
 
@@ -1375,15 +1281,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 mf128on48k = snap.isMF128on48k();
                 settings.getSpectrumSettings().setMf128On48K(mf128on48k);
 
-
                 if (snap.isMFPagedIn()) {
                     memory.multifacePageIn();
-
-
                 }
                 memory.setMultifaceLocked(snap.isMFLockout());
-
-
             }
 
             if (snap.isTapeEmbedded()) {
@@ -1391,14 +1292,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
                     snap.getTapeData(), snap.getTapeBlock());
                 guiComponents.playTapeMenu.setEnabled(true);
-                guiComponents.tapeFilename.setText(snap.getTapeName() + "." + snap.getTapeExtension());
-
-
+                guiComponents.tapeFilename.setText(snap.getTapeName() + "." +
+                    snap.getTapeExtension());
             }
 
             if (snap.isTapeLinked()) {
                 File tapeLink = new File(snap.getTapeName());
-
 
                 if (tapeLink.exists()) {
                     tape.eject();
@@ -1406,23 +1305,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     tape.setSelectedBlock(snap.getTapeBlock());
                     guiComponents.playTapeMenu.setEnabled(true);
                     guiComponents.tapeFilename.setText(tapeLink.getName());
-
-
                 }
             }
 
             invalidateScreen(true);
-
 //            System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
 //                    "SNAPSHOT_LOADED"));
-
 
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                 ResourceBundle.getBundle("machine/Bundle").getString(
                 "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
-
-
         }
     }
 
@@ -1459,33 +1352,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         snap.setJoystick(joystick);
         snap.setIssue2(issue2);
 
-
-
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
 
-
             if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 snap.setPort1ffd(port1ffd);
-
-
             }
         }
 
         if (enabledAY) {
             snap.setEnabledAY(true);
 
-
             int ayLatch = ay8912.getAddressLatch();
             snap.setPortfffd(ayLatch);
 
-
-            for (int reg = 0; reg
-                < 16; reg++) {
+            for (int reg = 0; reg < 16; reg++) {
                 ay8912.setAddressLatch(reg);
                 snap.setPsgReg(reg, ay8912.readRegister());
-
-
             }
             ay8912.setAddressLatch(ayLatch);
 
@@ -1498,140 +1381,145 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             snap.setULAplusRegister(paletteGroup);
 
 
-            for (int color = 0; color
-                < 64; color++) {
+            for (int color = 0; color < 64; color++) {
                 snap.setULAplusColor(color, ULAplus[color >>> 4][color & 0x0f]);
-
-
             }
         }
 
         if (multiface) {
             snap.setMultiface(true);
             snap.setMF128on48k(mf128on48k);
-
-
         }
 
         if (szxTapeMode != 0) {
             snap.setTapeName(tape.getTapeName().getAbsolutePath());
             snap.setTapeBlock(tape.getSelectedBlock());
 
-
             if (szxTapeMode == 1) {
                 snap.setTapeLinked(true);
-
-
             } else {
                 snap.setTapeEmbedded(true);
-
-
             }
         }
 
         if (snap.saveSnapshot(filename, memory)) {
             System.out.println(
                 ResourceBundle.getBundle("machine/Bundle").getString("SNAPSHOT_SAVED"));
-
-
         } else {
             JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
                 ResourceBundle.getBundle("machine/Bundle").getString(
                 "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
-
-
         }
     }
 
     public void saveImage(File filename) {
         BufferedOutputStream fOut;
 
-
-
         if (filename.getName().toLowerCase().endsWith(".scr")) {
             try {
                 fOut = new BufferedOutputStream(new FileOutputStream(filename));
 
-
-                for (int addr = 0; addr
-                    < 6912; addr++) {
+                for (int addr = 0; addr < 6912; addr++) {
                     fOut.write(memory.readScreenByte(addr));
-
-
                 }
+
                 if (ULAplusMode) {
-                    for (int palette = 0; palette
-                        < 4; palette++) {
-                        for (int color = 0; color
-                            < 16; color++) {
+                    for (int palette = 0; palette < 4; palette++) {
+                        for (int color = 0; color < 16; color++) {
                             fOut.write(ULAplus[palette][color]);
-
-
                         }
                     }
                 }
                 fOut.close();
-
-
-
             } catch (FileNotFoundException excpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
             } catch (IOException ioExcpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
             }
-
-
             return;
-
-
         }
 
         if (filename.getName().toLowerCase().endsWith(".png")) {
             try {
                 ImageIO.write(tvImage, "png", filename);
-
-
-
             } catch (IOException ioExcpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
             }
-
-
         }
         return;
-
-
     }
+
+    public boolean loadScreen(File filename) {
+        BufferedInputStream fIn;
+
+        if (filename.getName().toLowerCase().endsWith(".scr")) {
+            try {
+                fIn = new BufferedInputStream(new FileInputStream(filename));
+
+                // Needs to be a screen file (size == 6912) or a
+                // ULAplus screen file (size == 6912 + 64)
+                if (fIn.available() != 6912 && fIn.available() != 6976) {
+                    fIn.close();
+                    return false;
+                }
+
+                for (int addr = 0x4000; addr < 0x5b00; addr++) {
+                    memory.writeByte(addr, (byte)(fIn.read() & 0xff));
+                }
+
+                ULAplusMode = ULAplusOn = false;
+                if (fIn.available() == 64) {
+                    ULAplusMode = ULAplusOn = true;
+                    for (int palette = 0; palette < 4; palette++) {
+                        for (int color = 0; color < 16; color++) {
+                            int value = fIn.read() & 0xff;
+//                            ULAplus[palette][color] = value;
+                            int blue = (value & 0x03) << 1;
+                            if ((value & 0x01) == 0x01) {
+                                blue |= 0x01;
+                            }
+                            blue = (blue << 5) | (blue << 2) | (blue & 0x03);
+                            int red = (value & 0x1C) >> 2;
+                            red = (red << 5) | (red << 2) | (red & 0x03);
+                            int green = (value & 0xE0) >> 5;
+                            green = (green << 5) | (green << 2) | (green & 0x03);
+                            ULAplusPalette[palette][color] = (red << 16) | (green << 8) | blue;
+                        }
+                    }
+                }
+
+                fIn.close();
+                return true;
+            } catch (FileNotFoundException excpt) {
+                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
+            } catch (IOException ioExcpt) {
+                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+            }
+        }
+        return false;
+    }
+
     static final int SPEAKER_VOLUME = 11000;
     private int speaker;
     private static final int sp_volt[];
 
     public boolean isMuteSound() {
         return muted;
-
-
     }
 
     public void muteSound(boolean state) {
         muted = state;
 
-
         if (muted) {
             disableSound();
-
-
         } else {
             enableSound();
-
-
         }
     }
 
     private void enableSound() {
         if (muted || enabledSound) {
             return;
-
-
         }
 
         audio.open(spectrumModel, ay8912, enabledAY,
@@ -1644,68 +1532,43 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private void disableSound() {
         if (!enabledSound) {
             return;
-
-
         }
-
         enabledSound = false;
-
         audio.endFrame();
         audio.close();
-
-
     }
 
     public void changeSpeed(int speed) {
         if (speed > 1) {
             disableSound();
             framesByInt = speed;
-
-
         } else {
             framesByInt = 1;
             // La velocidad rápida solo pinta 1 frame de cada 10, así que
             // al volver a velocidad lenta hay que actualizar la pantalla
-            invalidateScreen(
-                true);
+            invalidateScreen(true);
             enableSound();
-
-
         }
     }
 
     public void toggleTape() {
         if (tape.isTapeReady()) {
             tape.play();
-
-
         } else {
             tape.stop();
-
-
         }
     }
 
     static {
         sp_volt = new int[4];
         setvol();
-
-
     }
 
     static void setvol() {
         sp_volt[0] = 0; //(int) -SPEAKER_VOLUME;
-        sp_volt[
-
-1] = 0; // (int) -(SPEAKER_VOLUME * 1.06);
-        sp_volt[
-
-2] = (int) SPEAKER_VOLUME;
-        sp_volt[
-
-3] = (int) (SPEAKER_VOLUME * 1.5);
-
-
+        sp_volt[1] = 0; // (int) -(SPEAKER_VOLUME * 1.06);
+        sp_volt[2] = (int) SPEAKER_VOLUME;
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.5);
     }
 
     /* Sección gráfica */
@@ -1759,29 +1622,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
 
     static {
-// Inicialización de las tablas de Paper/Ink
+        // Inicialización de las tablas de Paper/Ink
         /* Para cada valor de atributo, hay dos tablas, donde cada una
          * ya tiene el color que le corresponde, para no tener que extraerlo
          */
 
-        for (int idx = 0; idx
-            < 256; idx++) {
+        for (int idx = 0; idx < 256; idx++) {
             int ink = (idx & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
-
-
             int paper = ((idx >>> 3) & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
-
 
             if (idx < 128) {
                 Ink[idx] = Paleta[ink];
                 Paper[idx] = Paleta[paper];
-
-
             } else {
                 Ink[idx] = Paleta[paper];
                 Paper[idx] = Paleta[ink];
-
-
             }
         }
     }
@@ -1845,30 +1700,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         /* Hay una entrada en la tabla con la dirección del primer byte
          * de cada fila de la pantalla.
          */
-
-
         int row, col, scan;
 
-
-        for (int linea = 0; linea
-            < 24; linea++) {
+        for (int linea = 0; linea < 24; linea++) {
             int idx, lsb, msb, addr;
             lsb = ((linea & 0x07) << 5);
             msb = linea & 0x18;
             addr = (msb << 8) + lsb;
             idx = linea << 3;
 
-
-            for (scan = 0; scan
-                < 8; scan++, addr += 256) {
+            for (scan = 0; scan < 8; scan++, addr += 256) {
                 scrAddr[scan + idx] = 0x4000 + addr;
-
-
             }
         }
 
-        for (int address = 0x4000; address
-            < 0x5800; address++) {
+        for (int address = 0x4000; address < 0x5800; address++) {
             row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
             col = address & 0x1f;
             scan = (address & 0x700) >>> 8;
@@ -1877,34 +1723,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             bufAddr[address & 0x1fff] = row * 2560 + (scan + BORDER_WIDTH) * 320
                 + col * 8 + BORDER_WIDTH;
             scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
-
-
         }
 
-        for (int address = 0x5800; address
-            < 0x5B00; address++) {
+        for (int address = 0x5800; address < 0x5B00; address++) {
             attr2scr[address & 0x3ff] = 0x4000 | ((address & 0x300) << 3) | (address & 0xff);
-
-
         }
     }
 
     public BufferedImage getTvImage() {
         return tvImage;
-
-
     }
 
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
 
-
-        for (int addrAttr = 0x5800; addrAttr
-            < 0x5b00; addrAttr++) {
+        for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
             if (memory.readScreenByte(addrAttr) < 0) {
                 notifyScreenWrite(addrAttr);
-
-
             }
         }
     }
@@ -1923,60 +1758,44 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
      * 56 líneas de borde inferior de las cuales se ven solo 48
      */
     private int tStatesToScrPix48k(int tstates) {
-
         tstates %= spectrumModel.tstatesFrame;
-
-
-
         int row = tstates / spectrumModel.tstatesLine;
-
-
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-
-
         if (row < (64 - BORDER_WIDTH - 1) || row > (256 + BORDER_WIDTH - 1)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Caso especial de la primera línea
+        // Caso especial de la primera línea
         if (row == (64 - BORDER_WIDTH - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Caso especial de la última línea
+        // Caso especial de la última línea
         if (row == (256 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
+        // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
         if (col > (127 + BORDER_WIDTH / 2) && col < 200 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Quitamos la parte correspondiente a SCREEN$
+        // Quitamos la parte correspondiente a SCREEN$
         if (row > 63 && row < 256 && col < 128) {
             return 0xf0cab0ba;
-
-
         }
 
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
             col -= 200 + (24 - BORDER_WIDTH / 2);
-
-
         } else {
             col += BORDER_WIDTH / 2;
-
-
         }
         row -= BORDER_WIDTH;
-
-
 
 //        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
 
@@ -1989,65 +1808,47 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
-
-
-
         return row * SCREEN_WIDTH + col * 2;
-
-
     }
 
     private int tStatesToScrPix128k(int tstates) {
-
         tstates %= spectrumModel.tstatesFrame;
 
-
-
         int row = tstates / spectrumModel.tstatesLine;
-
-
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-
-
         if (row < (63 - BORDER_WIDTH - 1) || row > (255 + BORDER_WIDTH - 1)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Caso especial de la primera línea
+        // Caso especial de la primera línea
         if (row == (63 - BORDER_WIDTH - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Caso especial de la última línea
+        // Caso especial de la última línea
         if (row == (255 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
+        // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
         if (col > (127 + BORDER_WIDTH / 2) && col < 204 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
+        }
 
-
-        } // Quitamos la parte correspondiente a SCREEN$
+        // Quitamos la parte correspondiente a SCREEN$
         if (row > 62 && row < 255 && col < 128) {
             return 0xf0cab0ba;
-
-
         }
 
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
             col -= 204 + (24 - BORDER_WIDTH / 2);
-
-
         } else {
             col += BORDER_WIDTH / 2;
-
-
         }
         row -= (BORDER_WIDTH - 1);
 
@@ -2056,50 +1857,31 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
 //                tstates+3584, row, col, mod));
 
-
-
         return row * SCREEN_WIDTH + col * 2;
-
-
     }
 
     public void updateBorder(int tstates) {
-        int nowColor = Paleta[portFE & 0x07];
-
-
+        int nowColor;
 
         if (ULAplusMode) {
             nowColor = ULAplusPalette[0][(portFE & 0x07) | 0x08];
-
-
         } else {
             nowColor = Paleta[portFE & 0x07];
-
-
         }
+
         int idxColor;
-
-
-
         if (tstates < lastChgBorder) {
             return;
-
-
         }
 
         tstates -= 4;
-
-
 
         while (lastChgBorder <= tstates) {
             idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
 
-
             if (idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
                 continue;
-
-
             }
 
             dataInProgress[idxColor] = nowColor;
@@ -2112,69 +1894,42 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             dataInProgress[idxColor + 7] = nowColor;
             nBorderChanges++;
 
-            borderDirty =
-                true;
-
-
+            borderDirty = true;
         }
     }
 
     public void updateScreen(int fromTstates, int toTstates) {
         int fromAddr, addrBuf;
-
-
         int paper, ink;
-
-
         byte scrByte;
-
-
         int attr;
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
 
-
-
         while (fromTstates % 4 != 0) {
             fromTstates++;
-
-
         }
 
         while (fromTstates <= toTstates) {
             fromAddr = states2scr[fromTstates];
 
-
             if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
                 fromTstates += 4;
-
-
                 continue;
-
-
             }
 
             if (firstLine == 0) {
                 firstLine = lastLine = fromAddr;
-
-
             } else {
                 lastLine = fromAddr;
-
-
             }
 
             int column = fromAddr & 0x1f;
 
-
             if (column < leftCol) {
                 leftCol = column;
-
-
             }
             if (column > rightCol) {
                 rightCol = column;
-
-
             }
 
             scrByte = memory.readScreenByte(fromAddr);
@@ -2183,53 +1938,35 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             addrBuf = bufAddr[fromAddr];
 
-
-
             if (ULAplusMode) {
                 ink = ULAplusPalette[attr >>> 6][attr & 0x07];
                 paper = ULAplusPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
-
-
             } else {
                 if (attr > 0x7f) {
                     attr &= flash;
-
-
                 }
                 ink = Ink[attr];
                 paper = Paper[attr];
-
-
             }
 
-            for (int mask = 0x80; mask
-                != 0; mask >>= 1) {
+            for (int mask = 0x80; mask != 0; mask >>= 1) {
                 if ((scrByte & mask) != 0) {
                     dataInProgress[addrBuf++] = ink;
-
-
                 } else {
                     dataInProgress[addrBuf++] = paper;
-
-
                 }
             }
             dirtyByte[fromAddr] = false;
             screenDirty = true;
             fromTstates += 4;
-
-
         }
     }
 
     public void notifyScreenWrite(int address) {
         address &= 0x1fff;
 
-
         if (address < 6144) {
             dirtyByte[address] = true;
-
-
         } else {
             int addr = attr2scr[address & 0x3ff] & 0x1fff;
             // cuando esto lo hace un compilador, se le llama loop-unrolling
@@ -2242,8 +1979,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             dirtyByte[addr + 1280] = true;
             dirtyByte[addr + 1536] = true;
             dirtyByte[addr + 1792] = true;
-
-
         }
     }
 
@@ -2251,8 +1986,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         borderChanged = invalidateBorder;
 //        screenDirty = true;
         Arrays.fill(dirtyByte, true);
-
-
     }
 
     private void buildScreenTables48k() {
@@ -2261,29 +1994,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        int lateTimings = spectrumSettings.isLateTimings() ? 1 : 0;
         Arrays.fill(states2scr, -1);
 
-
-        for (int tstates = 14336; tstates
-            < 57344; tstates += 4) {
+        for (int tstates = 14336; tstates < 57344; tstates += 4) {
             col = (tstates % 224) / 4;
-
 
             if (col > 31) {
                 continue;
-
-
             }
             scan = tstates / 224 - 64;
             states2scr[tstates - 8] = scrAddr[scan] + col;
-
-
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
-
         for (int tstates = spectrumModel.firstBorderUpdate;
-            tstates
-            < spectrumModel.lastBorderUpdate; tstates += 4) {
+            tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix48k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -2298,11 +2022,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-
-        for (int idx = 14335; idx
-            < 57343; idx += 224) {
-            for (int ndx = 0; ndx
-                < 128; ndx += 8) {
+        for (int idx = 14335; idx < 57343; idx += 224) {
+            for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
                 delayTstates[frame++] = 5;
@@ -2312,8 +2033,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 delayTstates[frame++] = 1;
                 delayTstates[frame++] = 0;
                 delayTstates[frame++] = 0;
-
-
             }
         }
     }
@@ -2323,42 +2042,29 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         Arrays.fill(states2scr, -1);
 
-
-        for (int tstates = 14364; tstates
-            < 58140; tstates += 4) {
+        for (int tstates = 14364; tstates < 58140; tstates += 4) {
             col = (tstates % 228) / 4;
-
 
             if (col > 31) {
                 continue;
-
-
             }
 
             scan = tstates / 228 - 63;
             states2scr[tstates - 12] = scrAddr[scan] + col;
-
-
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
-
-        for (int tstates = 0; tstates
-            < spectrumModel.tstatesFrame; tstates += 4) {
+        for (int tstates = 0; tstates < spectrumModel.tstatesFrame; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
             states2border[tstates + 3] = states2border[tstates];
-
-
         }
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-
-        for (int idx = 14361; idx
-            < 58040; idx += 228) {
+        for (int idx = 14361; idx < 58040; idx += 228) {
             for (int ndx = 0; ndx
                 < 128; ndx += 8) {
                 int frame = idx + ndx;
@@ -2370,8 +2076,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 delayTstates[frame++] = 1;
                 delayTstates[frame++] = 0;
                 delayTstates[frame++] = 0;
-
-
             }
         }
     }
@@ -2381,45 +2085,33 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         Arrays.fill(states2scr, -1);
 
-
-        for (int tstates = 14364; tstates
-            < 58140; tstates += 4) {
+        for (int tstates = 14364; tstates < 58140; tstates += 4) {
             col = (tstates % 228) / 4;
-
 
             if (col > 31) {
                 continue;
-
-
             }
 
             scan = tstates / 228 - 63;
             states2scr[tstates - 8] = scrAddr[scan] + col;
-
-
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
-
-        for (int tstates = 0; tstates
-            < spectrumModel.tstatesFrame; tstates += 4) {
+        for (int tstates = 0; tstates < spectrumModel.tstatesFrame; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
             states2border[tstates + 3] = states2border[tstates];
+        }
 
-
-        } // Diga lo que diga la FAQ de WoS, los estados de espera comienzan
+        // Diga lo que diga la FAQ de WoS, los estados de espera comienzan
         // en 14361 y no en 14365. El programa TSTP3 de Pedro Gimeno lo
         // confirma. Gracias Pedro!.
         Arrays.fill(delayTstates, (byte) 0x00);
 
-
-        for (int idx = 14361; idx
-            < 58040; idx += 228) {
-            for (int ndx = 0; ndx
-                < 128; ndx += 8) {
+        for (int idx = 14361; idx < 58040; idx += 228) {
+            for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 1;
                 delayTstates[frame++] = 0;
@@ -2429,8 +2121,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 delayTstates[frame++] = 4;
                 delayTstates[frame++] = 3;
                 delayTstates[frame++] = 2;
-
-
             }
         }
     }
@@ -2441,7 +2131,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             stopEmulation();
             framesByInt = 25;
 
-
             new Thread() {
 
                 @Override
@@ -2449,18 +2138,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     while (tape.isTapePlaying()) {
                         generateFrame();
                         drawFrame();
-
-
                     }
                     invalidateScreen(true);
                     framesByInt = 1;
                     startEmulation();
-
-
                 }
             }.start();
-
-
         }
     }
 
@@ -2471,49 +2154,33 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public boolean startRecording() {
         if (!tape.isTapeReady()) {
             return false;
-
-
         }
 
         if (!tape.startRecording()) {
             return false;
-
-
         }
 
         z80.setExecDone(true);
 
-
-
         return true;
-
-
     }
 
     public boolean stopRecording() {
         z80.setExecDone(false);
         tape.stopRecording();
 
-
         return true;
-
-
     }
 
     public boolean insertIF2Rom(File filename) {
         return memory.insertIF2Rom(filename);
-
-
     }
 
     public void ejectIF2Rom() {
         memory.ejectIF2Rom();
-
-
     }
 
     public void setSzxTapeMode(int mode) {
         szxTapeMode = mode;
-
     }
 }

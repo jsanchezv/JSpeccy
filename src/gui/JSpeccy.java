@@ -41,9 +41,9 @@ public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
     File currentDirSnapshot, currentDirSaveSnapshot,
-        currentDirTape, currentDirSaveImage, currentDirRom;
-    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg, saveImageDlg,
-        IF2RomDlg;
+        currentDirTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
+    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
+    JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
     String lastSnapshotDir, lastTapeDir;
     File recentFile[] = new File[5];
     ListSelectionModel lsm;
@@ -64,7 +64,9 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         if (deleteFile) {
-            file.delete();
+            if (!file.delete()) {
+                System.out.println("Can't delete the bad JSpeccy.xml");
+            }
         }
 
         // Si el archivo de configuración no existe, lo crea de nuevo en el
@@ -429,6 +431,7 @@ public class JSpeccy extends javax.swing.JFrame {
         openSnapshot = new javax.swing.JMenuItem();
         saveSnapshot = new javax.swing.JMenuItem();
         jSeparator4 = new javax.swing.JPopupMenu.Separator();
+        loadScreenShot = new javax.swing.JMenuItem();
         saveScreenShot = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JSeparator();
         recentFilesMenu = new javax.swing.JMenu();
@@ -756,6 +759,14 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     fileMenu.add(saveSnapshot);
     fileMenu.add(jSeparator4);
+
+    loadScreenShot.setText(bundle.getString("JSpeccy.loadScreenShot.text")); // NOI18N
+    loadScreenShot.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            loadScreenShotActionPerformed(evt);
+        }
+    });
+    fileMenu.add(loadScreenShot);
 
     saveScreenShot.setText(bundle.getString("JSpeccy.saveScreenShot.text")); // NOI18N
     saveScreenShot.addActionListener(new java.awt.event.ActionListener() {
@@ -1524,15 +1535,18 @@ public class JSpeccy extends javax.swing.JFrame {
         if (ret == JOptionPane.YES_OPTION && spectrum.tape.isTapeReady()) {
             File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
             try {
-                filename.delete();
-                filename.createNewFile();
+                if (filename.delete()) {
+                    spectrum.tape.eject();
+                }
+
+                if (filename.createNewFile()) {
+                    if (!spectrum.tape.insert(filename)) {
+                        JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
+                            bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
             } catch (IOException ex) {
                 Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            spectrum.tape.eject();
-            if (!spectrum.tape.insert(filename)) {
-                    JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
-                        bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
             }
         }
     }//GEN-LAST:event_clearTapeMediaMenuActionPerformed
@@ -1700,6 +1714,37 @@ public class JSpeccy extends javax.swing.JFrame {
     private void ignoreRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ignoreRadioButtonActionPerformed
         spectrum.setSzxTapeMode(0); // ignore tape
     }//GEN-LAST:event_ignoreRadioButtonActionPerformed
+
+    private void loadScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadScreenShotActionPerformed
+        boolean paused = spectrum.isPaused();
+        if( loadImageDlg == null ) {
+            loadImageDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            loadImageDlg.setFileFilter(new FileFilterScreen());
+            currentDirLoadImage = loadImageDlg.getCurrentDirectory();
+        }
+        else {
+            loadImageDlg.setCurrentDirectory(currentDirLoadImage);
+            BasicFileChooserUI chooserUI = (BasicFileChooserUI) loadImageDlg.getUI();
+            chooserUI.setFileName("");
+        }
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        int status = loadImageDlg.showOpenDialog(getContentPane());
+        if( status == JFileChooser.APPROVE_OPTION ) {
+            currentDirLoadImage = loadImageDlg.getCurrentDirectory();
+
+            if (!spectrum.loadScreen(loadImageDlg.getSelectedFile())) {
+                ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_SCREEN_ERROR"),
+                    bundle.getString("LOAD_SCREEN_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_loadScreenShotActionPerformed
     
     /**
      * @param args the command line arguments
@@ -1757,6 +1802,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
     private javax.swing.JRadioButton linkedRadioButton;
+    private javax.swing.JMenuItem loadScreenShot;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JLabel modelLabel;

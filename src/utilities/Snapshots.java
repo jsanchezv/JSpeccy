@@ -1646,7 +1646,8 @@ public class Snapshots {
                         readed = fIn.read(mf);
                         szxLen -= 2;
                         if (szxLen > 0x4000) {
-                            fIn.skip(szxLen);
+                            while (szxLen > 0)
+                                szxLen -= fIn.skip(szxLen);
                             break;
                         }
 
@@ -1791,7 +1792,8 @@ public class Snapshots {
                         int romLen = dwMagicToInt(dwCartSize);
 //                        System.out.println(String.format("IF2 ROM present. Lenght: %d", romLen));
                         if (romLen > 0x4000) {
-                            fIn.skip(romLen);
+                            while (romLen > 0)
+                            romLen -= fIn.skip(romLen);
                             break;
                         }
 
@@ -1830,7 +1832,9 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        fIn.skip(szxLen);
+                        
+                        while (szxLen > 0)
+                            szxLen -= fIn.skip(szxLen);
                         break;
                     case ZXSTBID_ZXATASP:
                     case ZXSTBID_ATARAM:
@@ -1856,7 +1860,9 @@ public class Snapshots {
                     case ZXSTBID_USPEECH:
                     case ZXSTBID_ZXPRINTER:
 //                        chData = new byte[szxLen];
-                        fIn.skip(szxLen);
+                        while (szxLen > 0)
+                            szxLen -= fIn.skip(szxLen);
+
                         String blockID = new String(dwMagic);
                         System.out.println(String.format(
                             "SZX block ID '%s' readed but not emulated. Skipping...",

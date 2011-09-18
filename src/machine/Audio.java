@@ -159,14 +159,14 @@ class Audio {
         }
     }
 
-    public void flush() {
+    synchronized public void flush() {
         bufp = level = 0;
         timeRem = 0.0f;
         if (line != null)
             line.flush();
     }
 
-    public void endFrame() {
+    synchronized public void endFrame() {
 
         if (bufp == 0)
             return;
@@ -335,7 +335,7 @@ class Audio {
         return ptr;
     }
 
-    public void reset() {
+    synchronized public void reset() {
         audiotstates = 0;
         bufp = 0;
         java.util.Arrays.fill(beeper, 0);
