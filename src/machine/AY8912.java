@@ -49,7 +49,7 @@ public final class AY8912 {
     private int amplitudeA, amplitudeB, amplitudeC;
     // Noise counter & noise seed
     private int counterN, rng;
-    private int envelopePeriod, envelopeCounter, envIncr;
+    private int envelopePeriod, envelopeCounter;
 
     /* Envelope shape cycles:
     C AtAlH
@@ -95,15 +95,11 @@ public final class AY8912 {
     private int[] bufA;
     private int[] bufB;
     private int[] bufC;
-//    private int[] chanA = new int[4440];
-//    private int[] chanB = new int[4440];
-//    private int[] chanC = new int[4440];
     private int pbuf;
     private int FREQ;
     // Precalculate sample positions
-    private int[] samplePos = new int[965];
-//    private final double Divider = 4.6164;
-    private double divider, step, stepCounter;
+//    private int[] samplePos = new int[965];
+    private double step, stepCounter;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
@@ -124,11 +120,11 @@ public final class AY8912 {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
-        step = (double)spectrumModel.tstatesFrame / (FREQ / 50);
-        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
-        for (int pos = 0; pos < samplePos.length; pos++) {
-            samplePos[pos] = (int) (pos * divider);
-        }
+        step = (double) spectrumModel.tstatesFrame / (FREQ / 50);
+//        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
+//        for (int pos = 0; pos < samplePos.length; pos++) {
+//            samplePos[pos] = (int) (pos * divider);
+//        }
         reset();
     }
 
@@ -174,16 +170,23 @@ public final class AY8912 {
             case CoarseToneA:
                 regAY[CoarseToneA] &= 0x0f;
                 periodA = regAY[CoarseToneA] * 256 + regAY[FineToneA];
+                if (periodA == 0)
+                    periodA = 1;
+//                System.out.println("PeriodA: " + periodA);
                 break;
             case FineToneB:
             case CoarseToneB:
                 regAY[CoarseToneB] &= 0x0f;
                 periodB = regAY[CoarseToneB] * 256 + regAY[FineToneB];
+                if (periodB == 0)
+                    periodB = 1;
                 break;
             case FineToneC:
             case CoarseToneC:
                 regAY[CoarseToneC] &= 0x0f;
                 periodC = regAY[CoarseToneC] * 256 + regAY[FineToneC];
+                if (periodC == 0)
+                    periodC = 1;
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
@@ -210,6 +213,8 @@ public final class AY8912 {
                 envA = (regAY[AmplitudeA] & ENVELOPE) != 0;
 //                if (envA) {
 //                    System.out.println("Envelope Chan A");
+//                } else {
+//                    System.out.println("amplitudeA: " + (value & 0x0f));
 //                }
                 break;
             case AmplitudeB:
@@ -234,8 +239,8 @@ public final class AY8912 {
                 if (envelopePeriod == 0) {
                     envelopePeriod = 1;
                 }
-                envelopePeriod <<= 1;
 //                System.out.println(String.format("envPeriod: %d", envelopePeriod));
+                envelopePeriod <<= 1;
                 break;
             case EnvelopeShapeCycle:
                 regAY[addressLatch] &= 0x0f;
@@ -243,11 +248,9 @@ public final class AY8912 {
                 envelopeCounter = 0;
                 if ((value & ATTACK) != 0) {
                     amplitudeEnv = 0;
-                    envIncr = 1;
                     Attack = true;
                 } else {
                     amplitudeEnv = 15;
-                    envIncr = -1;
                     Attack = false;
                 }
                 Continue = false;
@@ -299,7 +302,11 @@ public final class AY8912 {
                     envelopeCounter = 0;
 
                     if (!Continue) {
-                        amplitudeEnv += envIncr;
+                        if (Attack) {
+                            amplitudeEnv++;
+                        } else {
+                            amplitudeEnv--;
+                        }
                     }
 
                     if (amplitudeEnv < 0 || amplitudeEnv > 15) {
@@ -308,7 +315,6 @@ public final class AY8912 {
                             Continue = true;
                         } else {
                             if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
-                                envIncr *= -1;
                                 Attack = !Attack;
                             }
 
@@ -320,6 +326,22 @@ public final class AY8912 {
                             }
                         }
                     }
+
+                    if (envA) {
+                        amplitudeA = volumeLevel[amplitudeEnv];
+                    }
+
+                    if (envB) {
+                        amplitudeB = volumeLevel[amplitudeEnv];
+                    }
+
+                    if (envC) {
+                        amplitudeC = volumeLevel[amplitudeEnv];
+                    }
+
+//                if (envA || envB || envC)
+//                System.out.println(String.format("AmplitudeEnv = %d, %d",
+//                        amplitudeEnv, volumeLevel[amplitudeEnv]));
                 }
             }
 
@@ -329,28 +351,17 @@ public final class AY8912 {
             outB = (toneB || disableToneB) && (toneN || disableNoiseB);
             outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
-            if (envA) {
-                volA = outA ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
-            } else {
-                volA = outA ? amplitudeA : -amplitudeA;
-            }
-            volumeA = volumeA / 2 + volA / 2;
+            volA = outA ? amplitudeA : -amplitudeA;
+            volumeA = (int)(volumeA * 0.8 + volA * 0.2);
+//            volumeA = (volumeA >> 1) + (volA >> 1);
 
-            if (envB) {
-                volB = outB ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
-            } else {
-                volB = outB ? amplitudeB : -amplitudeB;
-            }
-//            volumeB = (int)(volumeB * 0.3 + volB * 0.7);
-            volumeB = volumeB / 2 + volB / 2;
+            volB = outB ? amplitudeB : -amplitudeB;
+            volumeB = (int)(volumeB * 0.8 + volB * 0.2);
+//            volumeB = (volumeB >> 1) + (volB >> 1);
 
-            if (envC) {
-                volC = outC ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
-            } else {
-                volC = outC ? amplitudeC : -amplitudeC;
-            }
-//            volumeC = (int)(volumeC * 0.3 + volC * 0.7);
-            volumeC = volumeC / 2 + volC / 2;
+            volC = outC ? amplitudeC : -amplitudeC;
+            volumeC = (int)(volumeC * 0.8 + volC * 0.2);
+//            volumeC = (volumeC >> 1) + (volC >> 1);
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
@@ -366,21 +377,6 @@ public final class AY8912 {
 
     public void endFrame() {
 //        System.out.println("# samples: " + getSampleCount());
-//        if (pbuf == 0)
-//            return;
-
-//        int pos0, pos1, pos2;
-//        for (int sample = 0; sample < FREQ / 50; sample++) {
-//            pos0 = samplePos[sample];
-////            pos1 = pos0 + 1;
-////            pos2 = pos0 + 2;
-////            bufA[sample] = (chanA[pos0] + chanA[pos1] + chanA[pos2]) / 3;
-////            bufB[sample] = (chanB[pos0] + chanB[pos1] + chanB[pos2]) / 3;
-////            bufC[sample] = (chanC[pos0] + chanC[pos1] + chanC[pos2]) / 3;
-//            bufA[sample] = chanA[pos0];
-//            bufB[sample] = chanB[pos0];
-//            bufC[sample] = chanC[pos0];
-//        }
         pbuf = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }
@@ -398,16 +394,16 @@ public final class AY8912 {
         regAY[Mixer] = 0xff;
         Continue = false;
         Attack = true;
-        envIncr = 1;
-//        Arrays.fill(chanA, 0);
-//        Arrays.fill(chanB, 0);
-//        Arrays.fill(chanC, 0);
-        if (bufA != null)
+//        envIncr = 1;
+        if (bufA != null) {
             Arrays.fill(bufA, 0);
-        if (bufB != null)
+        }
+        if (bufB != null) {
             Arrays.fill(bufB, 0);
-        if (bufC != null)
+        }
+        if (bufC != null) {
             Arrays.fill(bufC, 0);
+        }
         stepCounter = 0;
     }
 
