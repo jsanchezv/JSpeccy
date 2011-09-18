@@ -189,11 +189,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                         break;
                     case SPECTRUM128K:
                         hardwareMenu128k.setSelected(true);
-                        insertIF2RomMenu.setEnabled(false);
+                        insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUMPLUS2:
                         hardwareMenuPlus2.setSelected(true);
-                        insertIF2RomMenu.setEnabled(false);
+                        insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUMPLUS2A:
                         hardwareMenuPlus2A.setSelected(true);

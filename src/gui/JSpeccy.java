@@ -1099,7 +1099,6 @@ public class JSpeccy extends javax.swing.JFrame {
     IF2MediaMenu.setText(bundle.getString("JSpeccy.IF2MediaMenu.text")); // NOI18N
 
     insertIF2RomMediaMenu.setText(bundle.getString("JSpeccy.insertIF2RomMediaMenu.text")); // NOI18N
-    insertIF2RomMediaMenu.setEnabled(false);
     insertIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             insertIF2RomMediaMenuActionPerformed(evt);

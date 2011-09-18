@@ -171,8 +171,13 @@ public final class Memory {
     }
 
     private void setMemoryMap128k() {
-        readPages[0] = Rom128k[0];
-        readPages[1] = Rom128k[1];
+        if (IF2RomEnabled) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        } else {
+            readPages[0] = Rom128k[0];
+            readPages[1] = Rom128k[1];
+        }
         writePages[0] = writePages[1] = fakeROM;
 
         readPages[2] = writePages[2] = Ram[10];
@@ -193,8 +198,13 @@ public final class Memory {
     }
 
     private void setMemoryMapPlus2() {
-        readPages[0] = RomPlus2[0];
-        readPages[1] = RomPlus2[1];
+        if (IF2RomEnabled) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        } else {
+            readPages[0] = RomPlus2[0];
+            readPages[1] = RomPlus2[1];
+        }
         writePages[0] = writePages[1] = fakeROM;
 
         readPages[2] = writePages[2] = Ram[10];
@@ -267,6 +277,12 @@ public final class Memory {
         // Set the active ROM
         switch (spectrumModel) {
             case SPECTRUM128K:
+                if (IF2RomEnabled) {
+                    readPages[0] = IF2Rom[0];
+                    readPages[1] = IF2Rom[1];
+                    break;
+                }
+
                 if ((port7ffd & 0x10) == 0) {
                     readPages[0] = Rom128k[0];
                     readPages[1] = Rom128k[1];
@@ -276,6 +292,9 @@ public final class Memory {
                 }
                 break;
             case SPECTRUMPLUS2:
+                if (IF2RomEnabled)
+                    break;
+                
                 if ((port7ffd & 0x10) == 0) {
                     readPages[0] = RomPlus2[0];
                     readPages[1] = RomPlus2[1];
@@ -414,7 +433,7 @@ public final class Memory {
                 res = !IF2RomEnabled;
                 break;
             case SPECTRUM128K:
-                res = (bankM & 0x10) != 0;
+                res = (bankM & 0x10) != 0 && !IF2RomEnabled;
                 break;
             case SPECTRUMPLUS3:
                 if (!plus3RamMode)
@@ -601,8 +620,13 @@ public final class Memory {
         switch (spectrumModel) {
             case SPECTRUM16K:
             case SPECTRUM48K:
-                readPages[0] = Rom48k[0];
-                readPages[1] = Rom48k[1];
+                if (IF2RomEnabled) {
+                    readPages[0] = IF2Rom[0];
+                    readPages[1] = IF2Rom[1];
+                } else {
+                    readPages[0] = Rom48k[0];
+                    readPages[1] = Rom48k[1];
+                }
                 writePages[1] = fakeROM;
                 break;
             case SPECTRUM128K:

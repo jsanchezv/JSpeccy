@@ -381,9 +381,12 @@ public final class AY8912 {
         Arrays.fill(chanA, 0);
         Arrays.fill(chanB, 0);
         Arrays.fill(chanC, 0);
-        Arrays.fill(bufA, 0);
-        Arrays.fill(bufB, 0);
-        Arrays.fill(bufC, 0);
+        if (bufA != null)
+            Arrays.fill(bufA, 0);
+        if (bufB != null)
+            Arrays.fill(bufB, 0);
+        if (bufC != null)
+            Arrays.fill(bufC, 0);
     }
 
     public void setBufferChannels(int[] bChanA, int[] bChanB, int[] bChanC) {
