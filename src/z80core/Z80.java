@@ -71,6 +71,9 @@
  *          29/05/2011 Corregida la inicialización de los registros dependiendo
  *          de si es por un reset a través de dicho pin o si es por inicio de
  *          alimentación al chip.
+ * 
+ *          04/06/2011 Creados los métodos de acceso al registro escondido MEMPTR
+ *          para que puedar cargarse/guardarse en los snapshots de tipo SZX.
  *
  */
 package z80core;
@@ -510,6 +513,15 @@ public class Z80 {
             return (regI << 8) | ((regR & 0x7f) | SIGN_MASK);
         }
         return (regI << 8) | (regR & 0x7f);
+    }
+    
+    // Acceso al resgistro escondido MEMPTR
+    public final int getMemPtr() {
+        return memptr;
+    }
+    
+    public final void setMemPtr(int valor) {
+        memptr = valor & 0xffff;
     }
 
     // Acceso a los flags uno a uno

@@ -1173,6 +1173,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             z80.setIM(snap.getModeIM());
             z80.setIFF1(snap.getIFF1());
             z80.setIFF2(snap.getIFF2());
+            
+            z80.setMemPtr(snap.getMemPtr());
 
             z80.setTEstados(snap.getTstates());
 
@@ -1345,6 +1347,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         snap.setIFF1(z80.isIFF1());
         snap.setIFF2(z80.isIFF2());
+        
+        snap.setMemPtr(z80.getMemPtr());
+        
         snap.setModeIM(z80.getIM());
         snap.setBorder(portFE & 0x07);
 

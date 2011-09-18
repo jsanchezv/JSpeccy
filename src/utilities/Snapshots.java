@@ -31,7 +31,7 @@ public class Snapshots {
     private int regAF, regBC, regDE, regHL;
     private int regAFalt, regBCalt, regDEalt, regHLalt;
     private int regIX, regIY, regPC, regSP;
-    private int regI, regR, modeIM;
+    private int regI, regR, modeIM, memptr;
     private boolean iff1, iff2;
     private int last7ffd;
     private int last1ffd;
@@ -210,6 +210,14 @@ public class Snapshots {
 
     public void setModeIM(int value) {
         modeIM = value;
+    }
+    
+    public int getMemPtr() {
+        return memptr;
+    }
+
+    public void setMemPtr(int value) {
+        memptr = value;
     }
 
     public boolean getIFF1() {
@@ -1305,6 +1313,10 @@ public class Snapshots {
     private static final int ZXSTMID_TS2068 = 12;
     private static final int ZXSTMID_PENTAGON512 = 13;
     private static final int ZXSTMID_PENTAGON1024 = 14;
+    private static final int ZXSTMID_NTSC48K = 15;
+    private static final int ZXSTMID_128KE = 16;
+    
+    private static final int ZXSTMF_ALTERNATETIMINGS = 1;
 
     private static final int ZXSTBID_ZXATASP = 0x5441585A;   // ZXAT
     private static final int ZXSTAF_UPLOADJUMPER = 1;
@@ -1342,6 +1354,7 @@ public class Snapshots {
     private static final int ZXSTBID_DSKFILE = 0x004B5344;   // DSK\0
     private static final int ZXSTDSKF_COMPRESSED = 1;
     private static final int ZXSTDSKF_EMBEDDED = 2;
+    private static final int ZXSTDSKF_SIDEB = 4;
 
     private static final int ZXSTBID_GS = 0x00005347;        // GS\0\0
 
@@ -1359,7 +1372,7 @@ public class Snapshots {
     private static final int ZXSKJT_TIMEX2 = 7;
     private static final int ZXSKJT_NONE = 8;
 
-    private static final int ZXSTBID_IF1 = 0x00314649;
+    private static final int ZXSTBID_IF1 = 0x00314649;      // IF1\0
     private static final int ZXSTIF1F_ENABLED = 1;
     private static final int ZXSTIF1F_COMPRESSED = 2;
     private static final int ZXSTIF1F_PAGED = 4;
@@ -1429,8 +1442,26 @@ public class Snapshots {
     private static final int ZXSTBID_PALETTE = 0x54544C50;    // PLTT
     private static final int ZXSTPALETTE_DISABLED = 0;
     private static final int ZXSTPALETTE_ENABLED = 1;
-
     
+    // New blocks from SZX v1.4 (04/06/2011)
+    private static final int ZXSTBID_OPUS = 0x5355504F;   // OPUS
+    // Flags
+    private static final int ZXSTOPUSF_PAGED = 1;
+    private static final int ZXSTOPUSF_COMPRESSED = 2;
+    private static final int ZXSTOPUSF_SEEKLOWER = 4;
+    private static final int ZXSTOPUSF_CUSTOMROM = 8;
+    
+    private static final int ZXSTBID_ODSK = 0x4B53444F;   // ODSK
+    // Disk image types
+    private static final int ZXSTOPDT_OPD = 0;
+    private static final int ZXSTOPDT_OPU = 1;
+    private static final int ZXSTOPDT_FLOPPY0 = 2;
+    private static final int ZXSTOPDT_FLOPPY1 = 3;
+    // Flags
+    private static final int ZXSTOPDF_EMBEDDED = 1;
+    private static final int ZXSTOPDF_COMPRESSED = 2;
+    private static final int ZXSTOPDF_WRITEPROTECT = 4;
+
 
 
     private int dwMagicToInt(byte[] dwMagic) {
@@ -1445,6 +1476,7 @@ public class Snapshots {
     private boolean loadSZX(File filename, Memory memory) {
         byte dwMagic[] = new byte[4];
         byte dwSize[] = new byte[4];
+        byte szxMajorVer, szxMinorVer;
         int readed, szxId, szxLen;
         ByteArrayInputStream bais;
         InflaterInputStream iis;
@@ -1469,7 +1501,9 @@ public class Snapshots {
             }
 
             readed = fIn.read(dwSize);
-            switch (dwSize[2] & 0xff) {
+            szxMajorVer = dwSize[0];
+            szxMinorVer = dwSize[1];
+            switch (dwSize[2]) {
                 case ZXSTMID_16K:
                     snapshotModel = MachineTypes.SPECTRUM16K;
                     break;
@@ -1549,6 +1583,10 @@ public class Snapshots {
                         modeIM = z80Regs[28] & 0xff;
                         tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16) |
                                 ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
+                        
+                        if (szxMajorVer == 1 && szxMinorVer > 3) {
+                            memptr = (z80Regs[35] & 0xff) | (z80Regs[36] << 8) & 0xffff;
+                        }
                         break;
                     case ZXSTBID_SPECREGS:
                         if (szxLen != 8) {
@@ -1859,6 +1897,8 @@ public class Snapshots {
                     case ZXSTBID_SPECDRUM:
                     case ZXSTBID_USPEECH:
                     case ZXSTBID_ZXPRINTER:
+                    case ZXSTBID_OPUS:
+                    case ZXSTBID_ODSK:
 //                        chData = new byte[szxLen];
                         while (szxLen > 0)
                             szxLen -= fIn.skip(szxLen);
@@ -1902,7 +1942,7 @@ public class Snapshots {
             String blockID = "ZXST";
             fOut.write(blockID.getBytes("US-ASCII"));
             fOut.write(0x01); // SZX major version
-            fOut.write(0x03); // SZX minor version
+            fOut.write(0x04); // SZX minor version
             switch (snapshotModel) {
                 case SPECTRUM16K:
                     fOut.write(ZXSTMID_16K);
@@ -1923,7 +1963,7 @@ public class Snapshots {
                     fOut.write(ZXSTMID_PLUS3);
                     break;
             }
-            fOut.write(0x01); // SZX reserved
+            fOut.write(0x00); // Flags (No ZXSTMF_ALTERNATETIMINGS)
 
             // SZX Creator block
             blockID = "CRTR";
@@ -1932,7 +1972,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR lenght block
-            blockID = "JSpeccy 0.87";
+            blockID = "JSpeccy 0.88.5";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                 0, blockID.getBytes("US-ASCII").length);
@@ -1940,7 +1980,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00); // JSpeccy major version (0)
             fOut.write(0x00);
-            fOut.write(0x57); // JSpeccy minor version (87)
+            fOut.write(0x58); // JSpeccy minor version (88)
             fOut.write(0x00); // chData
 
             // SZX Z80REGS block
@@ -1986,7 +2026,9 @@ public class Snapshots {
             z80r[30] = (byte) (tstates >> 8);
             z80r[31] = (byte) (tstates >> 16);
             z80r[32] = (byte) (tstates >> 24);
-            // ignore the chHoldIntReqCycles, chFlags & chBitReg fields
+            // ignore the chHoldIntReqCycles & chFlags fields
+            z80r[35] = (byte) memptr;
+            z80r[36] = (byte) (memptr >>> 8);
             fOut.write(z80r);
 
              // SZX SPECREGS block
