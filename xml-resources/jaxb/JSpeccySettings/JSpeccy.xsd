@@ -89,6 +89,18 @@
             <xsd:element name="TapeSettings" type="tns:TapeType"/>
             <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
             <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
+            <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="RecentFilesType">
+        <xsd:sequence>
+            <xsd:element name="recentFile0" type="xsd:string"/>
+            <xsd:element name="recentFile1" type="xsd:string"/>
+            <xsd:element name="recentFile2" type="xsd:string"/>
+            <xsd:element name="recentFile3" type="xsd:string"/>
+            <xsd:element name="recentFile4" type="xsd:string"/>
+            <xsd:element name="lastSnapshotDir" type="xsd:string"/>
+            <xsd:element name="lastTapeDir" type="xsd:string"/>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:schema>

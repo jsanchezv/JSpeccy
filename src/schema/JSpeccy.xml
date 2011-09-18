@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 14 de septiembre de 2010, 10:59
+    Created on : 15 de septiembre de 2010, 18:21
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -50,5 +50,14 @@
     <ns0:AY8912Settings>
         <ns0:soundMode>0</ns0:soundMode>
     </ns0:AY8912Settings>
+    <ns0:RecentFilesSettings>
+        <ns0:recentFile0></ns0:recentFile0>
+        <ns0:recentFile1></ns0:recentFile1>
+        <ns0:recentFile2></ns0:recentFile2>
+        <ns0:recentFile3></ns0:recentFile3>
+        <ns0:recentFile4></ns0:recentFile4>
+        <ns0:lastSnapshotDir></ns0:lastSnapshotDir>
+        <ns0:lastTapeDir></ns0:lastTapeDir>
+    </ns0:RecentFilesSettings>
 
 </ns0:JSpeccySettings>

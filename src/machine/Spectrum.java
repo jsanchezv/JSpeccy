@@ -651,7 +651,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                         }
                         // Este puerto es el mismo que el Kempston. De hecho, el
                         // MF1 incorporaba un puerto Kempston...
-                        if ((port & 0xff) == 0x1f) {
+                        if ((port & 0xff) == 0x1f && memory.isMultifacePaged()) {
                             memory.multifacePageOut();
                         }
                     }
@@ -700,9 +700,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
          * Las Tres Luces de Glaurung leen el puerto #DF (223) y si se decodifica
          * algo más no funciona con el joystick. Si decodificamos solo A5==0
          * es Buggy Boy el que se cuelga.
+         * 15/09/2010: pongo el comentario y el código en cuarentena...
          */
-        if (((port & 0x00e0) == 0 || (port & 0x0020) == 0)
-                && joystick == Joystick.KEMPSTON) {
+//        if (((port & 0x00e0) == 0 || (port & 0x0020) == 0)
+        if ((port & 0x0020) == 0 && joystick == Joystick.KEMPSTON) {
 //            System.out.println(String.format("InPort: %04X, PC: %04X", port, z80.getRegPC()));
             return keyboard.readKempstonPort();
         }
@@ -780,7 +781,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     memory.setPort7ffd(floatbus);
                     // Si ha cambiado la pantalla visible hay que invalidar
                     if ((port7ffd & 0x08) != (floatbus & 0x08)) {
-                        invalidateScreen(false);
+                        invalidateScreen(true);
                     }
                     // En el 128k las páginas impares son contended
                     contendedRamPage[3] = contendedIOPage[3] =
@@ -791,6 +792,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
 //                    tstates, addr, floatbus));
+//        System.out.println(String.format("InPort: %04X", port));
         return floatbus & 0xff;
     }
 

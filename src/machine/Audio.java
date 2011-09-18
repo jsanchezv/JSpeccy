@@ -74,7 +74,7 @@ class Audio {
             spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
-                ay8912.setMaxAmplitude(12000);
+                ay8912.setMaxAmplitude(11000);
             } else {
                 ay8912.setMaxAmplitude(7000);
             }
