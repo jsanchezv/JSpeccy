@@ -144,8 +144,8 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
         spectrum.setInfoLabels(modelLabel, speedLabel);
-        spectrum.setHardwareMenuItems(spec48kHardware, spec128kHardware,
-                specPlus2Hardware, specPlus3Hardware);
+        spectrum.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
+                specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
                 sinclair1Joystick, sinclair2Joystick, cursorJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
@@ -169,13 +169,19 @@ public class JSpeccy extends javax.swing.JFrame {
 
         // Synchronize the file user settings with GUI settings
         switch (settings.getSpectrumSettings().getDefaultModel()) {
-            case 1:
-                spec128kHardware.setSelected(true);
+            case 0:
+                spec16kHardware.setSelected(true);
                 break;
             case 2:
-                specPlus2Hardware.setSelected(true);
+                spec128kHardware.setSelected(true);
                 break;
             case 3:
+                specPlus2Hardware.setSelected(true);
+                break;
+            case 4:
+                specPlus2AHardware.setSelected(true);
+                break;
+            case 5:
                 specPlus3Hardware.setSelected(true);
                 break;
             default:
@@ -247,7 +253,7 @@ public class JSpeccy extends javax.swing.JFrame {
         doubleSizeToggleButton = new javax.swing.JToggleButton();
         silenceSoundToggleButton = new javax.swing.JToggleButton();
         resetSpectrumButton = new javax.swing.JButton();
-        exitButton = new javax.swing.JButton();
+        hardResetSpectrumButton = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         fileMenu = new javax.swing.JMenu();
         fileOpenSnapshot = new javax.swing.JMenuItem();
@@ -272,9 +278,11 @@ public class JSpeccy extends javax.swing.JFrame {
         nmiMachineMenu = new javax.swing.JMenuItem();
         jSeparator3 = new javax.swing.JPopupMenu.Separator();
         hardwareMachineMenu = new javax.swing.JMenu();
+        spec16kHardware = new javax.swing.JRadioButtonMenuItem();
         spec48kHardware = new javax.swing.JRadioButtonMenuItem();
         spec128kHardware = new javax.swing.JRadioButtonMenuItem();
         specPlus2Hardware = new javax.swing.JRadioButtonMenuItem();
+        specPlus2AHardware = new javax.swing.JRadioButtonMenuItem();
         specPlus3Hardware = new javax.swing.JRadioButtonMenuItem();
         mediaMenu = new javax.swing.JMenu();
         tapeMediaMenu = new javax.swing.JMenu();
@@ -282,7 +290,9 @@ public class JSpeccy extends javax.swing.JFrame {
         playTapeMediaMenu = new javax.swing.JMenuItem();
         browserTapeMediaMenu = new javax.swing.JMenuItem();
         rewindTapeMediaMenu = new javax.swing.JMenuItem();
+        jSeparator5 = new javax.swing.JPopupMenu.Separator();
         createTapeMediaMenu = new javax.swing.JMenuItem();
+        clearTapeMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
         aboutHelpMenu = new javax.swing.JMenuItem();
@@ -470,17 +480,17 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(resetSpectrumButton);
 
-    exitButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/exit.png"))); // NOI18N
-    exitButton.setToolTipText(bundle.getString("JSpeccy.exitButton.toolTipText")); // NOI18N
-    exitButton.setFocusable(false);
-    exitButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    exitButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    exitButton.addActionListener(new java.awt.event.ActionListener() {
+    hardResetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/exit.png"))); // NOI18N
+    hardResetSpectrumButton.setToolTipText(bundle.getString("JSpeccy.hardResetSpectrumButton.toolTipText")); // NOI18N
+    hardResetSpectrumButton.setFocusable(false);
+    hardResetSpectrumButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+    hardResetSpectrumButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+    hardResetSpectrumButton.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            thisIsTheEndMyFriendActionPerformed(evt);
+            hardResetSpectrumButtonActionPerformed(evt);
         }
     });
-    toolbarMenu.add(exitButton);
+    toolbarMenu.add(hardResetSpectrumButton);
 
     getContentPane().add(toolbarMenu, java.awt.BorderLayout.PAGE_START);
 
@@ -639,6 +649,15 @@ public class JSpeccy extends javax.swing.JFrame {
 
     hardwareMachineMenu.setText(bundle.getString("JSpeccy.hardwareMachineMenu.text")); // NOI18N
 
+    hardwareButtonGroup.add(spec16kHardware);
+    spec16kHardware.setText(bundle.getString("JSpeccy.spec16kHardware.text")); // NOI18N
+    spec16kHardware.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            spec16kHardwareActionPerformed(evt);
+        }
+    });
+    hardwareMachineMenu.add(spec16kHardware);
+
     hardwareButtonGroup.add(spec48kHardware);
     spec48kHardware.setSelected(true);
     spec48kHardware.setText(bundle.getString("JSpeccy.spec48kHardware.text")); // NOI18N
@@ -666,6 +685,15 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     hardwareMachineMenu.add(specPlus2Hardware);
+
+    hardwareButtonGroup.add(specPlus2AHardware);
+    specPlus2AHardware.setText(bundle.getString("JSpeccy.specPlus2AHardware.text")); // NOI18N
+    specPlus2AHardware.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            specPlus2AHardwareActionPerformed(evt);
+        }
+    });
+    hardwareMachineMenu.add(specPlus2AHardware);
 
     hardwareButtonGroup.add(specPlus3Hardware);
     specPlus3Hardware.setText(bundle.getString("JSpeccy.specPlus3Hardware.text")); // NOI18N
@@ -717,6 +745,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     tapeMediaMenu.add(rewindTapeMediaMenu);
+    tapeMediaMenu.add(jSeparator5);
 
     createTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
     createTapeMediaMenu.setText(bundle.getString("JSpeccy.createTapeMediaMenu.text")); // NOI18N
@@ -726,6 +755,14 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     tapeMediaMenu.add(createTapeMediaMenu);
+
+    clearTapeMediaMenu.setText(bundle.getString("JSpeccy.clearTapeMediaMenu.text")); // NOI18N
+    clearTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            clearTapeMediaMenuActionPerformed(evt);
+        }
+    });
+    tapeMediaMenu.add(clearTapeMediaMenu);
 
     mediaMenu.add(tapeMediaMenu);
 
@@ -1016,18 +1053,18 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.startEmulation();
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
 
-    private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
+    private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
         boolean paused = spectrum.isPaused();
 
         if (!paused)
             spectrum.stopEmulation();
 
         spectrum.reset();
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
 
         if (!paused)
             spectrum.startEmulation();
-    }//GEN-LAST:event_specPlus3HardwareActionPerformed
+    }//GEN-LAST:event_specPlus2AHardwareActionPerformed
 
     private void settingsOptionsMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_settingsOptionsMenuActionPerformed
         settingsDialog.showDialog(this, "User Settings");
@@ -1082,12 +1119,67 @@ public class JSpeccy extends javax.swing.JFrame {
                 Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
             }
             spectrum.tape.eject();
-            spectrum.tape.insert(OpenTapeDlg.getSelectedFile());
-            tapeFilename.setText(OpenTapeDlg.getSelectedFile().getName());
+            spectrum.tape.insert(filename);
+            tapeFilename.setText(filename.getName());
         }
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_createTapeMediaMenuActionPerformed
+
+    private void hardResetSpectrumButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hardResetSpectrumButtonActionPerformed
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        int ret = JOptionPane.showConfirmDialog(getContentPane(),
+                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
+                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+
+        if( ret == JOptionPane.YES_OPTION )
+            spectrum.hardReset();
+    }//GEN-LAST:event_hardResetSpectrumButtonActionPerformed
+
+    private void clearTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearTapeMediaMenuActionPerformed
+         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        int ret = JOptionPane.showConfirmDialog(getContentPane(),
+                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("CLEAR_TAPE"),
+                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+
+        if( ret == JOptionPane.YES_OPTION && spectrum.tape.isTapeReady()) {
+            File filename = new File(OpenTapeDlg.getSelectedFile().getAbsolutePath());
+            try {
+                filename.delete();
+                filename.createNewFile();
+            } catch (IOException ex) {
+                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            spectrum.tape.eject();
+            spectrum.tape.insert(filename);
+        }
+    }//GEN-LAST:event_clearTapeMediaMenuActionPerformed
+
+    private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
+         boolean paused = spectrum.isPaused();
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        spectrum.reset();
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
+
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_spec16kHardwareActionPerformed
+
+    private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
+        boolean paused = spectrum.isPaused();
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        spectrum.reset();
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_specPlus3HardwareActionPerformed
     
     /**
      * @param args the command line arguments
@@ -1104,18 +1196,19 @@ public class JSpeccy extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JMenuItem browserTapeMediaMenu;
+    private javax.swing.JMenuItem clearTapeMediaMenu;
     private javax.swing.JButton closeKeyboardHelper;
     private javax.swing.JButton closeTapeBrowserButton;
     private javax.swing.JMenuItem createTapeMediaMenu;
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
-    private javax.swing.JButton exitButton;
     private javax.swing.JToggleButton fastEmulationToggleButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenuItem fileSaveScreenShot;
     private javax.swing.JMenuItem fileSaveSnapshot;
+    private javax.swing.JButton hardResetSpectrumButton;
     private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
@@ -1129,6 +1222,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
+    private javax.swing.JPopupMenu.Separator jSeparator5;
     private javax.swing.ButtonGroup joystickButtonGroup;
     private javax.swing.JMenu joystickOptionMenu;
     private javax.swing.JRadioButtonMenuItem kempstonJoystick;
@@ -1154,7 +1248,9 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem sinclair1Joystick;
     private javax.swing.JRadioButtonMenuItem sinclair2Joystick;
     private javax.swing.JRadioButtonMenuItem spec128kHardware;
+    private javax.swing.JRadioButtonMenuItem spec16kHardware;
     private javax.swing.JRadioButtonMenuItem spec48kHardware;
+    private javax.swing.JRadioButtonMenuItem specPlus2AHardware;
     private javax.swing.JRadioButtonMenuItem specPlus2Hardware;
     private javax.swing.JRadioButtonMenuItem specPlus3Hardware;
     private javax.swing.JLabel speedLabel;

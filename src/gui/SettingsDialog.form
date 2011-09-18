@@ -91,11 +91,13 @@
                 <Component class="javax.swing.JComboBox" name="spectrumModel">
                   <Properties>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-                      <StringArray count="4">
-                        <StringItem index="0" value="Spectrum 48k"/>
-                        <StringItem index="1" value="Spectrum 128k"/>
-                        <StringItem index="2" value="Spectrum +2"/>
-                        <StringItem index="3" value="Spectrum +2A"/>
+                      <StringArray count="6">
+                        <StringItem index="0" value="Spectrum 16k"/>
+                        <StringItem index="1" value="Spectrum 48k"/>
+                        <StringItem index="2" value="Spectrum 128k"/>
+                        <StringItem index="3" value="Spectrum +2"/>
+                        <StringItem index="4" value="Spectrum +2A"/>
+                        <StringItem index="5" value="Spectrum +3"/>
                       </StringArray>
                     </Property>
                   </Properties>

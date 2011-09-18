@@ -21,8 +21,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.SwingUtilities;
 import utilities.Snapshots;
 import utilities.Tape;
@@ -53,9 +53,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public Tape tape;
     private boolean paused;
     private javax.swing.JLabel modelLabel, speedLabel;
-    private JMenuItem hardwareMenu48k, hardwareMenu128k,
-            hardwareMenuPlus2, hardwareMenuPlus3;
-    private JMenuItem joystickNone, joystickKempston,
+    private JRadioButtonMenuItem hardwareMenu16k, hardwareMenu48k, hardwareMenu128k,
+            hardwareMenuPlus2, hardwareMenuPlus2A, hardwareMenuPlus3;
+    private JRadioButtonMenuItem joystickNone, joystickKempston,
             joystickSinclair1, joystickSinclair2, joystickCursor;
 
     public static enum Joystick {
@@ -101,13 +101,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         setJoystick(joystick);
 
         switch (settings.getSpectrumSettings().getDefaultModel()) {
-            case 1:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
+            case 0:
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
                 break;
             case 2:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
                 break;
             case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 4:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+                break;
+            case 5:
                 selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                 break;
             default:
@@ -134,14 +140,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         contendedRamPage[1] = contendedIOPage[1] = true;
         contendedRamPage[2] = contendedIOPage[2] = false;
         contendedRamPage[3] = contendedIOPage[3] = false;
-        
-        switch (spectrumModel) {
+
+        switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
                 buildScreenTables48k();
                 enabledAY = settings.getSpectrumSettings().isAYEnabled48K();
                 break;
             case SPECTRUM128K:
-            case SPECTRUMPLUS2:
                 buildScreenTables128k();
                 break;
             case SPECTRUMPLUS3:
@@ -155,7 +160,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             @Override
             public void run() {
                 switch (spectrumModel) {
-                    case SPECTRUM48K:
+                case SPECTRUM16K:
+                    hardwareMenu16k.setSelected(true);
+                    break;
+                case SPECTRUM48K:
                     hardwareMenu48k.setSelected(true);
                     break;
                 case SPECTRUM128K:
@@ -163,6 +171,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     break;
                 case SPECTRUMPLUS2:
                     hardwareMenuPlus2.setSelected(true);
+                    break;
+                case SPECTRUMPLUS2A:
+                    hardwareMenuPlus2A.setSelected(true);
                     break;
                 case SPECTRUMPLUS3:
                     hardwareMenuPlus3.setSelected(true);
@@ -222,19 +233,34 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-//    public void reset() {
-//        resetPending = true;
-//    }
-
     public void reset() {
+        z80.reset();
+        memory.reset();
+        ay8912.reset();
+        audio.reset();
+        keyboard.reset();
+        nFrame = 0;
+        portFE = port7ffd = port1ffd = 0;
+        ULAplusMode = false;
+        paletteGroup = 0;
+        invalidateScreen(true);
+    }
+
+    public void hardReset() {
         switch (settings.getSpectrumSettings().getDefaultModel()) {
-            case 1:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
+            case 0:
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
                 break;
             case 2:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
                 break;
             case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 4:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+                break;
+            case 5:
                 selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                 break;
             default:
@@ -258,16 +284,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 joystick = Joystick.NONE;
         }
         setJoystick(joystick);
-        z80.reset();
-        memory.reset();
-        ay8912.reset();
-        audio.reset();
-        keyboard.reset();
-        nFrame = 0;
-        portFE = port7ffd = port1ffd = 0;
-        ULAplusMode = false;
-        paletteGroup = 0;
-        invalidateScreen(true);
+        reset();
     }
 
     public boolean isPaused() {
@@ -310,8 +327,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         });
     }
 
-    public void setJoystickMenuItems(JMenuItem jNone, JMenuItem jKempston,
-            JMenuItem jSinclair1, JMenuItem jSinclair2, JMenuItem jCursor) {
+    public void setJoystickMenuItems(JRadioButtonMenuItem jNone, JRadioButtonMenuItem jKempston,
+            JRadioButtonMenuItem jSinclair1, JRadioButtonMenuItem jSinclair2,
+            JRadioButtonMenuItem jCursor) {
         joystickNone = jNone;
         joystickKempston = jKempston;
         joystickSinclair1 = jSinclair1;
@@ -319,11 +337,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         joystickCursor = jCursor;
     }
 
-    public void setHardwareMenuItems(JMenuItem hw48k, JMenuItem hw128k,
-        JMenuItem hwPlus2, JMenuItem hwPlus3) {
+    public void setHardwareMenuItems(JRadioButtonMenuItem hw16k, JRadioButtonMenuItem hw48k,
+            JRadioButtonMenuItem hw128k, JRadioButtonMenuItem hwPlus2,
+            JRadioButtonMenuItem hwPlus2A, JRadioButtonMenuItem hwPlus3) {
+        hardwareMenu16k = hw16k;
         hardwareMenu48k = hw48k;
         hardwareMenu128k = hw128k;
         hardwareMenuPlus2 = hwPlus2;
+        hardwareMenuPlus2A = hwPlus2A;
         hardwareMenuPlus3 = hwPlus3;
     }
 
@@ -480,7 +501,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (address == 0x0556 && tape.isTapeInserted() && tape.isStopped()) {
+        if (address == 0x0556 && memory.isSpectrumRom() && tape.isTapeReady()) {
             if (!tape.isFlashLoad()) {
                 toggleTape();
             } else {
@@ -490,15 +511,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         }
 
-        // SA_BYTES routine in Spectrum ROM at address 0x04C2
-        if (address == 0x04C2 && tape.isTapeInserted() && tape.isStopped()) {
-            tape.saveBlock(memory);
+        // SA_BYTES routine in Spectrum ROM at 0x04D0
+        // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
+        // to SA_BYTES by his start address.
+        if (address == 0x04D0 && memory.isSpectrumRom() && tape.isTapeReady()) {
+            tape.saveTapeBlock(memory);
             return 0xC9; // RET opcode
         }
-
-//        if (address == 0x05E2 && tape.isPlaying()) {
-//            tape.stop();
-//        }
         
         return memory.readByte(address) & 0xff;
     }
@@ -576,7 +595,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     @Override
     public void contendedStates(int address, int tstates) {
         if (contendedRamPage[address >>> 14]
-                && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
+                && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 z80.tEstados += delayTstates[z80.tEstados] + 1;
             }
@@ -622,14 +641,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 return ay8912.readRegister();
             }
 
-            if (spectrumModel == MachineTypes.SPECTRUMPLUS3 &&
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3 &&
                     (port & 0xC002) == 0x8000) {
                 return ay8912.readRegister();
             }
         }
         
         // ULAplus Data Port (read/write)
-        if (settings.getSpectrumSettings().isULAplus() && (port & 0x4004) == 0x4000) {
+        if ((port & 0x4004) == 0x4000 && settings.getSpectrumSettings().isULAplus()) {
             if (paletteGroup == 0x40) {
                 return ULAplusMode ? 0x01 : 0x00;
             } else {
@@ -640,7 +659,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        System.out.println(String.format("InPort: %04X at %d t-states", port, z80.tEstados));
         int floatbus = 0xff;
         // El +3 no tiene bus flotante, responde siempre con 0xFF a puertos no usados
-        if (spectrumModel != MachineTypes.SPECTRUMPLUS3) {
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             int addr = 0;
             int tstates = z80.tEstados;
             if (tstates < spectrumModel.firstScrByte || tstates > spectrumModel.lastScrUpdate) {
@@ -677,7 +696,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
              * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
              * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
              */
-            if (spectrumModel != MachineTypes.SPECTRUM48K &&
+            if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K &&
                 !memory.isPagingLocked()) {
                 if ((port & 0x8002) == 0) {
                     memory.setPort7ffd(floatbus);
@@ -717,11 +736,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 speaker = spkMic;
             }
 
-            if (tape.isStopped() && spectrumModel != MachineTypes.SPECTRUMPLUS3) {
+            if (tape.isStopped() &&
+                spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
                 int issueMask;
-                if (spectrumModel == MachineTypes.SPECTRUM48K)
+                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
                     issueMask = settings.getSpectrumSettings().isIssue2() ? 0x18 : 0x10;
                 else
                     // los modelos que no son el 48k son todos Issue3
@@ -737,8 +757,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             portFE = value;
         }
 
-        if (spectrumModel == MachineTypes.SPECTRUM128K ||
-                spectrumModel == MachineTypes.SPECTRUMPLUS2) {
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
             if ((port & 0x8002) == 0) {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
@@ -748,13 +767,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
                 if (((port7ffd ^ value) & 0x08) != 0) {
-                    invalidateScreen(true);
+                    invalidateScreen(false);
                 }
                 port7ffd = value;
             }
         }
 
-        if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
             // Port 0x7ffd decodes with bit15 and bit1 reset, bit14 set
             if ((port & 0xC002) == 0x4000) {
                 memory.setPort7ffd(value);
@@ -762,7 +781,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 contendedRamPage[3] = memory.getPlus3HighPage() > 3 ? true : false;
                 // Si ha cambiado la pantalla visible hay que invalidar
                 if (((port7ffd ^ value) & 0x08) != 0) {
-                    invalidateScreen(true);
+                    invalidateScreen(false);
                 }
                 port7ffd = value;
             }
@@ -789,7 +808,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     contendedRamPage[1] = true;
                     contendedRamPage[3] = memory.getPlus3HighPage() > 3 ? true : false;
                 }
-
                 port1ffd = value;
             }
         }
@@ -806,7 +824,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         // ULAplus ports
-        if (settings.getSpectrumSettings().isULAplus() && (port & 0x0004) == 0) {
+        if ((port & 0x0004) == 0 && settings.getSpectrumSettings().isULAplus()) {
             // Control port (write only)
             if ((port & 0x4000) == 0) {
                 if ((value & 0x40) != 0) {
@@ -818,6 +836,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 // Data port (read/write)
                 if (paletteGroup == 0x40) {
                     ULAplusMode = (value & 0x01) != 0 ? true : false;
+                    invalidateScreen(true);
                 } else {
                     ULAplus[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
                     int blue = (value & 0x03) << 1;
@@ -831,8 +850,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     green = (green << 5) | (green << 2) | (green & 0x03);
                     ULAplusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
                         (red << 16) | (green << 8) | blue;
+                // Solo es necesario redibujar el borde si se modificó uno
+                // de los colores de paper de la paleta 0. (8-15)
+                invalidateScreen((paletteGroup > 7 && paletteGroup < 16));
                 }
-                invalidateScreen(true);
             }
         }
         //preIO(port);
@@ -959,7 +980,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
                 port7ffd = snap.getPort7ffd();
                 memory.setPort7ffd(port7ffd);
-                if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                     port1ffd = snap.getPort1ffd();
                     memory.setPort1ffd(port1ffd);
                     if (memory.isPlus3RamMode()) {
@@ -1033,9 +1054,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         snap.setJoystick(joystick);
         snap.setIssue3(!settings.getSpectrumSettings().isIssue2());
 
-        if (spectrumModel != MachineTypes.SPECTRUM48K) {
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
-            if (spectrumModel == MachineTypes.SPECTRUMPLUS3)
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3)
                 snap.setPort1ffd(port1ffd);
         }
         
@@ -1130,7 +1151,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void toggleTape() {
-        if (tape.isStopped()) {
+        if (tape.isTapeReady()) {
             tape.play();
         } else {
             tape.stop();

@@ -153,7 +153,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         defaultModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.defaultModePanel.border.text"))); // NOI18N
 
-        spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A" }));
+        spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 16k", "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A", "Spectrum +3" }));
         spectrumModel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 spectrumModelActionPerformed(evt);

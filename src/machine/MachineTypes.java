@@ -10,12 +10,14 @@ package machine;
  */
 public enum MachineTypes {
 
-    SPECTRUM48K(CodeModel.SPECTRUM48K),
-    SPECTRUM128K(CodeModel.SPECTRUM128K),
-    SPECTRUMPLUS2(CodeModel.SPECTRUMPLUS2),
-    SPECTRUMPLUS3(CodeModel.SPECTRUMPLUS3);
+    SPECTRUM16K(0),
+    SPECTRUM48K(1),
+    SPECTRUM128K(2),
+    SPECTRUMPLUS2(3),
+    SPECTRUMPLUS2A(4),
+    SPECTRUMPLUS3(5);
 
-    static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS2, SPECTRUMPLUS3 };
+    static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS3 };
     public CodeModel codeModel; // Código de modelo
     private String longModelName;   // Nombre largo del modelo de Spectrum
     private String shortModelName;   // Nombre corto del modelo de Spectrum
@@ -33,9 +35,28 @@ public enum MachineTypes {
     private boolean hasAY8912;  // Tiene un AY-3-8912?
     private boolean hasDisk;    // Tiene un controlador de disco y disquetera?
 
-    MachineTypes(CodeModel model) {
+    MachineTypes(int model) {
         switch (model) {
-            case SPECTRUM48K: // Spectrum 48K
+            case 0: // Spectrum 16K
+                this.longModelName = "ZX Spectrum 16K";
+                this.shortModelName = "16k";
+                this.tstatesFrame = 69888;
+                this.tstatesLine = 224;
+                this.upBorderWidth = 64;
+                this.scanLines = 312;
+                this.lengthINT = 32;
+                this.firstScrByte = 14336;
+                this.firstScrUpdate = 14328;
+                this.lastScrUpdate = 57237;
+                this.firstBorderUpdate =
+                    ((64 - Spectrum.BORDER_WIDTH )* tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                this.outOffset = 3;
+                this.hasAY8912 = false;
+                this.hasDisk = false;
+                this.codeModel = CodeModel.SPECTRUM48K;
+                break;
+            case 1: // Spectrum 48K
                 this.longModelName = "ZX Spectrum 48K";
                 this.shortModelName = "48k";
                 this.tstatesFrame = 69888;
@@ -54,7 +75,7 @@ public enum MachineTypes {
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM48K;
                 break;
-            case SPECTRUM128K: // Spectrum 128K
+            case 2: // Spectrum 128K
                 this.longModelName = "ZX Spectrum 128K";
                 this.shortModelName = "128";
                 this.tstatesFrame = 70908;
@@ -73,7 +94,7 @@ public enum MachineTypes {
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM128K;
                 break;
-            case SPECTRUMPLUS2: // Spectrum +2
+            case 3: // Spectrum +2
                 this.longModelName = "Amstrad ZX Spectrum +2";
                 this.shortModelName = " +2";
                 this.tstatesFrame = 70908;
@@ -90,9 +111,28 @@ public enum MachineTypes {
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
-                this.codeModel = CodeModel.SPECTRUMPLUS2;
+                this.codeModel = CodeModel.SPECTRUM128K;
                 break;
-            case SPECTRUMPLUS3: // Spectrum +3
+            case 4: // Spectrum +2A
+                this.longModelName = "ZX Spectrum +2A";
+                this.shortModelName = " +2A";
+                this.tstatesFrame = 70908;
+                this.tstatesLine = 228;
+                this.upBorderWidth = 63;
+                this.scanLines = 311;
+                this.lengthINT = 36;
+                this.firstScrByte = 14364;
+                this.firstScrUpdate = 14356;
+                this.lastScrUpdate = 58040;
+                this.firstBorderUpdate =
+                    ((63 - Spectrum.BORDER_WIDTH) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                this.outOffset = 1;
+                this.hasAY8912 = true;
+                this.hasDisk = false;
+                this.codeModel = CodeModel.SPECTRUMPLUS3;
+                break;
+            case 5: // Spectrum +3
                 this.longModelName = "ZX Spectrum +3";
                 this.shortModelName = " +3";
                 this.tstatesFrame = 70908;

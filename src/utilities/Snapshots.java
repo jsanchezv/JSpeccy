@@ -503,7 +503,7 @@ public class Snapshots {
             return false;
         }
 
-        if (snapshotModel == MachineTypes.SPECTRUMPLUS3) {
+        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
             error = 9;
             return false;
         }
@@ -548,7 +548,7 @@ public class Snapshots {
             snaHeader[21] = (byte) regAF;
             snaHeader[22] = (byte) (regAF >>> 8);
 
-            if (snapshotModel == MachineTypes.SPECTRUM48K) {
+            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 regSP = (regSP - 1) & 0xffff;
                 memory.writeByte(regSP, (byte) (regPC >>> 8));
                 regSP = (regSP - 1) & 0xffff;
@@ -572,7 +572,7 @@ public class Snapshots {
             memory.savePage(2, buffer);
             fOut.write(buffer, 0, buffer.length);
 
-            if (snapshotModel == MachineTypes.SPECTRUM48K) {
+            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 // Salvamos la página 0xC000-0xFFFF (0)
                 memory.savePage(0, buffer);
                 fOut.write(buffer, 0, buffer.length);
@@ -840,32 +840,34 @@ public class Snapshots {
 
                 regPC = (z80Header2[0] & 0xff) | (z80Header2[1] << 8) & 0xffff;
 
+                boolean modifiedHW = (z80Header2[5] & 0x80) != 0;
                 if (hdrLen == 23) { // Z80 v2
                     switch (z80Header2[2]) {
                         case 0: // 48k
-                            snapshotModel = MachineTypes.SPECTRUM48K;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
-                            memory.reset();
+                        case 1: // 48k + IF.1
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUM16K;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM48K;
                             break;
                         case 3: // 128k
-                            snapshotModel = MachineTypes.SPECTRUM128K;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
-                            memory.reset();
+                        case 4: // 128k + IF.1
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM128K;
                             break;
                         case 7: // +3
-                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
-                            memory.reset();
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUMPLUS3;
                             break;
-                        case 12: // Plus 2
+                        case 12: // +2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
-                            memory.reset();
                             break;
                         case 13: // +2A
-                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
-                            memory.reset();
+                            snapshotModel = MachineTypes.SPECTRUMPLUS2A;
                             break;
                         default:
                             error = 5;
@@ -875,29 +877,30 @@ public class Snapshots {
                 } else { // Z80 v3
                     switch (z80Header2[2]) {
                         case 0: // 48k
-                            snapshotModel = MachineTypes.SPECTRUM48K;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
-                            memory.reset();
+                        case 1: // 48k + IF.1
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUM16K;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM48K;
                             break;
                         case 4: // 128k
-                            snapshotModel = MachineTypes.SPECTRUM128K;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUM128K);
-                            memory.reset();
+                        case 5: // 128k + IF.1
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM128K;
                             break;
                         case 7: // +3
-                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
-                            memory.reset();
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUMPLUS3;
                             break;
-                        case 12: // Plus 2
+                        case 12: // +2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
-                            memory.reset();
                             break;
                         case 13: // +2A
-                            snapshotModel = MachineTypes.SPECTRUMPLUS3;
-                            memory.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
-                            memory.reset();
+                            snapshotModel = MachineTypes.SPECTRUMPLUS2A;
                             break;
                         default:
                             error = 5;
@@ -906,6 +909,8 @@ public class Snapshots {
                     }
                 }
 
+                memory.setSpectrumModel(snapshotModel);
+                memory.reset();
                 last7ffd = z80Header2[3] & 0xff;
                 enabledAY = (z80Header2[5] & 0x04) != 0 ? true : false;
                 lastfffd = z80Header2[6] & 0xff;
@@ -922,7 +927,7 @@ public class Snapshots {
                 while (fIn.available() > 0) {
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
-                    if (snapshotModel == MachineTypes.SPECTRUM48K) {
+                    if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                         switch (ramPage) {
                             case 4:  // 0x8000-0xbfff
                                 ramPage = 2;
@@ -1044,6 +1049,9 @@ public class Snapshots {
             z80HeaderV3[33] = (byte)(regPC >>> 8);
 
             switch (snapshotModel) {
+                case SPECTRUM16K:
+                    z80HeaderV3[37] |= 0x80;
+                    break;
                 case SPECTRUM48K:
                     break;
                 case SPECTRUM128K:
@@ -1052,11 +1060,14 @@ public class Snapshots {
                 case SPECTRUMPLUS2:
                     z80HeaderV3[34] = 12;
                     break;
+                case SPECTRUMPLUS2A:
+                    z80HeaderV3[34] = 13;
+                    break;
                 case SPECTRUMPLUS3:
-                    z80HeaderV3[34] = 13; // +2A ID
+                    z80HeaderV3[34] = 7;
             }
 
-            if (snapshotModel != MachineTypes.SPECTRUM48K) {
+            if (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
                 z80HeaderV3[35] = (byte) last7ffd;
             }
 
@@ -1069,7 +1080,7 @@ public class Snapshots {
                 z80HeaderV3[39 + reg] = (byte)psgRegs[reg];
             }
             
-            if (snapshotModel == MachineTypes.SPECTRUMPLUS3) {
+            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 z80HeaderV3[54] = (byte)last1ffd;
             }
 
@@ -1077,7 +1088,7 @@ public class Snapshots {
 
             byte buffer[] = new byte[0x4000];
             int bufLen;
-            if (snapshotModel == MachineTypes.SPECTRUM48K) {
+            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 // Página 5, que corresponde a 0x4000-0x7FFF
                 bufLen = compressPageZ80(memory, buffer, 5);
                 if (bufLen == 0x4000) {

@@ -501,6 +501,7 @@ public class Tape {
         tapeInserted = false;
         tapeBuffer = null;
         filenameLabel = null;
+        statePlay = State.STOP;
         updateTapeIcon();
     }
 
@@ -513,11 +514,11 @@ public class Tape {
     }
 
     public boolean isPlaying() {
-        return statePlay != State.STOP ? true : false;
+        return statePlay != State.STOP;
     }
 
     public boolean isStopped() {
-        return statePlay == State.STOP ? true : false;
+        return statePlay == State.STOP;
     }
 
     public boolean isFlashLoad() {
@@ -530,6 +531,10 @@ public class Tape {
 
     public boolean isTapeInserted() {
         return tapeInserted;
+    }
+
+    public boolean isTapeReady() {
+        return (tapeInserted && statePlay == State.STOP);
     }
 
     public boolean isTzxTape() {
@@ -560,10 +565,6 @@ public class Tape {
         if (idxHeader == nOffsetBlocks) {
             idxHeader = 0;
         }
-//        timeLastIn = 0;
-//        cpu.setExecDone(false);
-//        updateTapeIcon();
-//        tapeNotify.tapeStop();
     }
 
     public boolean rewind() {
@@ -1133,10 +1134,9 @@ public class Tape {
                     idxHeader++;
                     break;
                 case 0x2A: // Stop the tape if in 48K mode
-                    if (spectrumModel == MachineTypes.SPECTRUM48K) {
+                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                         statePlay = State.STOP;
                         repeat = false;
-//                        tapeNotify.tapeStop();
                     }
                     idxHeader++;
                     break;
@@ -1283,7 +1283,7 @@ public class Tape {
         return;
     }
 
-    public void saveBlock(Memory memory) {
+    public void saveTapeBlock(Memory memory) {
         int addr = cpu.getRegIX();   // Start Address
         int nBytes = cpu.getRegDE(); // Lenght
         BufferedOutputStream fOut = null;
@@ -1304,8 +1304,8 @@ public class Tape {
                     fOut.write(0x01);
                     fOut.write(0x20);
                 }
-                // Y ahora la cabecera de normal Speed block
-                fOut.write(0x10);
+                // Y ahora la cabecera de Normal Speed block
+                fOut.write(0x10); // TZX ID: Normal Speed Block
                 fOut.write(0xE8);
                 fOut.write(0x03); // pausa de 1000 ms estándar
             }

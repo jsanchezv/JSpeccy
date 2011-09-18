@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 7 de septiembre de 2010, 13:57
+    Created on : 8 de septiembre de 2010, 16:25
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -17,7 +17,7 @@
         <ns0:soundEnabled>true</ns0:soundEnabled>
         <ns0:loadingNoise>true</ns0:loadingNoise>
         <ns0:ULAplus>false</ns0:ULAplus>
-        <ns0:defaultModel>0</ns0:defaultModel>
+        <ns0:defaultModel>1</ns0:defaultModel>
         <ns0:framesInt>2</ns0:framesInt>
         <ns0:doubleSize>false</ns0:doubleSize>
     </ns0:SpectrumSettings>

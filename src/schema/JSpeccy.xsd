@@ -12,10 +12,10 @@
             <xsd:element name="soundEnabled" type="xsd:boolean" default="true"/>
             <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
             <xsd:element name="ULAplus" type="xsd:boolean" default="false"/>
-            <xsd:element name="defaultModel" default="0" form="qualified">
+            <xsd:element name="defaultModel" default="1" form="qualified">
                 <xsd:simpleType>
                     <xsd:restriction base="xsd:integer">
-                        <xsd:maxInclusive value="4"/>
+                        <xsd:maxInclusive value="5"/>
                         <xsd:minInclusive value="0"/>
                     </xsd:restriction>
                 </xsd:simpleType>
