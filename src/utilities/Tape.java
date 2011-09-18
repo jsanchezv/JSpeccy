@@ -58,7 +58,6 @@ public class Tape {
     private int mask;
     private int bitTime;
     private byte byteTmp;
-    private boolean pulse;
 
     private enum State {
 
@@ -109,7 +108,7 @@ public class Tape {
         cpu = z80;
         statePlay = State.STOP;
         tapeInserted = tapePlaying = tapeRecording = false;
-        pulse = tzxTape = false;
+        tzxTape = false;
         flashload = settings.isFlashload();
         tapePos = 0;
         timeout = timeLastIn = 0;
@@ -1023,15 +1022,17 @@ public class Tape {
                 case NEWDR_BYTE:
                     mask = 0x80;
                     statePlay = State.NEWDR_BIT;
+                    System.out.println(String.format("earBit: %02x", earBit));
                 case NEWDR_BIT:
-                    boolean micPulse = false;
-                    if ((tapeBuffer[tapePos] & mask) == 0) {
-                        earBit = EAR_ON;
-                    } else {
-                        earBit = EAR_OFF;
+                    boolean micPulse;
+                    if ((tapeBuffer[tapePos] & mask) != 0) {
+//                        earBit = EAR_ON;
                         micPulse = true;
+                    } else {
+//                        earBit = EAR_OFF;
+                        micPulse = false;
                     }
-                    timeout = 0;
+                    earBit ^= EAR_MASK;
                     
                     while (((tapeBuffer[tapePos] & mask) != 0) == micPulse) {
                         timeout += zeroLenght;
@@ -1053,6 +1054,9 @@ public class Tape {
                                 }
                             }
                         }
+                    }
+                    if (timeout == 0) {
+                        System.out.println("ERROR!, timeout a cero");
                     }
 //                    timeout = zeroLenght;
 //                    mask >>>= 1;
