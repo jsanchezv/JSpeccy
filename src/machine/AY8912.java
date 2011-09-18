@@ -400,12 +400,13 @@ public final class AY8912 {
         periodA = periodB = periodC = periodN = 1;
         counterA = counterB = counterC = counterN = 0;
         amplitudeA = amplitudeB = amplitudeC = amplitudeEnv = 0;
-//        volumeA = volumeB = volumeC = 0;
+        volumeA = volumeB = volumeC = 0;
         envelopePeriod = 0;
         addressLatch = 0;
         audiotstates = pbuf = 0;
-        toneA = toneB = toneC = toneN = true;
+        toneA = toneB = toneC = toneN = false;
         rng = 1;
+        Arrays.fill(regAY, 0);
         regAY[Mixer] = 0xff;
         Continue = false;
         Attack = true;

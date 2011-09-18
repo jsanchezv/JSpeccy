@@ -1109,7 +1109,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         tape.notifyTstates(nFrame, z80.tEstados);
         if (enabledSound && specSettings.isLoadingNoise() && tape.isTapePlaying()) {
             earBit = tape.getEarBit();
-            int spkMic = (earBit == 0xbf) ? -2000 : 2000;
+            int spkMic = (earBit == 0xbf) ? 0 : 4000;
             if (spkMic != speaker) {
                 audio.updateAudio(z80.tEstados, speaker);
                 speaker = spkMic;
@@ -1470,11 +1470,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void toggleTape() {
-        if (tape.isTapeReady()) {
-            tape.play();
-        } else {
-            tape.stop();
-        }
+        SwingUtilities.invokeLater(new Runnable() {
+
+            @Override
+            public void run() {
+                if (tape.isTapeReady()) {
+                    tape.play();
+                } else {
+                    tape.stop();
+                }
+            }
+        });
+
     }
 
     static {

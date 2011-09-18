@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXB;
 
 /**

@@ -53,16 +53,17 @@ class Audio {
     }
     
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY) {
+        soundMode = settings.getSoundMode();
+        if (soundMode < 0 || soundMode > 3)
+            soundMode = 0;
+//              System.out.println("Selected soundMode " +  soundMode);
+
+        int channels =  soundMode > 0 ? 2 : 1;
+
         if (line == null) {
             try {
-                soundMode = settings.getSoundMode();
-                if (soundMode < 0 || soundMode > 3)
-                    soundMode = 0;
-//                System.out.println("Selected soundMode " +  soundMode);
-
-                int channels =  soundMode > 0 ? 2 : 1;
                 fmt = new AudioFormat(FREQ, 16, channels, true, false);
-//                System.out.println(fmt);
+                System.out.println(fmt);
                 infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
                 sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
             } catch (Exception excpt) {
@@ -70,10 +71,10 @@ class Audio {
             }
             spectrumModel = model;
             enabledAY = hasAY;
-            timeRem = (float) 0.0;
+            timeRem = 0.0f;
             samplesPerFrame = FREQ / 50;
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
-            nullbuf = new byte[samplesPerFrame * 2];
+            nullbuf = new byte[samplesPerFrame * 2 * channels];
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
@@ -82,7 +83,7 @@ class Audio {
             }
 
             try {
-                sdl.open(fmt, nullbuf.length * 2); // Espacio para dos frames
+                sdl.open(fmt, 8192);
                 // No se llama al método start hasta tener el primer buffer
 //                sdl.start();
                 line = sdl;
@@ -174,8 +175,10 @@ class Audio {
             bufp++;
         }
 
-        if (bufp > samplesPerFrame)
+        if (bufp != samplesPerFrame) {
+//            System.out.println(String.format("El buffer del beeper tenía %d samples", bufp));
             bufp = samplesPerFrame;
+        }
 
         switch (soundMode) {
             case 1: // Stereo ABC
@@ -209,8 +212,8 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        int sample;
         if (enabledAY) {
-            int sample = 0;
             for (int idx = 0; idx < bufp; idx++) {
                 sample = -32760 + (beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx]);
                 buf[ptr++] = (byte) sample;
@@ -218,9 +221,9 @@ class Audio {
             }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
-                beeper[idx] = -32760 + beeper[idx];
-                buf[ptr++] = (byte) beeper[idx];
-                buf[ptr++] = (byte) (beeper[idx] >>> 8);
+                sample = -32760 + beeper[idx];
+                buf[ptr++] = (byte) sample;
+                buf[ptr++] = (byte) (sample >>> 8);
             }
         }
         return ptr;
@@ -237,7 +240,7 @@ class Audio {
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
         byte lsb, msb;
         if (enabledAY) {
-            int sampleL = 0, sampleR = 0, center = 0;
+            int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufB[idx] * 0.7);
                 sampleL = -32760 +(beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3);
@@ -248,10 +251,11 @@ class Audio {
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
+            int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                beeper[idx] = -32760 + beeper[idx];
-                lsb = (byte) beeper[idx];
-                msb = (byte) (beeper[idx] >>> 8);
+                sample = -32760 + beeper[idx];
+                lsb = (byte) sample;
+                msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
@@ -272,7 +276,7 @@ class Audio {
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
         byte lsb, msb;
         if (enabledAY) {
-            int sampleL = 0, sampleR = 0, center = 0;
+            int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufC[idx] * 0.7);
                 sampleL = -32760 + (beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3);
@@ -283,10 +287,11 @@ class Audio {
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
+            int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                beeper[idx] = -32760 + beeper[idx];
-                lsb = (byte) beeper[idx];
-                msb = (byte) (beeper[idx] >>> 8);
+                sample = -32760 + beeper[idx];
+                lsb = (byte) sample;
+                msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
@@ -307,7 +312,7 @@ class Audio {
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
         byte lsb, msb;
         if (enabledAY) {
-            int sampleL = 0, sampleR = 0, center = 0;
+            int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufA[idx] * 0.7);
                 sampleL = -32760 + (beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3);
@@ -318,10 +323,11 @@ class Audio {
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
+            int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                beeper[idx] = -32760 + beeper[idx];
-                lsb = (byte) beeper[idx];
-                msb = (byte) (beeper[idx] >>> 8);
+                sample = -32760 + beeper[idx];
+                lsb = (byte) sample;
+                msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
@@ -334,8 +340,10 @@ class Audio {
     public void reset() {
         audiotstates = 0;
         bufp = 0;
-        java.util.Arrays.fill(ayBufA, (byte)0);
-        java.util.Arrays.fill(ayBufB, (byte)0);
-        java.util.Arrays.fill(ayBufC, (byte)0);
+//        java.util.Arrays.fill(ayBufA, 0);
+//        java.util.Arrays.fill(ayBufB, 0);
+//        java.util.Arrays.fill(ayBufC, 0);
+        java.util.Arrays.fill(beeper, 0);
+        java.util.Arrays.fill(buf, (byte)0);
     }
 }
