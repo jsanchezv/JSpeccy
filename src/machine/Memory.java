@@ -5,6 +5,7 @@
 
 package machine;
 
+import configuration.JSpeccySettingsType;
 import configuration.MemoryType;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -12,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,12 +45,14 @@ public final class Memory {
     private int screenPage, highPage, bankM, bankP;
     private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
     MachineTypes spectrumModel;
-    MemoryType settings;
+    JSpeccySettingsType settings;
+    Random random;
 
-    public Memory(MemoryType memSettings) {
+    public Memory(JSpeccySettingsType memSettings) {
         spectrumModel = MachineTypes.SPECTRUM48K;
         settings = memSettings;
-        reset();
+        random = new Random();
+        hardReset();
         loadRoms();
     }
 
@@ -116,6 +120,7 @@ public final class Memory {
         Arrays.fill(Ram[4], (byte)0xff);
         screenPage = 10;
         model128k = false;
+        mfLocked = true;
     }
 
     private void setMemoryMap48k() {
@@ -130,6 +135,7 @@ public final class Memory {
         readPages[7] = writePages[7] = Ram[1];
         screenPage = 10;
         model128k = false;
+        mfLocked = true;
     }
 
     private void setMemoryMap128k() {
@@ -425,6 +431,14 @@ public final class Memory {
         }
     }
 
+    public void hardReset() {
+        reset();
+        for (int page = 0; page < Ram.length; page++) {
+            random.nextBytes(Ram[page]);
+        }
+        random.nextBytes(mfRAM);
+    }
+
     /*
      * Existieron, básicamente, 3 modelos de Multiface, versión Spectrum:
      * el Multiface One, para el Spectrum 48k, el Multiface 128, para el 128k/+2
@@ -501,7 +515,10 @@ public final class Memory {
 //        System.out.println("Multiface paged IN");
         switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
-                readPages[0] = mfROM[0];
+                if (settings.getSpectrumSettings().isMf128In48K())
+                    readPages[0] = mfROM[1];
+                else
+                    readPages[0] = mfROM[0];
                 break;
             case SPECTRUM128K:
                 readPages[0] = mfROM[1];
@@ -576,37 +593,39 @@ public final class Memory {
     }
 
     public void loadRoms() {
-        String romsDirectory = settings.getRomsDirectory();
+        MemoryType conf = settings.getMemorySettings();
+        String romsDirectory = conf.getRomsDirectory();
+
         if (!romsDirectory.isEmpty() && !romsDirectory.endsWith("/"))
             romsDirectory += "/";
 
-        if (!loadRomAsFile(romsDirectory + settings.getRom48K(), Rom48k, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRom48K(), Rom48k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/spectrum.rom", Rom48k, 0, PAGE_SIZE * 2);
 
-        if (!loadRomAsFile(romsDirectory + settings.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/128-0.rom", Rom128k, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + settings.getRom128K1(), Rom128k, 2,PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRom128K1(), Rom128k, 2,PAGE_SIZE * 2))
             loadRomAsResource("/roms/128-1.rom", Rom128k, 2, PAGE_SIZE * 2);
 
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus20(), RomPlus2, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus20(), RomPlus2, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus2-0.rom", RomPlus2, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus21(), RomPlus2, 2, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus21(), RomPlus2, 2, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus2-1.rom", RomPlus2, 2, PAGE_SIZE * 2);
 
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus3-0.rom", RomPlus3, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus31(), RomPlus3, 2, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus31(), RomPlus3, 2, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus3-1.rom", RomPlus3, 2, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus32(), RomPlus3, 4, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus32(), RomPlus3, 4, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus3-2.rom", RomPlus3, 4, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + settings.getRomPlus33(), RomPlus3, 6, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus33(), RomPlus3, 6, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus3-3.rom", RomPlus3, 6, PAGE_SIZE * 2);
 
-        if (!loadRomAsFile(romsDirectory + settings.getRomMF1(), mfROM, 0, PAGE_SIZE))
+        if (!loadRomAsFile(romsDirectory + conf.getRomMF1(), mfROM, 0, PAGE_SIZE))
             loadRomAsResource("/roms/mf1.rom", mfROM, 0, PAGE_SIZE);
-        if (!loadRomAsFile(romsDirectory + settings.getRomMF128(), mfROM, 1, PAGE_SIZE))
+        if (!loadRomAsFile(romsDirectory + conf.getRomMF128(), mfROM, 1, PAGE_SIZE))
             loadRomAsResource("/roms/mf128.rom", mfROM, 1, PAGE_SIZE);
-        if (!loadRomAsFile(romsDirectory + settings.getRomMFPlus3(), mfROM, 2, PAGE_SIZE))
+        if (!loadRomAsFile(romsDirectory + conf.getRomMFPlus3(), mfROM, 2, PAGE_SIZE))
             loadRomAsResource("/roms/mfplus3.rom", mfROM, 2, PAGE_SIZE);
     }
 

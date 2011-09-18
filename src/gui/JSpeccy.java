@@ -1046,13 +1046,13 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K, true);
         spectrum.reset();
     }//GEN-LAST:event_spec48kHardwareActionPerformed
 
     private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K, true);
         spectrum.reset();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
@@ -1075,14 +1075,14 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2, true);
         spectrum.reset();
         
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
 
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, true);
         spectrum.reset();
 
     }//GEN-LAST:event_specPlus2AHardwareActionPerformed
@@ -1182,13 +1182,13 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K, true);
         spectrum.reset();
     }//GEN-LAST:event_spec16kHardwareActionPerformed
 
     private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3, true);
         spectrum.reset();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 

@@ -58,6 +58,7 @@ class Audio {
                 soundMode = settings.getSoundMode();
                 if (soundMode < 0 || soundMode > 3)
                     soundMode = 0;
+//                System.out.println("Selected soundMode " +  soundMode);
 
                 int channels =  soundMode > 0 ? 2 : 1;
                 fmt = new AudioFormat(FREQ, 16, channels, true, false);
@@ -73,7 +74,7 @@ class Audio {
             spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
-                ay8912.setMaxAmplitude(11000);
+                ay8912.setMaxAmplitude(12000);
             } else {
                 ay8912.setMaxAmplitude(7000);
             }
@@ -164,15 +165,19 @@ class Audio {
 
         switch (soundMode) {
             case 1: // Stereo ABC
+//                System.out.println("ABC");
                 ptr = endFrameStereoABC();
                 break;
             case 2: // Stereo ACB
+//                System.out.println("ACB");
                 ptr = endFrameStereoACB();
                 break;
             case 3:
+//                System.out.println("BAC");
                 ptr = endFrameStereoBAC();
                 break;
             default:
+//                System.out.println("Mono");
                 ptr = endFrameMono();
         }
 

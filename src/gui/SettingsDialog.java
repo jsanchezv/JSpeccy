@@ -92,6 +92,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         }
 
         multifaceEnabled.setSelected(settings.getSpectrumSettings().isMultifaceEnabled());
+        if (settings.getSpectrumSettings().isMf128In48K()) {
+            multiface128RadioButton.setSelected(true);
+        } else {
+            multifaceOneRadioButton.setSelected(true);
+        }
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -127,11 +132,12 @@ public class SettingsDialog extends javax.swing.JPanel {
         keyboardButtonGroup = new javax.swing.ButtonGroup();
         samplingButtonGroup = new javax.swing.ButtonGroup();
         AYStereoModeButtonGroup = new javax.swing.ButtonGroup();
+        multifaceModelButtonGroup = new javax.swing.ButtonGroup();
         buttonPanel = new javax.swing.JPanel();
         saveSettingsButton = new javax.swing.JButton();
         closeButton = new javax.swing.JButton();
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        hardwarePanel = new javax.swing.JPanel();
+        hardwarePanelTab = new javax.swing.JPanel();
         defaultModelPanel = new javax.swing.JPanel();
         spectrumModel = new javax.swing.JComboBox();
         videoPanel = new javax.swing.JPanel();
@@ -139,9 +145,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         doubleSize = new javax.swing.JCheckBox();
         highSpeedPanel = new javax.swing.JPanel();
         speed = new javax.swing.JSlider();
-        multifacePanel = new javax.swing.JPanel();
-        multifaceEnabled = new javax.swing.JCheckBox();
-        soundPanel = new javax.swing.JPanel();
+        soundPanelTab = new javax.swing.JPanel();
         audioPanel = new javax.swing.JPanel();
         soundMuted = new javax.swing.JCheckBox();
         loadingNoise = new javax.swing.JCheckBox();
@@ -153,7 +157,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         AYABCMode = new javax.swing.JRadioButton();
         AYACBMode = new javax.swing.JRadioButton();
         AYBACMode = new javax.swing.JRadioButton();
-        tapePanel = new javax.swing.JPanel();
+        tapePanelTab = new javax.swing.JPanel();
         loadPanel = new javax.swing.JPanel();
         flashload = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
@@ -162,7 +166,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         samplingPanel = new javax.swing.JPanel();
         lowSampling = new javax.swing.JRadioButton();
         highSampling = new javax.swing.JRadioButton();
-        keyboardPanel = new javax.swing.JPanel();
+        keyboardPanelTab = new javax.swing.JPanel();
         keyboard48kPanel = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
@@ -171,6 +175,14 @@ public class SettingsDialog extends javax.swing.JPanel {
         issue3 = new javax.swing.JRadioButton();
         joystickPanel = new javax.swing.JPanel();
         joystick = new javax.swing.JComboBox();
+        multifacePanelTab = new javax.swing.JPanel();
+        multifacePanel = new javax.swing.JPanel();
+        multifaceEnabled = new javax.swing.JCheckBox();
+        multifaceModelPanel = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
+        jPanel1 = new javax.swing.JPanel();
+        multifaceOneRadioButton = new javax.swing.JRadioButton();
+        multiface128RadioButton = new javax.swing.JRadioButton();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -193,7 +205,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         add(buttonPanel, java.awt.BorderLayout.PAGE_END);
 
-        hardwarePanel.setLayout(new javax.swing.BoxLayout(hardwarePanel, javax.swing.BoxLayout.PAGE_AXIS));
+        hardwarePanelTab.setLayout(new javax.swing.BoxLayout(hardwarePanelTab, javax.swing.BoxLayout.PAGE_AXIS));
 
         defaultModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.defaultModePanel.border.text"))); // NOI18N
 
@@ -205,7 +217,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         defaultModelPanel.add(spectrumModel);
 
-        hardwarePanel.add(defaultModelPanel);
+        hardwarePanelTab.add(defaultModelPanel);
 
         videoPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
         videoPanel.setLayout(new java.awt.GridLayout(2, 0));
@@ -226,7 +238,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         videoPanel.add(doubleSize);
 
-        hardwarePanel.add(videoPanel);
+        hardwarePanelTab.add(videoPanel);
 
         highSpeedPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSpeedPanel.border.text"))); // NOI18N
 
@@ -244,23 +256,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         highSpeedPanel.add(speed);
 
-        hardwarePanel.add(highSpeedPanel);
+        hardwarePanelTab.add(highSpeedPanel);
 
-        multifacePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifacePanel.border.text"))); // NOI18N
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanelTab); // NOI18N
 
-        multifaceEnabled.setText(bundle.getString("SettingsDialog.multifacePanel.enabled.text")); // NOI18N
-        multifaceEnabled.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                multifaceEnabledActionPerformed(evt);
-            }
-        });
-        multifacePanel.add(multifaceEnabled);
-
-        hardwarePanel.add(multifacePanel);
-
-        jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanel); // NOI18N
-
-        soundPanel.setLayout(new java.awt.GridLayout(2, 0));
+        soundPanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         audioPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.audioPanel.border.text"))); // NOI18N
         audioPanel.setLayout(new javax.swing.BoxLayout(audioPanel, javax.swing.BoxLayout.PAGE_AXIS));
@@ -281,7 +281,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         audioPanel.add(loadingNoise);
 
-        soundPanel.add(audioPanel);
+        soundPanelTab.add(audioPanel);
 
         AY8912Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.AY8912Panel.border.text"))); // NOI18N
         AY8912Panel.setLayout(new java.awt.GridLayout(1, 2));
@@ -340,11 +340,11 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         AY8912Panel.add(AYStereoMode);
 
-        soundPanel.add(AY8912Panel);
+        soundPanelTab.add(AY8912Panel);
 
-        jTabbedPane1.addTab(bundle.getString("SettingsDialog.soundPanel.TabTitle"), soundPanel); // NOI18N
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.soundPanel.TabTitle"), soundPanelTab); // NOI18N
 
-        tapePanel.setLayout(new java.awt.GridLayout(2, 0));
+        tapePanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
         loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
@@ -365,7 +365,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         loadPanel.add(acceleratedLoad);
 
-        tapePanel.add(loadPanel);
+        tapePanelTab.add(loadPanel);
 
         savePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.savePanel.border.text"))); // NOI18N
         savePanel.setLayout(new javax.swing.BoxLayout(savePanel, javax.swing.BoxLayout.LINE_AXIS));
@@ -403,11 +403,11 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         savePanel.add(samplingPanel);
 
-        tapePanel.add(savePanel);
+        tapePanelTab.add(savePanel);
 
-        jTabbedPane1.addTab(bundle.getString("SettingsDialog.tapePanel.TabTitle"), tapePanel); // NOI18N
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.tapePanel.TabTitle"), tapePanelTab); // NOI18N
 
-        keyboardPanel.setLayout(new javax.swing.BoxLayout(keyboardPanel, javax.swing.BoxLayout.PAGE_AXIS));
+        keyboardPanelTab.setLayout(new javax.swing.BoxLayout(keyboardPanelTab, javax.swing.BoxLayout.PAGE_AXIS));
 
         keyboard48kPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.keyboard48kPanel.title.text"))); // NOI18N
         keyboard48kPanel.setLayout(new javax.swing.BoxLayout(keyboard48kPanel, javax.swing.BoxLayout.PAGE_AXIS));
@@ -438,7 +438,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboard48kPanel.add(jPanel2);
 
-        keyboardPanel.add(keyboard48kPanel);
+        keyboardPanelTab.add(keyboard48kPanel);
 
         joystickPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.joystickPanel.border.text"))); // NOI18N
 
@@ -450,9 +450,57 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         joystickPanel.add(joystick);
 
-        keyboardPanel.add(joystickPanel);
+        keyboardPanelTab.add(joystickPanel);
 
-        jTabbedPane1.addTab(bundle.getString("SettingsDialog.keyboardPanel.TabTitle"), keyboardPanel); // NOI18N
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.keyboardPanel.TabTitle"), keyboardPanelTab); // NOI18N
+
+        multifacePanelTab.setLayout(new javax.swing.BoxLayout(multifacePanelTab, javax.swing.BoxLayout.PAGE_AXIS));
+
+        multifacePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifacePanel.border.text"))); // NOI18N
+
+        multifaceEnabled.setText(bundle.getString("SettingsDialog.multifacePanel.enabled.text")); // NOI18N
+        multifaceEnabled.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                multifaceEnabledActionPerformed(evt);
+            }
+        });
+        multifacePanel.add(multifaceEnabled);
+
+        multifacePanelTab.add(multifacePanel);
+
+        multifaceModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifaceModelPanel.border.text"))); // NOI18N
+        multifaceModelPanel.setLayout(new java.awt.GridLayout(2, 0));
+
+        jLabel2.setText(bundle.getString("SettingsDialog.MultifaceModelPanel.label.text")); // NOI18N
+        multifaceModelPanel.add(jLabel2);
+
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifaceModelPanelRadioButton.border.text"))); // NOI18N
+        jPanel1.setLayout(new java.awt.GridLayout(2, 0));
+
+        multifaceModelButtonGroup.add(multifaceOneRadioButton);
+        multifaceOneRadioButton.setSelected(true);
+        multifaceOneRadioButton.setText(bundle.getString("SettingsDialog.multifaceOne.RadioButton.text")); // NOI18N
+        multifaceOneRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                multifaceOneRadioButtonActionPerformed(evt);
+            }
+        });
+        jPanel1.add(multifaceOneRadioButton);
+
+        multifaceModelButtonGroup.add(multiface128RadioButton);
+        multiface128RadioButton.setText(bundle.getString("SettingsDialog.multiface128.RadioButton.text")); // NOI18N
+        multiface128RadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                multifaceOneRadioButtonActionPerformed(evt);
+            }
+        });
+        jPanel1.add(multiface128RadioButton);
+
+        multifaceModelPanel.add(jPanel1);
+
+        multifacePanelTab.add(multifaceModelPanel);
+
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.multifacePanel.TabTitle"), multifacePanelTab); // NOI18N
 
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -565,6 +613,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setMultifaceEnabled(multifaceEnabled.isSelected());
     }//GEN-LAST:event_multifaceEnabledActionPerformed
 
+    private void multifaceOneRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_multifaceOneRadioButtonActionPerformed
+        settings.getSpectrumSettings().setMf128In48K(multiface128RadioButton.isSelected());
+    }//GEN-LAST:event_multifaceOneRadioButtonActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -585,12 +637,14 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
     private javax.swing.JCheckBox flashload;
-    private javax.swing.JPanel hardwarePanel;
+    private javax.swing.JPanel hardwarePanelTab;
     private javax.swing.JRadioButton highSampling;
     private javax.swing.JPanel highSpeedPanel;
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JTabbedPane jTabbedPane1;
@@ -598,21 +652,26 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel joystickPanel;
     private javax.swing.JPanel keyboard48kPanel;
     private javax.swing.ButtonGroup keyboardButtonGroup;
-    private javax.swing.JPanel keyboardPanel;
+    private javax.swing.JPanel keyboardPanelTab;
     private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
     private javax.swing.JRadioButton lowSampling;
+    private javax.swing.JRadioButton multiface128RadioButton;
     private javax.swing.JCheckBox multifaceEnabled;
+    private javax.swing.ButtonGroup multifaceModelButtonGroup;
+    private javax.swing.JPanel multifaceModelPanel;
+    private javax.swing.JRadioButton multifaceOneRadioButton;
     private javax.swing.JPanel multifacePanel;
+    private javax.swing.JPanel multifacePanelTab;
     private javax.swing.ButtonGroup samplingButtonGroup;
     private javax.swing.JPanel samplingPanel;
     private javax.swing.JPanel savePanel;
     private javax.swing.JButton saveSettingsButton;
     private javax.swing.JCheckBox soundMuted;
-    private javax.swing.JPanel soundPanel;
+    private javax.swing.JPanel soundPanelTab;
     private javax.swing.JComboBox spectrumModel;
     private javax.swing.JSlider speed;
-    private javax.swing.JPanel tapePanel;
+    private javax.swing.JPanel tapePanelTab;
     private javax.swing.JPanel videoPanel;
     // End of variables declaration//GEN-END:variables
 

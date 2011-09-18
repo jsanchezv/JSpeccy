@@ -19,14 +19,17 @@ public class TapeTableModel extends AbstractTableModel {
         tape = device;
     }
 
+    @Override
     public int getRowCount() {
         return tape.getNumBlocks();
     }
 
+    @Override
     public int getColumnCount() {
         return 3;
     }
 
+    @Override
     public Object getValueAt(int row, int col) {
         String msg;
 
