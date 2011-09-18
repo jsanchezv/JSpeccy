@@ -106,11 +106,11 @@ public final class AY8912 {
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int volumeA, volumeB, volumeC;
-    private int audiotstates;
+    private int audiotstates, samplesPerFrame;
     private MachineTypes spectrumModel;
 
     AY8912() {
-        maxAmplitude = 65535;
+        maxAmplitude = 16384;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
@@ -120,7 +120,7 @@ public final class AY8912 {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
-        step = (double) spectrumModel.tstatesFrame / (FREQ / 50);
+        step = (double) spectrumModel.tstatesFrame / samplesPerFrame;
 //        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
 //        for (int pos = 0; pos < samplePos.length; pos++) {
 //            samplePos[pos] = (int) (pos * divider);
@@ -137,6 +137,7 @@ public final class AY8912 {
 
     public void setAudioFreq(int freq) {
         FREQ = freq;
+        samplesPerFrame = FREQ / 50;
     }
 
     public int getAddressLatch() {
@@ -346,17 +347,17 @@ public final class AY8912 {
 //            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
 //            volA = outA ? amplitudeA : 0;
-//            volumeA = (int) (volumeA / 3 + volA / 1.5);
+//            volumeA = (int) (volumeA / 5 + volA * 0.8);
 //            volumeA = (int) (volumeA * 0.3 + volA * 0.7);
 //            volumeA = (volumeA >> 1) + (volA >> 1);
 
 //            volB = outB ? amplitudeB : 0;
-//            volumeB = (int) (volumeB / 3 + volB / 1.5);
+//            volumeB = (int) (volumeB / 5 + volB * 0.8);
 //            volumeB = (int) (volumeB * 0.3 + volB * 0.7);
 //            volumeB = (volumeB >> 1) + (volB >> 1);
 
 //            volC = outC ? amplitudeC : 0;
-//            volumeC = (int) (volumeC / 3 + volC / 1.5);
+//            volumeC = (int) (volumeC / 5 + volC * 0.8);
 //            volumeC = (int) (volumeC * 0.3 + volC * 0.7);
 //            volumeC = (volumeC >> 1) + (volC >> 1);
 
@@ -365,9 +366,15 @@ public final class AY8912 {
                 outA = (toneA || disableToneA) && (toneN || disableNoiseA);
                 outB = (toneB || disableToneB) && (toneN || disableNoiseB);
                 outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-                bufA[pbuf] = outA ? amplitudeA : 0;
-                bufB[pbuf] = outB ? amplitudeB : 0;
-                bufC[pbuf] = outC ? amplitudeC : 0;
+                volA = outA ? amplitudeA : 0;
+                volB = outB ? amplitudeB : 0;
+                volC = outC ? amplitudeC : 0;
+                bufA[pbuf] = (volumeA + volA) >>> 1;
+                bufB[pbuf] = (volumeB + volB) >>> 1;
+                bufC[pbuf] = (volumeC + volC) >>> 1;
+                volumeA = volA;
+                volumeB = volB;
+                volumeC = volC;
                 pbuf++;
                 stepCounter -= step;
             }
@@ -377,6 +384,14 @@ public final class AY8912 {
 
     public void endFrame() {
 //        System.out.println("# samples: " + getSampleCount());
+//        System.out.println(String.format("# AY samples: %d", pbuf));
+        if (pbuf == samplesPerFrame - 1) {
+//            System.out.println(String.format("El buffer del AY solo tenía %d samples",
+//                pbuf));
+            bufA[pbuf] = bufA[pbuf - 1];
+            bufB[pbuf] = bufB[pbuf - 1];
+            bufC[pbuf] = bufC[pbuf - 1];
+        }
         pbuf = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }
@@ -385,7 +400,7 @@ public final class AY8912 {
         periodA = periodB = periodC = periodN = 1;
         counterA = counterB = counterC = counterN = 0;
         amplitudeA = amplitudeB = amplitudeC = amplitudeEnv = 0;
-        volumeA = volumeB = volumeC = 0;
+//        volumeA = volumeB = volumeC = 0;
         envelopePeriod = 0;
         addressLatch = 0;
         audiotstates = pbuf = 0;

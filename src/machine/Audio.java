@@ -22,23 +22,24 @@ import javax.sound.sampled.SourceDataLine;
 import configuration.AY8912Type;
 
 class Audio {
-    static final int FREQ = 44100;
+    static final int FREQ = 32000;
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
     private SourceDataLine sdl;
     // Buffer de sonido para el frame actual, hay más espacio del necesario.
     private final byte[] buf = new byte[4096];
-    private final int[] beeper = new int[2048];
+    private final int[] beeper = new int[1024];
     // Un frame completo lleno de ceros para enviarlo como aperitivo.
-    private final byte[] nullbuf = new byte[3840];
+    private byte[] nullbuf;
     // Buffer de sonido para el AY
-    private final int[] ayBufA = new int[2048];
-    private final int[] ayBufB = new int[2048];
-    private final int[] ayBufC = new int[2048];
+    private final int[] ayBufA = new int[1024];
+    private final int[] ayBufB = new int[1024];
+    private final int[] ayBufC = new int[1024];
     private int bufp;
     private int level;
     private int audiotstates;
+    private int samplesPerFrame;
     private int soundMode;
     private float timeRem, spf;
 //    private AY8912 ay;
@@ -49,7 +50,6 @@ class Audio {
     Audio(AY8912Type ayConf) {
        settings = ayConf;
        line = null;
-       java.util.Arrays.fill(nullbuf, (byte) 0);
     }
     
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY) {
@@ -71,7 +71,9 @@ class Audio {
             spectrumModel = model;
             enabledAY = hasAY;
             timeRem = (float) 0.0;
-            spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
+            samplesPerFrame = FREQ / 50;
+            spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
+            nullbuf = new byte[samplesPerFrame * 2];
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
@@ -110,7 +112,7 @@ class Audio {
         float time = tstates;
 //        System.out.println(String.format("updateAudio: value = %d", value));
 
-        synchronized (buf) {
+        synchronized (beeper) {
             if (time + timeRem > spf) {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
@@ -162,7 +164,18 @@ class Audio {
         if (bufp == 0)
             return;
 
+//        System.out.println(String.format("# beeper samples: %d", bufp));
         int ptr = 0;
+
+        if (bufp == samplesPerFrame - 1) {
+//            System.out.println(String.format("El buffer del beeper solo tenía %d samples",
+//                bufp));
+            beeper[bufp] = beeper[bufp - 1];
+            bufp++;
+        }
+
+        if (bufp > samplesPerFrame)
+            bufp = samplesPerFrame;
 
         switch (soundMode) {
             case 1: // Stereo ABC
@@ -187,18 +200,9 @@ class Audio {
         audiotstates -= spectrumModel.tstatesFrame;
     }
 
-//    private void filterBeeper() {
-//        int tmp = beeper[1];
-//        for (int sample = 1; sample < bufp; sample++) {
-//            beeper[sample] = (beeper[sample - 1] + tmp) / 2;
-//            tmp = beeper[sample + 1];
-//        }
-//    }
-
     private int endFrameMono() {
 
         int ptr = 0;
-//        filterBeeper();
 //        int ayCnt = ay.getSampleCount();
 //        System.out.println(String.format("BeeperChg %d", beeperChg));
 
@@ -212,25 +216,12 @@ class Audio {
                 buf[ptr++] = (byte) sample;
                 buf[ptr++] = (byte)(sample >>> 8);
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper y el último sample actualizado del AY
-//            if (ptr == 1918) {
-//                sample = -32760 + (beeper[958] + ayBufA[959] + ayBufB[959] + ayBufC[959]);
-//                buf[ptr++] = (byte) sample;
-//                buf[ptr++] = (byte)(sample >>> 8);
-//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
                 beeper[idx] = -32760 + beeper[idx];
                 buf[ptr++] = (byte) beeper[idx];
                 buf[ptr++] = (byte) (beeper[idx] >>> 8);
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper
-//            if (ptr == 1918) {
-//                buf[ptr++] = (byte) beeper[958];
-//                buf[ptr++] = (byte) (beeper[958] >>> 8);
-//            }
         }
         return ptr;
     }
@@ -256,17 +247,6 @@ class Audio {
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper y el último sample actualizado del AY
-//            if (ptr == 3836) {
-//                center = (int)(ayBufB[959] * 0.7);
-//                sampleL = beeper[958] + ayBufA[959] + center + ayBufC[959] / 3;
-//                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufC[959];
-//                buf[ptr++] = (byte) sampleL;
-//                buf[ptr++] = (byte)(sampleL >>> 8);
-//                buf[ptr++] = (byte) sampleR;
-//                buf[ptr++] = (byte)(sampleR >>> 8);
-//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
                 beeper[idx] = -32760 + beeper[idx];
@@ -277,16 +257,6 @@ class Audio {
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper
-//            if (ptr == 3836) {
-//                lsb = (byte) beeper[958];
-//                msb = (byte) (beeper[958] >>> 8);
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//            }
         }
         return ptr;
     }
@@ -312,17 +282,6 @@ class Audio {
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper y el último sample actualizado del AY
-//            if (ptr == 3836) {
-//                center = (int)(ayBufC[959] * 0.7);
-//                sampleL = beeper[958] + ayBufA[959] + center + ayBufB[959] / 3;
-//                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufB[959];
-//                buf[ptr++] = (byte) sampleL;
-//                buf[ptr++] = (byte)(sampleL >>> 8);
-//                buf[ptr++] = (byte) sampleR;
-//                buf[ptr++] = (byte)(sampleR >>> 8);
-//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
                 beeper[idx] = -32760 + beeper[idx];
@@ -333,16 +292,6 @@ class Audio {
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper
-//            if (ptr == 3836) {
-//                lsb = (byte) beeper[958];
-//                msb = (byte) (beeper[958] >>> 8);
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//            }
         }
         return ptr;
     }
@@ -368,17 +317,6 @@ class Audio {
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper y el último sample actualizado del AY
-//            if (ptr == 3836) {
-//                center = (int)(ayBufA[959] * 0.7);
-//                sampleL = beeper[958] + ayBufB[959] + center + ayBufC[959] / 3;
-//                sampleR = beeper[958] + ayBufB[959] / 3 + center + ayBufC[959];
-//                buf[ptr++] = (byte) sampleL;
-//                buf[ptr++] = (byte)(sampleL >>> 8);
-//                buf[ptr++] = (byte) sampleR;
-//                buf[ptr++] = (byte)(sampleR >>> 8);
-//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
                 beeper[idx] = -32760 + beeper[idx];
@@ -389,16 +327,6 @@ class Audio {
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
             }
-            // Si el frame se ha quedado corto de una punta, rellenarlo
-            // Copiamos el último sample del beeper
-//            if (ptr == 3836) {
-//                lsb = (byte) beeper[958];
-//                msb = (byte) (beeper[958] >>> 8);
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//                buf[ptr++] = lsb;
-//                buf[ptr++] = msb;
-//            }
         }
         return ptr;
     }
