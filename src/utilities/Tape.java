@@ -1280,10 +1280,10 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
-    public void flashLoad(Memory memory) {
+    public boolean flashLoad(Memory memory) {
 
         if (!tapeInserted || cpu == null) {
-            return;
+            return false;
         }
 
 //        System.out.println("flashload!");
@@ -1291,13 +1291,13 @@ public class Tape {
         if (idxHeader == nOffsetBlocks) {
             flashload = false;
             cpu.setCarryFlag(false);
-            return;
+            return false;
         }
 
         if(tzxTape) {            
             // Fastload only with Standard Speed Tape Blocks (and some
             // identified erroneusly as Turbo Blocks
-            // (Midnight Resistance 128k as an example)
+            // (Midnight Resistance 128k as an example))
             while (idxHeader < nOffsetBlocks) {
                 tapePos = offsetBlocks[idxHeader];
                 if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11)
@@ -1309,7 +1309,7 @@ public class Tape {
                 cpu.setCarryFlag(false);
                 idxHeader = 0;
                 lsm.setSelectionInterval(idxHeader, idxHeader);
-                return;
+                return false;
             }
 
             lsm.setSelectionInterval(idxHeader, idxHeader);
@@ -1333,7 +1333,7 @@ public class Tape {
         if (cpu.getRegA() != tapeBuffer[tapePos]) {
             cpu.xor(tapeBuffer[tapePos]);
             idxHeader++;
-            return;
+            return false;
         }
         // La paridad incluye el byte de flag
         cpu.setRegA(tapeBuffer[tapePos]);
@@ -1367,7 +1367,7 @@ public class Tape {
 
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
-        return;
+        return true;
     }
 
     public void saveTapeBlock(Memory memory) {

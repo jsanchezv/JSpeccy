@@ -30,6 +30,8 @@ public final class Memory {
     private byte[][] Rom128k = new byte[4][PAGE_SIZE];
     private byte[][] RomPlus2 = new byte[4][PAGE_SIZE];
     private byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
+    // ROM del Interfaz I
+    private byte[][] IF1Rom = new byte[1][PAGE_SIZE];
     // 8 páginas de RAM
     private byte[][] Ram = new byte[16][PAGE_SIZE];
     // RAM falsa para dejar que escriba en páginas de ROM sin afectar a la
@@ -46,7 +48,7 @@ public final class Memory {
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage;
     private int highPage, bankM, bankP;
-    private boolean IF2RomEnabled;
+    private boolean IF1RomPaged, IF2RomPaged;
     private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
     private MachineTypes spectrumModel;
     private JSpeccySettingsType settings;
@@ -58,7 +60,7 @@ public final class Memory {
         random = new Random();
         hardReset();
         loadRoms();
-        IF2RomEnabled = false;
+        IF2RomPaged = false;
     }
 
     public void setSpectrumModel(MachineTypes model) {
@@ -126,7 +128,7 @@ public final class Memory {
     }
 
     private void setMemoryMap16k() {
-        if (IF2RomEnabled) {
+        if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
         } else {
@@ -146,10 +148,11 @@ public final class Memory {
         screenPage = 10;
         model128k = false;
         mfLocked = true;
+        IF1RomPaged = false;
     }
 
     private void setMemoryMap48k() {
-        if (IF2RomEnabled) {
+        if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
         } else {
@@ -169,10 +172,11 @@ public final class Memory {
         screenPage = 10;
         model128k = false;
         mfLocked = true;
+        IF1RomPaged = false;
     }
 
     private void setMemoryMap128k() {
-        if (IF2RomEnabled) {
+        if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
         } else {
@@ -196,10 +200,11 @@ public final class Memory {
         pagingLocked = plus3RamMode = false;
         bankM = 0;
         mfLocked = true;
+        IF1RomPaged = false;
     }
 
     private void setMemoryMapPlus2() {
-        if (IF2RomEnabled) {
+        if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
         } else {
@@ -223,6 +228,7 @@ public final class Memory {
         pagingLocked = plus3RamMode = false;
         bankM = 0;
         mfLocked = true;
+        IF1RomPaged = false;
     }
 
     private void setMemoryMapPlus3() {
@@ -262,8 +268,6 @@ public final class Memory {
 //        System.out.println(String.format("Port 0x7ffd: %02x", port7ffd));
         if (pagingLocked)
             return;
-
-        boolean romChanged = ((bankM ^ port7ffd) & 0x10) != 0;
         
         bankM = port7ffd & 0xff;
 
@@ -282,46 +286,44 @@ public final class Memory {
         readPages[6] = writePages[6] = Ram[highPage << 1];
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
-        // Si está funcionando el MF, no tocar la ROM
-        if (mfPagedIn)
+        // Si está funcionando el IF1 o el MF, no tocar la ROM
+        if (IF1RomPaged || mfPagedIn)
             return;
         
         // Set the active ROM
-        if (romChanged) {
-            switch (spectrumModel) {
-                case SPECTRUM128K:
-                    if (IF2RomEnabled) {
-                        readPages[0] = IF2Rom[0];
-                        readPages[1] = IF2Rom[1];
-                        break;
-                    }
+        switch (spectrumModel) {
+            case SPECTRUM128K:
+                if (IF2RomPaged) {
+                    readPages[0] = IF2Rom[0];
+                    readPages[1] = IF2Rom[1];
+                    break;
+                }
 
-                    if ((port7ffd & 0x10) == 0) {
-                        readPages[0] = Rom128k[0];
-                        readPages[1] = Rom128k[1];
-                    } else {
-                        readPages[0] = Rom128k[2];
-                        readPages[1] = Rom128k[3];
-                    }
+                if ((port7ffd & 0x10) == 0) {
+                    readPages[0] = Rom128k[0];
+                    readPages[1] = Rom128k[1];
+                } else {
+                    readPages[0] = Rom128k[2];
+                    readPages[1] = Rom128k[3];
+                }
+                break;
+            case SPECTRUMPLUS2:
+                if (IF2RomPaged) {
                     break;
-                case SPECTRUMPLUS2:
-                    if (IF2RomEnabled) {
-                        break;
-                    }
+                }
 
-                    if ((port7ffd & 0x10) == 0) {
-                        readPages[0] = RomPlus2[0];
-                        readPages[1] = RomPlus2[1];
-                    } else {
-                        readPages[0] = RomPlus2[2];
-                        readPages[1] = RomPlus2[3];
-                    }
-                    break;
-                case SPECTRUMPLUS2A:
-                case SPECTRUMPLUS3:
-                    doPagingPlus3();
-                    break;
-            }
+                if ((port7ffd & 0x10) == 0) {
+                    readPages[0] = RomPlus2[0];
+                    readPages[1] = RomPlus2[1];
+                } else {
+                    readPages[0] = RomPlus2[2];
+                    readPages[1] = RomPlus2[3];
+                }
+                break;
+            case SPECTRUMPLUS2A:
+            case SPECTRUMPLUS3:
+                doPagingPlus3();
+                break;
         }
     }
 
@@ -455,10 +457,10 @@ public final class Memory {
         boolean res = false;
         switch(spectrumModel.codeModel) {
             case SPECTRUM48K:
-                res = !IF2RomEnabled;
+                res = !IF1RomPaged && !IF2RomPaged;
                 break;
             case SPECTRUM128K:
-                res = (bankM & 0x10) != 0 && !IF2RomEnabled;
+                res = (bankM & 0x10) != 0 && !IF1RomPaged && !IF2RomPaged;
                 break;
             case SPECTRUMPLUS3:
                 if (!plus3RamMode)
@@ -644,7 +646,7 @@ public final class Memory {
         switch (spectrumModel) {
             case SPECTRUM16K:
             case SPECTRUM48K:
-                if (IF2RomEnabled) {
+                if (IF2RomPaged) {
                     readPages[0] = IF2Rom[0];
                     readPages[1] = IF2Rom[1];
                 } else {
@@ -701,25 +703,72 @@ public final class Memory {
             return false;
         }
 
-        IF2RomEnabled = true;
+        IF2RomPaged = true;
         return true;
     }
 
     public void insertIF2RomFromSZX(byte[] rom) {
         System.arraycopy(rom, 0, IF2Rom[0], 0, IF2Rom[0].length);
         System.arraycopy(rom, 0x2000, IF2Rom[1], 0, IF2Rom[1].length);
-        IF2RomEnabled = true;
+        IF2RomPaged = true;
     }
 
     public void ejectIF2Rom() {
-        IF2RomEnabled = false;
+        IF2RomPaged = false;
         reset();
     }
 
-    public boolean isIF2RomEnabled()  {
-        return IF2RomEnabled;
+    public boolean isIF2RomPaged()  {
+        return IF2RomPaged;
+    }
+    
+    public void pageIF1Rom() {
+        if (IF1RomPaged)
+            return;
+        
+        IF1RomPaged = true;
+        readPages[0] = IF1Rom[0];
+    }
+    
+    public void unpageIF1Rom() {
+        if (!IF1RomPaged)
+            return;
+        
+        IF1RomPaged = false;
+        switch (spectrumModel) {
+            case SPECTRUM16K:
+            case SPECTRUM48K:
+                if (IF2RomPaged) {
+                    readPages[0] = IF2Rom[0];
+                    readPages[1] = IF2Rom[1];
+                } else {
+                    readPages[0] = Rom48k[0];
+                    readPages[1] = Rom48k[1];
+                }
+                break;
+            case SPECTRUM128K:
+                if (pagingLocked) {
+                    readPages[0] = Rom128k[2];
+                    readPages[1] = Rom128k[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+            case SPECTRUMPLUS2:
+                if (pagingLocked) {
+                    readPages[0] = RomPlus2[2];
+                    readPages[1] = RomPlus2[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+        }
     }
 
+    public boolean isIF1RomPaged()  {
+        return IF1RomPaged;
+    }
+    
     public void loadRoms() {
         MemoryType conf = settings.getMemorySettings();
         String romsDirectory = conf.getRomsDirectory();
@@ -729,6 +778,9 @@ public final class Memory {
 
         if (!loadRomAsFile(romsDirectory + conf.getRom48K(), Rom48k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/spectrum.rom", Rom48k, 0, PAGE_SIZE * 2);
+        
+        if (!loadRomAsFile(romsDirectory + "if1v2.rom", IF1Rom, 0, PAGE_SIZE))
+            loadRomAsResource("/roms/if1v2.rom", IF1Rom, 0, PAGE_SIZE);
 
         if (!loadRomAsFile(romsDirectory + conf.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/128-0.rom", Rom128k, 0, PAGE_SIZE * 2);

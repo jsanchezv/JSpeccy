@@ -2197,7 +2197,7 @@ public class Snapshots {
             }
 
             // SZX IF2 ROM Block
-            if (memory.isIF2RomEnabled()) {
+            if (memory.isIF2RomPaged()) {
                 blockID = "IF2R";
                 fOut.write(blockID.getBytes("US-ASCII"));
 

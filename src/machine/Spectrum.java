@@ -65,6 +65,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private SpectrumType specSettings;
     /* Config vars */
     private boolean ULAplusOn, issue2, multiface, mf128on48k, saveTrap, loadTrap;
+    private boolean connectedIF1;
 
     public Spectrum(JSpeccySettingsType config) {
         super("SpectrumThread");
@@ -162,6 +163,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 contendedIOPage[1] = false;
+                connectedIF1 = false;
                 break;
         }
 
@@ -210,6 +212,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         loadTrap = settings.getTapeSettings().isFlashload();
+        connectedIF1 = true;
     }
     /*
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
@@ -362,43 +365,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         guiComponents = gui;
         tape.setTapeIcon(guiComponents.tapeIcon);
     }
-//    public void setJoystickMenuItems(JRadioButtonMenuItem jNone, JRadioButtonMenuItem jKempston,
-//            JRadioButtonMenuItem jSinclair1, JRadioButtonMenuItem jSinclair2,
-//            JRadioButtonMenuItem jCursor, JRadioButtonMenuItem jFuller) {
-//        joystickNone = jNone;
-//        joystickKempston = jKempston;
-//        joystickSinclair1 = jSinclair1;
-//        joystickSinclair2 = jSinclair2;
-//        joystickCursor = jCursor;
-//        joystickFuller = jFuller;
-//    }
-//
-//    public void setHardwareMenuItems(JRadioButtonMenuItem hw16k, JRadioButtonMenuItem hw48k,
-//            JRadioButtonMenuItem hw128k, JRadioButtonMenuItem hwPlus2,
-//            JRadioButtonMenuItem hwPlus2A, JRadioButtonMenuItem hwPlus3) {
-//        hardwareMenu16k = hw16k;
-//        hardwareMenu48k = hw48k;
-//        hardwareMenu128k = hw128k;
-//        hardwareMenuPlus2 = hwPlus2;
-//        hardwareMenuPlus2A = hwPlus2A;
-//        hardwareMenuPlus3 = hwPlus3;
-//    }
-//
-//    public void setMenuItems(JMenuItem insert, JMenuItem eject, JMenuItem play) {
-//        insertIF2RomMenu = insert;
-//        ejectIF2RomMenu = eject;
-//        playTapeMenu = play;
-//    }
 
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
     }
 
-//    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent, JLabel tapeComponent) {
-//        modelLabel = nameComponent;
-//        speedLabel = speedComponent;
-//        tapeFilename = tapeComponent;
-//    }
     public synchronized void generateFrame() {
 
 //        long startFrame, endFrame, sleepTime;
@@ -565,17 +536,32 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
         z80.tEstados += 4;
 
+        if (connectedIF1) {
+            if (address == 0x0008 || address == 0x1708) {
+                memory.pageIF1Rom();
+                return memory.readByte(address) & 0xff;
+            }
+
+            if (address == 0x700) {
+                int opcode = memory.readByte(address) & 0xff;
+                memory.unpageIF1Rom();
+                return opcode;
+            }
+        }
+        
         if (address == 0x0066 && multiface && !memory.isPlus3RamMode()) {
             memory.setMultifaceLocked(false);
             memory.multifacePageIn();
+            return memory.readByte(address) & 0xff;
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && memory.isSpectrumRom() && tape.isTapeReady()) {
             if (loadTrap) {
-                tape.flashLoad(memory);
-                invalidateScreen(true); // thanks Andrew Owen
-                return 0xC9; // RET opcode
+                if (tape.flashLoad(memory)) {
+                    invalidateScreen(true); // thanks Andrew Owen
+                    return 0xC9; // RET opcode
+                }
             } else {
                 toggleTape();
             }
@@ -688,6 +674,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    z80.tEstados, z80.getRegPC()));
 
+        // Interface I
+        if (connectedIF1) {
+            if ((port & 0x0018) == 0) {
+                System.out.println(String.format("IN from %04x", port));
+            }
+            if ((port & 0x0018) == 0x08) {
+                System.out.println(String.format("IN from %04x", port));
+            }
+            if ((port & 0x0018) == 0x10) {
+                System.out.println(String.format("IN from %04x", port));
+            }
+        }
+        
         // Multiface emulation
         if (multiface) {
             switch (spectrumModel.codeModel) {
@@ -866,6 +865,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        System.out.println(String.format("OutPort: %04X [%02X]", port, value));
 
         try {
+            // Interface I
+            if (connectedIF1) {
+                if ((port & 0x0018) == 0) {
+                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                }
+                if ((port & 0x0018) == 0x08) {
+                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                }
+                if ((port & 0x0018) == 0x10) {
+                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                }
+            }
+        
             // Multiface 128/+3 ports
             if (multiface) {
                 if (memory.isMultifacePaged() && z80.getRegPC() < 0x4000) {
@@ -1124,7 +1136,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
 
-        if (memory.isIF2RomEnabled()) {
+        if (memory.isIF2RomPaged()) {
             memory.ejectIF2Rom();
         }
 
@@ -1802,17 +1814,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
         row -= BORDER_WIDTH;
 
-//        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
-
-        // No se puede dibujar en el borde con precisión de pixel.
-//        int mod = col % 8;
-//        col -= mod;
-//        if (mod > 3) {
-//            col += 4;
-//        }
-
-//        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
-//                tstates+3584, row, col, mod));
         return row * SCREEN_WIDTH + col * 2;
     }
 
@@ -1856,11 +1857,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             col += BORDER_WIDTH / 2;
         }
         row -= (BORDER_WIDTH - 1);
-
-//        System.out.println(String.format("tstates: %d, row = %d, col = %d", tstates, row, col));
-
-//        System.out.println(String.format("t-states: %d\trow: %d\tcol: %d\tmod: %d",
-//                tstates+3584, row, col, mod));
 
         return row * SCREEN_WIDTH + col * 2;
     }
