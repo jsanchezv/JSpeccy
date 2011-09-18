@@ -96,6 +96,7 @@ public class Tape {
     private int endBlockPause;
     private int nLoops;
     private int loopStart;
+    private int freqSample;
     private final TapeNotify tapeNotify;
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
@@ -448,6 +449,14 @@ public class Tape {
 
     public void notifyTstates(long frames, int tstates) {
         long now = frames * spectrumModel.tstatesFrame + tstates;
+        
+        if (timeLastIn == 0) {
+            timeLastIn = now;
+            doPlay();
+            return;
+        }
+        
+        
         timeout -= (now - timeLastIn);
 
         timeLastIn = now;
@@ -630,7 +639,7 @@ public class Tape {
 //        earBit = EAR_ON;
         tapePos = offsetBlocks[idxHeader];
         timeLastIn = 0;
-        cpu.setExecDone(true);
+//        cpu.setExecDone(true);
         updateTapeIcon();
         tapeNotify.tapeStart();
         return true;
@@ -647,7 +656,7 @@ public class Tape {
         }
         lsm.setSelectionInterval(idxHeader, idxHeader);
         
-        cpu.setExecDone(false);
+//        cpu.setExecDone(false);
         tapePlaying = false;
         updateTapeIcon();
         timeLastIn = 0;
@@ -697,7 +706,7 @@ public class Tape {
         switch (statePlay) {
             case STOP:
                 lsm.setSelectionInterval(idxHeader, idxHeader);
-                cpu.setExecDone(false);
+//                cpu.setExecDone(false);
                 tapePlaying = false;
                 updateTapeIcon();
                 timeLastIn = 0;
@@ -905,7 +914,7 @@ public class Tape {
             repeat = false;
             switch (statePlay) {
                 case STOP:
-                    cpu.setExecDone(false);
+//                    cpu.setExecDone(false);
                     tapePlaying = false;
                     updateTapeIcon();
                     tapeNotify.tapeStop();
@@ -1022,7 +1031,7 @@ public class Tape {
                 case NEWDR_BYTE:
                     mask = 0x80;
                     statePlay = State.NEWDR_BIT;
-                    System.out.println(String.format("earBit: %02x", earBit));
+//                    System.out.println(String.format("earBit: %02x", earBit));
                 case NEWDR_BIT:
                     boolean micPulse;
                     if ((tapeBuffer[tapePos] & mask) != 0) {
@@ -1055,9 +1064,9 @@ public class Tape {
                             }
                         }
                     }
-                    if (timeout == 0) {
-                        System.out.println("ERROR!, timeout a cero");
-                    }
+//                    if (timeout == 0) {
+//                        System.out.println("ERROR!, timeout a cero");
+//                    }
 //                    timeout = zeroLenght;
 //                    mask >>>= 1;
 //                    if (blockLen == 1 && bitsLastByte < 8) {
@@ -1474,7 +1483,7 @@ public class Tape {
 
         timeLastIn = timeLastOut = 0;
         tapeRecording = true;
-//        timeout = settings.isHighSamplingFreq() ? 79 : 158;
+        freqSample = settings.isHighSamplingFreq() ? 79 : 158;
         updateTapeIcon();
 
         return true;
@@ -1566,9 +1575,8 @@ public class Tape {
         }
         
         long len = tstates - timeLastOut;
-        int sample = settings.isHighSamplingFreq() ? 79 : 158;
-//        long pulses = (len + (sample >>> 1)) / sample;
-        long pulses = len / sample;
+        long pulses = (len + (freqSample >>> 1)) / freqSample;
+//        long pulses = len / sample;
 //        System.out.println(
 //                String.format("(recordPulse2) Pulse Len: %d, , pulses: %d, state: %b",
 //                    len, pulses, micBit));

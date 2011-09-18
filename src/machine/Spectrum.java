@@ -746,8 +746,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         // ULA Port
         if ((port & 0x0001) == 0) {
             int res = keyboard.readKeyboardPort(port);
+            
+            boolean tapePlaying = tape.isTapePlaying();
+            if (tapePlaying) {
+                tape.notifyTstates(nFrame, z80.tEstados);
+                if (enabledSound && specSettings.isLoadingNoise()) {
+                    earBit = tape.getEarBit();
+
+                    int spkMic = (earBit == 0xbf) ? 0 : 4000;
+
+                    if (spkMic != speaker) {
+                        audio.updateAudio(z80.tEstados, speaker);
+                        speaker = spkMic;
+                    }
+                }
+            }
+            
             if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3
-                || tape.isTapePlaying()) {
+                || tapePlaying) {
                 res &= tape.getEarBit();
             }
             return res;
@@ -1121,18 +1137,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //            tape.setPulse((portFE & 0x08) != 0);
 //        }
 
-        tape.notifyTstates(nFrame, z80.tEstados);
+//        tape.notifyTstates(nFrame, z80.tEstados);
 
-        if (enabledSound && specSettings.isLoadingNoise() && tape.isTapePlaying()) {
-            earBit = tape.getEarBit();
-
-            int spkMic = (earBit == 0xbf) ? 0 : 4000;
-
-            if (spkMic != speaker) {
-                audio.updateAudio(z80.tEstados, speaker);
-                speaker = spkMic;
-            }
-        }
+//        if (enabledSound && specSettings.isLoadingNoise() && tape.isTapePlaying()) {
+//            earBit = tape.getEarBit();
+//
+//            int spkMic = (earBit == 0xbf) ? 0 : 4000;
+//
+//            if (spkMic != speaker) {
+//                audio.updateAudio(z80.tEstados, speaker);
+//                speaker = spkMic;
+//            }
+//        }
     }
 
     public void loadSnapshot(File filename) {
