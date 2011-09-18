@@ -81,9 +81,9 @@ class Audio {
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
             audiotstates = bufp = level = lastLevel = 0;
             if (soundMode > 0) {
-                ay8912.setMaxAmplitude(21500); // 11000
+                ay8912.setMaxAmplitude(21845); // 11000
             } else {
-                ay8912.setMaxAmplitude(16300); // 7000-16300
+                ay8912.setMaxAmplitude(16384); // 7000-16300
             }
 
             bufferSize = frameSize * 5;
@@ -213,13 +213,13 @@ class Audio {
         int sample;
         if (enabledAY) {
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32760 + (beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx]);
+                sample = -32700 + (beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx]);
                 buf[ptr++] = (byte) sample;
                 buf[ptr++] = (byte)(sample >>> 8);
             }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32760 + beeper[idx];
+                sample = -32700 + beeper[idx];
                 buf[ptr++] = (byte) sample;
                 buf[ptr++] = (byte) (sample >>> 8);
             }
@@ -241,8 +241,8 @@ class Audio {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufB[idx] * 0.7);
-                sampleL = -32760 +(beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3);
-                sampleR = -32760 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx]);
+                sampleL = -32700 +(beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3);
+                sampleR = -32700 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -251,7 +251,7 @@ class Audio {
         } else {
             int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32760 + beeper[idx];
+                sample = -32700 + beeper[idx];
                 lsb = (byte) sample;
                 msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;
@@ -277,8 +277,8 @@ class Audio {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufC[idx] * 0.7);
-                sampleL = -32760 + (beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3);
-                sampleR = -32760 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx]);
+                sampleL = -32700 + (beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3);
+                sampleR = -32700 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -287,7 +287,7 @@ class Audio {
         } else {
             int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32760 + beeper[idx];
+                sample = -32700 + beeper[idx];
                 lsb = (byte) sample;
                 msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;
@@ -313,8 +313,8 @@ class Audio {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufA[idx] * 0.7);
-                sampleL = -32760 + (beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3);
-                sampleR = -32760 + (beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx]);
+                sampleL = -32700 + (beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3);
+                sampleR = -32700 + (beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -323,7 +323,7 @@ class Audio {
         } else {
             int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32760 + beeper[idx];
+                sample = -32700 + beeper[idx];
                 lsb = (byte) sample;
                 msb = (byte) (sample >>> 8);
                 buf[ptr++] = lsb;

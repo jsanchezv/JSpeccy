@@ -197,18 +197,27 @@ public final class AY8912 {
                 break;
             case AmplitudeA:
                 regAY[addressLatch] &= 0x1f;
-                amplitudeA = volumeLevel[value & 0x0f];
                 envA = (regAY[AmplitudeA] & ENVELOPE) != 0;
+                if (envA)
+                    amplitudeA = volumeLevel[amplitudeEnv];
+                else
+                    amplitudeA = volumeLevel[value & 0x0f];
                 break;
             case AmplitudeB:
                 regAY[addressLatch] &= 0x1f;
-                amplitudeB = volumeLevel[value & 0x0f];
                 envB = (regAY[AmplitudeB] & ENVELOPE) != 0;
+                if (envB)
+                    amplitudeB = volumeLevel[amplitudeEnv];
+                else
+                    amplitudeB = volumeLevel[value & 0x0f];
                 break;
             case AmplitudeC:
                 regAY[addressLatch] &= 0x1f;
-                amplitudeC = volumeLevel[value & 0x0f];
                 envC = (regAY[AmplitudeC] & ENVELOPE) != 0;
+                if (envC)
+                    amplitudeC = volumeLevel[amplitudeEnv];
+                else
+                    amplitudeC = volumeLevel[value & 0x0f];
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
@@ -237,7 +246,7 @@ public final class AY8912 {
     }
 
     public void updateAY(int tstates) {
-        boolean outA, outB, outC;
+//        boolean outA, outB, outC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -332,29 +341,41 @@ public final class AY8912 {
                 }
             }
 
-            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
-            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
-            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
+//            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
+//            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
+//            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
-            volumeA += outA ? amplitudeA: 0;
-            volumeB += outB ? amplitudeB : 0;
-            volumeC += outC ? amplitudeC : 0;
+            if ((toneA || disableToneA) && (toneN || disableNoiseA))
+                volumeA += amplitudeA;
+            
+            if ((toneB || disableToneB) && (toneN || disableNoiseB))
+                volumeB += amplitudeB;
+            
+            if ((toneC || disableToneC) && (toneN || disableNoiseC))
+                volumeC += amplitudeC;
+            
+//            volumeA += outA ? amplitudeA : 0;
+//            volumeB += outB ? amplitudeB : 0;
+//            volumeC += outC ? amplitudeC : 0;
 
             nSteps++;
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
                 stepCounter -= step;
-                volumeA /= nSteps;
-                volumeB /= nSteps;
-                volumeC /= nSteps;
-                bufA[pbuf] = (lastA + volumeA) >>> 1;
-                bufB[pbuf] = (lastB + volumeB) >>> 1;
-                bufC[pbuf] = (lastC + volumeC) >>> 1;
+//                volumeA /= nSteps;
+//                volumeB /= nSteps;
+//                volumeC /= nSteps;
+//                bufA[pbuf] = (lastA + volumeA) >>> 1;
+//                bufB[pbuf] = (lastB + volumeB) >>> 1;
+//                bufC[pbuf] = (lastC + volumeC) >>> 1;
+                bufA[pbuf] = volumeA / nSteps;
+                bufB[pbuf] = volumeB / nSteps;
+                bufC[pbuf] = volumeC / nSteps;
                 pbuf++;
-                lastA = volumeA;
-                lastB = volumeB;
-                lastC = volumeC;
+//                lastA = volumeA;
+//                lastB = volumeB;
+//                lastC = volumeC;
                 volumeA = volumeB = volumeC = nSteps = 0;
             }
         }
