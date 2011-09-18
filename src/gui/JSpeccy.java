@@ -160,8 +160,45 @@ public class JSpeccy extends javax.swing.JFrame {
         getContentPane().add(jscr, BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum.getKeyboard());
+
+        // Synchronize the file user settings with GUI settings
+        switch (settings.getSpectrumSettings().getDefaultModel()) {
+            case 1:
+                spec128kHardware.setSelected(true);
+                break;
+            case 2:
+                specPlus2Hardware.setSelected(true);
+                break;
+            case 3:
+                specPlus3Hardware.setSelected(true);
+                break;
+            default:
+                spec48kHardware.setSelected(true);
+        }
+        
+        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
+            case 1:
+                kempstonJoystick.setSelected(true);
+                break;
+            case 2:
+                sinclair1Joystick.setSelected(true);
+                break;
+            case 3:
+                sinclair2Joystick.setSelected(true);
+                break;
+            case 4:
+                cursorJoystick.setSelected(true);
+                break;
+            default:
+                noneJoystick.setSelected(true);
+        }
+
+        if (!settings.getSpectrumSettings().isSoundEnabled()) {
+            silenceMachineMenu.setSelected(true);
+            silenceSoundToggleButton.setSelected(true);
+        }
+
         spectrum.start();
-        spectrum.startEmulation();
     }
     
     /** This method is called from within the constructor to
@@ -698,6 +735,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 spectrum.loadSnapshot(selectedFile);
             } else {
                 currentDirTape = openSnapshotDlg.getCurrentDirectory();
+                currentDirOpenSnapshot = currentDirTape;
                 spectrum.tape.eject();
                 spectrum.tape.insert(selectedFile);
                 tapeFilename.setText(selectedFile.getName());

@@ -1264,9 +1264,9 @@ public class Tape {
         int addr = cpu.getRegIX();    // Address start
         int nBytes = cpu.getRegDE();  // Lenght
         while (count < nBytes && count < blockLen - 1) {
-            if (addr > 0x3fff) {
-                memory.writeByte(addr, tapeBuffer[tapePos + count + 1]);
-            }
+//            if (addr > 0x3fff) {
+            memory.writeByte(addr, (byte)tapeBuffer[tapePos + count + 1]);
+//            }
             cpu.xor(tapeBuffer[tapePos + count + 1]);
             addr = (addr + 1) & 0xffff;
             count++;

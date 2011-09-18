@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 2 de septiembre de 2010, 19:38
+    Created on : 3 de septiembre de 2010, 9:58
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -18,7 +18,6 @@
         <ns0:loadingNoise>true</ns0:loadingNoise>
         <ns0:ULAplus>false</ns0:ULAplus>
         <ns0:defaultModel>0</ns0:defaultModel>
-        <ns0:lateTimings>false</ns0:lateTimings>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>

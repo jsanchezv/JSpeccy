@@ -58,7 +58,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR
     };
     private Joystick joystick;
-    private boolean issue3, loadingNoise;
+    private boolean issue3, loadingNoise, frameInProgress;
     private SpectrumType spectrumSettings;
 
     public Spectrum(JSpeccySettingsType settings) {
@@ -75,26 +75,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         port7ffd = 0;
         ay8912 = new AY8912();
         audio = new Audio();
-        tape = new Tape(tapeSettings, z80);
         soundOn = spectrumSettings.isSoundEnabled();
         loadingNoise = spectrumSettings.isLoadingNoise();
         paused = true;
+        resetPending = frameInProgress = false;
+        tape = new Tape(tapeSettings, z80);
 
-        switch (spectrumSettings.getDefaultModel()) {
-            case 1:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
-                break;
-            case 2:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                break;
-            case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                break;
-            default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K);
-        }
-        resetPending = false;
-
+        keyboard = new Keyboard();
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
             case 1:
                 joystick = Joystick.KEMPSTON;
@@ -111,9 +98,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             default:
                 joystick = Joystick.NONE;
         }
-       
-        keyboard = new Keyboard();
         keyboard.setJoystick(joystick);
+
+        switch (spectrumSettings.getDefaultModel()) {
+            case 1:
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
+                break;
+            case 2:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            default:
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
+        }
+
         timerFrame = new Timer("SpectrumClock", true);
     }
 
@@ -127,26 +127,25 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         tape.setSpectrumModel(spectrumModel);
         enabledAY = spectrumModel.hasAY8912();
 
-        Arrays.fill(contendedRamPage, false);
-        Arrays.fill(contendedIOPage, false);
+        contendedRamPage[0] = contendedIOPage[0] = false;
+        contendedRamPage[1] = contendedIOPage[1] = true;
+        contendedRamPage[2] = contendedIOPage[2] = false;
+        contendedRamPage[3] = contendedIOPage[3] = false;
+        
         switch (spectrumModel) {
             case SPECTRUM48K:
                 buildScreenTables48k();
-                contendedRamPage[1] = contendedIOPage[1] = true;
                 enabledAY = spectrumSettings.isAYEnabled48K();
                 issue3 = !spectrumSettings.isIssue2();
                 break;
             case SPECTRUM128K:
             case SPECTRUMPLUS2:
                 buildScreenTables128k();
-                contendedRamPage[1] = contendedIOPage[1] = true;
                 issue3 = true;
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
-                Arrays.fill(contendedRamPage, false);
-                Arrays.fill(contendedIOPage, false);
-                contendedRamPage[1] = true;
+                contendedIOPage[1] = false;
                 issue3 = true;
                 break;
         }
@@ -154,6 +153,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
+                switch (spectrumModel) {
+                    case SPECTRUM48K:
+                    hardwareMenu48k.setSelected(true);
+                    break;
+                case SPECTRUM128K:
+                    hardwareMenu128k.setSelected(true);
+                    break;
+                case SPECTRUMPLUS2:
+                    hardwareMenuPlus2.setSelected(true);
+                    break;
+                case SPECTRUMPLUS3:
+                    hardwareMenuPlus3.setSelected(true);
+                    break;
+                }
                 modelLabel.setToolTipText(spectrumModel.getLongModelName());
                 modelLabel.setText(spectrumModel.getShortModelName());
             }
@@ -171,6 +184,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
      */
     @Override
     public void run() {
+        startEmulation();
         try {
             sleep(Long.MAX_VALUE);
         } catch (InterruptedException excpt) {
@@ -179,6 +193,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void startEmulation() {
+        
         z80.setTEstados(0);
         audio.reset();
         invalidateScreen(true);
@@ -195,6 +210,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         paused = true;
         if (soundOn) {
             audio.close();
+        }
+
+        while(frameInProgress) {
+            try {
+                System.out.println("Frame in progress");
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 
@@ -218,6 +242,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
     public boolean isPaused() {
         return paused;
+    }
+
+    public boolean isFrameInProgress() {
+        return frameInProgress;
     }
 
     public void triggerNMI() {
@@ -282,6 +310,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     }
 
     public void generateFrame() {
+        frameInProgress = true;
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
 //        System.out.println("Start frame: " + startFrame);
@@ -404,7 +433,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             }
         }
 
-
+        frameInProgress = false;
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
@@ -438,7 +467,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 //            tape.stop();
 //        }
         
-        return memory.readByte(address);
+        return memory.readByte(address) & 0xff;
     }
 
     public int peek8(int address) {
@@ -448,7 +477,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         z80.tEstados += 3;
 
-        return memory.readByte(address);
+        return memory.readByte(address) & 0xff;
     }
 
     public void poke8(int address, int value) {
@@ -461,7 +490,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         z80.tEstados += 3;
 
-        memory.writeByte(address, value);
+        memory.writeByte(address, (byte)value);
     }
 
     public int peek16(int address) {
@@ -471,7 +500,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
-        lsb = memory.readByte(address);
+        lsb = memory.readByte(address) & 0xff;
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
@@ -479,7 +508,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         z80.tEstados += 3;
 
-        return (memory.readByte(address) << 8) | lsb;
+        return ((memory.readByte(address) << 8) & 0xff00 | lsb);
     }
 
     public void poke16(int address, int word) {
@@ -492,7 +521,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         z80.tEstados += 3;
 
-        memory.writeByte(address, word & 0xff);
+        memory.writeByte(address, (byte)word);
 
         address = (address + 1) & 0xffff;
 
@@ -504,7 +533,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         z80.tEstados += 3;
 
-        memory.writeByte(address, word >>> 8);
+        memory.writeByte(address, (byte)(word >>> 8));
     }
 
     public void contendedStates(int address, int tstates) {
@@ -626,7 +655,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
 //                    tstates, addr, floatbus));
-        return floatbus;
+        return floatbus & 0xff;
     }
 
     public void outPort(int port, int value) {
@@ -832,19 +861,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             switch (snap.getSnapshotModel()) {
                 case SPECTRUM48K:
                     selectHardwareModel(MachineTypes.SPECTRUM48K);
-                    hardwareMenu48k.setSelected(true);
                     break;
                 case SPECTRUM128K:
                     selectHardwareModel(MachineTypes.SPECTRUM128K);
-                    hardwareMenu128k.setSelected(true);
                     break;
                 case SPECTRUMPLUS2:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                    hardwareMenuPlus2.setSelected(true);
                     break;
                 case SPECTRUMPLUS3:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                    hardwareMenuPlus3.setSelected(true);
                     break;
             }
 
@@ -882,25 +907,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             Joystick snapJoystick = snap.getJoystick();
             if (snapJoystick != Joystick.NONE) {
                 joystick = snapJoystick;
-                keyboard.setJoystick(joystick);
-
-//                switch (joystick) {
-//                    case NONE:
-//                        joystickNone.setSelected(true);
-//                        break;
-//                    case KEMPSTON:
-//                        joystickKempston.setSelected(true);
-//                        break;
-//                    case SINCLAIR1:
-//                        joystickSinclair1.setSelected(true);
-//                        break;
-//                    case SINCLAIR2:
-//                        joystickSinclair2.setSelected(true);
-//                        break;
-//                    case CURSOR:
-//                        joystickCursor.setSelected(true);
-//                        break;
-//                }
+                setJoystick(joystick);
             }
 
             if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
@@ -1243,7 +1250,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
         for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
-            if (memory.readScreenByte(addrAttr) > 0x7f) {
+            if (memory.readScreenByte(addrAttr) < 0) {
                 notifyScreenWrite(addrAttr);
             }
         }
@@ -1399,7 +1406,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public void updateScreen(int fromTstates, int toTstates) {
         int fromAddr, addrBuf;
         int paper, ink;
-        int scrByte, attr;
+        byte scrByte;
+        int attr;
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
 
         while (fromTstates % 4 != 0) {
@@ -1427,31 +1435,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 rightCol = column;
             }
 
-//            System.out.println("Addr: " + fromAddr);
-            scrByte = attr = 0;
-            // si m1contended != -1 es que hay que emular el efecto snow.
-//            if (m1contended == -1) {
-                scrByte = memory.readScreenByte(fromAddr);
-                fromAddr &= 0x1fff;
-                attr = memory.readScreenByte(scr2attr[fromAddr]);
-//            } else {
-//                int addr;
-//                int mod = m1contended % 8;
-//                if (mod == 0 || mod == 1) {
-//                    addr = (fromAddr & 0xff00) | m1regR;
-//                    scrByte = memory.readScreenByte(addr);
-//                    attr = memory.readScreenByte(addr & 0x1fff);
-//                    //System.out.println("Snow even");
-//                }
-//                if (mod == 2 || mod == 3) {
-//                    addr = (scr2attr[fromAddr & 0x1fff] & 0xff00) | m1regR;
-//                    scrByte = memory.readScreenByte(fromAddr);
-//                    attr = memory.readScreenByte(addr & 0x1fff);
-//                    //System.out.println("Snow odd");
-//                }
-//                fromAddr &= 0x1fff;
-//                m1contended = -1;
-//            }
+            scrByte = memory.readScreenByte(fromAddr);
+            fromAddr &= 0x1fff;
+            attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
 
             addrBuf = bufAddr[fromAddr];
 

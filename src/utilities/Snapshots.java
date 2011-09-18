@@ -369,23 +369,28 @@ public class Snapshots {
 
             if (snaLen == 49179) { // 48K
                 for (int addr = 0x4000; addr < 0x10000; addr++) {
-                    memory.writeByte(addr, fIn.read() & 0xff);
+                    memory.writeByte(addr, (byte)fIn.read());
                 }
                 regPC = 0x72; // dirección de RETN en la ROM
             } else {
                 boolean loaded[] = new boolean[8];
-                int highPage[] = new int[0x4000];
+                byte highPage[] = new byte[0x4000];
                 for (int addr = 0x4000; addr < 0xC000; addr++) {
-                    memory.writeByte(addr, fIn.read() & 0xff);
+                    memory.writeByte(addr, (byte)fIn.read());
                 }
 
                 // Hasta que leamos el último valor del puerto 0x7ffd no sabemos
                 // en qué página hay que poner los últimos 16K. Los leemos en
                 // un buffer temporal y luego los copiamos (que remedio!!!)
-                for (int addr = 0x0000; addr < 0x4000; addr++) {
-                    highPage[addr] = fIn.read() & 0xff;
+                int count = 0;
+                while (count != -1 && count < 0x4000)
+                    count += fIn.read(highPage, count, 0x4000 - count);
+
+                if (count != 0x4000) {
+                    error = 4;
+                    fIn.close();
+                    return false;
                 }
-                
                 // En modo 128, la página 5 está en 0x4000 y la 2 en 0x8000.
                 loaded[2] = loaded[5] = true;
                 regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
@@ -394,7 +399,6 @@ public class Snapshots {
                 // habrá grabado dos veces, y esta segunda copia es redundante.
                 int page = last7ffd & 0x07;
                 if (page != 2 && page != 5) {
-//                    memory.setPort7ffd(last7ffd);
                     for (int addr = 0; addr < 0x4000; addr++) {
                         memory.writeByte(page, addr, highPage[addr]);
                     }
@@ -411,7 +415,7 @@ public class Snapshots {
                 for (page = 0; page < 8; page++) {
                     if (!loaded[page]) {
                         for (int addr = 0; addr < 0x4000; addr++) {
-                            memory.writeByte(page, addr, fIn.read() & 0xff);
+                            memory.writeByte(page, addr, (byte)fIn.read());
                         }
                     }
                     // El formato SNA no guarda los registros del AY
@@ -492,9 +496,9 @@ public class Snapshots {
 
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, regPC >>> 8);
+                memory.writeByte(regSP, (byte)(regPC >>> 8));
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, regPC & 0xff);
+                memory.writeByte(regSP, (byte)regPC);
             }
 
             fOut.write(regSP);
@@ -533,7 +537,7 @@ public class Snapshots {
         return true;
     }
 
-    private int uncompressZ80(int buffer[], int length) {
+    private int uncompressZ80(byte buffer[], int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
         int address = 0;
         try {
@@ -541,17 +545,17 @@ public class Snapshots {
             while (fIn.available() > 0 && address < length) {
                 int mem = fIn.read() & 0xff;
                 if (mem != 0xED) {
-                    buffer[address++] = mem;
+                    buffer[address++] = (byte)mem;
                 } else {
                     int mem2 = fIn.read() & 0xff;
                     if (mem2 != 0xED) {
-                        buffer[address++] = 0xED;
-                        buffer[address++] = mem2;
+                        buffer[address++] = (byte)0xED;
+                        buffer[address++] = (byte)mem2;
                     } else {
                         int nreps = fIn.read() & 0xff;
                         int value = fIn.read() & 0xff;
                         while (nreps-- > 0) {
-                            buffer[address++] = value;
+                            buffer[address++] = (byte)value;
                         }
                     }
                 }
@@ -677,18 +681,18 @@ public class Snapshots {
                 if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
                     // Segmento 0x4000-0x7FFF a página 5
                     for (int address = 0; address < 0x4000; address++) {
-                        memory.writeByte(5, address, fIn.read() & 0xff);
+                        memory.writeByte(5, address, (byte)fIn.read());
                     }
                     // Segmento 0x8000-0xBFFF a página 2
                     for (int address = 0; address < 0x4000; address++) {
-                        memory.writeByte(2, address, fIn.read() & 0xff);
+                        memory.writeByte(2, address, (byte)fIn.read());
                     }
                     // Segmento 0xC000-0xFFFF a página 0
                     for (int address = 0; address < 0x4000; address++) {
-                        memory.writeByte(0, address, fIn.read() & 0xff);
+                        memory.writeByte(0, address, (byte)fIn.read());
                     }
                 } else {
-                    int buffer[] = new int[0xC000];
+                    byte buffer[] = new byte[0xC000];
                     int len = uncompressZ80(buffer, buffer.length);
                     if (len != 0xC000 || fIn.available() != 4) {
                         error = 4;
@@ -811,7 +815,7 @@ public class Snapshots {
                     }
                 }
 
-                int buffer[] = new int[0x4000];
+                byte buffer[] = new byte[0x4000];
                 while (fIn.available() > 0) {
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
@@ -836,7 +840,7 @@ public class Snapshots {
 
                     if (blockLen == 0xffff) { // uncompressed data
                         for (int addr = 0; addr < 0x4000; addr++) {
-                            memory.writeByte(ramPage, addr, fIn.read() & 0xff);
+                            memory.writeByte(ramPage, addr, (byte)fIn.read());
                         }
                     } else {
                         int len = uncompressZ80(buffer, 0x4000);

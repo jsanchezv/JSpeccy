@@ -21,19 +21,19 @@ import java.util.logging.Logger;
 public final class Memory {
     private final int PAGE_SIZE = 0x4000;
     
-    private int[] Rom48k = new int[PAGE_SIZE];
-    private int[][] Rom128k = new int[2][PAGE_SIZE];
-    private int[][] RomPlus2 = new int[2][PAGE_SIZE];
-    private int[][] RomPlus3 = new int[4][PAGE_SIZE];
+    private byte[] Rom48k = new byte[PAGE_SIZE];
+    private byte[][] Rom128k = new byte[2][PAGE_SIZE];
+    private byte[][] RomPlus2 = new byte[2][PAGE_SIZE];
+    private byte[][] RomPlus3 = new byte[4][PAGE_SIZE];
     // 8 páginas de RAM
-    private int[][] Ram = new int[8][PAGE_SIZE];
+    private byte[][] Ram = new byte[8][PAGE_SIZE];
     // RAM falsa para dejar que escriba en páginas de ROM sin afectar a la
     // ROM de verdad. Esto evita tener que comprobar en cada escritura si la
     // página es de ROM o de RAM.
-    private int[] fakeROM = new int[PAGE_SIZE];
+    private byte[] fakeROM = new byte[PAGE_SIZE];
     // punteros a las 4 páginas
-    private int[][] readPages = new int[4][];
-    private int[][] writePages = new int[4][];
+    private byte[][] readPages = new byte[4][];
+    private byte[][] writePages = new byte[4][];
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage, highPage, bankM, bankP;
     private boolean model128k, pagingLocked, plus3RamMode;
@@ -52,23 +52,23 @@ public final class Memory {
         reset();
     }
 
-    public int readScreenByte(int address) {
+    public byte readScreenByte(int address) {
         return Ram[screenPage][address & 0x3fff];
     }
 
-    public int readByte(int address) {
+    public byte readByte(int address) {
         return readPages[address >>> 14][address & 0x3fff];
     }
 
-    public void writeByte(int address, int value) {
+    public void writeByte(int address, byte value) {
         writePages[address >>> 14][address & 0x3fff] = value;
     }
 
-    public int readByte(int page, int address) {
+    public byte readByte(int page, int address) {
         return Ram[page][address & 0x3fff];
     }
 
-    public void writeByte(int page, int address, int value) {
+    public void writeByte(int page, int address, byte value) {
         Ram[page][address & 0x3fff] = value;
     }
 
@@ -133,7 +133,8 @@ public final class Memory {
     }
 
     public void setPort7ffd(int port7ffd) {
-//        System.out.println(String.format("port7ffd = %02x", port7ffd));
+
+        port7ffd &= 0xff;
         if (pagingLocked || port7ffd == bankM)
             return;
 
@@ -320,7 +321,7 @@ public final class Memory {
 
     }
 
-    private boolean loadRomAsResource(String filename, int[] page) {
+    private boolean loadRomAsResource(String filename, byte[] page) {
         InputStream inRom;
 
         try {
@@ -333,18 +334,14 @@ public final class Memory {
                 return false;
             }
 
-            int count, value;
-            for (count = 0; count < 0x4000; count++) {
-                value = inRom.read();
-                if (value == -1)
-                    break;
-                page[count] = value & 0xff;
-            }
+            int count = 0;
+            while (count != -1 && count < 0x4000)
+                count += inRom.read(page, count, 0x4000 - count);
 
             if (count != 0x4000) {
                 String msg =
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "ROM_SIZE_EROR");
+                    "ROM_SIZE_ERROR");
                 System.out.println(String.format("%s: %s", msg, filename));
                 return false;
             }
@@ -365,7 +362,7 @@ public final class Memory {
         return true;
     }
 
-    private boolean loadRomAsFile(String filename, int[] page) {
+    private boolean loadRomAsFile(String filename, byte[] page) {
         BufferedInputStream fIn;
 
         try {
@@ -380,18 +377,14 @@ public final class Memory {
                 return false;
             }
 
-            int count, value;
-            for (count = 0; count < 0x4000; count++) {
-                value = fIn.read();
-                if (value == -1)
-                    break;
-                page[count] = value  & 0xff;
-            }
+            int count = 0;
+            while (count != -1 && count < 0x4000)
+                count += fIn.read(page, count, 0x4000 - count);
 
             if (count != 0x4000) {
                 String msg =
                     java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "ROM_SIZE_EROR");
+                    "ROM_SIZE_ERROR");
                 System.out.println(String.format("%s: %s", msg, filename));
                 return false;
             }
