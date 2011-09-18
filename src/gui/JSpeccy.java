@@ -51,6 +51,17 @@ public class JSpeccy extends javax.swing.JFrame {
     SettingsDialog settingsDialog;
     MicrodriveDialog microdriveDialog;
     GuiComponents guiComponents = new GuiComponents();
+    ExtensionFilter allSnapTapeExtension = new ExtensionFilter("SNAPSHOT_TAPE_TYPE",
+        new String[] { ".sna", ".z80", ".szx", ".tap", ".tzx" });
+    ExtensionFilter snapshotExtension = new ExtensionFilter("SNAPSHOT_TYPE",
+        new String[] { ".sna", ".z80", ".szx" });
+    ExtensionFilter tapeExtension = new ExtensionFilter("TAPE_TYPE",
+        new String[] { ".tap", ".tzx" });
+    ExtensionFilter imageExtension = new ExtensionFilter("IMAGE_TYPE",
+        new String[] { ".scr", ".png" });
+    ExtensionFilter screenExtension = new ExtensionFilter("SCR_TYPE", ".scr");
+    ExtensionFilter romExtension = new ExtensionFilter("ROM_TYPE", ".rom");
+    
 
     /** Creates new form JSpeccy */
     public JSpeccy() {
@@ -1217,7 +1228,11 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( openSnapshotDlg == null ) {
             openSnapshotDlg = new JFileChooser(lastSnapshotDir);
-            openSnapshotDlg.setFileFilter(new FileFilterTapeSnapshot());
+            openSnapshotDlg.addChoosableFileFilter(allSnapTapeExtension);
+            openSnapshotDlg.addChoosableFileFilter(snapshotExtension);
+            openSnapshotDlg.addChoosableFileFilter(tapeExtension);
+            openSnapshotDlg.setFileFilter(allSnapTapeExtension);
+//            openSnapshotDlg.setFileFilter(new FileFilterTapeSnapshot());
             currentDirSnapshot = openSnapshotDlg.getCurrentDirectory();
         }
         else
@@ -1319,7 +1334,8 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( openTapeDlg == null ) {
             openTapeDlg = new JFileChooser(lastTapeDir);
-            openTapeDlg.setFileFilter(new FileFilterTape());
+            openTapeDlg.addChoosableFileFilter(tapeExtension);
+            openTapeDlg.setFileFilter(tapeExtension);
             currentDirTape = openTapeDlg.getCurrentDirectory();
         }
         else
@@ -1382,7 +1398,8 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( saveSnapshotDlg == null ) {
             saveSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            saveSnapshotDlg.setFileFilter(new FileFilterSaveSnapshot());
+            saveSnapshotDlg.addChoosableFileFilter(snapshotExtension);
+            saveSnapshotDlg.setFileFilter(snapshotExtension);
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
         }
         else {
@@ -1518,7 +1535,8 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( saveImageDlg == null ) {
             saveImageDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            saveImageDlg.setFileFilter(new FileFilterImage());
+            saveImageDlg.addChoosableFileFilter(imageExtension);
+            saveImageDlg.setFileFilter(imageExtension);
             currentDirSaveImage = saveImageDlg.getCurrentDirectory();
         }
         else {
@@ -1544,7 +1562,8 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if (openTapeDlg == null) {
             openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            openTapeDlg.setFileFilter(new FileFilterTape());
+            openTapeDlg.addChoosableFileFilter(tapeExtension);
+            openTapeDlg.setFileFilter(tapeExtension);
             currentDirTape = openTapeDlg.getCurrentDirectory();
         } else {
             openTapeDlg.setCurrentDirectory(currentDirTape);
@@ -1738,7 +1757,8 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if( IF2RomDlg == null ) {
             IF2RomDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            IF2RomDlg.setFileFilter(new FileFilterRom());
+            IF2RomDlg.addChoosableFileFilter(romExtension);
+            IF2RomDlg.setFileFilter(romExtension);
             currentDirRom = IF2RomDlg.getCurrentDirectory();
         }
         else
@@ -1796,7 +1816,8 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( loadImageDlg == null ) {
             loadImageDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            loadImageDlg.setFileFilter(new FileFilterScreen());
+            loadImageDlg.addChoosableFileFilter(screenExtension);
+            loadImageDlg.setFileFilter(screenExtension);
             currentDirLoadImage = loadImageDlg.getCurrentDirectory();
         }
         else {

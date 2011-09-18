@@ -46,6 +46,7 @@ public class Snapshots {
     private int ULAplusRegister, ULAplusPalette[] = new int[64];
     // IF1 support;
     private boolean IF1Present, IF1RomPaged;
+    private int numDrives, driveRunning;
     // IF2 ROM support
     private boolean IF2RomPresent;
     // Tape Support
@@ -1944,6 +1945,8 @@ public class Snapshots {
                         while (szxLen > 0)
                             szxLen -= fIn.skip(szxLen);
                         break;
+                    case ZXSTBID_IF1:
+                    case ZXSTBID_MICRODRIVE:
                     case ZXSTBID_ZXATASP:
                     case ZXSTBID_ATARAM:
                     case ZXSTBID_ZXCF:
@@ -1955,8 +1958,6 @@ public class Snapshots {
                     case ZXSTBID_DSKFILE:
                     case ZXSTBID_GS:
                     case ZXSTBID_GSRAMPAGE:
-                    case ZXSTBID_IF1:
-                    case ZXSTBID_MICRODRIVE:
                     case ZXSTBID_MOUSE:
                     case ZXSTBID_PLUS3DISK:
                     case ZXSTBID_PLUSD:

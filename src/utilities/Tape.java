@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.table.AbstractTableModel;
 import machine.MachineTypes;
 import machine.Memory;
 import z80core.Z80;
@@ -47,7 +48,6 @@ public class Tape {
     private ByteArrayOutputStream record;
     private File filename;
     private String filenameLabel;
-//    private File tapeName;
     private int tapeBuffer[];
     private int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
     private int nOffsetBlocks;
@@ -73,7 +73,6 @@ public class Tape {
     private static final int EAR_MASK = 0x40;
     private long timeout;
     private long timeLastIn;
-//    private boolean fastload;
     private boolean tapeInserted, tapePlaying, tapeRecording;
     private boolean tzxTape, flashload;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
@@ -118,7 +117,7 @@ public class Tape {
         nOffsetBlocks = 0;
         idxHeader = 0;
         Arrays.fill(offsetBlocks, 0);
-        tapeTableModel = new TapeTableModel(this);
+        tapeTableModel = new TapeTableModel();
     }
 
     public void setSpectrumModel(MachineTypes model) {
@@ -146,10 +145,8 @@ public class Tape {
             return;
         }
 
-//        tapePos = offsetBlocks[block];
         idxHeader = block;
         flashload = settings.isFlashload();
-//        lsm.setSelectionInterval(block, block);
     }
 
     public String getCleanMsg(int offset, int len) {
@@ -284,7 +281,7 @@ public class Tape {
                 switch (tapeBuffer[offset + 3]) {
                     case 0: // Program
                         msg = String.format(bundle.getString("PROGRAM_HEADER"),
-                                getCleanMsg(offset + 4, 10));
+                            getCleanMsg(offset + 4, 10));
                         break;
                     case 1: // Number array
                         msg = bundle.getString("NUMBER_ARRAY_HEADER");
@@ -294,7 +291,7 @@ public class Tape {
                         break;
                     case 3:
                         msg = String.format(bundle.getString("BYTES_HEADER"),
-                                getCleanMsg(offset + 4, 10));
+                            getCleanMsg(offset + 4, 10));
                         break;
                     default:
                         msg = "";
@@ -318,7 +315,7 @@ public class Tape {
                     switch (tapeBuffer[offset + 5]) {
                         case 0: // Program
                             msg = String.format(bundle.getString("PROGRAM_HEADER"),
-                                    getCleanMsg(offset + 6, 10));
+                                getCleanMsg(offset + 6, 10));
                             break;
                         case 1: // Number array
                             msg = bundle.getString("NUMBER_ARRAY_HEADER");
@@ -328,7 +325,7 @@ public class Tape {
                             break;
                         case 3:
                             msg = String.format(bundle.getString("BYTES_HEADER"),
-                                    getCleanMsg(offset + 6, 10));
+                                getCleanMsg(offset + 6, 10));
                             break;
                         default:
                             msg = String.format(bundle.getString("UNKN_HEADER_ID"),
@@ -460,11 +457,13 @@ public class Tape {
 
         timeout = 0;
 
-        if (tapeRecording)
+        if (tapeRecording) {
             recordPulse();
+        }
 
-        if (tapePlaying)
+        if (tapePlaying) {
             doPlay();
+        }
 
     }
 
@@ -534,8 +533,9 @@ public class Tape {
 //        System.out.println(String.format("fileName: %s, extension: %s", fileName, extension));
         tapeBuffer = new int[tapeData.length];
         // Hay que cambiarle el tipo, sigh!!!
-        for (int idx = 0; idx < tapeData.length; idx++)
+        for (int idx = 0; idx < tapeData.length; idx++) {
             tapeBuffer[idx] = tapeData[idx] & 0xff;
+        }
 
         filename = new File(fileName);
         tapePos = idxHeader = 0;
@@ -647,7 +647,7 @@ public class Tape {
     }
 
     public boolean rewind() {
-        if (!tapeInserted || tapePlaying  || tapeRecording) {
+        if (!tapeInserted || tapePlaying || tapeRecording) {
             return false;
         }
 
@@ -1193,8 +1193,8 @@ public class Tape {
                     idxHeader++;
                     break;
                 case 0x23: // Jump to Block
-                    short target = (short)(tapeBuffer[tapePos + 1] +
-                        (tapeBuffer[tapePos + 2] << 8));
+                    short target = (short) (tapeBuffer[tapePos + 1]
+                        + (tapeBuffer[tapePos + 2] << 8));
                     idxHeader += target;
                     break;
                 case 0x24: // Loop Start
@@ -1293,15 +1293,16 @@ public class Tape {
             return false;
         }
 
-        if(tzxTape) {            
+        if (tzxTape) {
             // Fastload only with Standard Speed Tape Blocks (and some
             // identified erroneusly as Turbo Blocks
             // (Midnight Resistance 128k as an example))
             while (idxHeader < nOffsetBlocks) {
                 tapePos = offsetBlocks[idxHeader];
-                if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11)
+                if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11) {
                     break;
-                    idxHeader++;
+                }
+                idxHeader++;
             }
 
             if (idxHeader == nOffsetBlocks) {
@@ -1317,9 +1318,9 @@ public class Tape {
                 tapePos += 5;
             } else {
                 blockLen = tapeBuffer[tapePos + 16]
-                        + (tapeBuffer[tapePos + 17] << 8)
-                        + (tapeBuffer[tapePos + 18] << 16);
-                    tapePos += 19;
+                    + (tapeBuffer[tapePos + 17] << 8)
+                    + (tapeBuffer[tapePos + 18] << 16);
+                tapePos += 19;
             }
         } else {
             tapePos = offsetBlocks[idxHeader];
@@ -1341,7 +1342,7 @@ public class Tape {
         int addr = cpu.getRegIX();    // Address start
         int nBytes = cpu.getRegDE();  // Lenght
         while (count < nBytes && count < blockLen - 1) {
-            memory.writeByte(addr, (byte)tapeBuffer[tapePos + count + 1]);
+            memory.writeByte(addr, (byte) tapeBuffer[tapePos + count + 1]);
             cpu.xor(tapeBuffer[tapePos + count + 1]);
             addr = (addr + 1) & 0xffff;
             count++;
@@ -1405,7 +1406,7 @@ public class Tape {
             parity ^= value;
         }
         record.write(parity);
-        
+
         try {
             fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
             record.writeTo(fOut);
@@ -1426,8 +1427,9 @@ public class Tape {
     }
 
     public boolean startRecording() {
-        if (!isTapeReady() || !filename.getName().toLowerCase().endsWith(".tzx"))
+        if (!isTapeReady() || !filename.getName().toLowerCase().endsWith(".tzx")) {
             return false;
+        }
 
         record = new ByteArrayOutputStream();
 
@@ -1440,8 +1442,9 @@ public class Tape {
     }
 
     public boolean stopRecording() {
-        if (!tapeRecording)
+        if (!tapeRecording) {
             return false;
+        }
 
         if (bitsLastByte != 0) {
             byteTmp <<= (8 - bitsLastByte);
@@ -1503,7 +1506,7 @@ public class Tape {
     public void recordPulse() {
         timeout = settings.isHighSamplingFreq() ? 79 : 158;
 
-        if( bitsLastByte == 8) {
+        if (bitsLastByte == 8) {
             record.write(byteTmp);
             bitsLastByte = 0;
             byteTmp = 0;
@@ -1515,7 +1518,6 @@ public class Tape {
         }
         bitsLastByte++;
     }
-
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
 
@@ -1543,5 +1545,64 @@ public class Tape {
                 tapeIcon.setEnabled(enabledIcon);
             }
         });
+    }
+
+    public class TapeTableModel extends AbstractTableModel {
+
+        public TapeTableModel() {
+        }
+
+        @Override
+        public int getRowCount() {
+            return getNumBlocks();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 3;
+        }
+
+        @Override
+        public Object getValueAt(int row, int col) {
+            String msg;
+
+//        System.out.println(String.format("getValueAt row %d, col %d", row, col));
+            switch (col) {
+                case 0:
+                    return String.format("%4d", row + 1);
+                case 1:
+                    msg = getBlockType(row);
+                    break;
+                case 2:
+                    msg = getBlockInfo(row);
+                    break;
+                default:
+                    return "NON EXISTANT COLUMN!";
+            }
+            return msg;
+        }
+
+        @Override
+        public String getColumnName(int col) {
+            java.util.ResourceBundle bundle = 
+                java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+
+            String msg;
+
+            switch (col) {
+                case 0:
+                    msg = bundle.getString("JSpeccy.tapeCatalog.columnModel.title0");
+                    break;
+                case 1:
+                    msg = bundle.getString("JSpeccy.tapeCatalog.columnModel.title1");
+                    break;
+                case 2:
+                    msg = bundle.getString("JSpeccy.tapeCatalog.columnModel.title2");
+                    break;
+                default:
+                    msg = "COLUMN ERROR!";
+            }
+            return msg;
+        }
     }
 }

@@ -12,9 +12,11 @@ package gui;
 
 import java.awt.Component;
 import java.awt.Frame;
+import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionAdapter;
 import java.io.File;
 import java.util.ResourceBundle;
 import javax.swing.JDialog;
@@ -35,6 +37,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private MicrodriveTableModel tableModel;
     private JFileChooser cartridgeDlg;
     private File currentDir;
+    ExtensionFilter mdrExtension = new ExtensionFilter("CARTRIDGE_TYPE", ".mdr");
 
     /** Creates new form MicrodriveDialog */
     public MicrodriveDialog(Interface1 handler) {
@@ -43,6 +46,18 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         initComponents();
         MouseListener popupListener = new PopupListener();
         microdrivesTable.addMouseListener(popupListener);
+        microdrivesTable.addMouseMotionListener(new MouseMotionAdapter() {
+
+            @Override
+            public void mouseMoved(MouseEvent evt) {
+                int row = microdrivesTable.rowAtPoint(evt.getPoint());
+                microdrivesTable.setToolTipText(if1.getAbsolutePath(row));
+            }
+        });
+        
+        microdrivesTable.getColumnModel().getColumn(0).setPreferredWidth(25);
+        microdrivesTable.getColumnModel().getColumn(2).setPreferredWidth(25);
+        microdrivesTable.getColumnModel().getColumn(3).setPreferredWidth(25);
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -147,30 +162,24 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         microdrivesTable.getTableHeader().setResizingAllowed(false);
         microdrivesTable.getTableHeader().setReorderingAllowed(false);
         jScrollPane1.setViewportView(microdrivesTable);
-        microdrivesTable.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        microdrivesTable.getColumnModel().getColumn(0).setResizable(false);
-        microdrivesTable.getColumnModel().getColumn(1).setResizable(false);
-        microdrivesTable.getColumnModel().getColumn(1).setPreferredWidth(150);
-        microdrivesTable.getColumnModel().getColumn(2).setResizable(false);
-        microdrivesTable.getColumnModel().getColumn(3).setResizable(false);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE)
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 360, Short.MAX_VALUE)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(151, Short.MAX_VALUE)
+                .addContainerGap(150, Short.MAX_VALUE)
                 .addComponent(closeButton)
-                .addGap(140, 140, 140))
+                .addGap(144, 144, 144))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(closeButton)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(18, Short.MAX_VALUE))
         );
 
         add(jPanel1);
@@ -197,7 +206,8 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            cartridgeDlg.setFileFilter(new FileFilterCartridge());
+            cartridgeDlg.addChoosableFileFilter(mdrExtension);
+            cartridgeDlg.setFileFilter(mdrExtension);
             currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
@@ -243,7 +253,8 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            cartridgeDlg.setFileFilter(new FileFilterCartridge());
+            cartridgeDlg.addChoosableFileFilter(mdrExtension);
+            cartridgeDlg.setFileFilter(mdrExtension);
             currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
@@ -318,9 +329,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
 
     private class MicrodriveTableModel extends AbstractTableModel {
 
-//    private Tape tape;
         public MicrodriveTableModel() {
-            //tape = device;
         }
 
         @Override

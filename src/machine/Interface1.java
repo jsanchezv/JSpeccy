@@ -196,6 +196,14 @@ public class Interface1 {
         return microdrive[drive].getFilename();
     }
     
+    public String getAbsolutePath(int drive) {
+        if (drive < 0 || drive > 7)
+            return null;
+        
+//        System.out.println(String.format("filename: %s", microdrive[drive].getFilename()));
+        return microdrive[drive].getAbsolutePath();
+    }
+    
     public boolean insertNew(int drive) {
         if (drive <  0 || drive > 7)
             return false;

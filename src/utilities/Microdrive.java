@@ -295,6 +295,13 @@ public class Microdrive {
             return filename.getName();
     }
     
+    public final String getAbsolutePath() {
+        if (filename == null)
+            return null;
+        else
+            return filename.getAbsolutePath();
+    }
+    
     public final boolean save() {
 
         if (!isCartridge || !modified) {
