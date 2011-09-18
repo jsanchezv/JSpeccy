@@ -21,6 +21,7 @@ public enum MachineTypes {
     public CodeModel codeModel; // Código de modelo
     private String longModelName;   // Nombre largo del modelo de Spectrum
     private String shortModelName;   // Nombre corto del modelo de Spectrum
+    public int clockFreq;       // Clock frequency
     public int tstatesFrame;    // t-states por cuadro de la imagen
     public int tstatesLine;     // t-states por línea de imagen
     public int upBorderWidth;   // Número de líneas del borde superior
@@ -40,6 +41,7 @@ public enum MachineTypes {
             case 0: // Spectrum 16K
                 this.longModelName = "ZX Spectrum 16K";
                 this.shortModelName = "16k";
+                this.clockFreq = 3500000;
                 this.tstatesFrame = 69888;
                 this.tstatesLine = 224;
                 this.upBorderWidth = 64;
@@ -59,6 +61,7 @@ public enum MachineTypes {
             case 1: // Spectrum 48K
                 this.longModelName = "ZX Spectrum 48K";
                 this.shortModelName = "48k";
+                this.clockFreq = 3500000;
                 this.tstatesFrame = 69888;
                 this.tstatesLine = 224;
                 this.upBorderWidth = 64;
@@ -78,6 +81,7 @@ public enum MachineTypes {
             case 2: // Spectrum 128K
                 this.longModelName = "ZX Spectrum 128K";
                 this.shortModelName = "128";
+                this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -97,6 +101,7 @@ public enum MachineTypes {
             case 3: // Spectrum +2
                 this.longModelName = "Amstrad ZX Spectrum +2";
                 this.shortModelName = " +2";
+                this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -115,7 +120,8 @@ public enum MachineTypes {
                 break;
             case 4: // Spectrum +2A
                 this.longModelName = "ZX Spectrum +2A";
-                this.shortModelName = " +2A";
+                this.shortModelName = "+2A";
+                this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
@@ -135,6 +141,7 @@ public enum MachineTypes {
             case 5: // Spectrum +3
                 this.longModelName = "ZX Spectrum +3";
                 this.shortModelName = " +3";
+                this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;

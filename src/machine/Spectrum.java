@@ -749,7 +749,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             
             boolean tapePlaying = tape.isTapePlaying();
             if (tapePlaying) {
-                tape.notifyTstates(nFrame, z80.tEstados);
+                tape.notifyTstates(nFrame * spectrumModel.tstatesFrame + z80.tEstados);
                 if (enabledSound && specSettings.isLoadingNoise()) {
                     earBit = tape.getEarBit();
 

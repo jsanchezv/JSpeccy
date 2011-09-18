@@ -84,7 +84,7 @@ public class Tape {
     private final int ONE_LENGHT = 1710;
     private final int HEADER_PULSES = 8063;
     private final int DATA_PULSES = 3223;
-    private final int END_BLOCK_PAUSE = 3500000;
+    private int END_BLOCK_PAUSE = 3500000; // 1 sec pause
     // Variables para los tiempos de los ficheros TZX
     private int leaderLenght;
     private int leaderPulses;
@@ -124,6 +124,7 @@ public class Tape {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
+        END_BLOCK_PAUSE = spectrumModel.clockFreq;
     }
 
     public void setListSelectionModel(ListSelectionModel list) {
@@ -447,33 +448,37 @@ public class Tape {
         return tapeTableModel;
     }
 
-    public void notifyTstates(long frames, int tstates) {
-        long now = frames * spectrumModel.tstatesFrame + tstates;
+    public void notifyTstates(long tstates) {
         
-        if (timeLastIn == 0) {
-            timeLastIn = now;
+        if (timeLastIn == 0 || timeout == 0) {
+            timeLastIn = tstates;
             doPlay();
             return;
         }
         
+//        if (timeout == 0) {
+//            timeLastIn = tstates;
+//            return;
+//        }
         
-        timeout -= (now - timeLastIn);
+        timeout -= (tstates - timeLastIn);
 
-        timeLastIn = now;
+        timeLastIn = tstates;
 
         if (timeout > 0) {
             return;
         }
 
+//        System.out.println(String.format("(notifyTstates) timeout: %d", timeout));
         timeout = 0;
 
 //        if (tapeRecording) {
 //            recordPulse();
 //        }
 
-        if (tapePlaying) {
+//        if (tapePlaying) {
             doPlay();
-        }
+//        }
 
     }
 
@@ -1131,7 +1136,7 @@ public class Tape {
                     oneLenght = ONE_LENGHT;
                     bitsLastByte = 8;
                     endBlockPause = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                        + (tapeBuffer[tapePos + 2] << 8)) * (END_BLOCK_PAUSE / 1000);
                     if (endBlockPause == 0) {
                         endBlockPause = END_BLOCK_PAUSE;
                     }
@@ -1158,7 +1163,7 @@ public class Tape {
                         + (tapeBuffer[tapePos + 12] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 13];
                     endBlockPause = (tapeBuffer[tapePos + 14]
-                        + (tapeBuffer[tapePos + 15] << 8)) * 3500;
+                        + (tapeBuffer[tapePos + 15] << 8)) * (END_BLOCK_PAUSE / 1000);
                     blockLen = tapeBuffer[tapePos + 16]
                         + (tapeBuffer[tapePos + 17] << 8)
                         + (tapeBuffer[tapePos + 18] << 16);
@@ -1194,7 +1199,7 @@ public class Tape {
                         + (tapeBuffer[tapePos + 4] << 8));
                     bitsLastByte = tapeBuffer[tapePos + 5];
                     endBlockPause = (tapeBuffer[tapePos + 6]
-                        + (tapeBuffer[tapePos + 7] << 8)) * 3500;
+                        + (tapeBuffer[tapePos + 7] << 8)) * (END_BLOCK_PAUSE / 1000);
                     blockLen = tapeBuffer[tapePos + 8]
                         + (tapeBuffer[tapePos + 9] << 8)
                         + (tapeBuffer[tapePos + 10] << 16);
@@ -1207,7 +1212,7 @@ public class Tape {
                     zeroLenght = (tapeBuffer[tapePos + 1]
                         + (tapeBuffer[tapePos + 2] << 8));
                     endBlockPause = (tapeBuffer[tapePos + 3]
-                        + (tapeBuffer[tapePos + 4] << 8)) * 3500;
+                        + (tapeBuffer[tapePos + 4] << 8)) * (END_BLOCK_PAUSE / 1000);
                     bitsLastByte = tapeBuffer[tapePos + 5];
                     blockLen = tapeBuffer[tapePos + 6]
                         + (tapeBuffer[tapePos + 7] << 8)
@@ -1228,7 +1233,7 @@ public class Tape {
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
                     endBlockPause = (tapeBuffer[tapePos + 1]
-                        + (tapeBuffer[tapePos + 2] << 8)) * 3500;
+                        + (tapeBuffer[tapePos + 2] << 8)) * (END_BLOCK_PAUSE / 1000);
                     tapePos += 3;
                     statePlay = State.PAUSE_STOP;
                     idxHeader++;
