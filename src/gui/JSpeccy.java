@@ -1676,7 +1676,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 IF1MediaMenu.setEnabled(true);
                 mdrvLabel.setDisabledIcon(mdrOff);
             } else {
-                IF1MediaMenu.setEnabled(true);
+                IF1MediaMenu.setEnabled(false);
                 mdrvLabel.setDisabledIcon(null);
             }
             IF2MediaMenu.setEnabled(true);

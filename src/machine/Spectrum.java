@@ -649,8 +649,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             
             // Port 0xF7 (RS232/Network Port)
             if ((port & 0x0018) == 0x10) {
-                System.out.println(String.format("IN from RS232/Net. PC = %04x",
-                    z80.getRegPC()));
+//                System.out.println(String.format("IN from RS232/Net. PC = %04x",
+//                    z80.getRegPC()));
                 return if1.readLanPort();
             }
         }
@@ -865,8 +865,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 
                 // Port 0xF7 (RS232/Network Port)
                 if ((port & 0x0018) == 0x10) {
-                    System.out.println(String.format("OUT to RS232/Net: %02x. PC = %04x",
-                        value, z80.getRegPC()));
+//                    System.out.println(String.format("OUT to RS232/Net: %02x. PC = %04x",
+//                        value, z80.getRegPC()));
                     if1.writeLanPort(value);
                     return;
                 }
