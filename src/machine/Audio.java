@@ -22,7 +22,7 @@ import javax.sound.sampled.SourceDataLine;
 import configuration.AY8912Type;
 
 class Audio {
-    static final int FREQ = 32000;
+    private int samplingFrequency;
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
@@ -31,7 +31,7 @@ class Audio {
     private final byte[] buf = new byte[4096];
     private final int[] beeper = new int[1024];
     // Un frame completo lleno de ceros para enviarlo como aperitivo.
-    private byte[] nullbuf;
+//    private byte[] nullbuf;
     // Buffer de sonido para el AY
     private final int[] ayBufA = new int[1024];
     private final int[] ayBufB = new int[1024];
@@ -50,9 +50,11 @@ class Audio {
     Audio(AY8912Type ayConf) {
        settings = ayConf;
        line = null;
+       samplingFrequency = 32000;
     }
     
-    synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY) {
+    synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY, int freq) {
+        samplingFrequency = freq;
         soundMode = settings.getSoundMode();
         if (soundMode < 0 || soundMode > 3)
             soundMode = 0;
@@ -62,7 +64,7 @@ class Audio {
 
         if (line == null) {
             try {
-                fmt = new AudioFormat(FREQ, 16, channels, true, false);
+                fmt = new AudioFormat(samplingFrequency, 16, channels, true, false);
                 System.out.println(fmt);
                 infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
                 sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
@@ -72,9 +74,9 @@ class Audio {
             spectrumModel = model;
             enabledAY = hasAY;
             timeRem = 0.0f;
-            samplesPerFrame = FREQ / 50;
+            samplesPerFrame = samplingFrequency / 50;
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
-            nullbuf = new byte[samplesPerFrame * 2 * channels];
+//            nullbuf = new byte[samplesPerFrame * 2 * channels];
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
@@ -92,7 +94,7 @@ class Audio {
             }
 
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
-            ay8912.setAudioFreq(FREQ);
+            ay8912.setAudioFreq(samplingFrequency);
             ay8912.setSpectrumModel(spectrumModel);
             ay8912.reset();
         }
@@ -146,7 +148,7 @@ class Audio {
                 // lleno de ceros.
                 if (!line.isRunning()) {
                     line.start();
-                    line.write(nullbuf, 0, nullbuf.length); // y una magdalena
+//                    line.write(nullbuf, 0, nullbuf.length); // y una magdalena
                 }
                 line.write(buf, 0, len);
             }
@@ -175,7 +177,7 @@ class Audio {
             bufp++;
         }
 
-        if (bufp != samplesPerFrame) {
+        if (bufp > samplesPerFrame) {
 //            System.out.println(String.format("El buffer del beeper tenía %d samples", bufp));
             bufp = samplesPerFrame;
         }
@@ -340,9 +342,6 @@ class Audio {
     public void reset() {
         audiotstates = 0;
         bufp = 0;
-//        java.util.Arrays.fill(ayBufA, 0);
-//        java.util.Arrays.fill(ayBufB, 0);
-//        java.util.Arrays.fill(ayBufC, 0);
         java.util.Arrays.fill(beeper, 0);
         java.util.Arrays.fill(buf, (byte)0);
     }

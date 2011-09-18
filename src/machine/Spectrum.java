@@ -40,7 +40,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode;
-    private long nFrame, framesByInt, speedometer, speed, prevSpeed;
+    private long nFrame, framesByInt, speedometer, speed, prevSpeed, acumLoss;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
             new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
@@ -246,6 +246,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
+        acumLoss = 0;
     }
 
     public synchronized void stopEmulation() {
@@ -476,7 +477,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             if (nFrame % 50 == 0) {
                 long now = System.currentTimeMillis();
-                speed = 100000 / (now - speedometer);
+                long diff = now - speedometer;
+                speed = 100000 / diff;
+                if ((diff - 1000) > 4) {
+                    acumLoss += (diff - 1000);
+                    System.out.println(String.format("Time: %d Diff: %d acumLoss: %d",
+                        now, diff, acumLoss));
+                }
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -487,8 +494,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                             speedLabel.setText(String.format("%4d%%", speed));
                         }
                     });
-//                    System.out.println(String.format("Time: %d Speed: %d%%",now, speed));
+//                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
                 }
+
+                if (acumLoss > 14 && framesByInt == 1) {
+                    System.out.println(String.format("acumLoss = %d. Generate additional frame",
+                        acumLoss));
+                    generateFrame();
+                    nFrame--;
+                    acumLoss = 0;
+                }
+
             }
         } while (--counter > 0);
 
@@ -1439,7 +1455,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             return;
         }
 
-        audio.open(spectrumModel, ay8912, enabledAY);
+        audio.open(spectrumModel, ay8912, enabledAY,
+            settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
         enabledSound = true;
     }
 
@@ -1470,18 +1487,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void toggleTape() {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                if (tape.isTapeReady()) {
-                    tape.play();
-                } else {
-                    tape.stop();
-                }
-            }
-        });
-
+        if (tape.isTapeReady()) {
+            tape.play();
+        } else {
+            tape.stop();
+        }
     }
 
     static {

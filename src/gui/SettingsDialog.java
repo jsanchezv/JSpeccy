@@ -50,6 +50,8 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         loadingNoise.setSelected(settings.getSpectrumSettings().isLoadingNoise());
 
+        hifiSound.setSelected(settings.getSpectrumSettings().isHifiSound());
+
         flashload.setSelected(settings.getTapeSettings().isFlashload());
 
         acceleratedLoad.setSelected(settings.getTapeSettings().isAccelerateLoading());
@@ -149,6 +151,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         audioPanel = new javax.swing.JPanel();
         soundMuted = new javax.swing.JCheckBox();
         loadingNoise = new javax.swing.JCheckBox();
+        hifiSound = new javax.swing.JCheckBox();
         AY8912Panel = new javax.swing.JPanel();
         AYEnabled48k = new javax.swing.JPanel();
         enabledAY48k = new javax.swing.JCheckBox();
@@ -280,6 +283,14 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         audioPanel.add(loadingNoise);
+
+        hifiSound.setText(bundle.getString("SettingsDialog.audioPanel.hifiSound.text")); // NOI18N
+        hifiSound.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                hifiSoundActionPerformed(evt);
+            }
+        });
+        audioPanel.add(hifiSound);
 
         soundPanelTab.add(audioPanel);
 
@@ -619,6 +630,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setMf128On48K(multiface128RadioButton.isSelected());
     }//GEN-LAST:event_multifaceOneRadioButtonActionPerformed
 
+    private void hifiSoundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hifiSoundActionPerformed
+        settings.getSpectrumSettings().setHifiSound(hifiSound.isSelected());
+    }//GEN-LAST:event_hifiSoundActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -640,6 +655,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox enabledAY48k;
     private javax.swing.JCheckBox flashload;
     private javax.swing.JPanel hardwarePanelTab;
+    private javax.swing.JCheckBox hifiSound;
     private javax.swing.JRadioButton highSampling;
     private javax.swing.JPanel highSpeedPanel;
     private javax.swing.JRadioButton issue2;

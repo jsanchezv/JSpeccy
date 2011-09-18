@@ -1428,9 +1428,11 @@ public class JSpeccy extends javax.swing.JFrame {
     private void settingsOptionsMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_settingsOptionsMenuActionPerformed
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         int AYsoundMode = settings.getAY8912Settings().getSoundMode();
+        boolean hifiSound = settings.getSpectrumSettings().isHifiSound();
         settingsDialog.showDialog(this, bundle.getString("SETTINGS_DIALOG_TITLE"));
         spectrum.loadConfigVars();
-        if (AYsoundMode !=  settings.getAY8912Settings().getSoundMode() &&
+        if ((AYsoundMode !=  settings.getAY8912Settings().getSoundMode() ||
+            hifiSound != settings.getSpectrumSettings().isHifiSound()) &&
             !spectrum.isMuteSound()) {
             spectrum.muteSound(true);
             spectrum.muteSound(false);
