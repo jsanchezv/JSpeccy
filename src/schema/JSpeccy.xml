@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 23 de diciembre de 2010, 11:16
+    Created on : 9 de junio de 2011, 13:49
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -23,6 +23,7 @@
         <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
         <ns0:mf128on48K>false</ns0:mf128on48K>
         <ns0:hifiSound>false</ns0:hifiSound>
+        <ns0:connectedIF1>false</ns0:connectedIF1>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>
@@ -38,6 +39,7 @@
         <ns0:RomMF1>mf1.rom</ns0:RomMF1>
         <ns0:RomMF128>mf128.rom</ns0:RomMF128>
         <ns0:RomMFPlus3>mfplus3.rom</ns0:RomMFPlus3>
+        <ns0:RomIF1>if1.rom</ns0:RomIF1>
     </ns0:MemorySettings>
     <ns0:TapeSettings>
         <ns0:flashload>true</ns0:flashload>

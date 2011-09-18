@@ -32,6 +32,7 @@
             <xsd:element name="multifaceEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="mf128on48K" default="false" type="xsd:boolean"/>
             <xsd:element name="hifiSound" type="xsd:boolean" default="false"/>
+            <xsd:element name="connectedIF1" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">
@@ -49,6 +50,7 @@
             <xsd:element name="RomMF1" type="xsd:string" default="mf1.rom"/>
             <xsd:element name="RomMF128" type="xsd:string" default="mf128.rom"/>
             <xsd:element name="RomMFPlus3" type="xsd:string" default="mfplus3.rom"/>
+            <xsd:element name="RomIF1" default="if1.rom" type="xsd:string"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="TapeType">

@@ -99,6 +99,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         } else {
             multifaceOneRadioButton.setSelected(true);
         }
+        
+        connectedIF1.setSelected(settings.getSpectrumSettings().isConnectedIF1());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -186,6 +188,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         jPanel1 = new javax.swing.JPanel();
         multifaceOneRadioButton = new javax.swing.JRadioButton();
         multiface128RadioButton = new javax.swing.JRadioButton();
+        IF1PanelTab = new javax.swing.JPanel();
+        connectedIF1Panel = new javax.swing.JPanel();
+        connectedIF1 = new javax.swing.JCheckBox();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -466,9 +471,8 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.keyboardPanel.TabTitle"), keyboardPanelTab); // NOI18N
 
+        multifacePanelTab.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifacePanel.border.text"))); // NOI18N
         multifacePanelTab.setLayout(new javax.swing.BoxLayout(multifacePanelTab, javax.swing.BoxLayout.PAGE_AXIS));
-
-        multifacePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifacePanel.border.text"))); // NOI18N
 
         multifaceEnabled.setText(bundle.getString("SettingsDialog.multifacePanel.enabled.text")); // NOI18N
         multifaceEnabled.addActionListener(new java.awt.event.ActionListener() {
@@ -514,6 +518,22 @@ public class SettingsDialog extends javax.swing.JPanel {
         multifacePanelTab.add(multifaceModelPanel);
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.multifacePanel.TabTitle"), multifacePanelTab); // NOI18N
+
+        IF1PanelTab.setLayout(new javax.swing.BoxLayout(IF1PanelTab, javax.swing.BoxLayout.PAGE_AXIS));
+
+        connectedIF1Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.connectedIF1.border.text"))); // NOI18N
+
+        connectedIF1.setText(bundle.getString("SettingsDialog.connectedIF1Panel.enabled.text")); // NOI18N
+        connectedIF1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                connectedIF1ActionPerformed(evt);
+            }
+        });
+        connectedIF1Panel.add(connectedIF1);
+
+        IF1PanelTab.add(connectedIF1Panel);
+
+        jTabbedPane1.addTab("ZX Interface I", IF1PanelTab);
 
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -634,6 +654,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setHifiSound(hifiSound.isSelected());
     }//GEN-LAST:event_hifiSoundActionPerformed
 
+    private void connectedIF1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectedIF1ActionPerformed
+        settings.getSpectrumSettings().setConnectedIF1(connectedIF1.isSelected());
+    }//GEN-LAST:event_connectedIF1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -644,11 +668,14 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton AYMonoMode;
     private javax.swing.JPanel AYStereoMode;
     private javax.swing.ButtonGroup AYStereoModeButtonGroup;
+    private javax.swing.JPanel IF1PanelTab;
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
     private javax.swing.JPanel audioPanel;
     private javax.swing.JPanel buttonPanel;
     private javax.swing.JButton closeButton;
+    private javax.swing.JCheckBox connectedIF1;
+    private javax.swing.JPanel connectedIF1Panel;
     private javax.swing.JPanel defaultModelPanel;
     private javax.swing.JCheckBox doubleSize;
     private javax.swing.JCheckBox enableSaveTraps;

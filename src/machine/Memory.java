@@ -779,8 +779,8 @@ public final class Memory {
         if (!loadRomAsFile(romsDirectory + conf.getRom48K(), Rom48k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/spectrum.rom", Rom48k, 0, PAGE_SIZE * 2);
         
-        if (!loadRomAsFile(romsDirectory + "if1v2.rom", IF1Rom, 0, PAGE_SIZE))
-            loadRomAsResource("/roms/if1v2.rom", IF1Rom, 0, PAGE_SIZE);
+        if (!loadRomAsFile(romsDirectory + conf.getRomIF1(), IF1Rom, 0, PAGE_SIZE))
+            loadRomAsResource("/roms/if1.rom", IF1Rom, 0, PAGE_SIZE);
 
         if (!loadRomAsFile(romsDirectory + conf.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2))
             loadRomAsResource("/roms/128-0.rom", Rom128k, 0, PAGE_SIZE * 2);

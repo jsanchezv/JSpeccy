@@ -155,10 +155,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             case SPECTRUM48K:
                 buildScreenTables48k();
                 enabledAY = specSettings.isAYEnabled48K();
+                connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
                 break;
             case SPECTRUM128K:
                 buildScreenTables128k();
-
+                connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
@@ -212,7 +213,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         loadTrap = settings.getTapeSettings().isFlashload();
-        connectedIF1 = true;
+        connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
     }
     /*
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
@@ -677,13 +678,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         // Interface I
         if (connectedIF1) {
             if ((port & 0x0018) == 0) {
-                System.out.println(String.format("IN from %04x", port));
+                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
             }
             if ((port & 0x0018) == 0x08) {
-                System.out.println(String.format("IN from %04x", port));
+                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
             }
             if ((port & 0x0018) == 0x10) {
-                System.out.println(String.format("IN from %04x", port));
+                System.out.println(String.format("IN from %02x. PC = %04x", port & 0xff, z80.getRegPC()));
             }
         }
         
@@ -868,13 +869,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             // Interface I
             if (connectedIF1) {
                 if ((port & 0x0018) == 0) {
-                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
                 }
                 if ((port & 0x0018) == 0x08) {
-                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
                 }
                 if ((port & 0x0018) == 0x10) {
-                    System.out.println(String.format("OUT to %04x: %02x", port, value));
+                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x", port & 0xff, value, z80.getRegPC()));
                 }
             }
         
