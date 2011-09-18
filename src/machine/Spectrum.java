@@ -129,6 +129,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         resetPending = hardResetPending = false;
 
+        loadConfigVars();
+
         timerFrame = new Timer("SpectrumClock", true);
     }
 
@@ -220,7 +222,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void startEmulation() {
-        loadConfigVars();
         ay8912.reset();
         audio.reset();
         enableSound();
@@ -397,12 +398,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         lastChgBorder = spectrumModel.firstBorderUpdate;
 
         do {
-            z80.setINTLine(true);
-            z80.execute(spectrumModel.lengthINT);
+            // Cuando se entra desde una carga de snapshot los t-states pueden
+            // no ser 0 y el frame estar a mitad (pojemplo)
+            if (z80.tEstados < spectrumModel.lengthINT) {
+                z80.setINTLine(true);
+                z80.execute(spectrumModel.lengthINT);
+            }
             z80.setINTLine(false);
 
-            z80.execute(spectrumModel.firstScrByte);
-            updateScreen(spectrumModel.firstScrUpdate, z80.tEstados);
+            if (z80.tEstados < spectrumModel.firstScrByte) {
+                z80.execute(spectrumModel.firstScrByte);
+                updateScreen(spectrumModel.firstScrUpdate, z80.tEstados);
+            }
 
             //System.out.println(String.format("t-states: %d", z80.tEstados));
             //int fromTstates;
@@ -1045,6 +1052,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             doReset();
 
             switch (snap.getSnapshotModel()) {
+                case SPECTRUM16K:
+                    selectHardwareModel(MachineTypes.SPECTRUM16K, false);
+                    break;
                 case SPECTRUM48K:
                     selectHardwareModel(MachineTypes.SPECTRUM48K, false);
                     break;
@@ -1054,42 +1064,48 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 case SPECTRUMPLUS2:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS2, false);
                     break;
+                case SPECTRUMPLUS2A:
+                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, false);
+                    break;
                 case SPECTRUMPLUS3:
                     selectHardwareModel(MachineTypes.SPECTRUMPLUS3, false);
                     break;
             }
 
-            z80.setRegI(snap.getRegI());
-            z80.setRegHLalt(snap.getRegHLalt());
-            z80.setRegDEalt(snap.getRegDEalt());
-            z80.setRegBCalt(snap.getRegBCalt());
-            z80.setRegAFalt(snap.getRegAFalt());
-            z80.setRegHL(snap.getRegHL());
-            z80.setRegDE(snap.getRegDE());
-            z80.setRegBC(snap.getRegBC());
-            z80.setRegIY(snap.getRegIY());
-            z80.setRegIX(snap.getRegIX());
-
-            z80.setIFF2(snap.getIFF2());
-            z80.setIFF1(snap.getIFF1());
-
-            z80.setRegR(snap.getRegR());
             z80.setRegAF(snap.getRegAF());
+            z80.setRegBC(snap.getRegBC());
+            z80.setRegDE(snap.getRegDE());
+            z80.setRegHL(snap.getRegHL());
+
+            z80.setRegAFalt(snap.getRegAFalt());
+            z80.setRegBCalt(snap.getRegBCalt());
+            z80.setRegDEalt(snap.getRegDEalt());
+            z80.setRegHLalt(snap.getRegHLalt());
+
+            z80.setRegIX(snap.getRegIX());
+            z80.setRegIY(snap.getRegIY());
+
             z80.setRegSP(snap.getRegSP());
+            z80.setRegPC(snap.getRegPC());
+
+            z80.setRegI(snap.getRegI());
+            z80.setRegR(snap.getRegR());
+            
             z80.setIM(snap.getModeIM());
+            z80.setIFF1(snap.getIFF1());
+            z80.setIFF2(snap.getIFF2());
+
+            z80.setTEstados(snap.getTstates());
 
             int border = snap.getBorder();
             portFE &= 0xf8;
             portFE |= border;
 
-            // Solo los 48k pueden ser Issue2. El resto son todos Issue3.
-            if (snap.getSnapshotModel() == MachineTypes.SPECTRUM48K) {
-                issue2 = !snap.isIssue3();
-                specSettings.setIssue2(issue2);
+            // Solo los 16k/48k pueden ser Issue2. El resto son todos Issue3.
+            issue2 = false;
+            if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                issue2 = snap.isIssue2();
             }
-
-            z80.setRegPC(snap.getRegPC());
-            z80.setTEstados(snap.getTstates());
 
             Joystick snapJoystick = snap.getJoystick();
             if (snapJoystick != Joystick.NONE) {
@@ -1097,22 +1113,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 setJoystick(joystick);
             }
 
-            if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
+            if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
                 port7ffd = snap.getPort7ffd();
                 memory.setPort7ffd(port7ffd);
-                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                     port1ffd = snap.getPort1ffd();
                     memory.setPort1ffd(port1ffd);
                     if (memory.isPlus3RamMode()) {
-                        switch ((port1ffd & 0x06) >> 1) {
+                        switch (port1ffd & 0x06) {
                             case 0:
                                 Arrays.fill(contendedRamPage, false);
                                 break;
-                            case 1:
+                            case 2:
                                 Arrays.fill(contendedRamPage, true);
                                 break;
-                            case 2:
-                            case 3:
+                            case 4:
+                            case 6:
                                 Arrays.fill(contendedRamPage, true);
                                 contendedRamPage[3] = false;
                         }
@@ -1136,6 +1152,40 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 ay8912.setAddressLatch(snap.getPortfffd());
             }
 
+            if (snap.isULAplus()) {
+                ULAplusOn = true;
+                ULAplusMode = snap.isULAplusEnabled();
+                paletteGroup = snap.getULAplusRegister();
+                for (int register = 0; register < 64; register++) {
+                    int color = snap.getULAplusColor(register);
+                    ULAplus[register >>> 4][register & 0x0f] = color;
+                    int blue = (color & 0x03) << 1;
+                    if ((color & 0x01) == 0x01) {
+                        blue |= 0x01;
+                    }
+                    blue = (blue << 5) | (blue << 2) | (blue & 0x03);
+                    int red = (color & 0x1C) >> 2;
+                    red = (red << 5) | (red << 2) | (red & 0x03);
+                    int green = (color & 0xE0) >> 5;
+                    green = (green << 5) | (green << 2) | (green & 0x03);
+                    ULAplusPalette[register >>> 4][register & 0x0f] =
+                        (red << 16) | (green << 8) | blue;
+                }
+            }
+
+            if (snap.isMultiface()) {
+                multiface = true;
+//                settings.getSpectrumSettings().setMultifaceEnabled(true);
+                mf128on48k = snap.isMF128on48k();
+                settings.getSpectrumSettings().setMf128On48K(mf128on48k);
+                if (snap.isMFPagedIn()) {
+                    memory.multifacePageIn();
+                }
+                memory.setMultifaceLocked(snap.isMFLockout());
+            }
+
+            invalidateScreen(true);
+
 //            System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
 //                    "SNAPSHOT_LOADED"));
         } else {
@@ -1149,30 +1199,34 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         Snapshots snap = new Snapshots();
 
         snap.setSnapshotModel(spectrumModel);
-        snap.setRegI(z80.getRegI());
-        snap.setRegHLalt(z80.getRegHLalt());
-        snap.setRegDEalt(z80.getRegDEalt());
-        snap.setRegBCalt(z80.getRegBCalt());
-        snap.setRegAFalt(z80.getRegAFalt());
-        snap.setRegHL(z80.getRegHL());
-        snap.setRegDE(z80.getRegDE());
-        snap.setRegBC(z80.getRegBC());
-        snap.setRegIY(z80.getRegIY());
-        snap.setRegIX(z80.getRegIX());
 
-        snap.setIFF2(z80.isIFF2());
-        snap.setIFF1(z80.isIFF1());
-
-        snap.setRegR(z80.getRegR());
         snap.setRegAF(z80.getRegAF());
+        snap.setRegBC(z80.getRegBC());
+        snap.setRegDE(z80.getRegDE());
+        snap.setRegHL(z80.getRegHL());
+
+        snap.setRegAFalt(z80.getRegAFalt());
+        snap.setRegBCalt(z80.getRegBCalt());
+        snap.setRegDEalt(z80.getRegDEalt());
+        snap.setRegHLalt(z80.getRegHLalt());
+
+        snap.setRegIX(z80.getRegIX());
+        snap.setRegIY(z80.getRegIY());
+
         snap.setRegSP(z80.getRegSP());
+        snap.setRegPC(z80.getRegPC());
+
+        snap.setRegI(z80.getRegI());
+        snap.setRegR(z80.getRegR());
+        
+        snap.setIFF1(z80.isIFF1());
+        snap.setIFF2(z80.isIFF2());
         snap.setModeIM(z80.getIM());
         snap.setBorder(portFE & 0x07);
 
-        snap.setRegPC(z80.getRegPC());
         snap.setTstates(z80.getTEstados());
         snap.setJoystick(joystick);
-        snap.setIssue3(!issue2);
+        snap.setIssue2(issue2);
 
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);

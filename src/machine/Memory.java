@@ -107,6 +107,14 @@ public final class Memory {
         System.arraycopy(source, 0, buffer, PAGE_SIZE, PAGE_SIZE);
     }
 
+    public void loadMFRam(byte[] buffer) {
+        System.arraycopy(buffer, 0, mfRAM, 0, mfRAM.length);
+    }
+
+    public void saveMFRam(byte[] buffer) {
+        System.arraycopy(mfRAM, 0, buffer, 0, buffer.length);
+    }
+
     private void setMemoryMap16k() {
         readPages[0] = Rom48k[0];
         readPages[1] = Rom48k[1];

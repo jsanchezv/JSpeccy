@@ -1387,7 +1387,7 @@ public class Tape {
             record.write(byteTmp);
         }
 
-        System.out.println(String.format("Record size: %d", record.size()));
+//        System.out.println(String.format("Record size: %d", record.size()));
 
         BufferedOutputStream fOut = null;
         try {
@@ -1406,7 +1406,7 @@ public class Tape {
                 fOut.write(0x20);
             }
             // Y ahora la cabecera de Direct Data Recording
-            fOut.write(0x15); // TZX ID: Normal Speed Block
+            fOut.write(0x15); // TZX ID: Direct Recording Block
             fOut.write(settings.isHighSamplingFreq() ? 79 : 158);
             fOut.write(0x00); // T-states per sample
             fOut.write(0x00);
@@ -1415,8 +1415,7 @@ public class Tape {
             fOut.write(record.size());
             fOut.write(record.size() >>> 8);
             fOut.write(record.size() >>> 16);
-
-            fOut.write(record.toByteArray());
+            record.writeTo(fOut);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {

@@ -1056,8 +1056,9 @@ public class JSpeccy extends javax.swing.JFrame {
         if (status == JFileChooser.APPROVE_OPTION) {
             File selectedFile = openSnapshotDlg.getSelectedFile();
             settings.getRecentFilesSettings().setLastSnapshotDir(lastSnapshotDir);
-            if (selectedFile.getName().toLowerCase().endsWith(".sna")
-                || selectedFile.getName().toLowerCase().endsWith(".z80")) {
+            if (selectedFile.getName().toLowerCase().endsWith(".sna") ||
+                selectedFile.getName().toLowerCase().endsWith(".z80") ||
+                selectedFile.getName().toLowerCase().endsWith(".szx")) {
                 currentDirSnapshot = openSnapshotDlg.getCurrentDirectory();
                 lastSnapshotDir = openSnapshotDlg.getCurrentDirectory().getAbsolutePath();
                 rotateRecentFile(selectedFile);
@@ -1475,8 +1476,9 @@ public class JSpeccy extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, bundle.getString("RECENT_FILE_ERROR"),
                 bundle.getString("RECENT_FILE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE); //NOI18N
         } else {
-            if (recentFile[idx].getName().toLowerCase().endsWith(".sna")
-                || recentFile[idx].getName().toLowerCase().endsWith(".z80")) {
+            if (recentFile[idx].getName().toLowerCase().endsWith(".sna") ||
+                recentFile[idx].getName().toLowerCase().endsWith(".z80") ||
+                recentFile[idx].getName().toLowerCase().endsWith(".szx")) {
                 boolean paused = spectrum.isPaused();
 
                 if (!paused) {

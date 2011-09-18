@@ -6,6 +6,7 @@ package utilities;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.InflaterInputStream;
 import machine.MachineTypes;
 import machine.Memory;
 import machine.Spectrum.Joystick;
@@ -30,15 +32,22 @@ public class Snapshots {
     private int regI, regR, modeIM;
     private boolean iff1, iff2;
     private int last7ffd;
-    private boolean enabledAY;
-    private int lastfffd;
     private int last1ffd;
-    int psgRegs[] = new int[16];
+    private boolean enabledAY;
+    // AY support
+    private int lastfffd;
+    private int psgRegs[] = new int[16];
+    // Multiface support
+    private boolean haveMultiface, mfPagedIn, mf128on48k, mfLockout;
+    // ULAplus support
+    private boolean ULAplus, ULAplusEnabled;
+    private int ULAplusRegister, ULAplusPalette[] = new int[64];
+
     private MachineTypes snapshotModel;
     private int border;
     private int tstates;
     private Joystick joystick;
-    private boolean issue3;
+    private boolean issue2;
     private BufferedInputStream fIn;
     private BufferedOutputStream fOut;
     private boolean snapLoaded;
@@ -53,7 +62,8 @@ public class Snapshots {
         "FILE_WRITE_ERROR",
         "SNA_REGSP_ERROR",
         "SNAP_EXTENSION_ERROR",
-        "SNA_DONT_SUPPORT_PLUS3"
+        "SNA_DONT_SUPPORT_PLUS3",
+        "SZX_RAMP_SIZE_ERROR"
     };
 
     public Snapshots() {
@@ -273,12 +283,76 @@ public class Snapshots {
         joystick = model;
     }
 
-    public boolean isIssue3() {
-        return issue3;
+    public boolean isIssue2() {
+        return issue2;
     }
 
-    public void setIssue3(boolean version) {
-        issue3 = version;
+    public void setIssue2(boolean version) {
+        issue2 = version;
+    }
+
+    public boolean isMultiface() {
+        return haveMultiface;
+    }
+
+    public void setMultiface(boolean haveMF) {
+        haveMultiface = haveMF;
+    }
+
+    public boolean isMFPagedIn() {
+        return mfPagedIn;
+    }
+
+    public void setMFPagedIn(boolean mf) {
+        mfPagedIn = mf;
+    }
+
+    public boolean isMF128on48k() {
+        return mf128on48k;
+    }
+
+    public void setMF128on48k(boolean mf128) {
+        mf128on48k = mf128;
+    }
+
+    public boolean isMFLockout() {
+        return mfLockout;
+    }
+
+    public void setMFlockout(boolean mf) {
+        mfLockout = mf;
+    }
+
+    public boolean isULAplus() {
+        return ULAplus;
+    }
+
+    public void setULAplus(boolean ulaplus) {
+        ULAplus = ulaplus;
+    }
+
+    public boolean isULAplusEnabled() {
+        return ULAplusEnabled;
+    }
+
+    public void setULAplusEnabled(boolean state) {
+        ULAplusEnabled = state;
+    }
+
+    public int getULAplusRegister() {
+        return ULAplusRegister;
+    }
+
+    public void setULAplusRegister(int register) {
+        ULAplusRegister = register;
+    }
+
+    public int getULAplusColor(int register) {
+        return ULAplusPalette[register];
+    }
+
+    public void setULAplusColor(int register, int color) {
+        ULAplusPalette[register] = color;
     }
 
     public String getErrorString() {
@@ -290,8 +364,13 @@ public class Snapshots {
         if (filename.getName().toLowerCase().endsWith(".sna")) {
             return loadSNA(filename, memory);
         }
+
         if (filename.getName().toLowerCase().endsWith(".z80")) {
             return loadZ80(filename, memory);
+        }
+
+        if (filename.getName().toLowerCase().endsWith(".szx")) {
+            return loadSZX(filename, memory);
         }
         error = 1;
         return false;
@@ -483,9 +562,10 @@ public class Snapshots {
 
             fIn.close();
 
-            issue3 = true; // esto no se guarda en los SNA, algo hay que poner...
+            issue2 = false; // esto no se guarda en los SNA, algo hay que poner...
             joystick = Joystick.NONE; // idem
             tstates = 0;
+            mfPagedIn = mf128on48k = false;
 
         } catch (IOException ex) {
             error = 4;
@@ -733,10 +813,10 @@ public class Snapshots {
             regAFalt = (z80Header1[22] & 0xff) | (z80Header1[21] << 8) & 0xffff;
             regIY = (z80Header1[23] & 0xff) | (z80Header1[24] << 8) & 0xffff;
             regIX = (z80Header1[25] & 0xff) | (z80Header1[26] << 8) & 0xffff;
-            iff1 = z80Header1[27] != 0 ? true : false;
-            iff2 = z80Header1[28] != 0 ? true : false;
+            iff1 = z80Header1[27] != 0;
+            iff2 = z80Header1[28] != 0;
             modeIM = z80Header1[29] & 0x03;
-            issue3 = (z80Header1[29] & 0x04) == 0 ? true : false;
+            issue2 = (z80Header1[29] & 0x04) != 0;
             switch (z80Header1[29] >>> 6) {
                 case 0: // Cursor/AGF/Protek Joystick
                     // No es lo que dice la especificación, pero lo prefiero...
@@ -757,7 +837,6 @@ public class Snapshots {
                 byte pageBuffer[] = new byte[0x4000];
                 snapshotModel = MachineTypes.SPECTRUM48K;
                 memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
-                memory.reset();
                 if ((z80Header1[12] & 0x20) == 0) { // el bloque no está comprimido
 
                     // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
@@ -910,9 +989,9 @@ public class Snapshots {
                 }
 
                 memory.setSpectrumModel(snapshotModel);
-                memory.reset();
+
                 last7ffd = z80Header2[3] & 0xff;
-                enabledAY = (z80Header2[5] & 0x04) != 0 ? true : false;
+                enabledAY = (z80Header2[5] & 0x04) != 0;
                 lastfffd = z80Header2[6] & 0xff;
                 for (int idx = 0; idx < 16; idx++) {
                     psgRegs[idx] = z80Header2[7 + idx] & 0xff;
@@ -1027,7 +1106,7 @@ public class Snapshots {
             z80HeaderV3[28] = (byte) (iff2 ? 0x01 : 0x00);
             z80HeaderV3[29] = (byte) modeIM;
 
-            if (!issue3) {
+            if (!issue2) {
                 z80HeaderV3[29] |= 0x04;
             }
             switch (joystick) {
@@ -1143,6 +1222,316 @@ public class Snapshots {
 
         } catch (IOException ex) {
             error = 6;
+            return false;
+        }
+
+        return true;
+    }
+
+    // SZX Section
+    private static final int ZXST_HEADER = 0x5453585A; // ZXST
+    private static final int ZXSTMID_16K = 0;
+    private static final int ZXSTMID_48K = 1;
+    private static final int ZXSTMID_128K = 2;
+    private static final int ZXSTMID_PLUS2 = 3;
+    private static final int ZXSTMID_PLUS2A = 4;
+    private static final int ZXSTMID_PLUS3 = 5;
+
+    private static final int ZXSTBID_CREATOR = 0x52545243;   // CRTR
+
+    private static final int ZXSTBID_Z80REGS = 0x5230385A;   // Z80R
+    private static final int ZXSTZF_EILAST = 1;
+    private static final int ZXSTZF_HALTED = 2;
+
+    private static final int ZXSTBID_SPECREGS = 0x52435053;  // SPCR
+
+    private static final int ZXSTBID_KEYBOARD = 0x4259454B;  // KEYB
+    private static final int ZXSTKF_ISSUE2 = 1;
+    private static final int ZXSKJT_KEMPSTON = 0;
+    private static final int ZXSKJT_FULLER = 1;
+    private static final int ZXSKJT_CURSOR = 2;
+    private static final int ZXSKJT_SINCLAIR1 = 3;
+    private static final int ZXSKJT_SINCLAIR2 = 4;
+    private static final int ZXSKJT_SPECTRUMPLUS = 5;
+    private static final int ZXSKJT_TIMEX1 = 6;
+    private static final int ZXSKJT_TIMEX2 = 7;
+    private static final int ZXSKJT_DISABLED = 8;
+
+    private static final int ZXSTBID_JOYSTICK = 0x00594F4A;  // JOY\0
+    private static final int ZXSTJT_KEMPSTON = 0;
+    private static final int ZXSTJT_FULLER = 1;
+    private static final int ZXSTJT_CURSOR = 2;
+    private static final int ZXSTJT_SINCLAIR1 = 3;
+    private static final int ZXSTJT_SINCLAIR2 = 4;
+    private static final int ZXSTJT_COMCOM = 5;
+    private static final int ZXSTJT_TIMEX1 = 6;
+    private static final int ZXSTJT_TIMEX2 = 7;
+    private static final int ZXSTJT_DISABLED = 8;
+
+    private static final int ZXSTBID_AY = 0x00005941;        // AY\0\0
+    private static final int ZXSTAYF_FULLERBOX = 1;
+    private static final int ZXSTAYF_128AY = 2;
+
+    private static final int ZXSTBID_RAMPAGE = 0x504D4152;   // RAMP
+    private static final int ZXSTRF_COMPRESSED = 1;
+
+    private static final int ZXSTBID_MULTIFACE = 0x4543464D; // MFCE
+    private static final int ZXSTMFM_1 = 0;
+    private static final int ZXSTMFM_128 = 1;
+    private static final int ZXSTMF_PAGEDIN = 0x01;
+    private static final int ZXSTMF_COMPRESSED = 0x02;
+    private static final int ZXSTMF_SOFTWARELOCKOUT = 0x04;
+    private static final int ZXSTMF_REDBUTTONDISABLED = 0x08;
+    private static final int ZXSTMF_DISABLED = 0x10;
+    private static final int ZXSTMF_16KRAMMODE = 0x20;
+
+    private static final int ZXSTBID_PALETTE = 0x54544C50;    // PLTT
+    private static final int ZXSTPALETTE_DISABLED = 0;
+    private static final int ZXSTPALETTE_ENABLED = 1;
+
+    private int dwMagicToInt(byte[] dwMagic) {
+        int value0 = dwMagic[0] & 0xff;
+        int value1 = dwMagic[1] & 0xff;
+        int value2 = dwMagic[2] & 0xff;
+        int value3 = dwMagic[3] & 0xff;
+
+        return (value3 << 24) | (value2 << 16) | (value1 << 8) | value0;
+    }
+
+    private boolean loadSZX(File filename, Memory memory) {
+        byte dwMagic[] = new byte[4];
+        byte dwSize[] = new byte[4];
+        int readed, szxId, szxLen;
+        ByteArrayInputStream bais;
+        InflaterInputStream iis;
+        int addr = 0;
+
+        joystick = Joystick.NONE;
+
+        try {
+            try {
+                fIn = new BufferedInputStream(new FileInputStream(filename));
+            } catch (FileNotFoundException ex) {
+                error = 2;
+                return false;
+            }
+
+            readed = fIn.read(dwMagic);
+            if (dwMagicToInt(dwMagic) != ZXST_HEADER) {
+                error = 1;
+                fIn.close();
+                return false;
+            }
+
+            readed = fIn.read(dwSize);
+            switch (dwSize[2] & 0xff) {
+                case ZXSTMID_16K:
+                    snapshotModel = MachineTypes.SPECTRUM16K;
+                    break;
+                case ZXSTMID_48K:
+                    snapshotModel = MachineTypes.SPECTRUM48K;
+                    break;
+                case ZXSTMID_128K:
+                    snapshotModel = MachineTypes.SPECTRUM128K;
+                    break;
+                case ZXSTMID_PLUS2:
+                    snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                    break;
+                case ZXSTMID_PLUS2A:
+                    snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                    break;
+                case ZXSTMID_PLUS3:
+                    snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                    break;
+                default:
+                    error = 5;
+                    fIn.close();
+                    return false;
+            }
+
+            while (fIn.available() > 0) {
+                readed = fIn.read(dwMagic);
+                readed = fIn.read(dwSize);
+                szxId = dwMagicToInt(dwMagic);
+                szxLen = dwMagicToInt(dwSize);
+                if (szxLen < 1) {
+                    error = 4;
+                    fIn.close();
+                    return false;
+                }
+
+                switch (szxId) {
+                    case ZXSTBID_CREATOR:
+                        byte szCreator[] = new byte[szxLen];
+                        readed = fIn.read(szCreator);
+                        break;
+                    case ZXSTBID_Z80REGS:
+                        byte zxRegs[] = new byte[szxLen];
+                        readed = fIn.read(zxRegs);
+                        regAF = (zxRegs[0] & 0xff) | (zxRegs[1] << 8) & 0xffff;
+                        regBC = (zxRegs[2] & 0xff) | (zxRegs[3] << 8) & 0xffff;
+                        regDE = (zxRegs[4] & 0xff) | (zxRegs[5] << 8) & 0xffff;
+                        regHL = (zxRegs[6] & 0xff) | (zxRegs[7] << 8) & 0xffff;
+                        regAFalt = (zxRegs[8] & 0xff) | (zxRegs[9] << 8) & 0xffff;
+                        regBCalt = (zxRegs[10] & 0xff) | (zxRegs[11] << 8) & 0xffff;
+                        regDEalt = (zxRegs[12] & 0xff) | (zxRegs[13] << 8) & 0xffff;
+                        regHLalt = (zxRegs[14] & 0xff) | (zxRegs[15] << 8) & 0xffff;
+                        regIX = (zxRegs[16] & 0xff) | (zxRegs[17] << 8) & 0xffff;
+                        regIY = (zxRegs[18] & 0xff) | (zxRegs[19] << 8) & 0xffff;
+                        regSP = (zxRegs[20] & 0xff) | (zxRegs[21] << 8) & 0xffff;
+                        regPC = (zxRegs[22] & 0xff) | (zxRegs[23] << 8) & 0xffff;
+                        regI = zxRegs[24] & 0xff;
+                        regR = zxRegs[25] & 0xff;
+                        iff1 = (zxRegs[26] & 0xff )!= 0;
+                        iff2 = (zxRegs[27] & 0xff )!= 0;
+                        modeIM = zxRegs[28] & 0xff;
+                        tstates = ((zxRegs[32] & 0xff) << 24) | ((zxRegs[31] & 0xff) << 16) |
+                                ((zxRegs[30] & 0xff) << 8) | (zxRegs[29] & 0xff);
+                        break;
+                    case ZXSTBID_SPECREGS:
+                        byte spRegs[] = new byte[szxLen];
+                        readed = fIn.read(spRegs);
+                        border = spRegs[0] & 0x07;
+                        last7ffd = spRegs[1] & 0xff;
+                        last1ffd = spRegs[2] & 0xff;
+                        break;
+                    case ZXSTBID_KEYBOARD:
+                        byte keyb[] = new byte[szxLen];
+                        readed = fIn.read(keyb);
+                        issue2 = (keyb[0] & ZXSTKF_ISSUE2) != 0;
+                        switch (keyb[4] & 0xff) {
+                            case ZXSKJT_KEMPSTON:
+                                joystick = Joystick.KEMPSTON;
+                                break;
+                            case ZXSKJT_CURSOR:
+                                joystick = Joystick.CURSOR;
+                                break;
+                            case ZXSKJT_SINCLAIR1:
+                                joystick = Joystick.SINCLAIR1;
+                                break;
+                            case ZXSKJT_SINCLAIR2:
+                                joystick = Joystick.SINCLAIR2;
+                                break;
+                            default:
+                                joystick = Joystick.NONE;
+                        }
+                        break;
+                    case ZXSTBID_JOYSTICK:
+                        byte joy[] = new byte[szxLen];
+                        readed = fIn.read(joy);
+                        break;
+                    case ZXSTBID_AY:
+                        byte ayRegs[] = new byte[szxLen];
+                        readed = fIn.read(ayRegs);
+                        enabledAY = true;
+                        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K &&
+                                ayRegs[0] != ZXSTAYF_128AY)
+                            enabledAY = false;
+                        lastfffd = ayRegs[1] & 0xff;
+                        for (int idx = 0; idx < 16; idx++) {
+                            psgRegs[idx] = ayRegs[2 + idx] & 0xff;
+                        }
+                        break;
+                    case ZXSTBID_RAMPAGE:
+                        byte ramp[] = new byte[3];
+                        readed = fIn.read(ramp);
+                        szxLen -= 3;
+                        byte page[] = new byte[szxLen];
+                        readed = fIn.read(page);
+                        if ((ramp[0] & ZXSTRF_COMPRESSED) == 0) {
+                            memory.loadPage(ramp[2] & 0xff, page);
+                            break;
+                        }
+                        // Compressed RAM page
+                        bais = new ByteArrayInputStream(page);
+                        iis = new InflaterInputStream(bais);
+                        addr = 0;
+                        while (addr < 0x4000) {
+                            int value = iis.read();
+                            if (value == -1)
+                                break;
+                            memory.writeByte(ramp[2] & 0xff, addr++, (byte)value);
+                        }
+                        readed = iis.read();
+                        iis.close();
+                        if (addr != 0x4000 || readed != -1) {
+                            error = 10;
+                            fIn.close();
+                            return false;
+                        }
+                        break;
+                    case ZXSTBID_MULTIFACE:
+                        byte mf[] = new byte[2];
+                        readed = fIn.read(mf);
+                        szxLen -= 2;
+                        byte mfBuf[] = new byte[szxLen];
+                        readed = fIn.read(mfBuf);
+                        if ((mf[1] & ZXSTMF_16KRAMMODE) != 0) {
+                            haveMultiface = false;
+                            break;  // Config. no soportada
+                        }
+
+                        haveMultiface = true;
+                        if ((mf[0] & ZXSTMFM_128) != 0) {
+                            mf128on48k = true;
+                        }
+
+                        if ((mf[1] & ZXSTMF_PAGEDIN) != 0) {
+                            mfPagedIn = true;
+                        }
+
+                        if ((mf[1] & ZXSTMF_SOFTWARELOCKOUT) != 0) {
+                            mfLockout = true;
+                        }
+
+                        if ((mf[1] & ZXSTMF_COMPRESSED) == 0) {
+                            memory.loadMFRam(mfBuf);
+                            break;
+                        }
+                        // MF RAM compressed
+                        bais = new ByteArrayInputStream(mfBuf);
+                        iis = new InflaterInputStream(bais);
+                        byte mfRAM[] = new byte[0x2000];
+                        addr = 0;
+                        while (addr < 0x4000) {
+                            int value = iis.read();
+                            if (value == -1)
+                                break;
+                            mfRAM[addr++] = (byte)value;
+                        }
+                        readed = iis.read();
+                        iis.close();
+                        if (addr != 0x2000 || readed != -1) {
+                            haveMultiface = false;
+                            break;
+                        }
+                        memory.loadMFRam(mfRAM);
+                        break;
+                    case ZXSTBID_PALETTE:
+                        ULAplus = true;
+                        byte ULAplusRegs[] = new byte[szxLen];
+                        readed = fIn.read(ULAplusRegs);
+
+                        if (ULAplusRegs[0] == ZXSTPALETTE_ENABLED) {
+                            ULAplusEnabled = true;
+                        }
+
+                        ULAplusRegister = ULAplusRegs[1] & 0xff;
+
+                        for (int reg = 0; reg < 64; reg++) {
+                            ULAplusPalette[reg] = ULAplusRegs[2 + reg] & 0xff;
+                        }
+                        break;
+                    default:
+                        byte unknown[] = new byte[szxLen];
+                        readed = fIn.read(unknown);
+                        String header = new String(dwMagic);
+                        System.out.println(String.format("Unknown SZX block ID: %s", header));
+                }
+            }
+        } catch (IOException ex) {
+//            ex.printStackTrace();
+            error = 4;
             return false;
         }
 
