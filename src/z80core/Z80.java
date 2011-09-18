@@ -169,7 +169,7 @@ public class Z80 {
      *                instrucciones CPI y CPD. Sin ello, todos los tests de
      *                z80tests.tap fallarán aunque se haya emulado bien al
      *                registro en TODAS las otras instrucciones.
-     *                Shit you, little parrot.
+     *                Shit yourself, little parrot.
      */
     private int memptr;
 
@@ -683,29 +683,21 @@ public class Z80 {
      * 
      * 29/05/2011: cuando la CPU recibe alimentación por primera vez, los
      *             registros se inicializan a 0xFF, pero si se produce un reset
-     *             a través de la patilla correspondiente, los registros SP, PC,
-     *             AF, AF', I y R se inicializan a 0, IX e IY se preservan y
-     *             el resto quedan un poco indefinidos.
+     *             a través de la patilla correspondiente, los registros PC,
+     *             I y R se inicializan a 0, el resto se preservan.
+     *             Aún no está claro que sucede con el registro SP.
+     *             En cualquier caso, todo parece depender bastante del modelo
+     *             concreto de Z80, así que se escoge el comportamiento del
+     *             modelo Zilog Z8400APS. Z80A CPU.
      *             http://www.worldofspectrum.org/forums/showthread.php?t=34574
      */
     public final void reset() {
-        regPC = 0;
-        regSP = 0;
-        
-        regA = regAalt = 0;
-        setFlags(0);
-        flagFalt = 0;
-
         if (pinReset) {
             pinReset = false;
-            
-            regB = regBalt = 0;
-            regC = regCalt = 0;
-            regD = regDalt = 0;
-            regE = regEalt = 0;
-            regH = regHalt = 0;
-            regL = regLalt = 0;         
         } else {
+            regA = regAalt = 0xff;
+            setFlags(0xff);
+            flagFalt = 0xff;
             regB = regBalt = 0xff;
             regC = regCalt = 0xff;
             regD = regDalt = 0xff;
@@ -714,20 +706,19 @@ public class Z80 {
             regL = regLalt = 0xff;
 
             regIX = 0xffff;
-            regIY = 0xffbf;
+            regIY = 0xffff;
+            regSP = 0;
         }
         
-        regI = 0;
-        regR = 0x00;
+        regPC = 0;
+        regI = regR = 0;
         regRbit7 = false;
-
         ffIFF1 = false;
         ffIFF2 = false;
         pendingEI = false;
         activeNMI = false;
         activeINT = false;
         halted = false;
-
         setIM(IM0);
 
         memptr = 0;
@@ -991,7 +982,7 @@ public class Z80 {
 
         /* El módulo 16 del resultado será mayor que el módulo 16 del registro A
          * si ha habido HalfCarry. Sucede lo mismo para todos los métodos resta
-         * SIN carry, incluído cp */
+         * SIN carry, incluido cp */
         if ((res & 0x0f) > (regA & 0x0f)) {
             sz5h3pnFlags |= HALFCARRY_MASK;
         }
@@ -1049,21 +1040,21 @@ public class Z80 {
 
     // Operación AND lógica
     private void and(int valor) {
-        regA = regA & valor;
+        regA &= valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA] | HALFCARRY_MASK;
     }
 
     // Operación XOR lógica
     public final void xor(int valor) {
-        regA = regA ^ valor;
+        regA ^= valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
 
     // Operación OR lógica
     private void or(int valor) {
-        regA = regA | valor;
+        regA |= valor;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
@@ -1128,11 +1119,10 @@ public class Z80 {
 
     // PUSH
     private void push(int valor) {
-        int msb = (valor >>> 8) & 0xff;
         regSP--;
-        MemIoImpl.poke8(regSP & 0xffff, msb);
+        MemIoImpl.poke8(regSP & 0xffff, valor >>> 8);
         regSP = (regSP - 1) & 0xffff;
-        MemIoImpl.poke8(regSP, valor & 0xff);
+        MemIoImpl.poke8(regSP, valor);
     }
 
     // versión rápida de PUSH para cuando hay que guardar registros
@@ -2642,8 +2632,8 @@ public class Z80 {
                 setRegHL(MemIoImpl.peek16(regSP));
                 MemIoImpl.contendedStates((regSP + 1) & 0xffff, 1);
                 // No se usa poke16 porque el Z80 escribe los bytes AL REVES
-                MemIoImpl.poke8((regSP + 1) & 0xffff, (work16 >>> 8) & 0xff);
-                MemIoImpl.poke8(regSP, work16 & 0xff);
+                MemIoImpl.poke8((regSP + 1) & 0xffff, work16 >>> 8);
+                MemIoImpl.poke8(regSP, work16);
                 MemIoImpl.contendedStates(regSP, 2);
                 memptr = getRegHL();
                 break;
@@ -2737,8 +2727,7 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xF3:       /*DI*/
-                ffIFF1 = false;
-                ffIFF2 = false;
+                ffIFF1 = ffIFF2 = false;
                 break;
             case 0xF4:       /*CALL P,nn*/
                 memptr = MemIoImpl.peek16(regPC);
@@ -2783,8 +2772,7 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xFB:       /*EI*/
-                ffIFF1 = true;
-                ffIFF2 = true;
+                ffIFF1 = ffIFF2 = true;
                 pendingEI = true;
                 break;
             case 0xFC:       /*CALL M,nn*/
@@ -4410,8 +4398,8 @@ public class Z80 {
                 int work16 = regIXY;
                 regIXY = MemIoImpl.peek16(regSP);
                 MemIoImpl.contendedStates((regSP + 1) & 0xffff, 1);
-                MemIoImpl.poke8((regSP + 1) & 0xffff, (work16 >>> 8) & 0xff);
-                MemIoImpl.poke8(regSP, work16 & 0xff);
+                MemIoImpl.poke8((regSP + 1) & 0xffff, work16 >>> 8);
+                MemIoImpl.poke8(regSP, work16);
                 MemIoImpl.contendedStates(regSP, 2);
                 memptr = regIXY;
                 break;
