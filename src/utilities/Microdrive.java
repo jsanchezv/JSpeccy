@@ -333,6 +333,28 @@ public class Microdrive {
         return save();
     }
     
+    public int getCartridgePos() {
+        return cartridgePos;
+    }
+    
+    public void setCartridgePos(int offset) {
+        if (offset < 0 || offset > cartridge.length - 1)
+            offset = 0;
+        
+        cartridgePos = offset;
+    }
+    
+    public int getPreambleRem() {
+        return PREAMBLE_SIZE - preamLen;
+    }
+    
+    public void setPreambleRem(int offset) {
+        if (offset < 0 || offset > PREAMBLE_SIZE)
+            offset = PREAMBLE_SIZE;
+        
+        preamLen = PREAMBLE_SIZE - offset;
+    }
+    
     private void testMDR() {
         int length = (cartridge.length - 1) / SECTOR_SIZE;
         boolean sectors[] = new boolean[256];

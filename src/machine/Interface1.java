@@ -251,4 +251,54 @@ public class Interface1 {
         }
         return res;
     }
+    
+    public boolean isDriveRunning(int drive) {
+        if (drive <  0 || drive > 7 || mdrFlipFlop == 0)
+            return false;
+        
+        return mdrSelected == drive ? true : false;
+    }
+    
+    public int getDriveRunning() {
+        if (mdrFlipFlop == 0)
+            return 0;
+        
+        return mdrSelected;
+    }
+    
+    public void setDriveRunning(int drive, boolean state) {
+        if (drive <  0 || drive > 7 || !state)
+            return;
+        
+        mdrFlipFlop = (0x01 << drive);
+        mdrSelected = drive;
+    }
+    
+    public int getDrivePos(int drive) {
+        if (drive <  0 || drive > 7)
+            return -1;
+        
+        return microdrive[drive].getCartridgePos();
+    }
+    
+    public void setDrivePos(int drive, int offset) {
+        if (drive <  0 || drive > 7)
+            return;
+        
+        microdrive[drive].setCartridgePos(offset);
+    }
+    
+    public int getPreambleRem(int drive) {
+        if (drive <  0 || drive > 7)
+            return -1;
+        
+        return microdrive[drive].getPreambleRem();
+    }
+    
+    public void setPreambleRem(int drive, int offset) {
+        if (drive <  0 || drive > 7)
+            return;
+        
+        microdrive[drive].setPreambleRem(offset);
+    }
 }

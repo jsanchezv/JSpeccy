@@ -47,6 +47,9 @@ public class Snapshots {
     // IF1 support;
     private boolean IF1Present, IF1RomPaged;
     private int numDrives, driveRunning;
+    private int cartridgePos[] = new int[8];
+    private int preambleRem[] = new int[8];
+    private String cartridgeFile[] = new String[8];
     // IF2 ROM support
     private boolean IF2RomPresent;
     // Tape Support
@@ -437,6 +440,22 @@ public class Snapshots {
 
     public String getTapeExtension() {
         return tapeExtension;
+    }
+    
+    public int getNumDrives() {
+        return numDrives;
+    }
+    
+    public void setNumDrives(int drives) {
+        numDrives = drives;
+    }
+    
+    public int getDriveRunning() {
+        return driveRunning;
+    }
+    
+    public void setDriveRunning(int drive) {
+        driveRunning = drive;
     }
 
     public String getErrorString() {
@@ -1113,6 +1132,8 @@ public class Snapshots {
                             snapshotModel = MachineTypes.SPECTRUMPLUS2A;
                             break;
                         default:
+//                            System.out.println(String.format("SnapshotV3 model: %d",
+//                                    z80Header2[2]));
                             error = 5;
                             fIn.close();
                             return false;
