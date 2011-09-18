@@ -39,7 +39,7 @@ class Audio {
     private int bufp;
     private int level;
     private int audiotstates;
-    private int samplesPerFrame;
+    private int samplesPerFrame, frameSize, bufferSize;
     private int soundMode;
     private float timeRem, spf;
 //    private AY8912 ay;
@@ -65,18 +65,24 @@ class Audio {
         if (line == null) {
             try {
                 fmt = new AudioFormat(samplingFrequency, 16, channels, true, false);
-                System.out.println(fmt);
+//                System.out.println(fmt);
                 infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
                 sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
             } catch (Exception excpt) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, excpt);
             }
-            spectrumModel = model;
+
             enabledAY = hasAY;
             timeRem = 0.0f;
             samplesPerFrame = samplingFrequency / 50;
+            frameSize = samplesPerFrame * 2 * channels;
+//            System.out.println(String.format("frameSize = %d", frameSize));
+//            nullbuf = new byte[frameSize];
+            if (model != spectrumModel) {
+                spectrumModel = model;
+                ay8912.setSpectrumModel(spectrumModel);
+            }
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
-//            nullbuf = new byte[samplesPerFrame * 2 * channels];
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
@@ -84,10 +90,13 @@ class Audio {
                 ay8912.setMaxAmplitude(16300); // 7000
             }
 
+            bufferSize = frameSize * 4;
+//            System.out.println(String.format("bufferSize = %d", bufferSize));
+
             try {
-                sdl.open(fmt, 8192);
+                sdl.open(fmt, bufferSize);
                 // No se llama al método start hasta tener el primer buffer
-//                sdl.start();
+                sdl.start();
                 line = sdl;
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
@@ -95,15 +104,14 @@ class Audio {
 
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
             ay8912.setAudioFreq(samplingFrequency);
-            ay8912.setSpectrumModel(spectrumModel);
-            ay8912.reset();
+            ay8912.startFrame();
         }
     }
 
     synchronized void close() {
         if (line != null) {
-            line.stop();
             line.flush();
+            line.stop();
             line.close();
             line = null;
         }
@@ -140,17 +148,21 @@ class Audio {
 //            tstates, (short)value, timeRem, (short)level));
     }
 
-    private synchronized void flushBuffer(int len) {
+    private void flushBuffer(int len) {
+
         if (line != null) {
+            int available = line.available();
+            if (available < frameSize) {
+//                System.out.println(String.format("Only available: %d", available));
+                return;
+            }
+
             synchronized (buf) {
-                // Si al ir a escribir el frame la línea no está funcionando,
-                // iniciar el envío y estrenar el sonido con un magnífico frame
-                // lleno de ceros.
-                if (!line.isRunning()) {
-                    line.start();
-//                    line.write(nullbuf, 0, nullbuf.length); // y una magdalena
-                }
                 line.write(buf, 0, len);
+                if ((bufferSize - available) < (frameSize >>> 2)) {
+//                    System.out.println(String.format("Double sound frame. Full: %d", (bufferSize - available)));
+                    line.write(buf, 0, len);
+                }
             }
         }
     }
@@ -161,6 +173,13 @@ class Audio {
         if (line != null)
             line.flush();
     }
+
+//    public int available() {
+//        if (line == null) {
+//            return -1;
+//        }
+//        return line.available();
+//    }
 
     public void endFrame() {
 

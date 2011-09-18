@@ -40,7 +40,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode;
-    private long nFrame, framesByInt, speedometer, speed, prevSpeed, acumLoss;
+    private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
             new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
@@ -239,14 +239,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void startEmulation() {
-        ay8912.reset();
         audio.reset();
         enableSound();
         invalidateScreen(true);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
-        acumLoss = 0;
+        nFrame = 0;
     }
 
     public synchronized void stopEmulation() {
@@ -476,14 +475,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
 
             if (nFrame % 50 == 0) {
+//                int avail = audio.available();
+//                if (avail >= 0) {
+//                    System.out.println(String.format("Available audio buffer: %d", avail));
+//                }
                 long now = System.currentTimeMillis();
                 long diff = now - speedometer;
                 speed = 100000 / diff;
-                if ((diff - 1000) > 4) {
-                    acumLoss += (diff - 1000);
-                    System.out.println(String.format("Time: %d Diff: %d acumLoss: %d",
-                        now, diff, acumLoss));
-                }
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -496,15 +494,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     });
 //                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
                 }
-
-                if (acumLoss > 14 && framesByInt == 1) {
-                    System.out.println(String.format("acumLoss = %d. Generate additional frame",
-                        acumLoss));
-                    generateFrame();
-                    nFrame--;
-                    acumLoss = 0;
-                }
-
             }
         } while (--counter > 0);
 

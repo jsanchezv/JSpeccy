@@ -138,6 +138,7 @@ public final class AY8912 {
     public void setAudioFreq(int freq) {
         FREQ = freq;
         samplesPerFrame = FREQ / 50;
+        step = (double) spectrumModel.tstatesFrame / samplesPerFrame;
     }
 
     public int getAddressLatch() {
@@ -403,14 +404,18 @@ public final class AY8912 {
         volumeA = volumeB = volumeC = 0;
         envelopePeriod = 0;
         addressLatch = 0;
-        audiotstates = pbuf = 0;
         toneA = toneB = toneC = toneN = false;
         rng = 1;
         Arrays.fill(regAY, 0);
         regAY[Mixer] = 0xff;
         Continue = false;
-        Attack = true;
-//        envIncr = 1;
+        Attack = true;      
+    }
+
+    public void startFrame() {
+        audiotstates = pbuf = 0;
+        stepCounter = 0.0;
+
         if (bufA != null) {
             Arrays.fill(bufA, 0);
         }
@@ -420,7 +425,6 @@ public final class AY8912 {
         if (bufC != null) {
             Arrays.fill(bufC, 0);
         }
-        stepCounter = 0;
     }
 
     public void setBufferChannels(int[] bChanA, int[] bChanB, int[] bChanC) {
