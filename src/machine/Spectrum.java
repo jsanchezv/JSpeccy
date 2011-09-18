@@ -818,22 +818,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
 
             /*
-             * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
+             * Solo en el modelo 128K, pero no en los +2/+2A/+3, si se lee el puerto
              * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
+             * http://www.speccy.org/foro/viewtopic.php?f=8&t=2374
              */
-            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K
-                && !memory.isPagingLocked()) {
-                if ((port & 0x8002) == 0) {
-                    memory.setPort7ffd(floatbus);
-                    // Si ha cambiado la pantalla visible hay que invalidar
-                    if ((port7ffd & 0x08) != (floatbus & 0x08)) {
-                        invalidateScreen(true);
-                    }
-                    // En el 128k las páginas impares son contended
-                    contendedRamPage[3] = contendedIOPage[3] =
-                        (floatbus & 0x01) != 0;
-                    port7ffd = floatbus;
+            if ((port & 0x8002) == 0 && spectrumModel == MachineTypes.SPECTRUM128K) {
+                memory.setPort7ffd(floatbus);
+                // Si ha cambiado la pantalla visible hay que invalidar
+                if ((port7ffd & 0x08) != (floatbus & 0x08)) {
+                    invalidateScreen(true);
                 }
+                // En el 128k las páginas impares son contended
+                contendedRamPage[3] = contendedIOPage[3] = (floatbus & 0x01) != 0;
+                port7ffd = floatbus;
             }
         }
 //            System.out.println(String.format("tstates = %d, addr = %d, floatbus = %02x",
@@ -921,8 +918,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     } else {
                         tape.setEarBit(true);
                     }
+//                    System.out.println(String.format("setEarBit: %b", (value & issueMask) == 0));
                 }
 
+                if (tape.isTapeRecording() && ((portFE ^ value) & 0x08) != 0) {
+                    tape.recordPulse2(nFrame * spectrumModel.tstatesFrame + z80.tEstados,
+                            (portFE & 0x08) != 0);
+                }
                 //System.out.println(String.format("outPort: %04X %02x", port, value));
                 portFE = value;
                 return;
@@ -1115,9 +1117,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     @Override
     public void execDone(int tstates) {
-        if (tape.isTapeRecording()) {
-            tape.setPulse((portFE & 0x08) != 0);
-        }
+//        if (tape.isTapeRecording()) {
+//            tape.setPulse((portFE & 0x08) != 0);
+//        }
 
         tape.notifyTstates(nFrame, z80.tEstados);
 
@@ -2173,13 +2175,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             return false;
         }
 
-        z80.setExecDone(true);
+//        z80.setExecDone(true);
 
         return true;
     }
 
     public boolean stopRecording() {
-        z80.setExecDone(false);
+//        z80.setExecDone(false);
         tape.stopRecording();
 
         return true;

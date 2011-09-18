@@ -69,11 +69,12 @@ public class Tape {
     };
     private State statePlay;
     private int earBit;
+    private boolean micBit;
     private static final int EAR_OFF = 0xbf;
     private static final int EAR_ON = 0xff;
     private static final int EAR_MASK = 0x40;
     private long timeout;
-    private long timeLastIn;
+    private long timeLastIn, timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
     private boolean tzxTape, flashload;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
@@ -458,9 +459,9 @@ public class Tape {
 
         timeout = 0;
 
-        if (tapeRecording) {
-            recordPulse();
-        }
+//        if (tapeRecording) {
+//            recordPulse();
+//        }
 
         if (tapePlaying) {
             doPlay();
@@ -1395,8 +1396,8 @@ public class Tape {
                 record.write('e');
                 record.write('!');
                 record.write(0x1A);
-                record.write(0x01);
-                record.write(0x20);
+                record.write(01); // TZX v1.20
+                record.write(20);
             }
             // Y ahora la cabecera de Normal Speed block
             record.write(0x10); // TZX ID: Normal Speed Block
@@ -1441,7 +1442,7 @@ public class Tape {
 
         record = new ByteArrayOutputStream();
 
-        timeLastIn = 0;
+        timeLastIn = timeLastOut = 0;
         tapeRecording = true;
         timeout = settings.isHighSamplingFreq() ? 79 : 158;
         updateTapeIcon();
@@ -1507,24 +1508,56 @@ public class Tape {
         return true;
     }
 
-    public void setPulse(boolean bit) {
-        pulse = bit;
-    }
+//    public void setPulse(boolean bit) {
+//        pulse = bit;
+//    }
 
-    public void recordPulse() {
-        timeout = settings.isHighSamplingFreq() ? 79 : 158;
-
-        if (bitsLastByte == 8) {
-            record.write(byteTmp);
-            bitsLastByte = 0;
-            byteTmp = 0;
+//    public void recordPulse() {
+//        timeout = settings.isHighSamplingFreq() ? 79 : 158;
+//
+//        if (bitsLastByte == 8) {
+//            record.write(byteTmp);
+//            bitsLastByte = 0;
+//            byteTmp = 0;
+//        }
+//
+//        byteTmp <<= 1;
+//        if (pulse) {
+//            byteTmp |= 0x01;
+//        }
+//        bitsLastByte++;
+//    }
+    
+    public void recordPulse2(long tstates, boolean micState) {
+        if (timeLastOut == 0) {
+            timeLastOut = tstates;
+            micBit = micState;
+            return;
         }
+        
+        long len = tstates - timeLastOut;
+        int sample = settings.isHighSamplingFreq() ? 79 : 158;
+        long pulses = (len + (sample >>> 1)) / sample;
+//        long pulses = len / sample;
+//        System.out.println(
+//                String.format("(recordPulse2) Pulse Len: %d, , pulses: %d, state: %b",
+//                    len, pulses, micBit));
+        
+        while (pulses-- > 0) {
+            if (bitsLastByte == 8) {
+                record.write(byteTmp);
+                bitsLastByte = 0;
+                byteTmp = 0;
+            }
 
-        byteTmp <<= 1;
-        if (pulse) {
-            byteTmp |= 0x01;
+            byteTmp <<= 1;
+            if (micBit) {
+                byteTmp |= 0x01;
+            }
+            bitsLastByte++;
         }
-        bitsLastByte++;
+        timeLastOut = tstates;
+        micBit = micState;
     }
     
     private javax.swing.JLabel tapeIcon;
