@@ -1473,7 +1473,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     for (int palette = 0; palette < 4; palette++) {
                         for (int color = 0; color < 16; color++) {
                             int value = fIn.read() & 0xff;
-//                            ULAplus[palette][color] = value;
+                            ULAplus[palette][color] = value;
                             int blue = (value & 0x03) << 1;
                             if ((value & 0x01) == 0x01) {
                                 blue |= 0x01;
