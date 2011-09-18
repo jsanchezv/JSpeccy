@@ -40,7 +40,7 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccyScreen jscr;
     File currentDirOpenSnapshot, currentDirSaveSnapshot,
         currentDirTape, currentDirSaveImage;
-    JFileChooser openSnapshotDlg, saveSnapshotDlg, OpenTapeDlg, saveImageDlg;
+    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg, saveImageDlg;
     ListSelectionModel lsm;
     JSpeccySettingsType settings;
     SettingsDialog settingsDialog;
@@ -275,6 +275,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
         resetMachineMenu = new javax.swing.JMenuItem();
+        hardResetMachineMenu = new javax.swing.JMenuItem();
         nmiMachineMenu = new javax.swing.JMenuItem();
         jSeparator3 = new javax.swing.JPopupMenu.Separator();
         hardwareMachineMenu = new javax.swing.JMenu();
@@ -293,6 +294,9 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator5 = new javax.swing.JPopupMenu.Separator();
         createTapeMediaMenu = new javax.swing.JMenuItem();
         clearTapeMediaMenu = new javax.swing.JMenuItem();
+        jSeparator6 = new javax.swing.JPopupMenu.Separator();
+        recordStartTapeMediaMenu = new javax.swing.JMenuItem();
+        recordStopTapeMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
         aboutHelpMenu = new javax.swing.JMenuItem();
@@ -638,6 +642,14 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     machineMenu.add(resetMachineMenu);
 
+    hardResetMachineMenu.setText(bundle.getString("JSpeccy.hardResetMachineMenu.text")); // NOI18N
+    hardResetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            hardResetSpectrumButtonActionPerformed(evt);
+        }
+    });
+    machineMenu.add(hardResetMachineMenu);
+
     nmiMachineMenu.setText(bundle.getString("JSpeccy.nmiMachineMenu.text")); // NOI18N
     nmiMachineMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -723,6 +735,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     playTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F8, 0));
     playTapeMediaMenu.setText(bundle.getString("JSpeccy.playTapeMediaMenu.text")); // NOI18N
+    playTapeMediaMenu.setEnabled(false);
     playTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             playTapeMediaMenuActionPerformed(evt);
@@ -739,6 +752,7 @@ public class JSpeccy extends javax.swing.JFrame {
     tapeMediaMenu.add(browserTapeMediaMenu);
 
     rewindTapeMediaMenu.setText(bundle.getString("JSpeccy.rewindTapeMediaMenu.text")); // NOI18N
+    rewindTapeMediaMenu.setEnabled(false);
     rewindTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             rewindTapeMediaMenuActionPerformed(evt);
@@ -757,12 +771,32 @@ public class JSpeccy extends javax.swing.JFrame {
     tapeMediaMenu.add(createTapeMediaMenu);
 
     clearTapeMediaMenu.setText(bundle.getString("JSpeccy.clearTapeMediaMenu.text")); // NOI18N
+    clearTapeMediaMenu.setEnabled(false);
     clearTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             clearTapeMediaMenuActionPerformed(evt);
         }
     });
     tapeMediaMenu.add(clearTapeMediaMenu);
+    tapeMediaMenu.add(jSeparator6);
+
+    recordStartTapeMediaMenu.setText(bundle.getString("JSpeccy.recordStartTapeMediaMenu.text")); // NOI18N
+    recordStartTapeMediaMenu.setEnabled(false);
+    recordStartTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            recordStartTapeMediaMenuActionPerformed(evt);
+        }
+    });
+    tapeMediaMenu.add(recordStartTapeMediaMenu);
+
+    recordStopTapeMediaMenu.setText(bundle.getString("JSpeccy.recordStopTapeMediaMenu.text")); // NOI18N
+    recordStopTapeMediaMenu.setEnabled(false);
+    recordStopTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            recordStopTapeMediaMenuActionPerformed(evt);
+        }
+    });
+    tapeMediaMenu.add(recordStopTapeMediaMenu);
 
     mediaMenu.add(tapeMediaMenu);
 
@@ -811,15 +845,26 @@ public class JSpeccy extends javax.swing.JFrame {
         if (status == JFileChooser.APPROVE_OPTION) {
             File selectedFile = openSnapshotDlg.getSelectedFile();
             if (selectedFile.getName().toLowerCase().endsWith(".sna")
-                    || selectedFile.getName().toLowerCase().endsWith(".z80")) {
+                || selectedFile.getName().toLowerCase().endsWith(".z80")) {
                 currentDirOpenSnapshot = openSnapshotDlg.getCurrentDirectory();
                 spectrum.loadSnapshot(selectedFile);
             } else {
                 currentDirTape = openSnapshotDlg.getCurrentDirectory();
+                if (openTapeDlg == null) {
+                    openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+                    openTapeDlg.setFileFilter(new FileFilterTape());
+                    currentDirTape = openTapeDlg.getCurrentDirectory();
+                }
+                openTapeDlg.setCurrentDirectory(currentDirTape);
+                openTapeDlg.setSelectedFile(openSnapshotDlg.getSelectedFile());
                 currentDirOpenSnapshot = currentDirTape;
                 spectrum.tape.eject();
                 spectrum.tape.insert(selectedFile);
                 tapeFilename.setText(selectedFile.getName());
+                playTapeMediaMenu.setEnabled(true);
+                clearTapeMediaMenu.setEnabled(true);
+                rewindTapeMediaMenu.setEnabled(true);
+                recordStartTapeMediaMenu.setEnabled(true);
             }
         }
 
@@ -888,24 +933,29 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed
         boolean paused = spectrum.isPaused();
-        if( OpenTapeDlg == null ) {
-            OpenTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            OpenTapeDlg.setFileFilter(new FileFilterTape());
-            currentDirTape = OpenTapeDlg.getCurrentDirectory();
+        if( openTapeDlg == null ) {
+            openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openTapeDlg.setFileFilter(new FileFilterTape());
+            currentDirTape = openTapeDlg.getCurrentDirectory();
         }
         else
-            OpenTapeDlg.setCurrentDirectory(currentDirTape);
+            openTapeDlg.setCurrentDirectory(currentDirTape);
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = OpenTapeDlg.showOpenDialog(getContentPane());
+        int status = openTapeDlg.showOpenDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
-            currentDirTape = OpenTapeDlg.getCurrentDirectory();
+            currentDirTape = openTapeDlg.getCurrentDirectory();
             spectrum.tape.eject();
-            spectrum.tape.insert(OpenTapeDlg.getSelectedFile());
-            tapeFilename.setText(OpenTapeDlg.getSelectedFile().getName());
+            spectrum.tape.insert(openTapeDlg.getSelectedFile());
+            tapeFilename.setText(openTapeDlg.getSelectedFile().getName());
+            playTapeMediaMenu.setEnabled(true);
+            clearTapeMediaMenu.setEnabled(true);
+            rewindTapeMediaMenu.setEnabled(true);
+            recordStartTapeMediaMenu.setEnabled(true);
         }
+
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_openTapeMediaMenuActionPerformed
@@ -940,7 +990,7 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if( saveSnapshotDlg == null ) {
             saveSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            saveSnapshotDlg.setFileFilter(new FileFilterTapeSnapshot());
+            saveSnapshotDlg.setFileFilter(new FileFilterSaveSnapshot());
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
         }
         else {
@@ -1098,21 +1148,21 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void createTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTapeMediaMenuActionPerformed
          boolean paused = spectrum.isPaused();
-        if( OpenTapeDlg == null ) {
-            OpenTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            OpenTapeDlg.setFileFilter(new FileFilterTape());
-            currentDirTape = OpenTapeDlg.getCurrentDirectory();
+        if( openTapeDlg == null ) {
+            openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openTapeDlg.setFileFilter(new FileFilterTape());
+            currentDirTape = openTapeDlg.getCurrentDirectory();
         }
         else
-            OpenTapeDlg.setCurrentDirectory(currentDirTape);
+            openTapeDlg.setCurrentDirectory(currentDirTape);
 
         if (!paused)
             spectrum.stopEmulation();
 
-        int status = OpenTapeDlg.showOpenDialog(this);
+        int status = openTapeDlg.showOpenDialog(this);
         if( status == JFileChooser.APPROVE_OPTION ) {
-            currentDirTape = OpenTapeDlg.getCurrentDirectory();
-            File filename = new File(OpenTapeDlg.getSelectedFile().getAbsolutePath());
+            currentDirTape = openTapeDlg.getCurrentDirectory();
+            File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
             try {
                 filename.createNewFile();
             } catch (IOException ex) {
@@ -1121,6 +1171,10 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.tape.eject();
             spectrum.tape.insert(filename);
             tapeFilename.setText(filename.getName());
+            playTapeMediaMenu.setEnabled(true);
+            clearTapeMediaMenu.setEnabled(true);
+            rewindTapeMediaMenu.setEnabled(true);
+            recordStartTapeMediaMenu.setEnabled(true);
         }
         if (!paused)
             spectrum.startEmulation();
@@ -1137,13 +1191,13 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_hardResetSpectrumButtonActionPerformed
 
     private void clearTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearTapeMediaMenuActionPerformed
-         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         int ret = JOptionPane.showConfirmDialog(getContentPane(),
-                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("CLEAR_TAPE"),
-                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+            bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("CLEAR_TAPE"),
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
 
-        if( ret == JOptionPane.YES_OPTION && spectrum.tape.isTapeReady()) {
-            File filename = new File(OpenTapeDlg.getSelectedFile().getAbsolutePath());
+        if (ret == JOptionPane.YES_OPTION && spectrum.tape.isTapeReady()) {
+            File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
             try {
                 filename.delete();
                 filename.createNewFile();
@@ -1180,6 +1234,43 @@ public class JSpeccy extends javax.swing.JFrame {
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
+
+    private void recordStartTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recordStartTapeMediaMenuActionPerformed
+        boolean paused = spectrum.isPaused();
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        if (!spectrum.tape.isTapeReady()) {
+            JOptionPane.showMessageDialog(this,
+                bundle.getString("RECORD_START_ERROR"), bundle.getString("RECORD_START_TITLE"),
+                JOptionPane.ERROR_MESSAGE); // NOI18N
+        } else {
+            
+            if (spectrum.startRecording()) {
+                recordStartTapeMediaMenu.setEnabled(false);
+                recordStopTapeMediaMenu.setEnabled(true);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                bundle.getString("RECORD_START_FORMAT_ERROR"),
+                    bundle.getString("RECORD_START_FORMAT_TITLE"),
+                JOptionPane.ERROR_MESSAGE); // NOI18N
+            }
+        }
+
+        playTapeMediaMenu.setSelected(false);
+        
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_recordStartTapeMediaMenuActionPerformed
+
+    private void recordStopTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recordStopTapeMediaMenuActionPerformed
+        spectrum.stopRecording();
+        recordStartTapeMediaMenu.setEnabled(true);
+        recordStopTapeMediaMenu.setEnabled(false);
+        playTapeMediaMenu.setSelected(true);
+    }//GEN-LAST:event_recordStopTapeMediaMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -1208,6 +1299,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem fileOpenSnapshot;
     private javax.swing.JMenuItem fileSaveScreenShot;
     private javax.swing.JMenuItem fileSaveSnapshot;
+    private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;
     private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
@@ -1223,6 +1315,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
     private javax.swing.JPopupMenu.Separator jSeparator5;
+    private javax.swing.JPopupMenu.Separator jSeparator6;
     private javax.swing.ButtonGroup joystickButtonGroup;
     private javax.swing.JMenu joystickOptionMenu;
     private javax.swing.JRadioButtonMenuItem kempstonJoystick;
@@ -1239,6 +1332,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
     private javax.swing.JToggleButton pauseToggleButton;
     private javax.swing.JMenuItem playTapeMediaMenu;
+    private javax.swing.JMenuItem recordStartTapeMediaMenu;
+    private javax.swing.JMenuItem recordStopTapeMediaMenu;
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JMenuItem rewindTapeMediaMenu;

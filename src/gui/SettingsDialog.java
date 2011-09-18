@@ -18,9 +18,11 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
@@ -66,6 +68,14 @@ public class SettingsDialog extends javax.swing.JPanel {
             issue2.setSelected(true);
         } else
             issue3.setSelected(true);
+
+        enableSaveTraps.setSelected(settings.getTapeSettings().isEnableSaveTraps());
+
+        if (settings.getTapeSettings().isHighSamplingFreq()) {
+            highSampling.setSelected(true);
+        } else {
+            lowSampling.setSelected(true);
+        }
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -98,7 +108,8 @@ public class SettingsDialog extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        buttonGroup1 = new javax.swing.ButtonGroup();
+        keyboardButtonGroup = new javax.swing.ButtonGroup();
+        samplingButtonGroup = new javax.swing.ButtonGroup();
         jPanel1 = new javax.swing.JPanel();
         saveSettingsButton = new javax.swing.JButton();
         closeButton = new javax.swing.JButton();
@@ -116,8 +127,14 @@ public class SettingsDialog extends javax.swing.JPanel {
         loadingNoise = new javax.swing.JCheckBox();
         enabledAY48k = new javax.swing.JCheckBox();
         tapePanel = new javax.swing.JPanel();
+        loadPanel = new javax.swing.JPanel();
         flashload = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
+        savePanel = new javax.swing.JPanel();
+        enableSaveTraps = new javax.swing.JCheckBox();
+        samplingPanel = new javax.swing.JPanel();
+        lowSampling = new javax.swing.JRadioButton();
+        highSampling = new javax.swing.JRadioButton();
         keyboardPanel = new javax.swing.JPanel();
         keyboard48kPanel = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
@@ -231,7 +248,10 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.soundPanel.TabTitle"), soundPanel); // NOI18N
 
-        tapePanel.setLayout(new javax.swing.BoxLayout(tapePanel, javax.swing.BoxLayout.PAGE_AXIS));
+        tapePanel.setLayout(new java.awt.GridLayout(2, 1));
+
+        loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
+        loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
         flashload.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
         flashload.addActionListener(new java.awt.event.ActionListener() {
@@ -239,7 +259,7 @@ public class SettingsDialog extends javax.swing.JPanel {
                 flashloadActionPerformed(evt);
             }
         });
-        tapePanel.add(flashload);
+        loadPanel.add(flashload);
 
         acceleratedLoad.setText(bundle.getString("SettingsDialog.tapePanel.acceleratedLoad.text")); // NOI18N
         acceleratedLoad.addActionListener(new java.awt.event.ActionListener() {
@@ -247,7 +267,47 @@ public class SettingsDialog extends javax.swing.JPanel {
                 acceleratedLoadActionPerformed(evt);
             }
         });
-        tapePanel.add(acceleratedLoad);
+        loadPanel.add(acceleratedLoad);
+
+        tapePanel.add(loadPanel);
+
+        savePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.savePanel.border.text"))); // NOI18N
+        savePanel.setLayout(new javax.swing.BoxLayout(savePanel, javax.swing.BoxLayout.LINE_AXIS));
+
+        enableSaveTraps.setSelected(true);
+        enableSaveTraps.setText(bundle.getString("SettingsDialog.savePanel.enableSaveTraps.text")); // NOI18N
+        enableSaveTraps.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                enableSaveTrapsActionPerformed(evt);
+            }
+        });
+        savePanel.add(enableSaveTraps);
+
+        samplingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSamplingFreq.border.text"))); // NOI18N
+        samplingPanel.setLayout(new javax.swing.BoxLayout(samplingPanel, javax.swing.BoxLayout.PAGE_AXIS));
+
+        samplingButtonGroup.add(lowSampling);
+        lowSampling.setSelected(true);
+        lowSampling.setText("22050 Hz");
+        lowSampling.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                lowSamplingActionPerformed(evt);
+            }
+        });
+        samplingPanel.add(lowSampling);
+
+        samplingButtonGroup.add(highSampling);
+        highSampling.setText("44100 Hz");
+        highSampling.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                highSamplingActionPerformed(evt);
+            }
+        });
+        samplingPanel.add(highSampling);
+
+        savePanel.add(samplingPanel);
+
+        tapePanel.add(savePanel);
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.tapePanel.TabTitle"), tapePanel); // NOI18N
 
@@ -261,7 +321,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboard48kPanel.add(jPanel3);
 
-        buttonGroup1.add(issue2);
+        keyboardButtonGroup.add(issue2);
         issue2.setText(bundle.getString("SettingsDialog.issue2RadioButton.text")); // NOI18N
         issue2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -270,7 +330,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         jPanel2.add(issue2);
 
-        buttonGroup1.add(issue3);
+        keyboardButtonGroup.add(issue3);
         issue3.setSelected(true);
         issue3.setText(bundle.getString("SettingsDialog.issue3RadioButton.text")); // NOI18N
         issue3.addActionListener(new java.awt.event.ActionListener() {
@@ -326,6 +386,14 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_joystickActionPerformed
 
     private void saveSettingsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSettingsButtonActionPerformed
+         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        int ret = JOptionPane.showConfirmDialog(this,
+                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("SAVE_SETTINGS_QUESTION"),
+                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+
+        if (ret == JOptionPane.NO_OPTION)
+            return;
+
         try {
             BufferedOutputStream fOut =
                 new BufferedOutputStream(new FileOutputStream("JSpeccy.xml"));
@@ -369,18 +437,31 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setDoubleSize(doubleSize.isSelected());
     }//GEN-LAST:event_doubleSizeActionPerformed
 
+    private void enableSaveTrapsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enableSaveTrapsActionPerformed
+        settings.getTapeSettings().setEnableSaveTraps(enableSaveTraps.isSelected());
+    }//GEN-LAST:event_enableSaveTrapsActionPerformed
+
+    private void lowSamplingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lowSamplingActionPerformed
+        settings.getTapeSettings().setHighSamplingFreq(false);
+    }//GEN-LAST:event_lowSamplingActionPerformed
+
+    private void highSamplingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_highSamplingActionPerformed
+        settings.getTapeSettings().setHighSamplingFreq(true);
+    }//GEN-LAST:event_highSamplingActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
-    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton closeButton;
     private javax.swing.JPanel defaultModelPanel;
     private javax.swing.JCheckBox doubleSize;
+    private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
     private javax.swing.JCheckBox enabledSound;
     private javax.swing.JCheckBox flashload;
     private javax.swing.JPanel hardwarePanel;
+    private javax.swing.JRadioButton highSampling;
     private javax.swing.JPanel highSpeedPanel;
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
@@ -392,8 +473,14 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JComboBox joystick;
     private javax.swing.JPanel joystickPanel;
     private javax.swing.JPanel keyboard48kPanel;
+    private javax.swing.ButtonGroup keyboardButtonGroup;
     private javax.swing.JPanel keyboardPanel;
+    private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
+    private javax.swing.JRadioButton lowSampling;
+    private javax.swing.ButtonGroup samplingButtonGroup;
+    private javax.swing.JPanel samplingPanel;
+    private javax.swing.JPanel savePanel;
     private javax.swing.JButton saveSettingsButton;
     private javax.swing.JPanel soundPanel;
     private javax.swing.JComboBox spectrumModel;

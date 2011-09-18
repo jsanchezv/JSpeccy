@@ -52,6 +52,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private AY8912 ay8912;
     public Tape tape;
     private boolean paused;
+    private volatile boolean frameInProgress;
     private javax.swing.JLabel modelLabel, speedLabel;
     private JRadioButtonMenuItem hardwareMenu16k, hardwareMenu48k, hardwareMenu128k,
             hardwareMenuPlus2, hardwareMenuPlus2A, hardwareMenuPlus3;
@@ -207,10 +208,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-    public void startEmulation() {
-        z80.setTEstados(0);
-        audio.reset();
-        invalidateScreen(true);
+    public synchronized void startEmulation() {
+//        z80.setTEstados(0);
+//        audio.reset();
+//        invalidateScreen(true);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
@@ -219,7 +220,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-    public void stopEmulation() {
+    public synchronized void stopEmulation() {
         taskFrame.cancel();
         paused = true;
         if (soundOn) {
@@ -233,20 +234,28 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-    public void reset() {
-        z80.reset();
-        memory.reset();
-        ay8912.reset();
-        audio.reset();
-        keyboard.reset();
-        nFrame = 0;
-        portFE = port7ffd = port1ffd = 0;
-        ULAplusMode = false;
-        paletteGroup = 0;
-        invalidateScreen(true);
+    public synchronized void reset() {
+        try {
+            while (frameInProgress) {
+                wait();
+            }
+            z80.reset();
+            memory.reset();
+            ay8912.reset();
+            audio.reset();
+            keyboard.reset();
+            nFrame = 0;
+            portFE = port7ffd = port1ffd = 0;
+            ULAplusMode = false;
+            paletteGroup = 0;
+            invalidateScreen(true);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
-    public void hardReset() {
+    public synchronized void hardReset() {
+
         switch (settings.getSpectrumSettings().getDefaultModel()) {
             case 0:
                 selectHardwareModel(MachineTypes.SPECTRUM16K);
@@ -357,7 +366,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         speedLabel = speedComponent;
     }
 
-    public void generateFrame() {
+    public synchronized void generateFrame() {
+        frameInProgress = true;
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
 //        System.out.println("Start frame: " + startFrame);
@@ -369,7 +379,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //            reset();
 //        }
 
-        long counter = framesByInt;
+        long counter = 0;
 
         firstLine = lastLine = 0;
         leftCol = 31;
@@ -431,7 +441,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //                    System.out.println(String.format("Time: %d Speed: %d%%",now, speed));
                 }
             }
-        } while (--counter > 0);
+        } while (++counter < framesByInt);
 
         /* 20/03/2010
          * La pantalla se ha de dibujar en un solo paso. Si el borde no se
@@ -481,6 +491,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         }
 
+        frameInProgress = false;
+        notifyAll();
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
@@ -514,7 +526,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         // SA_BYTES routine in Spectrum ROM at 0x04D0
         // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
         // to SA_BYTES by his start address.
-        if (address == 0x04D0 && memory.isSpectrumRom() && tape.isTapeReady()) {
+        if (address == 0x04D0 && settings.getTapeSettings().isEnableSaveTraps() &&
+            memory.isSpectrumRom() && tape.isTapeReady()) {
             tape.saveTapeBlock(memory);
             return 0xC9; // RET opcode
         }
@@ -753,6 +766,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     tape.setEarBit(true);
                 }
             }
+
+//            if (tape.isTapeRecording() && ((portFE ^ value) & 0x08) != 0) {
+//                tape.recordPulse((portFE & 0x08) != 0 ? true : false, nFrame, z80.tEstados);
+//            }
+
             //System.out.println(String.format("outPort: %04X %02x", port, value));         
             portFE = value;
         }
@@ -909,6 +927,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     @Override
     public void execDone(int tstates) {
+        if (tape.isTapeRecording())
+            tape.setPulse((portFE & 0x08) != 0 ? true : false);
+
         tape.notifyTstates(nFrame, z80.tEstados);
         if (soundOn && settings.getSpectrumSettings().isLoadingNoise() && tape.isPlaying()) {
             earBit = tape.getEarBit();
@@ -1716,5 +1737,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if (settings.getTapeSettings().isAccelerateLoading() && framesByInt > 1) {
             toggleSpeed(1);
         }
+    }
+
+    public boolean startRecording() {
+        if (!tape.isTapeReady())
+            return false;
+
+        if (!tape.startRecording()) {
+            return false;
+        }
+
+        z80.setExecDone(true);
+
+        return true;
+    }
+
+    public boolean stopRecording() {
+        z80.setExecDone(false);
+        tape.stopRecording();
+        return true;
     }
 }

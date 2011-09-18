@@ -14,6 +14,7 @@ package utilities;
 
 import configuration.TapeType;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -36,6 +37,7 @@ public class Tape {
 
     private Z80 cpu;
     private FileInputStream tapeFile;
+    private ByteArrayOutputStream record;
     private File filename;
     private String filenameLabel;
 //    private File tapeName;
@@ -47,6 +49,8 @@ public class Tape {
     private int blockLen;
     private int mask;
     private int bitTime;
+    private byte byteTmp;
+    private boolean pulse;
 
     private enum State {
 
@@ -60,8 +64,8 @@ public class Tape {
     private long timeout;
     private long timeLastIn;
 //    private boolean fastload;
-    private boolean tapeInserted;
-    private boolean tzxTape;
+    private boolean tapeInserted, tapeRecording;
+    private boolean tzxTape, flashload;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
     private final int LEADER_LENGHT = 2168;
     private final int SYNC1_LENGHT = 667;
@@ -93,7 +97,9 @@ public class Tape {
         tapeNotify = notifyObject;
         cpu = z80;
         statePlay = State.STOP;
-        tapeInserted = tzxTape = false;
+        tapeInserted = tapeRecording = false;
+        pulse = tzxTape = false;
+        flashload = settings.isFlashload();
         tapePos = 0;
         timeout = timeLastIn = 0;
 //        fastload = settings.isFastload();
@@ -133,6 +139,7 @@ public class Tape {
 
 //        tapePos = offsetBlocks[block];
         idxHeader = block;
+        flashload = settings.isFlashload();
 //        lsm.setSelectionInterval(block, block);
     }
 
@@ -433,15 +440,19 @@ public class Tape {
     public void notifyTstates(long frames, int tstates) {
         long now = frames * spectrumModel.tstatesFrame + tstates;
         timeout -= (now - timeLastIn);
-//        System.out.println("timeout: " + timeout);
+
         timeLastIn = now;
+
         if (timeout > 0) {
             return;
         }
 
-//        System.out.println("timeout: " + timeout);
         timeout = 0;
-        doPlay();
+
+        if (tapeRecording)
+            recordPulse();
+        else
+            doPlay();
 
     }
 
@@ -474,6 +485,7 @@ public class Tape {
         tapeInserted = true;
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
+        tapeRecording = false;
 //        fastload = settings.isFastload();
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
@@ -493,6 +505,7 @@ public class Tape {
         lsm.setSelectionInterval(0, 0);
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
+        flashload = settings.isFlashload();
         updateTapeIcon();
         return true;
     }
@@ -502,6 +515,7 @@ public class Tape {
         tapeBuffer = null;
         filenameLabel = null;
         statePlay = State.STOP;
+        tapeRecording = false;
         updateTapeIcon();
     }
 
@@ -522,11 +536,11 @@ public class Tape {
     }
 
     public boolean isFlashLoad() {
-        return settings.isFlashload();
+        return flashload;
     }
 
     public void setFlashLoad(boolean fastmode) {
-        settings.setFlashload(fastmode);
+        flashload = fastmode;
     }
 
     public boolean isTapeInserted() {
@@ -534,7 +548,11 @@ public class Tape {
     }
 
     public boolean isTapeReady() {
-        return (tapeInserted && statePlay == State.STOP);
+        return (tapeInserted && statePlay == State.STOP && !tapeRecording);
+    }
+
+    public boolean isTapeRecording() {
+        return tapeRecording;
     }
 
     public boolean isTzxTape() {
@@ -542,7 +560,7 @@ public class Tape {
     }
 
     public boolean play() {
-        if (!tapeInserted || statePlay != State.STOP) {
+        if (!tapeInserted || statePlay != State.STOP || tapeRecording) {
             return false;
         }
 
@@ -557,7 +575,7 @@ public class Tape {
     }
 
     public void stop() {
-        if (!tapeInserted || statePlay == State.STOP) {
+        if (!tapeInserted || statePlay == State.STOP || tapeRecording) {
             return;
         }
 
@@ -565,15 +583,17 @@ public class Tape {
         if (idxHeader == nOffsetBlocks) {
             idxHeader = 0;
         }
+        lsm.setSelectionInterval(idxHeader, idxHeader);
     }
 
     public boolean rewind() {
-        if (!tapeInserted || statePlay != State.STOP) {
+        if (!tapeInserted || statePlay != State.STOP  || tapeRecording) {
             return false;
         }
 
         idxHeader = 0;
         lsm.setSelectionInterval(idxHeader, idxHeader);
+        flashload = settings.isFlashload();
 
         return true;
     }
@@ -1203,6 +1223,7 @@ public class Tape {
 //        System.out.println("flashload!");
 
         if (idxHeader == nOffsetBlocks) {
+            flashload = false;
             cpu.setCarryFlag(false);
             return;
         }
@@ -1334,6 +1355,99 @@ public class Tape {
         eject();
         insert(filename);
     }
+
+    public boolean startRecording() {
+        if (!isTapeReady() || !filename.getName().toLowerCase().endsWith(".tzx"))
+            return false;
+
+        record = new ByteArrayOutputStream();
+
+        timeLastIn = 0;
+        tapeRecording = true;
+        timeout = settings.isHighSamplingFreq() ? 79 : 158;
+        updateTapeIcon();
+
+        return true;
+    }
+
+    public boolean stopRecording() {
+        if (!tapeRecording)
+            return false;
+
+        if (bitsLastByte != 0) {
+            byteTmp <<= (8 - bitsLastByte);
+            record.write(byteTmp);
+        }
+
+        System.out.println(String.format("Record size: %d", record.size()));
+
+        BufferedOutputStream fOut = null;
+        try {
+            fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
+            // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
+            if (nOffsetBlocks == 0) {
+                fOut.write('Z');
+                fOut.write('X');
+                fOut.write('T');
+                fOut.write('a');
+                fOut.write('p');
+                fOut.write('e');
+                fOut.write('!');
+                fOut.write(0x1A);
+                fOut.write(0x01);
+                fOut.write(0x20);
+            }
+            // Y ahora la cabecera de Direct Data Recording
+            fOut.write(0x15); // TZX ID: Normal Speed Block
+            fOut.write(settings.isHighSamplingFreq() ? 79 : 158);
+            fOut.write(0x00); // T-states per sample
+            fOut.write(0x00);
+            fOut.write(0x00); // no pause
+            fOut.write(bitsLastByte);
+            fOut.write(record.size());
+            fOut.write(record.size() >>> 8);
+            fOut.write(record.size() >>> 16);
+
+            fOut.write(record.toByteArray());
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                fOut.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        eject();
+        insert(filename);
+        tapeRecording = false;
+        updateTapeIcon();
+
+        return true;
+    }
+
+    public void setPulse(boolean bit) {
+        pulse = bit;
+    }
+
+    public void recordPulse() {
+        timeout = settings.isHighSamplingFreq() ? 79 : 158;
+
+        if( bitsLastByte == 8) {
+            record.write(byteTmp);
+            bitsLastByte = 0;
+            byteTmp = 0;
+        }
+
+        byteTmp <<= 1;
+        if (pulse) {
+            byteTmp |= 0x01;
+        }
+        bitsLastByte++;
+    }
+
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
 
@@ -1347,7 +1461,7 @@ public class Tape {
             return;
         }
 
-        if (statePlay == State.STOP) {
+        if (statePlay == State.STOP && !tapeRecording) {
             enabledIcon = false;
         } else {
             enabledIcon = true;
