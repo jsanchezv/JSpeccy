@@ -44,9 +44,9 @@ public final class Memory {
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage, highPage, bankM, bankP;
     private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
-    MachineTypes spectrumModel;
-    JSpeccySettingsType settings;
-    Random random;
+    private MachineTypes spectrumModel;
+    private JSpeccySettingsType settings;
+    private Random random;
 
     public Memory(JSpeccySettingsType memSettings) {
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -111,8 +111,10 @@ public final class Memory {
         readPages[0] = Rom48k[0];
         readPages[1] = Rom48k[1];
         writePages[0] = writePages[1] = fakeROM;
-        readPages[2] = writePages[2] = Ram[10];
+
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
         readPages[3] = writePages[3] = Ram[11];
+
         readPages[4] = readPages[5] = Ram[4];
         readPages[6] = readPages[7] = Ram[4];
         writePages[4] = writePages[5] = fakeROM;
@@ -127,11 +129,14 @@ public final class Memory {
         readPages[0] = Rom48k[0];
         readPages[1] = Rom48k[1];
         writePages[0] = writePages[1] = fakeROM;
-        readPages[2] = writePages[2] = Ram[10];
+
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
         readPages[3] = writePages[3] = Ram[11];
-        readPages[4] = writePages[4] = Ram[4];
+
+        readPages[4] = writePages[4] = Ram[4];  // Página 2
         readPages[5] = writePages[5] = Ram[5];
-        readPages[6] = writePages[6] = Ram[0];
+
+        readPages[6] = writePages[6] = Ram[0];  // Página 0
         readPages[7] = writePages[7] = Ram[1];
         screenPage = 10;
         model128k = false;
@@ -145,8 +150,10 @@ public final class Memory {
 
         readPages[2] = writePages[2] = Ram[10];
         readPages[3] = writePages[3] = Ram[11];
+
         readPages[4] = writePages[4] = Ram[4];
         readPages[5] = writePages[5] = Ram[5];
+
         readPages[6] = writePages[6] = Ram[0];
         readPages[7] = writePages[7] = Ram[1];
 
@@ -165,8 +172,10 @@ public final class Memory {
 
         readPages[2] = writePages[2] = Ram[10];
         readPages[3] = writePages[3] = Ram[11];
+
         readPages[4] = writePages[4] = Ram[4];
         readPages[5] = writePages[5] = Ram[5];
+
         readPages[6] = writePages[6] = Ram[0];
         readPages[7] = writePages[7] = Ram[1];
 
@@ -185,8 +194,10 @@ public final class Memory {
 
         readPages[2] = writePages[2] = Ram[10];
         readPages[3] = writePages[3] = Ram[11];
+
         readPages[4] = writePages[4] = Ram[4];
         readPages[5] = writePages[5] = Ram[5];
+
         readPages[6] = writePages[6] = Ram[0];
         readPages[7] = writePages[7] = Ram[1];
 
@@ -213,6 +224,7 @@ public final class Memory {
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 10 : 14;
 
+        // Si el +3 está en modo "all RAM" no se conmuta ROM ni RAM
         if (plus3RamMode)
             return;
 
@@ -221,6 +233,7 @@ public final class Memory {
         readPages[6] = writePages[6] = Ram[highPage * 2];
         readPages[7] = writePages[7] = Ram[highPage * 2 + 1];
 
+        // Si está funcionando el MF, no tocar la ROM
         if (mfPagedIn)
             return;
         
@@ -279,8 +292,10 @@ public final class Memory {
             if (plus3RamMode) {
                 readPages[2] = writePages[2] = Ram[10];
                 readPages[3] = writePages[3] = Ram[11];
+
                 readPages[4] = writePages[4] = Ram[4];
                 readPages[5] = writePages[5] = Ram[5];
+
                 highPage = bankM & 0x07;
                 readPages[6] = writePages[6] = Ram[highPage * 2];
                 readPages[7] = writePages[7] = Ram[highPage * 2 + 1];
@@ -293,10 +308,13 @@ public final class Memory {
                 case 0:
                     readPages[0] = writePages[0] = Ram[0]; // Page 0
                     readPages[1] = writePages[1] = Ram[1];
+
                     readPages[2] = writePages[2] = Ram[2]; // Page 1
                     readPages[3] = writePages[3] = Ram[3];
+
                     readPages[4] = writePages[4] = Ram[4]; // Page 2
                     readPages[5] = writePages[5] = Ram[5];
+
                     readPages[6] = writePages[6] = Ram[6]; // Page 3
                     readPages[7] = writePages[7] = Ram[7];
                     highPage = 3;
@@ -304,10 +322,13 @@ public final class Memory {
                 case 2:
                     readPages[0] = writePages[0] = Ram[8]; // Page 4
                     readPages[1] = writePages[1] = Ram[9];
+
                     readPages[2] = writePages[2] = Ram[10]; // Page 5
                     readPages[3] = writePages[3] = Ram[11];
+
                     readPages[4] = writePages[4] = Ram[12]; // Page 6
                     readPages[5] = writePages[5] = Ram[13];
+
                     readPages[6] = writePages[6] = Ram[14]; // Page 7
                     readPages[7] = writePages[7] = Ram[15];
                     highPage = 7;
@@ -315,10 +336,13 @@ public final class Memory {
                 case 4:
                     readPages[0] = writePages[0] = Ram[8]; // Page 4
                     readPages[1] = writePages[1] = Ram[9];
+
                     readPages[2] = writePages[2] = Ram[10]; // Page 5
                     readPages[3] = writePages[3] = Ram[11];
+
                     readPages[4] = writePages[4] = Ram[12]; // Page 6
                     readPages[5] = writePages[5] = Ram[13];
+
                     readPages[6] = writePages[6] = Ram[6]; // Page 3
                     readPages[7] = writePages[7] = Ram[7];
                     highPage = 3;
@@ -326,10 +350,13 @@ public final class Memory {
                 case 6:
                     readPages[0] = writePages[0] = Ram[8]; // Page 4
                     readPages[1] = writePages[1] = Ram[9];
+
                     readPages[2] = writePages[2] = Ram[14]; // Page 7
                     readPages[3] = writePages[3] = Ram[15];
+
                     readPages[4] = writePages[4] = Ram[12]; // Page 6
                     readPages[5] = writePages[5] = Ram[13];
+
                     readPages[6] = writePages[6] = Ram[6]; // Page 3
                     readPages[7] = writePages[7] = Ram[7];
                     highPage = 3;
@@ -351,11 +378,10 @@ public final class Memory {
     }
 
     public boolean isSpectrumRom() {
-        boolean res = false;
-
         if (mfPagedIn)
             return false;
-        
+
+        boolean res = false;
         switch(spectrumModel.codeModel) {
             case SPECTRUM48K:
                 res = true;
@@ -442,7 +468,9 @@ public final class Memory {
     /*
      * Existieron, básicamente, 3 modelos de Multiface, versión Spectrum:
      * el Multiface One, para el Spectrum 48k, el Multiface 128, para el 128k/+2
-     * y el Multiface Plus 3, para el Spectrum +2A/+3.
+     * y el Multiface Plus 3, para el Spectrum +2A/+3. El MF128 podía funcionar
+     * también en el 16k/48k y el MF1 podía funcionar en el 128k en el modo 48k
+     * con paginación bloqueada. El MF3 solo funcionaba los +2A/+3.
      *
      * Todos tienen 8 KB de ROM que se paginan entre las direcciones 0x0000-0x1FFF
      * y 8 KB de RAM que se paginan entre 0x2000-0x3FFF. De esta forma, sustituyen
@@ -457,12 +485,13 @@ public final class Memory {
      *     bus, en lugar de una señal ROMCS hay dos llamadas ROM 1 OE y ROM 2 OE. En
      *     este caso, el fallo es que el +3 tiene modos "all RAM" en los cuales no hay
      *     ROM que inhabilitar (si lo hay, pero da igual porque no se usan) y el
-     *     Multiface Plus 3 no funciona.
+     *     MF3 no funciona.
      *     Además, en el MF128 y en el MF3 hay un "switch" interno que sirve de bloqueo
      *     del aparato, para que éste no sea detectado por otro hardware (excusa fácil)
      *     ni por el software. Este bloqueo se desactiva SIEMPRE al pulsar el botón rojo.
      *
      * 2.- Por programación, siempre que el aparato (MF128/MF3) no esté en estado de bloqueo.
+     *     (Versiones posteriores del MF1 incorporaban un switch físico).
      *     Cada modelo de MF tiene un puerto de activación y otro de desactivación
      *     (ambos diferentes entre todos ellos). El método consiste en leer de un puerto
      *     determinado, lo que provoca la paginación/despaginación del aparato. La
@@ -550,7 +579,7 @@ public final class Memory {
                 writePages[1] = fakeROM;
                 break;
             case SPECTRUM128K:
-                writePages[0] = writePages[1] = fakeROM;
+                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = Rom128k[2];
                     readPages[1] = Rom128k[3];
@@ -559,7 +588,7 @@ public final class Memory {
                 }
                 break;
             case SPECTRUMPLUS2:
-                writePages[0] = writePages[1] = fakeROM;
+                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = RomPlus2[2];
                     readPages[1] = RomPlus2[3];
@@ -569,7 +598,7 @@ public final class Memory {
                 break;
             case SPECTRUMPLUS2A:
             case SPECTRUMPLUS3:
-                writePages[0] = writePages[1] = fakeROM;
+                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = RomPlus3[6];
                     readPages[1] = RomPlus3[7];

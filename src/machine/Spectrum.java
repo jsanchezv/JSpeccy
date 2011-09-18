@@ -66,6 +66,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private Joystick joystick;
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
+    /* Config vars */
+    private boolean ULAplusOn, issue2, multiface, mf128on48k, saveTrap, loadTrap;
+    private boolean doubleSize;
 
     public Spectrum(JSpeccySettingsType config) {
         super("SpectrumThread");
@@ -189,6 +192,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         enableSound();
     }
 
+    public void loadConfigVars() {
+        ULAplusOn = settings.getSpectrumSettings().isULAplus();
+        issue2 = settings.getSpectrumSettings().isIssue2();
+        multiface = settings.getSpectrumSettings().isMultifaceEnabled();
+        mf128on48k = settings.getSpectrumSettings().isMf128In48K();
+        saveTrap = settings.getTapeSettings().isEnableSaveTraps();
+        loadTrap = settings.getTapeSettings().isFlashload();
+    }
     /*
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
      * Para los sistemas Unix debería ser una modificación inocua. La razón del
@@ -209,6 +220,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public void startEmulation() {
+        loadConfigVars();
         ay8912.reset();
         audio.reset();
         enableSound();
@@ -507,28 +519,26 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
         z80.tEstados += 4;
 
-        if (address == 0x0066 && specSettings.isMultifaceEnabled() &&
-                !memory.isPlus3RamMode()) {
+        if (address == 0x0066 && multiface && !memory.isPlus3RamMode()) {
             memory.setMultifaceLocked(false);
             memory.multifacePageIn();
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
         if (address == 0x0556 && memory.isSpectrumRom() && tape.isTapeReady()) {
-            if (!tape.isFlashLoad()) {
-                toggleTape();
-            } else {
+            if (loadTrap) {
                 tape.flashLoad(memory);
                 invalidateScreen(true); // thanks Andrew Owen
                 return 0xC9; // RET opcode
+            } else {
+                toggleTape();
             }
         }
 
         // SA_BYTES routine in Spectrum ROM at 0x04D0
         // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
         // to SA_BYTES by his start address.
-        if (address == 0x04D0 && settings.getTapeSettings().isEnableSaveTraps() &&
-            memory.isSpectrumRom() && tape.isTapeReady()) {
+        if (address == 0x04D0 && saveTrap && memory.isSpectrumRom() && tape.isTapeReady()) {
             tape.saveTapeBlock(memory);
             return 0xC9; // RET opcode
         }
@@ -633,10 +643,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //                    z80.tEstados, z80.getRegPC()));
 
         // Multiface emulation
-        if (specSettings.isMultifaceEnabled()) {
+        if (multiface) {
             switch (spectrumModel.codeModel) {
                 case SPECTRUM48K:
-                    if (specSettings.isMf128In48K()) {
+                    if (mf128on48k) {
                         // MF128 en el Spectrum 48k
                         if ((port & 0xff) == 0xbf && !memory.isMultifaceLocked()) {
                             memory.multifacePageIn();
@@ -727,7 +737,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         // ULAplus Data Port (read/write)
-        if ((port & 0x4004) == 0x4000 && specSettings.isULAplus()) {
+        if ((port & 0x4004) == 0x4000 && ULAplusOn) {
             if (paletteGroup == 0x40) {
                 return ULAplusMode ? 0x01 : 0x00;
             } else {
@@ -802,7 +812,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         preIO(port);
 
         // Multiface 128/+3 ports
-        if (specSettings.isMultifaceEnabled()) {
+        if (multiface) {
             if (memory.isMultifacePaged() && z80.getRegPC() < 0x4000) {
 //            System.out.println(String.format("OutPort: %04X [%02X]", port, value));
                 if ((port & 0x00ff) == 0x3f) {
@@ -839,7 +849,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 // and con 0x10 para emular un Issue 3
                 int issueMask;
                 if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                    issueMask = specSettings.isIssue2() ? 0x18 : 0x10;
+                    issueMask = issue2 ? 0x18 : 0x10;
                 } else {
                     issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
                 }
@@ -930,7 +940,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         // ULAplus ports
-        if ((port & 0x0004) == 0 && specSettings.isULAplus()) {
+        if ((port & 0x0004) == 0 && ULAplusOn) {
             // Control port (write only)
             if ((port & 0x4000) == 0) {
                 if ((value & 0x40) != 0) {
@@ -1074,7 +1084,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             // Solo los 48k pueden ser Issue2. El resto son todos Issue3.
             if (snap.getSnapshotModel() == MachineTypes.SPECTRUM48K) {
-                specSettings.setIssue2(!snap.isIssue3());
+                issue2 = !snap.isIssue3();
+                specSettings.setIssue2(issue2);
             }
 
             z80.setRegPC(snap.getRegPC());
@@ -1161,7 +1172,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         snap.setRegPC(z80.getRegPC());
         snap.setTstates(z80.getTEstados());
         snap.setJoystick(joystick);
-        snap.setIssue3(!specSettings.isIssue2());
+        snap.setIssue3(!issue2);
 
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
@@ -1233,7 +1244,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         return muted;
     }
 
-    public void toggleSound(boolean state) {
+    public void muteSound(boolean state) {
         muted = state;
         if (muted)
             disableSound();
