@@ -5,6 +5,7 @@
 package machine;
 
 import configuration.*;
+import gui.GuiComponents;
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -20,10 +21,7 @@ import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JRadioButtonMenuItem;
 import javax.swing.SwingUtilities;
 import utilities.Snapshots;
 import utilities.Tape;
@@ -54,12 +52,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public Tape tape;
     private boolean paused;
     private boolean hardResetPending, resetPending;
-    private javax.swing.JLabel modelLabel, speedLabel, tapeFilename;
-    private JRadioButtonMenuItem hardwareMenu16k, hardwareMenu48k, hardwareMenu128k,
-            hardwareMenuPlus2, hardwareMenuPlus2A, hardwareMenuPlus3;
-    private JRadioButtonMenuItem joystickNone, joystickKempston,
-            joystickSinclair1, joystickSinclair2, joystickCursor, joystickFuller;
-    private JMenuItem insertIF2RomMenu, ejectIF2RomMenu, playTapeMenu;
+    private GuiComponents guiComponents;
 
     public static enum Joystick {
 
@@ -70,8 +63,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private SpectrumType specSettings;
     /* Config vars */
     private boolean ULAplusOn, issue2, multiface, mf128on48k, saveTrap, loadTrap;
-//    private boolean fullerJoystick, fullerAudio;
-//    private boolean doubleSize;
 
     public Spectrum(JSpeccySettingsType config) {
         super("SpectrumThread");
@@ -176,35 +167,35 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             @Override
             public void run() {
-                ejectIF2RomMenu.setEnabled(false);
+                guiComponents.ejectIF2RomMenu.setEnabled(false);
                 switch (spectrumModel) {
                     case SPECTRUM16K:
-                        hardwareMenu16k.setSelected(true);
-                        insertIF2RomMenu.setEnabled(true);
+                        guiComponents.hardwareMenu16k.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUM48K:
-                        hardwareMenu48k.setSelected(true);
-                        insertIF2RomMenu.setEnabled(true);
+                        guiComponents.hardwareMenu48k.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUM128K:
-                        hardwareMenu128k.setSelected(true);
-                        insertIF2RomMenu.setEnabled(true);
+                        guiComponents.hardwareMenu128k.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUMPLUS2:
-                        hardwareMenuPlus2.setSelected(true);
-                        insertIF2RomMenu.setEnabled(true);
+                        guiComponents.hardwareMenuPlus2.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUMPLUS2A:
-                        hardwareMenuPlus2A.setSelected(true);
-                        insertIF2RomMenu.setEnabled(false);
+                        guiComponents.hardwareMenuPlus2A.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(false);
                         break;
                     case SPECTRUMPLUS3:
-                        hardwareMenuPlus3.setSelected(true);
-                        insertIF2RomMenu.setEnabled(false);
+                        guiComponents.hardwareMenuPlus3.setSelected(true);
+                        guiComponents.insertIF2RomMenu.setEnabled(false);
                         break;
                 }
-                modelLabel.setToolTipText(spectrumModel.getLongModelName());
-                modelLabel.setText(spectrumModel.getShortModelName());
+                guiComponents.modelLabel.setToolTipText(spectrumModel.getLongModelName());
+                guiComponents.modelLabel.setText(spectrumModel.getShortModelName());
             }
         });
         enableSound();
@@ -343,64 +334,68 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             public void run() {
                 switch (joystick) {
                     case NONE:
-                        joystickNone.setSelected(true);
+                        guiComponents.joystickNone.setSelected(true);
                         break;
                     case KEMPSTON:
-                        joystickKempston.setSelected(true);
+                        guiComponents.joystickKempston.setSelected(true);
                         break;
                     case SINCLAIR1:
-                        joystickSinclair1.setSelected(true);
+                        guiComponents.joystickSinclair1.setSelected(true);
                         break;
                     case SINCLAIR2:
-                        joystickSinclair2.setSelected(true);
+                        guiComponents.joystickSinclair2.setSelected(true);
                         break;
                     case CURSOR:
-                        joystickCursor.setSelected(true);
+                        guiComponents.joystickCursor.setSelected(true);
                         break;
                     case FULLER:
-                        joystickFuller.setSelected(true);
+                        guiComponents.joystickFuller.setSelected(true);
                 }
             }
         });
     }
 
-    public void setJoystickMenuItems(JRadioButtonMenuItem jNone, JRadioButtonMenuItem jKempston,
-            JRadioButtonMenuItem jSinclair1, JRadioButtonMenuItem jSinclair2,
-            JRadioButtonMenuItem jCursor, JRadioButtonMenuItem jFuller) {
-        joystickNone = jNone;
-        joystickKempston = jKempston;
-        joystickSinclair1 = jSinclair1;
-        joystickSinclair2 = jSinclair2;
-        joystickCursor = jCursor;
-        joystickFuller = jFuller;
+    public void setGuiComponents(GuiComponents gui) {
+        guiComponents = gui;
+        tape.setTapeIcon(guiComponents.tapeIcon);
     }
-
-    public void setHardwareMenuItems(JRadioButtonMenuItem hw16k, JRadioButtonMenuItem hw48k,
-            JRadioButtonMenuItem hw128k, JRadioButtonMenuItem hwPlus2,
-            JRadioButtonMenuItem hwPlus2A, JRadioButtonMenuItem hwPlus3) {
-        hardwareMenu16k = hw16k;
-        hardwareMenu48k = hw48k;
-        hardwareMenu128k = hw128k;
-        hardwareMenuPlus2 = hwPlus2;
-        hardwareMenuPlus2A = hwPlus2A;
-        hardwareMenuPlus3 = hwPlus3;
-    }
-
-    public void setMenuItems(JMenuItem insert, JMenuItem eject, JMenuItem play) {
-        insertIF2RomMenu = insert;
-        ejectIF2RomMenu = eject;
-        playTapeMenu = play;
-    }
+//    public void setJoystickMenuItems(JRadioButtonMenuItem jNone, JRadioButtonMenuItem jKempston,
+//            JRadioButtonMenuItem jSinclair1, JRadioButtonMenuItem jSinclair2,
+//            JRadioButtonMenuItem jCursor, JRadioButtonMenuItem jFuller) {
+//        joystickNone = jNone;
+//        joystickKempston = jKempston;
+//        joystickSinclair1 = jSinclair1;
+//        joystickSinclair2 = jSinclair2;
+//        joystickCursor = jCursor;
+//        joystickFuller = jFuller;
+//    }
+//
+//    public void setHardwareMenuItems(JRadioButtonMenuItem hw16k, JRadioButtonMenuItem hw48k,
+//            JRadioButtonMenuItem hw128k, JRadioButtonMenuItem hwPlus2,
+//            JRadioButtonMenuItem hwPlus2A, JRadioButtonMenuItem hwPlus3) {
+//        hardwareMenu16k = hw16k;
+//        hardwareMenu48k = hw48k;
+//        hardwareMenu128k = hw128k;
+//        hardwareMenuPlus2 = hwPlus2;
+//        hardwareMenuPlus2A = hwPlus2A;
+//        hardwareMenuPlus3 = hwPlus3;
+//    }
+//
+//    public void setMenuItems(JMenuItem insert, JMenuItem eject, JMenuItem play) {
+//        insertIF2RomMenu = insert;
+//        ejectIF2RomMenu = eject;
+//        playTapeMenu = play;
+//    }
 
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
     }
 
-    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent, JLabel tapeComponent) {
-        modelLabel = nameComponent;
-        speedLabel = speedComponent;
-        tapeFilename = tapeComponent;
-    }
+//    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent, JLabel tapeComponent) {
+//        modelLabel = nameComponent;
+//        speedLabel = speedComponent;
+//        tapeFilename = tapeComponent;
+//    }
 
     public synchronized void generateFrame() {
 
@@ -488,7 +483,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
                         @Override
                         public void run() {
-                            speedLabel.setText(String.format("%4d%%", speed));
+                            guiComponents.speedLabel.setText(String.format("%4d%%", speed));
                         }
                     });
 //                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
@@ -755,18 +750,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         /*
          * El interfaz Kempston solo (debería) decodificar A5=0...
-         * Las Tres Luces de Glaurung leen el puerto #DF (223) y si se decodifica
-         * algo más no funciona con el joystick. Si decodificamos solo A5==0
-         * es Buggy Boy el que se cuelga.
-         * 15/09/2010: pongo el comentario y el código en cuarentena...
          */
-//        if (((port & 0x00e0) == 0 || (port & 0x0020) == 0)
-        if ((port & 0x0020) == 0 && joystick == Joystick.KEMPSTON) {
+        if (joystick == Joystick.KEMPSTON && (port & 0x0020) == 0) {
 //            System.out.println(String.format("InPort: %04X, PC: %04X", port, z80.getRegPC()));
             return keyboard.readKempstonPort();
         }
 
-        if ((port & 0xff) == 0x7f && joystick == Joystick.FULLER) {
+        if (joystick == Joystick.FULLER && (port & 0xff) == 0x7f) {
             return keyboard.readFullerPort();
         }
 
@@ -1187,8 +1177,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
                         @Override
                         public void run() {
-                            insertIF2RomMenu.setEnabled(false);
-                            ejectIF2RomMenu.setEnabled(true);
+                            guiComponents.insertIF2RomMenu.setEnabled(false);
+                            guiComponents.ejectIF2RomMenu.setEnabled(true);
                         }
                     });
                 } else {
@@ -1276,8 +1266,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 tape.eject();
                 tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
                     snap.getTapeData(), snap.getTapeBlock());
-                playTapeMenu.setEnabled(true);
-                tapeFilename.setText(snap.getTapeName() + "." + snap.getTapeExtension());
+                guiComponents.playTapeMenu.setEnabled(true);
+                guiComponents.tapeFilename.setText(snap.getTapeName() + "." + snap.getTapeExtension());
             }
 
             if (snap.isTapeLinked()) {
@@ -1286,8 +1276,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     tape.eject();
                     tape.insert(tapeLink);
                     tape.setSelectedBlock(snap.getTapeBlock());
-                    playTapeMenu.setEnabled(true);
-                    tapeFilename.setText(tapeLink.getName());
+                    guiComponents.playTapeMenu.setEnabled(true);
+                    guiComponents.tapeFilename.setText(tapeLink.getName());
                 }
             }
 

@@ -31,7 +31,6 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXB;
 
 /**
@@ -50,6 +49,7 @@ public class JSpeccy extends javax.swing.JFrame {
     ListSelectionModel lsm;
     JSpeccySettingsType settings;
     SettingsDialog settingsDialog;
+    GuiComponents guiComponents = new GuiComponents();
 
     /** Creates new form JSpeccy */
     public JSpeccy() {
@@ -202,15 +202,17 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
-        spectrum.setInfoLabels(modelLabel, speedLabel, tapeFilename);
-        spectrum.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
+        guiComponents = new GuiComponents();
+        guiComponents.setInfoLabels(modelLabel, speedLabel, tapeFilename);
+        guiComponents.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
             specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
-        spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
+        guiComponents.setJoystickMenuItems(noneJoystick, kempstonJoystick,
             sinclair1Joystick, sinclair2Joystick,
             cursorJoystick, fullerJoystick);
-        spectrum.setMenuItems(insertIF2RomMediaMenu, ejectIF2RomMediaMenu,
+        guiComponents.setMenuItems(insertIF2RomMediaMenu, ejectIF2RomMediaMenu,
             playTapeMediaMenu);
-        spectrum.tape.setTapeIcon(tapeLabel);
+        guiComponents.setTapeIcon(tapeLabel);
+        spectrum.setGuiComponents(guiComponents);
         tapeCatalog.setModel(spectrum.tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
