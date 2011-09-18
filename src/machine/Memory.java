@@ -147,8 +147,6 @@ public final class Memory {
         Arrays.fill(Ram[4], (byte)0xff);
         screenPage = 10;
         model128k = false;
-        mfLocked = true;
-        IF1RomPaged = false;
     }
 
     private void setMemoryMap48k() {
@@ -171,8 +169,6 @@ public final class Memory {
         readPages[7] = writePages[7] = Ram[1];
         screenPage = 10;
         model128k = false;
-        mfLocked = true;
-        IF1RomPaged = false;
     }
 
     private void setMemoryMap128k() {
@@ -197,10 +193,7 @@ public final class Memory {
         screenPage = 10;
         highPage = 0;
         model128k = true;
-        pagingLocked = plus3RamMode = false;
         bankM = 0;
-        mfLocked = true;
-        IF1RomPaged = false;
     }
 
     private void setMemoryMapPlus2() {
@@ -225,10 +218,7 @@ public final class Memory {
         screenPage = 10;
         highPage = 0;
         model128k = true;
-        pagingLocked = plus3RamMode = false;
         bankM = 0;
-        mfLocked = true;
-        IF1RomPaged = false;
     }
 
     private void setMemoryMapPlus3() {
@@ -248,9 +238,7 @@ public final class Memory {
         screenPage = 10;
         highPage = 0;
         model128k = true;
-        pagingLocked = plus3RamMode = false;
         bankM = bankP = 0;
-        mfLocked = true;
     }
 
     /*
@@ -501,7 +489,12 @@ public final class Memory {
     }
 
     public void reset() {
+        
         mfPagedIn = false;
+        IF1RomPaged = false;
+        mfLocked = true;
+        pagingLocked = plus3RamMode = false;
+        
         switch(spectrumModel) {
             case SPECTRUM16K:
                 setMemoryMap16k();

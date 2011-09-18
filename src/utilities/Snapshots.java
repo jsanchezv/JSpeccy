@@ -44,6 +44,8 @@ public class Snapshots {
     // ULAplus support
     private boolean ULAplus, ULAplusEnabled;
     private int ULAplusRegister, ULAplusPalette[] = new int[64];
+    // IF1 support;
+    private boolean IF1Present, IF1RomPaged;
     // IF2 ROM support
     private boolean IF2RomPresent;
     // Tape Support
@@ -372,6 +374,22 @@ public class Snapshots {
         ULAplusPalette[register] = color;
     }
 
+    public boolean isIF1Present() {
+        return IF1Present;
+    }
+
+    public void setIF1Present(boolean state) {
+        IF1Present = state;
+    }
+    
+    public boolean isIF1RomPaged() {
+        return IF1RomPaged;
+    }
+
+    public void setIF2RomPaged(boolean state) {
+        IF1RomPaged = state;
+    }
+    
     public boolean isIF2RomPresent() {
         return IF2RomPresent;
     }

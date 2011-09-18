@@ -31,7 +31,6 @@ public class Microdrive {
     
     private int cartridgePos;
     private byte cartridge[];
-    private short numSectors;
     private int status;
     private int gapSyncCounter;
     private int nBytes;
@@ -71,17 +70,21 @@ public class Microdrive {
         int sector = cartridgePos / SECTOR_SIZE;
         int offset = cartridgePos % SECTOR_SIZE;
         
-        System.out.println(String.format(
-            "readStatus: pos (sec/off): %d (%d/%d), status: %02x, gapSync: %d, nBytes: %d",
-            cartridgePos, sector, offset, status, gapSyncCounter, nBytes));
+//        System.out.println(String.format(
+//            "readStatus: pos (sec/off): %d (%d/%d), status: %02x, gapSync: %d, nBytes: %d",
+//            cartridgePos, sector, offset, status, gapSyncCounter, nBytes));
         
         
         if (offset == 0 && !headerSync[sector]) {
-            return isWriteProtected() ? WRITE_PROT_MASK : 0xff;
+            if (writeProtected)
+                status &= WRITE_PROT_MASK;
+            return status;
         }
         
         if (offset == 15 && !dataSync[sector]) {
-            return isWriteProtected() ? WRITE_PROT_MASK : 0xff;
+            if (writeProtected)
+                status &= WRITE_PROT_MASK;
+            return status;
         }
         
         if (gapSyncCounter++ == GAP_SYNC_SIZE) {
@@ -114,10 +117,10 @@ public class Microdrive {
     
     public int readData() {
         
-        System.out.println(String.format(
-            "readData: pos (sec/off): %d (%d/%d), status: %02x, nBytes: %d",
-            cartridgePos, cartridgePos / SECTOR_SIZE, cartridgePos % SECTOR_SIZE,
-            status, nBytes));
+//        System.out.println(String.format(
+//            "readData: pos (sec/off): %d (%d/%d), status: %02x, nBytes: %d",
+//            cartridgePos, cartridgePos / SECTOR_SIZE, cartridgePos % SECTOR_SIZE,
+//            status, nBytes));
         
         int out = 0xff;
         
@@ -136,13 +139,13 @@ public class Microdrive {
     
     public void writeControl(int value) {
         
-        int sector = cartridgePos / SECTOR_SIZE;
+//        int sector = cartridgePos / SECTOR_SIZE;
         int offset = cartridgePos % SECTOR_SIZE;
         
-        System.out.println(String.format(
-            "writeControl: pos (sec/off): %d (%d/%d), nBytes: %d, value: %02x, erase: %b, r/w: %b",
-            cartridgePos, sector, offset, nBytes, value, (value & 0x08) != 0,
-                (value & 0x04) != 0));
+//        System.out.println(String.format(
+//            "writeControl: pos (sec/off): %d (%d/%d), nBytes: %d, value: %02x, erase: %b, r/w: %b",
+//            cartridgePos, sector, offset, nBytes, value, (value & 0x08) != 0,
+//                (value & 0x04) != 0));
         
         switch (offset) {
             case 0: // Sector start
@@ -160,17 +163,19 @@ public class Microdrive {
         }
         
         preamLen = 0;  
-        gapSyncCounter = 0;
-        status = 0xff & ~GAP;
+        gapSyncCounter = GAP_SYNC_SIZE - 3;
+        // Si writeControl acaba con status GAP en lugar de SYNC, el formateo
+        // desde el MF128 no funciona....
+        status = 0xff & ~SYNC;
     }
     
     public void writeData(int value) {
         
         int sector = cartridgePos / SECTOR_SIZE;
         
-        System.out.println(String.format(
-            "writeData: pos (sec/off): %d (%d/%d), nBytes: %d, pream: %d, value: %02x",
-            cartridgePos, sector, cartridgePos % SECTOR_SIZE, nBytes, preamLen, value));
+//        System.out.println(String.format(
+//            "writeData: pos (sec/off): %d (%d/%d), nBytes: %d, pream: %d, value: %02x",
+//            cartridgePos, sector, cartridgePos % SECTOR_SIZE, nBytes, preamLen, value));
 
         if (preamLen < PREAMBLE_SIZE) {
             if (preambleData[preamLen++] != value) {
@@ -226,9 +231,10 @@ public class Microdrive {
             return false;
         
         cartridge = new byte[numSectors * SECTOR_SIZE + 1];
-        cartridge[cartridge.length - 1] = 0x00; // No WR protected
         
         Arrays.fill(cartridge, (byte)0xff);
+        cartridge[cartridge.length - 1] = 0x00; // No WR protected
+        
         Arrays.fill(headerSync, false);
         Arrays.fill(dataSync, false);
         
@@ -270,12 +276,12 @@ public class Microdrive {
         return true;
     }
     
-    public final boolean eject() {
+    public final boolean eject(boolean saveIt) {
         
         if (!isCartridge)
             return true;
         
-        if (modified) {
+        if (modified && saveIt) {
             try {
                 mdrFileOut = new FileOutputStream(filename);
             } catch (FileNotFoundException fex) {
@@ -301,11 +307,11 @@ public class Microdrive {
     
     public final boolean eject(File fileName) {
         filename = fileName;
-        return eject();
+        return eject(true);
     }
     
     private void testMDR() {
-        int length = (cartridge.length - 1) / 543;
+        int length = (cartridge.length - 1) / SECTOR_SIZE;
         boolean sectors[] = new boolean[256];
         
         System.out.println(String.format("Cartridge %s", filename.getName()));
