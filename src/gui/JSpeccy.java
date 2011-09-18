@@ -1935,6 +1935,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
 
                 spectrum.loadSnapshot(recentFile[idx]);
+                updateGuiSelections();
 
                 if (!paused) {
                     spectrum.startEmulation();
