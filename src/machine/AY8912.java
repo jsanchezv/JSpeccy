@@ -100,6 +100,7 @@ public final class AY8912 {
     // Precalculate sample positions
 //    private int[] samplePos = new int[965];
     private double step, stepCounter;
+    private int nSteps;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
@@ -120,7 +121,8 @@ public final class AY8912 {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
-        step = (double) spectrumModel.tstatesFrame / samplesPerFrame;
+        if (samplesPerFrame != 0)
+            step = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
 //        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
 //        for (int pos = 0; pos < samplePos.length; pos++) {
 //            samplePos[pos] = (int) (pos * divider);
@@ -138,7 +140,8 @@ public final class AY8912 {
     public void setAudioFreq(int freq) {
         FREQ = freq;
         samplesPerFrame = FREQ / 50;
-        step = (double) spectrumModel.tstatesFrame / samplesPerFrame;
+        step = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
+//        System.out.println(String.format("step = %f", step));
     }
 
     public int getAddressLatch() {
@@ -311,54 +314,55 @@ public final class AY8912 {
                     rng ^= 0x24000; /* This version is called the "Galois configuration". */
                 }
                 rng >>>= 1;
+                // End of code borrowed from MAME sources
             }
 
 //            if (envA || envB || envC) {
-                if (++envelopeCounter >= envelopePeriod) {
-                    envelopeCounter = 0;
+            if (++envelopeCounter >= envelopePeriod) {
+                envelopeCounter = 0;
 
-                    if (!Continue) {
-                        if (Attack) {
-                            amplitudeEnv++;
-                        } else {
-                            amplitudeEnv--;
-                        }
+                if (!Continue) {
+                    if (Attack) {
+                        amplitudeEnv++;
+                    } else {
+                        amplitudeEnv--;
                     }
+                }
 
-                    if (amplitudeEnv < 0 || amplitudeEnv > 15) {
-                        if ((regAY[EnvelopeShapeCycle] & CONTINUE) == 0) {
-                            amplitudeEnv = 0;
+                if (amplitudeEnv < 0 || amplitudeEnv > 15) {
+                    if ((regAY[EnvelopeShapeCycle] & CONTINUE) == 0) {
+                        amplitudeEnv = 0;
+                        Continue = true;
+                    } else {
+                        if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
+                            Attack = !Attack;
+                        }
+
+                        if ((regAY[EnvelopeShapeCycle] & HOLD) != 0) {
+                            amplitudeEnv = Attack ? 15 : 0;
                             Continue = true;
                         } else {
-                            if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
-                                Attack = !Attack;
-                            }
-
-                            if ((regAY[EnvelopeShapeCycle] & HOLD) != 0) {
-                                amplitudeEnv = Attack ? 15 : 0;
-                                Continue = true;
-                            } else {
-                                amplitudeEnv = Attack ? 0 : 15;
-                            }
+                            amplitudeEnv = Attack ? 0 : 15;
                         }
                     }
+                }
 
-                    if (envA) {
-                        amplitudeA = volumeLevel[amplitudeEnv];
-                    }
+                if (envA) {
+                    amplitudeA = volumeLevel[amplitudeEnv];
+                }
 
-                    if (envB) {
-                        amplitudeB = volumeLevel[amplitudeEnv];
-                    }
+                if (envB) {
+                    amplitudeB = volumeLevel[amplitudeEnv];
+                }
 
-                    if (envC) {
-                        amplitudeC = volumeLevel[amplitudeEnv];
-                    }
+                if (envC) {
+                    amplitudeC = volumeLevel[amplitudeEnv];
+                }
 
 //                if (envA || envB || envC)
 //                System.out.println(String.format("AmplitudeEnv = %d, %d",
 //                        amplitudeEnv, volumeLevel[amplitudeEnv]));
-                }
+            }
 //            }
 
 //            System.out.println(String.format("volA: %d, volB: %d, volC: %d", volA, volB, volC));
@@ -373,7 +377,8 @@ public final class AY8912 {
 //            volumeA = (int) (volumeA / 5 + volA * 0.8);
 //            volumeA = (int) (volumeA * 0.7 + volA * 0.3);
 //            volumeA = (volumeA + volA) >>> 1;
-            volumeA = ((volumeA << 2) + volA) / 5;
+//            volumeA = ((volumeA << 2) + volA) / 5;
+            volumeA += volA;
 
             volB = outB ? amplitudeB : 0;
 //            if (counterB == 1)
@@ -381,7 +386,8 @@ public final class AY8912 {
 //            volumeB = (int) (volumeB / 5 + volB * 0.8);
 //            volumeB = (int) (volumeB * 0.7 + volB * 0.3);
 //            volumeB = (volumeB + volB) >>> 1;
-            volumeB = ((volumeB << 2) + volB) / 5;
+//            volumeB = ((volumeB << 2) + volB) / 5;
+            volumeB += volB;
 
             volC = outC ? amplitudeC : 0;
 //            if (counterC == 1)
@@ -389,13 +395,21 @@ public final class AY8912 {
 //            volumeC = (int) (volumeC / 5 + volC * 0.8);
 //            volumeC = (int) (volumeC * 0.7 + volC * 0.3);
 //            volumeC = (volumeC + volC) >>> 1;
-            volumeC = ((volumeC << 2) + volC) / 5;
+//            volumeC = ((volumeC << 2) + volC) / 5;
+            volumeC += volC;
+
+            nSteps++;
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
+//                System.out.println(String.format("Sample %d with nSteps %d", pbuf, nSteps));
+                volumeA /= nSteps;
+                volumeB /= nSteps;
+                volumeC /= nSteps;
                 bufA[pbuf] = volumeA;
                 bufB[pbuf] = volumeB;
                 bufC[pbuf] = volumeC;
+                nSteps = 1;
                 pbuf++;
                 stepCounter -= step;
             }
@@ -404,11 +418,13 @@ public final class AY8912 {
     }
 
     public void endFrame() {
-        if (pbuf == 0)
+        if (pbuf == 0) {
             return;
+        }
 
 //        System.out.println("# samples: " + getSampleCount());
-//        System.out.println(String.format("# AY samples: %d", pbuf));
+        if (pbuf != 640)
+            System.out.println(String.format("# AY samples: %d", pbuf));
         if (pbuf == samplesPerFrame - 1) {
 //            System.out.println(String.format("El buffer del AY solo tenía %d samples",
 //                pbuf));
@@ -432,12 +448,13 @@ public final class AY8912 {
         Arrays.fill(regAY, 0);
         regAY[Mixer] = 0xff;
         Continue = false;
-        Attack = true;      
+        Attack = true;
     }
 
     public void startFrame() {
         audiotstates = pbuf = 0;
         stepCounter = 0.0;
+        nSteps = 0;
 
         if (bufA != null) {
             Arrays.fill(bufA, 0);
