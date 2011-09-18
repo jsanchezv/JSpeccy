@@ -44,7 +44,8 @@ public final class Memory {
     // Ram del Multiface 8K para todos
     private byte[] mfRAM = new byte[PAGE_SIZE];
     // Número de página de RAM de donde sale la pantalla activa
-    private int screenPage, highPage, bankM, bankP;
+    private int screenPage;
+    private int highPage, bankM, bankP;
     private boolean IF2RomEnabled;
     private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
     private MachineTypes spectrumModel;
@@ -865,11 +866,12 @@ public final class Memory {
                 return true;
             }
 
-            if (fIn.available() > 0 )
+            if (fIn.available() > 0 ) {
                 readed = fIn.read(IF2Rom[1], 0, 0x2000);
 
-            if (readed == -1)
-                return false;
+                if (readed == -1)
+                    return false;
+            }
 
         } catch (IOException ex) {
             Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);

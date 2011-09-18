@@ -109,7 +109,6 @@ public class Tape {
         flashload = settings.isFlashload();
         tapePos = 0;
         timeout = timeLastIn = 0;
-//        fastload = settings.isFastload();
         earBit = 0xbf;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
@@ -166,7 +165,8 @@ public class Tape {
     }
 
     public String getBlockType(int block) {
-        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+        java.util.ResourceBundle bundle =
+            java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
@@ -265,7 +265,8 @@ public class Tape {
     }
 
     public String getBlockInfo(int block) {
-        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+        java.util.ResourceBundle bundle =
+            java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
