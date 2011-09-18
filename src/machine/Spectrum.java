@@ -66,6 +66,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     /* Config vars */
     private boolean ULAplusOn, issue2, multiface, mf128on48k, saveTrap, loadTrap;
     private boolean connectedIF1;
+    private Interface1 if1;
 
     public Spectrum(JSpeccySettingsType config) {
         super("SpectrumThread");
@@ -84,6 +85,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         enabledSound = false;
         paused = true;
         tape = new Tape(settings.getTapeSettings(), z80, this);
+        if1 = new Interface1();
 
         keyboard = new Keyboard();
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
@@ -677,23 +679,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         // Interface I
         if (connectedIF1) {
-            // Port 0xE7
+            // Port 0xE7 (Data Port)
             if ((port & 0x0018) == 0) {
-                System.out.println(String.format("IN from %02x. PC = %04x",
-                    port & 0xff, z80.getRegPC()));
+//                System.out.println(String.format("IN from %02x. PC = %04x",
+//                    port & 0xff, z80.getRegPC()));
+                return if1.readDataPort();
             }
             
-            // Port 0xEF
+            // Port 0xEF (Control Port)
             if ((port & 0x0018) == 0x08) {
-                System.out.println(String.format("IN from %02x. PC = %04x",
-                    port & 0xff, z80.getRegPC()));
-                return 0xFB; // GAP bit
+//                System.out.println(String.format("IN from %02x. PC = %04x",
+//                    port & 0xff, z80.getRegPC()));
+                return if1.readControlPort();
             }
             
-            // Port 0xF7
+            // Port 0xF7 (RS232/Network Port)
             if ((port & 0x0018) == 0x10) {
-                System.out.println(String.format("IN from %02x. PC = %04x",
-                    port & 0xff, z80.getRegPC()));
+//                System.out.println(String.format("IN from %02x. PC = %04x",
+//                    port & 0xff, z80.getRegPC()));
             }
         }
         
