@@ -74,9 +74,9 @@ class Audio {
             spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
             audiotstates = bufp = level = 0;
             if (soundMode > 0) {
-                ay8912.setMaxAmplitude(11000);
+                ay8912.setMaxAmplitude(21500); // 11000
             } else {
-                ay8912.setMaxAmplitude(7000);
+                ay8912.setMaxAmplitude(16300); // 7000
             }
 
             try {
@@ -187,9 +187,18 @@ class Audio {
         audiotstates -= spectrumModel.tstatesFrame;
     }
 
+//    private void filterBeeper() {
+//        int tmp = beeper[1];
+//        for (int sample = 1; sample < bufp; sample++) {
+//            beeper[sample] = (beeper[sample - 1] + tmp) / 2;
+//            tmp = beeper[sample + 1];
+//        }
+//    }
+
     private int endFrameMono() {
 
         int ptr = 0;
+//        filterBeeper();
 //        int ayCnt = ay.getSampleCount();
 //        System.out.println(String.format("BeeperChg %d", beeperChg));
 
@@ -199,28 +208,29 @@ class Audio {
         if (enabledAY) {
             int sample = 0;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
+                sample = -32760 + (beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx]);
                 buf[ptr++] = (byte) sample;
                 buf[ptr++] = (byte)(sample >>> 8);
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper y el último sample actualizado del AY
-            if (ptr == 1918) {
-                sample = beeper[958] + ayBufA[959] + ayBufB[959] + ayBufC[959];
-                buf[ptr++] = (byte) sample;
-                buf[ptr++] = (byte)(sample >>> 8);
-            }
+//            if (ptr == 1918) {
+//                sample = -32760 + (beeper[958] + ayBufA[959] + ayBufB[959] + ayBufC[959]);
+//                buf[ptr++] = (byte) sample;
+//                buf[ptr++] = (byte)(sample >>> 8);
+//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
+                beeper[idx] = -32760 + beeper[idx];
                 buf[ptr++] = (byte) beeper[idx];
                 buf[ptr++] = (byte) (beeper[idx] >>> 8);
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper
-            if (ptr == 1918) {
-                buf[ptr++] = (byte) beeper[958];
-                buf[ptr++] = (byte) (beeper[958] >>> 8);
-            }
+//            if (ptr == 1918) {
+//                buf[ptr++] = (byte) beeper[958];
+//                buf[ptr++] = (byte) (beeper[958] >>> 8);
+//            }
         }
         return ptr;
     }
@@ -239,8 +249,8 @@ class Audio {
             int sampleL = 0, sampleR = 0, center = 0;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufB[idx] * 0.7);
-                sampleL = beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3;
-                sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx];
+                sampleL = -32760 +(beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3);
+                sampleR = -32760 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -248,17 +258,18 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper y el último sample actualizado del AY
-            if (ptr == 3836) {
-                center = (int)(ayBufB[959] * 0.7);
-                sampleL = beeper[958] + ayBufA[959] + center + ayBufC[959] / 3;
-                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufC[959];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
-            }
+//            if (ptr == 3836) {
+//                center = (int)(ayBufB[959] * 0.7);
+//                sampleL = beeper[958] + ayBufA[959] + center + ayBufC[959] / 3;
+//                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufC[959];
+//                buf[ptr++] = (byte) sampleL;
+//                buf[ptr++] = (byte)(sampleL >>> 8);
+//                buf[ptr++] = (byte) sampleR;
+//                buf[ptr++] = (byte)(sampleR >>> 8);
+//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
+                beeper[idx] = -32760 + beeper[idx];
                 lsb = (byte) beeper[idx];
                 msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
@@ -268,14 +279,14 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper
-            if (ptr == 3836) {
-                lsb = (byte) beeper[958];
-                msb = (byte) (beeper[958] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-            }
+//            if (ptr == 3836) {
+//                lsb = (byte) beeper[958];
+//                msb = (byte) (beeper[958] >>> 8);
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//            }
         }
         return ptr;
     }
@@ -294,8 +305,8 @@ class Audio {
             int sampleL = 0, sampleR = 0, center = 0;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufC[idx] * 0.7);
-                sampleL = beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3;
-                sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx];
+                sampleL = -32760 + (beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3);
+                sampleR = -32760 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -303,17 +314,18 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper y el último sample actualizado del AY
-            if (ptr == 3836) {
-                center = (int)(ayBufC[959] * 0.7);
-                sampleL = beeper[958] + ayBufA[959] + center + ayBufB[959] / 3;
-                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufB[959];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
-            }
+//            if (ptr == 3836) {
+//                center = (int)(ayBufC[959] * 0.7);
+//                sampleL = beeper[958] + ayBufA[959] + center + ayBufB[959] / 3;
+//                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufB[959];
+//                buf[ptr++] = (byte) sampleL;
+//                buf[ptr++] = (byte)(sampleL >>> 8);
+//                buf[ptr++] = (byte) sampleR;
+//                buf[ptr++] = (byte)(sampleR >>> 8);
+//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
+                beeper[idx] = -32760 + beeper[idx];
                 lsb = (byte) beeper[idx];
                 msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
@@ -323,14 +335,14 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper
-            if (ptr == 3836) {
-                lsb = (byte) beeper[958];
-                msb = (byte) (beeper[958] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-            }
+//            if (ptr == 3836) {
+//                lsb = (byte) beeper[958];
+//                msb = (byte) (beeper[958] >>> 8);
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//            }
         }
         return ptr;
     }
@@ -349,8 +361,8 @@ class Audio {
             int sampleL = 0, sampleR = 0, center = 0;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufA[idx] * 0.7);
-                sampleL = beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3;
-                sampleR = beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx];
+                sampleL = -32760 + (beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3);
+                sampleR = -32760 + (beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx]);
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
@@ -358,17 +370,18 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper y el último sample actualizado del AY
-            if (ptr == 3836) {
-                center = (int)(ayBufA[959] * 0.7);
-                sampleL = beeper[958] + ayBufB[959] + center + ayBufC[959] / 3;
-                sampleR = beeper[958] + ayBufB[959] / 3 + center + ayBufC[959];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
-            }
+//            if (ptr == 3836) {
+//                center = (int)(ayBufA[959] * 0.7);
+//                sampleL = beeper[958] + ayBufB[959] + center + ayBufC[959] / 3;
+//                sampleR = beeper[958] + ayBufB[959] / 3 + center + ayBufC[959];
+//                buf[ptr++] = (byte) sampleL;
+//                buf[ptr++] = (byte)(sampleL >>> 8);
+//                buf[ptr++] = (byte) sampleR;
+//                buf[ptr++] = (byte)(sampleR >>> 8);
+//            }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
+                beeper[idx] = -32760 + beeper[idx];
                 lsb = (byte) beeper[idx];
                 msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
@@ -378,14 +391,14 @@ class Audio {
             }
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper
-            if (ptr == 3836) {
-                lsb = (byte) beeper[958];
-                msb = (byte) (beeper[958] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-            }
+//            if (ptr == 3836) {
+//                lsb = (byte) beeper[958];
+//                msb = (byte) (beeper[958] >>> 8);
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//                buf[ptr++] = lsb;
+//                buf[ptr++] = msb;
+//            }
         }
         return ptr;
     }

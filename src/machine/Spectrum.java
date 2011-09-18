@@ -1417,7 +1417,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
         return;
     }
-    static final int SPEAKER_VOLUME = 7000;
+    static final int SPEAKER_VOLUME = 10000;
     private int speaker;
     private static final int sp_volt[];
 
@@ -1483,10 +1483,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     static void setvol() {
-        sp_volt[0] = (int) -SPEAKER_VOLUME;
-        sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.06);
+        sp_volt[0] = 0; //(int) -SPEAKER_VOLUME;
+        sp_volt[1] = 0; // (int) -(SPEAKER_VOLUME * 1.06);
         sp_volt[2] = (int) SPEAKER_VOLUME;
-        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.06);
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.4);
     }
 
     /* Sección gráfica */

@@ -110,7 +110,7 @@ public final class AY8912 {
     private MachineTypes spectrumModel;
 
     AY8912() {
-        maxAmplitude = 7000;
+        maxAmplitude = 65535;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
@@ -149,7 +149,7 @@ public final class AY8912 {
 
     public int readRegister() {
         if (addressLatch >= 14
-                && (regAY[Mixer] >> addressLatch - 8 & 1) == 0) {
+            && (regAY[Mixer] >> addressLatch - 8 & 1) == 0) {
 //            System.out.println(String.format("getAYRegister %d: %02X",
 //                registerLatch, 0xFF));
             return 0xFF;
@@ -170,23 +170,17 @@ public final class AY8912 {
             case CoarseToneA:
                 regAY[CoarseToneA] &= 0x0f;
                 periodA = regAY[CoarseToneA] * 256 + regAY[FineToneA];
-                if (periodA == 0)
-                    periodA = 1;
 //                System.out.println("PeriodA: " + periodA);
                 break;
             case FineToneB:
             case CoarseToneB:
                 regAY[CoarseToneB] &= 0x0f;
                 periodB = regAY[CoarseToneB] * 256 + regAY[FineToneB];
-                if (periodB == 0)
-                    periodB = 1;
                 break;
             case FineToneC:
             case CoarseToneC:
                 regAY[CoarseToneC] &= 0x0f;
                 periodC = regAY[CoarseToneC] * 256 + regAY[FineToneC];
-                if (periodC == 0)
-                    periodC = 1;
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
@@ -347,27 +341,33 @@ public final class AY8912 {
 
 //            System.out.println(String.format("volA: %d, volB: %d, volC: %d", volA, volB, volC));
 
-            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
-            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
-            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
+//            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
+//            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
+//            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
-            volA = outA ? amplitudeA : -amplitudeA;
-            volumeA = (int)(volumeA * 0.8 + volA * 0.2);
+//            volA = outA ? amplitudeA : 0;
+//            volumeA = (int) (volumeA / 3 + volA / 1.5);
+//            volumeA = (int) (volumeA * 0.3 + volA * 0.7);
 //            volumeA = (volumeA >> 1) + (volA >> 1);
 
-            volB = outB ? amplitudeB : -amplitudeB;
-            volumeB = (int)(volumeB * 0.8 + volB * 0.2);
+//            volB = outB ? amplitudeB : 0;
+//            volumeB = (int) (volumeB / 3 + volB / 1.5);
+//            volumeB = (int) (volumeB * 0.3 + volB * 0.7);
 //            volumeB = (volumeB >> 1) + (volB >> 1);
 
-            volC = outC ? amplitudeC : -amplitudeC;
-            volumeC = (int)(volumeC * 0.8 + volC * 0.2);
+//            volC = outC ? amplitudeC : 0;
+//            volumeC = (int) (volumeC / 3 + volC / 1.5);
+//            volumeC = (int) (volumeC * 0.3 + volC * 0.7);
 //            volumeC = (volumeC >> 1) + (volC >> 1);
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
-                bufA[pbuf] = volumeA;
-                bufB[pbuf] = volumeB;
-                bufC[pbuf] = volumeC;
+                outA = (toneA || disableToneA) && (toneN || disableNoiseA);
+                outB = (toneB || disableToneB) && (toneN || disableNoiseB);
+                outC = (toneC || disableToneC) && (toneN || disableNoiseC);
+                bufA[pbuf] = outA ? amplitudeA : 0;
+                bufB[pbuf] = outB ? amplitudeB : 0;
+                bufC[pbuf] = outC ? amplitudeC : 0;
                 pbuf++;
                 stepCounter -= step;
             }
