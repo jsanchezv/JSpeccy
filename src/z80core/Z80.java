@@ -297,7 +297,7 @@ public class Z80 {
 
     public final void setRegAF(int valor) {
         regA = (valor >>> 8) & 0xff;
-        setFlags(valor & 0xff);
+        setFlags(valor);
     }
 
     public final int getRegAFalt() {
@@ -617,7 +617,7 @@ public class Z80 {
     }
 
     public final void setFlags(int regF) {
-        sz5h3pnFlags = regF & ~CARRY_MASK;
+        sz5h3pnFlags = regF & 0xFE;
 
         if ((regF & CARRY_MASK) != 0) {
             carryFlag = true;
@@ -683,33 +683,29 @@ public class Z80 {
      * 
      * 29/05/2011: cuando la CPU recibe alimentación por primera vez, los
      *             registros se inicializan a 0xFF, pero si se produce un reset
-     *             a través de la patilla correspondiente, los registros se
-     *             inicializan a 0 (excepto SP)
+     *             a través de la patilla correspondiente, los registros SP, PC,
+     *             AF, AF', I y R se inicializan a 0, IX e IY se preservan y
+     *             el resto quedan un poco indefinidos.
      *             http://www.worldofspectrum.org/forums/showthread.php?t=34574
      */
     public final void reset() {
         regPC = 0;
-        regSP = 0xffff;
+        regSP = 0;
+        
+        regA = regAalt = 0;
+        setFlags(0);
+        flagFalt = 0;
 
         if (pinReset) {
             pinReset = false;
-            regA = regAalt = 0;
+            
             regB = regBalt = 0;
             regC = regCalt = 0;
             regD = regDalt = 0;
             regE = regEalt = 0;
             regH = regHalt = 0;
-            regL = regLalt = 0;
-
-            setFlags(0);
-            flagFalt = 0;
-
-            regIX = 0;
-            regIY = 0;
-
-            regI = 0;
+            regL = regLalt = 0;         
         } else {
-            regA = regAalt = 0xff;
             regB = regBalt = 0xff;
             regC = regCalt = 0xff;
             regD = regDalt = 0xff;
@@ -717,14 +713,11 @@ public class Z80 {
             regH = regHalt = 0xff;
             regL = regLalt = 0xff;
 
-            setFlags(0xff);
-            flagFalt = 0xff;
-
             regIX = 0xffff;
-            regIY = 0xffff;
-
-            regI = 0xff;
+            regIY = 0xffbf;
         }
+        
+        regI = 0;
         regR = 0x00;
         regRbit7 = false;
 
@@ -2733,7 +2726,7 @@ public class Z80 {
             case 0xF1:       /*POP AF*/
                 work16 = pop();
                 regA = (work16 >>> 8);
-                setFlags(work16 & 0xff);
+                setFlags(work16);
                 break;
             case 0xF2:       /*JP P,nn*/
                 memptr = MemIoImpl.peek16(regPC);
