@@ -44,7 +44,7 @@ class Audio {
     private float timeRem, spf;
 //    private AY8912 ay;
     private MachineTypes spectrumModel;
-    private boolean enabledAY, firstFrame;
+    private boolean enabledAY;
     private AY8912Type settings;
 
     Audio(AY8912Type ayConf) {
@@ -130,6 +130,7 @@ class Audio {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
                 lastLevel = (lastLevel + level) >>> 1;
+//                lastLevel = (int) (lastLevel * 0.4 + level * 0.6);
                 beeper[bufp++] = lastLevel;
             } else {
                 timeRem += time;
@@ -139,6 +140,7 @@ class Audio {
 
             while (time > spf) {
                 lastLevel = (lastLevel + value) >>> 1;
+//                lastLevel = (int) (lastLevel * 0.4 + value * 0.6);
                 beeper[bufp++] = lastLevel;
                 time -= spf;
             }
@@ -158,19 +160,19 @@ class Audio {
         if (line != null) {
             int available = line.available();
             if (available < (frameSize >>> 1)) {
-                System.out.println(String.format("Only available: %d", available));
+//                System.out.println(String.format("Only available: %d", available));
                     return;
             }
 
             synchronized (buf) {
                 line.write(buf, 0, len);
 //                if (available == bufferSize) {
-                    if ((bufferSize - available) < (frameSize >>> 2)) {
-                    System.out.println(String.format("Empty audio buffer. %d bytes used at %d",
-                            (bufferSize - available), System.currentTimeMillis()));
+//                    if ((bufferSize - available) < (frameSize >>> 2)) {
+//                    System.out.println(String.format("Empty audio buffer. %d bytes used at %d",
+//                            (bufferSize - available), System.currentTimeMillis()));
                     if (available == bufferSize)
                         line.write(buf, 0, len);
-                }
+//                }
             }
         }
     }

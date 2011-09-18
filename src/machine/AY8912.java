@@ -186,11 +186,11 @@ public final class AY8912 {
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
-                periodN = value & 0x1f;
-                if (periodN == 0) {
-                    periodN = 1;
-                }
-                periodN <<= 1;
+//                periodN = regAY[NoisePeriod];
+//                if (periodN == 0) {
+//                    periodN = 1;
+//                }
+//                periodN <<= 1;
 //                System.out.println(String.format("Noise Period: %d", periodN));
                 break;
             case Mixer:
@@ -200,8 +200,9 @@ public final class AY8912 {
                 disableNoiseA = (regAY[Mixer] & NOISE_A) != 0;
                 disableNoiseB = (regAY[Mixer] & NOISE_B) != 0;
                 disableNoiseC = (regAY[Mixer] & NOISE_C) != 0;
-//                System.out.println(String.format("Enable Register: %02X",
-//                    regAY[addressLatch]));
+//                if (!disableNoiseA || !disableNoiseB || !disableNoiseC)
+//                    System.out.println(String.format("Enable Register: %02X",
+//                        regAY[addressLatch]));
                 break;
             case AmplitudeA:
                 regAY[addressLatch] &= 0x1f;
@@ -232,11 +233,13 @@ public final class AY8912 {
             case FineEnvelope:
             case CoarseEnvelope:
                 envelopePeriod = regAY[CoarseEnvelope] * 256 + regAY[FineEnvelope];
+                // Period = 0 is half as period = 1. (from MAME sources)
                 if (envelopePeriod == 0) {
                     envelopePeriod = 1;
-                }
+                } else {
 //                System.out.println(String.format("envPeriod: %d", envelopePeriod));
-                envelopePeriod <<= 1;
+                    envelopePeriod <<= 1;
+                }
                 break;
             case EnvelopeShapeCycle:
                 regAY[addressLatch] &= 0x0f;
@@ -258,7 +261,7 @@ public final class AY8912 {
 
     public void updateAY(int tstates) {
         boolean outA, outB, outC;
-//        int volA, volB, volC;
+        int volA, volB, volC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -280,20 +283,37 @@ public final class AY8912 {
                 counterC = 0;
             }
 
-            if (++counterN >= 0) {
+            if (++counterN >= periodN) {
                 counterN = 0;
+                // Changes to R6 take effect only when internal counter reaches 0
+                periodN = regAY[NoisePeriod];
+                if (periodN == 0) {
+                    periodN = 1;
+                }
+                periodN <<= 1;
+
+                // Code borrowed from MAME sources
+                /* Is noise output going to change? */
+                if (((rng + 1) & 0x02) != 0) { /* (bit0^bit1)? */
+                    toneN = !toneN;
+                }
 
                 /* The Random Number Generator of the 8910 is a 17-bit shift */
                 /* register. The input to the shift register is bit0 XOR bit3 */
                 /* (bit0 is the output). This was verified on AY-3-8910 and YM2149 chips. */
-                toneN = (rng & 0x01) != 0;
-                if (toneN) {
-                    rng ^= 0x28000;
+
+                /* The following is a fast way to compute bit17 = bit0^bit3. */
+                /* Instead of doing all the logic operations, we only check */
+                /* bit0, relying on the fact that after three shifts of the */
+                /* register, what now is bit3 will become bit0, and will */
+                /* invert, if necessary, bit14, which previously was bit17. */
+                if ((rng & 0x01) != 0) {
+                    rng ^= 0x24000; /* This version is called the "Galois configuration". */
                 }
                 rng >>>= 1;
             }
 
-            if (envA || envB || envC) {
+//            if (envA || envB || envC) {
                 if (++envelopeCounter >= envelopePeriod) {
                     envelopeCounter = 0;
 
@@ -339,46 +359,40 @@ public final class AY8912 {
 //                System.out.println(String.format("AmplitudeEnv = %d, %d",
 //                        amplitudeEnv, volumeLevel[amplitudeEnv]));
                 }
-            }
+//            }
 
 //            System.out.println(String.format("volA: %d, volB: %d, volC: %d", volA, volB, volC));
 
-//            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
-//            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
-//            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-//
-//            volA = outA ? amplitudeA : 0;
+            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
+            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
+            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
+
+            volA = outA ? amplitudeA : 0;
+//            if (counterA == 1)
+//                volA = amplitudeA >>> 1;
 //            volumeA = (int) (volumeA / 5 + volA * 0.8);
-//            volumeA = (int) (volumeA * 0.6 + volA * 0.4);
-//            volumeA = (volumeA >> 1) + (volA >> 1);
+//            volumeA = (int) (volumeA * 0.7 + volA * 0.3);
 //            volumeA = (volumeA + volA) >>> 1;
+            volumeA = ((volumeA << 2) + volA) / 5;
 
-//            volB = outB ? amplitudeB : 0;
+            volB = outB ? amplitudeB : 0;
+//            if (counterB == 1)
+//                volB = amplitudeB >>> 1;
 //            volumeB = (int) (volumeB / 5 + volB * 0.8);
-//            volumeB = (int) (volumeB * 0.6 + volB * 0.4);
-//            volumeB = (volumeB >> 1) + (volB >> 1);
+//            volumeB = (int) (volumeB * 0.7 + volB * 0.3);
 //            volumeB = (volumeB + volB) >>> 1;
+            volumeB = ((volumeB << 2) + volB) / 5;
 
-//            volC = outC ? amplitudeC : 0;
+            volC = outC ? amplitudeC : 0;
+//            if (counterC == 1)
+//                volC = amplitudeC >>> 1;
 //            volumeC = (int) (volumeC / 5 + volC * 0.8);
-//            volumeC = (int) (volumeC * 0.6 + volC * 0.4);
-//            volumeC = (volumeC >> 1) + (volC >> 1);
+//            volumeC = (int) (volumeC * 0.7 + volC * 0.3);
 //            volumeC = (volumeC + volC) >>> 1;
+            volumeC = ((volumeC << 2) + volC) / 5;
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
-                outA = (toneA || disableToneA) && (toneN || disableNoiseA);
-                outB = (toneB || disableToneB) && (toneN || disableNoiseB);
-                outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-//                volA = outA ? amplitudeA : 0;
-//                volB = outB ? amplitudeB : 0;
-//                volC = outC ? amplitudeC : 0;
-//                volumeA = (int) (volumeA * 0.4 + volA * 0.6);
-//                volumeB = (int) (volumeB * 0.4 + volB * 0.6);
-//                volumeC = (int) (volumeC * 0.4 + volC * 0.6);
-                volumeA = (volumeA + (outA ? amplitudeA : 0)) >>> 1;
-                volumeB = (volumeB + (outB ? amplitudeB : 0)) >>> 1;
-                volumeC = (volumeC + (outC ? amplitudeC : 0)) >>> 1;
                 bufA[pbuf] = volumeA;
                 bufB[pbuf] = volumeB;
                 bufC[pbuf] = volumeC;

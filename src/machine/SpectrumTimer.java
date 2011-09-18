@@ -26,14 +26,14 @@ public class SpectrumTimer extends TimerTask {
         diff = now - scheduledExecutionTime();
 //        System.out.println(String.format("Standard delay %d ms", diff));
         if (diff < 51) {
-        spectrum.generateFrame();
-        spectrum.drawFrame();
+            spectrum.generateFrame();
+            spectrum.drawFrame();
 //        System.out.println(String.format("Frame time: %d", System.currentTimeMillis() - now));
-        if (diff > 50)
-            System.out.println(String.format("Frame delayed by %d ms", (diff - 10)));
-        } else {
-            System.out.println(String.format("At %d: Frame delayed %d ms. Skipped.",
-                    now, now - scheduledExecutionTime()));
+//        if (diff > 50)
+//            System.out.println(String.format("Frame delayed by %d ms", (diff - 10)));
+//        } else {
+//            System.out.println(String.format("At %d: Frame delayed %d ms. Skipped.",
+//                    now, now - scheduledExecutionTime()));
         }
     }
 }
