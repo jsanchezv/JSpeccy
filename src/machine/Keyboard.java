@@ -19,6 +19,41 @@ public class Keyboard implements KeyListener {
     private int kempston, fuller;
     private Joystick joystick;
 
+    /*
+     * Spectrum Keyboard Map
+     *
+     * PORT  |  BIT 4   3   2   1   0
+     * -----------------------------------------
+     * 254 (FEh)    V   C   X   Z   CAPS
+     * -----------------------------------------
+     * 253 (FDh)    G   F   D   S   A
+     * -----------------------------------------
+     * 251 (FBh)    T   R   E   W   Q
+     * -----------------------------------------
+     * 247 (F7h)    5   4   3   2   1
+     * -----------------------------------------
+     * 239 (EFh)    6   7   8   9   0
+     * -----------------------------------------
+     * 223 (FDh)    Y   U   I   O   P
+     * -----------------------------------------
+     * 191 (BFh)    H   J   K   L   ENTER
+     * -----------------------------------------
+     * 127 (7Fh)    B   N   M   SYM BREAK/SPACE
+     * -----------------------------------------
+     * 
+     */
+    private static final int KEY_PRESSED_BIT0 = 0xfe;
+    private static final int KEY_PRESSED_BIT1 = 0xfd;
+    private static final int KEY_PRESSED_BIT2 = 0xfb;
+    private static final int KEY_PRESSED_BIT3 = 0xf7;
+    private static final int KEY_PRESSED_BIT4 = 0xef;
+
+    private static final int KEY_RELEASED_BIT0 = 0x01;
+    private static final int KEY_RELEASED_BIT1 = 0x02;
+    private static final int KEY_RELEASED_BIT2 = 0x04;
+    private static final int KEY_RELEASED_BIT3 = 0x08;
+    private static final int KEY_RELEASED_BIT4 = 0x10;
+
     public Keyboard() {
         reset();
     }
@@ -86,17 +121,17 @@ public class Keyboard implements KeyListener {
 //            System.out.println("pressed " + keychar);
 //            switch (keychar) {
 //                case ' ':
-//                    rowKey[7] &= 0xfe;
+//                    rowKey[7] &= PRESS_KEY_BIT_0;
 //                    done = true;
 //                    break;
 //                case '!':
 //                    rowKey[7] &= 0xfd; // Symbol-Shift
-//                    rowKey[3] &= 0xfe; // 1
+//                    rowKey[3] &= PRESS_KEY_BIT_0; // 1
 //                    done = true;
 //                    break;
 //                case '\"':
 //                    rowKey[7] &= 0xfd; // Symbol-Shift
-//                    rowKey[5] &= 0xfe; // P
+//                    rowKey[5] &= PRESS_KEY_BIT_0; // P
 //                    done = true;
 //                    break;
 //                case '#':
@@ -162,11 +197,11 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case '0':
-//                    rowKey[4] &= 0xfe; // 0
+//                    rowKey[4] &= PRESS_KEY_BIT_0; // 0
 //                    done = true;
 //                    break;
 //                case '1':
-//                    rowKey[3] &= 0xfe; // 1
+//                    rowKey[3] &= PRESS_KEY_BIT_0; // 1
 //                    done = true;
 //                    break;
 //                case '2':
@@ -237,12 +272,12 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'A':
-//                    rowKey[0] &= 0xfe; // Caps Shift
-//                    rowKey[1] &= 0xfe; // A
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
+//                    rowKey[1] &= PRESS_KEY_BIT_0; // A
 //                    done = true;
 //                    break;
 //                case 'B':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[7] &= 0xef; // B
 //                    done = true;
 //                    break;
@@ -251,92 +286,92 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'D':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[1] &= 0xfb; // D
 //                    done = true;
 //                    break;
 //                case 'E':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[2] &= 0xfb; // E
 //                    done = true;
 //                    break;
 //                case 'F':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[1] &= 0xf7; // F
 //                    done = true;
 //                    break;
 //                case 'G':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[1] &= 0xef; // G
 //                    done = true;
 //                    break;
 //                case 'H':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[6] &= 0xef; // H
 //                    done = true;
 //                    break;
 //                case 'I':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[5] &= 0xfb; // I
 //                    done = true;
 //                    break;
 //                case 'J':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[6] &= 0xf7; // J
 //                    done = true;
 //                    break;
 //                case 'K':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[6] &= 0xfb; // K
 //                    done = true;
 //                    break;
 //                case 'L':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[6] &= 0xfd; // L
 //                    done = true;
 //                    break;
 //                case 'M':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[7] &= 0xfb; // M
 //                    done = true;
 //                    break;
 //                case 'N':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[7] &= 0xf7; // N
 //                    done = true;
 //                    break;
 //                case 'O':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[5] &= 0xfd; // O
 //                    done = true;
 //                    break;
 //                case 'P':
-//                    rowKey[0] &= 0xfe; // Caps Shift
-//                    rowKey[5] &= 0xfe; // P
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
+//                    rowKey[5] &= PRESS_KEY_BIT_0; // P
 //                    done = true;
 //                    break;
 //                case 'Q':
-//                    rowKey[0] &= 0xfe; // Caps Shift
-//                    rowKey[2] &= 0xfe; // Q
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
+//                    rowKey[2] &= PRESS_KEY_BIT_0; // Q
 //                    done = true;
 //                    break;
 //                case 'R':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[2] &= 0xf7; // R
 //                    done = true;
 //                    break;
 //                case 'S':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[1] &= 0xfd; // S
 //                    done = true;
 //                    break;
 //                case 'T':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[2] &= 0xef; // T
 //                    done = true;
 //                    break;
 //                case 'U':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[5] &= 0xf7; // U
 //                    done = true;
 //                    break;
@@ -345,7 +380,7 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'W':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[2] &= 0xfd; // W
 //                    done = true;
 //                    break;
@@ -354,7 +389,7 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'Y':
-//                    rowKey[0] &= 0xfe; // Caps Shift
+//                    rowKey[0] &= PRESS_KEY_BIT_0; // Caps Shift
 //                    rowKey[5] &= 0xef; // Y
 //                    done = true;
 //                    break;
@@ -370,14 +405,14 @@ public class Keyboard implements KeyListener {
 //                    break;
 //                case '_':
 //                    rowKey[7] &= 0xfd; // Symbol-Shift
-//                    rowKey[4] &= 0xfe; // 0
+//                    rowKey[4] &= PRESS_KEY_BIT_0; // 0
 //                    done = true;
 //                    break;
 //                case '`':
 //                    // Isn't mappeable
 //                    break;
 //                case 'a':
-//                    rowKey[1] &= 0xfe; // A
+//                    rowKey[1] &= PRESS_KEY_BIT_0; // A
 //                    done = true;
 //                    break;
 //                case 'b':
@@ -437,11 +472,11 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'p':
-//                    rowKey[5] &= 0xfe; // P
+//                    rowKey[5] &= PRESS_KEY_BIT_0; // P
 //                    done = true;
 //                    break;
 //                case 'q':
-//                    rowKey[2] &= 0xfe; // Q
+//                    rowKey[2] &= PRESS_KEY_BIT_0; // Q
 //                    done = true;
 //                    break;
 //                case 'r':
@@ -493,243 +528,259 @@ public class Keyboard implements KeyListener {
 
         int key = evt.getKeyCode();
         switch (key) {
-            // Fila B - SPACE
+            // Row B - Break/Space
             case KeyEvent.VK_SPACE:
-                rowKey[7] &= 0xfe; // Spacebar
+                rowKey[7] &= KEY_PRESSED_BIT0; // Break/Space
                 break;
             case KeyEvent.VK_ALT:
-                rowKey[7] &= 0xfd; // Symbol-Shift
+                rowKey[7] &= KEY_PRESSED_BIT1; // Symbol-Shift
                 break;
             case KeyEvent.VK_M:
-                rowKey[7] &= 0xfb; // M
+                rowKey[7] &= KEY_PRESSED_BIT2; // M
                 break;
             case KeyEvent.VK_N:
-                rowKey[7] &= 0xf7; // N
+                rowKey[7] &= KEY_PRESSED_BIT3; // N
                 break;
             case KeyEvent.VK_B:
-                rowKey[7] &= 0xef; // B
+                rowKey[7] &= KEY_PRESSED_BIT4; // B
                 break;
-            // Fila ENTER - H
+            // Row ENTER - H
             case KeyEvent.VK_ENTER:
-                rowKey[6] &= 0xfe; // RETURN
+                rowKey[6] &= KEY_PRESSED_BIT0; // ENTER
                 break;
             case KeyEvent.VK_L:
-                rowKey[6] &= 0xfd; // L
+                rowKey[6] &= KEY_PRESSED_BIT1; // L
                 break;
             case KeyEvent.VK_K:
-                rowKey[6] &= 0xfb; // K
+                rowKey[6] &= KEY_PRESSED_BIT2; // K
                 break;
             case KeyEvent.VK_J:
-                rowKey[6] &= 0xf7; // J
+                rowKey[6] &= KEY_PRESSED_BIT3; // J
                 break;
             case KeyEvent.VK_H:
-                rowKey[6] &= 0xef; // H
+                rowKey[6] &= KEY_PRESSED_BIT4; // H
                 break;
-            // Fila P - Y
+            // Row P - Y
             case KeyEvent.VK_P:
-                rowKey[5] &= 0xfe; // P
+                rowKey[5] &= KEY_PRESSED_BIT0; // P
                 break;
             case KeyEvent.VK_O:
-                rowKey[5] &= 0xfd; // O
+                rowKey[5] &= KEY_PRESSED_BIT1; // O
                 break;
             case KeyEvent.VK_I:
-                rowKey[5] &= 0xfb; // I
+                rowKey[5] &= KEY_PRESSED_BIT2; // I
                 break;
             case KeyEvent.VK_U:
-                rowKey[5] &= 0xf7; // U
+                rowKey[5] &= KEY_PRESSED_BIT3; // U
                 break;
             case KeyEvent.VK_Y:
-                rowKey[5] &= 0xef; // Y
+                rowKey[5] &= KEY_PRESSED_BIT4; // Y
                 break;
-            // Fila 0 - 6
+            // Row 0 - 6
             case KeyEvent.VK_0:
-                rowKey[4] &= 0xfe; // 0
+                rowKey[4] &= KEY_PRESSED_BIT0; // 0
                 break;
             case KeyEvent.VK_9:
-                rowKey[4] &= 0xfd; // 9
+                rowKey[4] &= KEY_PRESSED_BIT1; // 9
                 break;
             case KeyEvent.VK_8:
-                rowKey[4] &= 0xfb; // 8
+                rowKey[4] &= KEY_PRESSED_BIT2; // 8
                 break;
             case KeyEvent.VK_7:
-                rowKey[4] &= 0xf7; // 7
+                rowKey[4] &= KEY_PRESSED_BIT3; // 7
                 break;
             case KeyEvent.VK_6:
-                rowKey[4] &= 0xef; // 6
+                rowKey[4] &= KEY_PRESSED_BIT4; // 6
                 break;
-            // Fila 1 - 5
+            // Row 1 - 5
             case KeyEvent.VK_1:
-                rowKey[3] &= 0xfe; // 1
+                rowKey[3] &= KEY_PRESSED_BIT0; // 1
                 break;
             case KeyEvent.VK_2:
-                rowKey[3] &= 0xfd; // 2
+                rowKey[3] &= KEY_PRESSED_BIT1; // 2
                 break;
             case KeyEvent.VK_3:
-                rowKey[3] &= 0xfb; // 3
+                rowKey[3] &= KEY_PRESSED_BIT2; // 3
                 break;
             case KeyEvent.VK_4:
-                rowKey[3] &= 0xf7; // 4
+                rowKey[3] &= KEY_PRESSED_BIT3; // 4
                 break;
             case KeyEvent.VK_5:
-                rowKey[3] &= 0xef; // 5
+                rowKey[3] &= KEY_PRESSED_BIT4; // 5
                 break;
-            // Fila Q - T
+            // Row Q - T
             case KeyEvent.VK_Q:
-                rowKey[2] &= 0xfe; // Q
+                rowKey[2] &= KEY_PRESSED_BIT0; // Q
                 break;
             case KeyEvent.VK_W:
-                rowKey[2] &= 0xfd; // W
+                rowKey[2] &= KEY_PRESSED_BIT1; // W
                 break;
             case KeyEvent.VK_E:
-                rowKey[2] &= 0xfb; // E
+                rowKey[2] &= KEY_PRESSED_BIT2; // E
                 break;
             case KeyEvent.VK_R:
-                rowKey[2] &= 0xf7; // R
+                rowKey[2] &= KEY_PRESSED_BIT3; // R
                 break;
             case KeyEvent.VK_T:
-                rowKey[2] &= 0xef; // T
+                rowKey[2] &= KEY_PRESSED_BIT4; // T
                 break;
-            // Fila A - G
+            // Row A - G
             case KeyEvent.VK_A:
-                rowKey[1] &= 0xfe; // A
+                rowKey[1] &= KEY_PRESSED_BIT0; // A
                 break;
             case KeyEvent.VK_S:
-                rowKey[1] &= 0xfd; // S
+                rowKey[1] &= KEY_PRESSED_BIT1; // S
                 break;
             case KeyEvent.VK_D:
-                rowKey[1] &= 0xfb; // D
+                rowKey[1] &= KEY_PRESSED_BIT2; // D
                 break;
             case KeyEvent.VK_F:
-                rowKey[1] &= 0xf7; // F
+                rowKey[1] &= KEY_PRESSED_BIT3; // F
                 break;
             case KeyEvent.VK_G:
-                rowKey[1] &= 0xef; // G
+                rowKey[1] &= KEY_PRESSED_BIT4; // G
                 break;
-            // Fila CAPS_SHIFT - V
+            // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                rowKey[0] &= 0xfe; // Caps Shift
+                rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 break;
             case KeyEvent.VK_Z:
-                rowKey[0] &= 0xfd; // Z
+                rowKey[0] &= KEY_PRESSED_BIT1; // Z
                 break;
             case KeyEvent.VK_X:
-                rowKey[0] &= 0xfb; // X
+                rowKey[0] &= KEY_PRESSED_BIT2; // X
                 break;
             case KeyEvent.VK_C:
-                rowKey[0] &= 0xf7; // C
+                rowKey[0] &= KEY_PRESSED_BIT3; // C
                 break;
             case KeyEvent.VK_V:
-                rowKey[0] &= 0xef; // V
+                rowKey[0] &= KEY_PRESSED_BIT4; // V
                 break;
-            // Teclas de conveniencia, para mayor comodidad de uso
+            // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[4] &= 0xfe; // 0
+                rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
+                rowKey[4] &= KEY_PRESSED_BIT0; // 0
                 break;
             case KeyEvent.VK_COMMA:
-                rowKey[7] &= 0xf5; // SYMBOL-SHIFT + N (',')
+                rowKey[7] &= (KEY_PRESSED_BIT1 & KEY_PRESSED_BIT3); // SYMBOL-SHIFT + N (',')
                 break;
             case KeyEvent.VK_PERIOD:
-                rowKey[7] &= 0xf9; // SYMBOL-SHIFT + M ('.')
+                rowKey[7] &= (KEY_PRESSED_BIT1 & KEY_PRESSED_BIT2); // SYMBOL-SHIFT + M ('.')
                 break;
             case KeyEvent.VK_MINUS:
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
-                rowKey[6] &= 0xf7; // J
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] &= KEY_PRESSED_BIT3; // J
                 break;
             case KeyEvent.VK_PLUS:
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT
-                rowKey[6] &= 0xfb; // K
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] &= KEY_PRESSED_BIT2; // K
+                break;
+            case KeyEvent.VK_EQUALS: // UK Keyboard
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] &= KEY_PRESSED_BIT1; // L
+                break;
+            case KeyEvent.VK_NUMBER_SIGN: // UK Keyboard
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[3] &= KEY_PRESSED_BIT2; // 3
+                break;
+            case KeyEvent.VK_SLASH: // UK Keyboard
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[0] &= KEY_PRESSED_BIT4; // V
+                break;
+            case KeyEvent.VK_SEMICOLON: // UK Keyboard
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT
+                rowKey[5] &= KEY_PRESSED_BIT1; // O
                 break;
             case KeyEvent.VK_ALT_GRAPH:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[7] &= 0xfd; // SYMBOL-SHIFT -- Extended Mode
+                rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
+                rowKey[7] &= KEY_PRESSED_BIT1; // SYMBOL-SHIFT -- Extended Mode
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                rowKey[0] &= 0xfe; // CAPS
-                rowKey[3] &= 0xfd; // 2  -- Caps Lock
+                rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
+                rowKey[3] &= KEY_PRESSED_BIT1; // 2  -- Caps Lock
                 break;
-            // Emulación joystick
+            // Joystick emulation
             case KeyEvent.VK_LEFT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
+                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
-                        rowKey[3] &= 0xef; // 5  -- Left arrow
+                        rowKey[3] &= KEY_PRESSED_BIT4; // 5  -- Left arrow
                         break;
                     case KEMPSTON:
-                        kempston |= 0x02;
+                        kempston |= KEY_RELEASED_BIT1;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] &= 0xfe; // 1 -- Left
+                        rowKey[4] &= KEY_PRESSED_BIT4; // 6 -- Left
                         break;
                     case SINCLAIR2:
-                        rowKey[4] &= 0xef; // 6  -- Left
+                        rowKey[3] &= KEY_PRESSED_BIT0; // 1 -- Left
                         break;
                     case FULLER:
-                        fuller &= 0xfb;
+                        fuller &= KEY_PRESSED_BIT2;
                         break;
                 }
                 break;
             case KeyEvent.VK_DOWN:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
+                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
-                        rowKey[4] &= 0xef; // 6  -- Down arrow
+                        rowKey[4] &= KEY_PRESSED_BIT4; // 6  -- Down arrow
                         break;
                     case KEMPSTON:
-                        kempston |= 0x04;
+                        kempston |= KEY_RELEASED_BIT2;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] &= 0xfb; // 3 -- Down
+                        rowKey[4] &= KEY_PRESSED_BIT2; // 8 -- Down
                         break;
                     case SINCLAIR2:
-                        rowKey[4] &= 0xfb; // 8  -- Down
+                        rowKey[3] &= KEY_PRESSED_BIT2; // 3 -- Down
                         break;
                     case FULLER:
-                        fuller &= 0xfd;
+                        fuller &= KEY_PRESSED_BIT1;
                         break;
                 }
                 break;
             case KeyEvent.VK_UP:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
+                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
-                        rowKey[4] &= 0xf7; // 7  -- Up arrow
+                        rowKey[4] &= KEY_PRESSED_BIT3; // 7  -- Up arrow
                         break;
                     case KEMPSTON:
-                        kempston |= 0x08;
+                        kempston |= KEY_RELEASED_BIT3;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] &= 0xf7; // 4 -- Up
+                        rowKey[4] &= KEY_PRESSED_BIT1; // 9 -- Up
                         break;
                     case SINCLAIR2:
-                        rowKey[4] &= 0xfd; // 9 -- Up
+                        rowKey[3] &= KEY_PRESSED_BIT3; // 4 -- Up
                         break;
                     case FULLER:
-                        fuller &= 0xfe;
+                        fuller &= KEY_PRESSED_BIT0;
                         break;
                 }
                 break;
             case KeyEvent.VK_RIGHT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] &= 0xfe; // CAPS
+                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
-                        rowKey[4] &= 0xfb; // 8  -- Right arrow
+                        rowKey[4] &= KEY_PRESSED_BIT2; // 8  -- Right arrow
                         break;
                     case KEMPSTON:
-                        kempston |= 0x01;
+                        kempston |= KEY_RELEASED_BIT0;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] &= 0xfd; // 2 -- Right
+                        rowKey[4] &= KEY_PRESSED_BIT3; // 7 -- Right
                         break;
                     case SINCLAIR2:
-                        rowKey[4] &= 0xf7; // 7  -- Right
+                        rowKey[3] &= KEY_PRESSED_BIT1; // 2 -- Right
                         break;
                     case FULLER:
-                        fuller &= 0xf7;
+                        fuller &= KEY_PRESSED_BIT3;
                         break;
                 }
                 break;
@@ -737,15 +788,15 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         break;
-                    case CURSOR:
-                    case SINCLAIR2:
-                        rowKey[4] &= 0xfe; // 0 -- Fire
-                        break;
                     case KEMPSTON:
-                        kempston |= 0x10;
+                        kempston |= KEY_RELEASED_BIT4;
                         break;
+                    case CURSOR:
                     case SINCLAIR1:
-                        rowKey[3] &= 0xef; // 5 -- Fire
+                        rowKey[4] &= KEY_PRESSED_BIT0; // 0 -- Fire
+                        break;
+                    case SINCLAIR2:
+                        rowKey[3] &= KEY_PRESSED_BIT4; // 5 -- Fire
                         break;
                     case FULLER:
                         fuller &= 0x7f;
@@ -765,52 +816,52 @@ public class Keyboard implements KeyListener {
 //            System.out.println("released " + keychar);
 //            switch (keychar) {
 //                case ' ':
-//                    rowKey[7] |= 0x01; //Spacebar
+//                    rowKey[7] |= KEY_RELEASED_BIT0; //Spacebar
 //                    done = true;
 //                    break;
 //                case '!':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[3] |= 0x01; // 1
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[3] |= KEY_RELEASED_BIT0; // 1
 //                    done = true;
 //                    break;
 //                case '\"':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[5] |= 0x01; // P
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT0; // P
 //                    done = true;
 //                    break;
 //                case '#':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[3] |= 0x04; // 3
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[3] |= KEY_RELEASED_BIT2; // 3
 //                    done = true;
 //                    break;
 //                case '$':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[3] |= 0x08; // 4
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[3] |= KEY_RELEASED_BIT3; // 4
 //                    done = true;
 //                    break;
 //                case '%':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[3] |= 0x10; // 5
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[3] |= KEY_RELEASED_BIT4; // 5
 //                    done = true;
 //                    break;
 //                case '&':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[4] |= 0x10; // 6
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[4] |= KEY_RELEASED_BIT4; // 6
 //                    done = true;
 //                    break;
 //                case '\'':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[4] |= 0x08; // 7
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[4] |= KEY_RELEASED_BIT3; // 7
 //                    done = true;
 //                    break;
 //                case '(':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[4] |= 0x04; // 8
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[4] |= KEY_RELEASED_BIT2; // 8
 //                    done = true;
 //                    break;
 //                case ')':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[4] |= 0x02; // 9
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[4] |= KEY_RELEASED_BIT1; // 9
 //                    done = true;
 //                    break;
 //                case '*':
@@ -818,116 +869,116 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case '+':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[6] |= 0x04; // K
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[6] |= KEY_RELEASED_BIT2; // K
 //                    done = true;
 //                    break;
 //                case ',':
 //                    rowKey[7] |= 0x0A; // SYMBOL-SHIFT + N
-////                    rowKey[5] |= 0x02; // O (mapeado del símbolo ';')
+////                    rowKey[5] |= KEY_RELEASED_BIT1; // O (mapeado del símbolo ';')
 //                    done = true;
 //                    break;
 //                case '-':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[6] |= 0x08; // J
-////                    rowKey[4] |= 0x01; // 0 (mapeado del símbolo '_')
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[6] |= KEY_RELEASED_BIT3; // J
+////                    rowKey[4] |= KEY_RELEASED_BIT0; // 0 (mapeado del símbolo '_')
 //                    done = true;
 //                    break;
 //                case '.':
 //                    rowKey[7] |= 0x06; // SYMBOL-SHIFT + M
-////                    rowKey[0] |= 0x02; // Z (mapeado del símbolo ':')
+////                    rowKey[0] |= KEY_RELEASED_BIT1; // Z (mapeado del símbolo ':')
 //                    done = true;
 //                    break;
 //                case '/':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[0] |= 0x10; // V
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[0] |= KEY_RELEASED_BIT4; // V
 //                    done = true;
 //                    break;
 //                case '0':
-//                    rowKey[4] |= 0x01; // 0
+//                    rowKey[4] |= KEY_RELEASED_BIT0; // 0
 //                    done = true;
 //                    break;
 //                case '1':
-//                    rowKey[3] |= 0x01; // 1
+//                    rowKey[3] |= KEY_RELEASED_BIT0; // 1
 //                    done = true;
 //                    break;
 //                case '2':
-//                    rowKey[3] |= 0x02; // 2
-////                    rowKey[5] |= 0x01; // P ('"')
+//                    rowKey[3] |= KEY_RELEASED_BIT1; // 2
+////                    rowKey[5] |= KEY_RELEASED_BIT0; // P ('"')
 //                    done = true;
 //                    break;
 //                case '3':
-//                    rowKey[3] |= 0x04; // 3
+//                    rowKey[3] |= KEY_RELEASED_BIT2; // 3
 //                    done = true;
 //                    break;
 //                case '4':
-//                    rowKey[3] |= 0x08; // 4
+//                    rowKey[3] |= KEY_RELEASED_BIT3; // 4
 //                    done = true;
 //                    break;
 //                case '5':
-//                    rowKey[3] |= 0x10; // 5
+//                    rowKey[3] |= KEY_RELEASED_BIT4; // 5
 //                    done = true;
 //                    break;
 //                case '6':
-//                    rowKey[4] |= 0x10; // 6
+//                    rowKey[4] |= KEY_RELEASED_BIT4; // 6
 //                    done = true;
 //                    break;
 //                case '7':
-//                    rowKey[4] |= 0x08; // 7
-////                    rowKey[0] |= 0x10; // V ('/')
+//                    rowKey[4] |= KEY_RELEASED_BIT3; // 7
+////                    rowKey[0] |= KEY_RELEASED_BIT4; // V ('/')
 //                    done = true;
 //                    break;
 //                case '8':
-//                    rowKey[4] |= 0x04; // 8
+//                    rowKey[4] |= KEY_RELEASED_BIT2; // 8
 //                    done = true;
 //                    break;
 //                case '9':
-//                    rowKey[4] |= 0x02; // 9
+//                    rowKey[4] |= KEY_RELEASED_BIT1; // 9
 //                    done = true;
 //                    break;
 //                case ':':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[0] |= 0x02; // Z
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[0] |= KEY_RELEASED_BIT1; // Z
 //                    done = true;
 //                    break;
 //                case ';':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[5] |= 0x02; // O
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[5] |= KEY_RELEASED_BIT1; // O
 //                    done = true;
 //                    break;
 //                case '<':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[2] |= 0x08; // R
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[2] |= KEY_RELEASED_BIT3; // R
 //                    done = true;
 //                    break;
 //                case '=':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[6] |= 0x02; // L
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[6] |= KEY_RELEASED_BIT1; // L
 //                    done = true;
 //                    break;
 //                case '>':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[2] |= 0x10; // T
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[2] |= KEY_RELEASED_BIT4; // T
 //                    done = true;
 //                    break;
 //                case '?':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[0] |= 0x08; // C
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[0] |= KEY_RELEASED_BIT3; // C
 //                    done = true;
 //                    break;
 //                case '@':
-//                    rowKey[7] |= 0x02; // SYMBOL-SHIFT
-//                    rowKey[3] |= 0x02; // 2
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+//                    rowKey[3] |= KEY_RELEASED_BIT1; // 2
 //                    done = true;
 //                    break;
 //                case 'A':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[1] |= 0x01; // A
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[1] |= KEY_RELEASED_BIT0; // A
 //                    done = true;
 //                    break;
 //                case 'B':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[7] |= 0x10; // B
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[7] |= KEY_RELEASED_BIT4; // B
 //                    done = true;
 //                    break;
 //                case 'C':
@@ -935,93 +986,93 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'D':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[1] |= 0x04; // D
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[1] |= KEY_RELEASED_BIT2; // D
 //                    done = true;
 //                    break;
 //                case 'E':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[2] |= 0x04; // E
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[2] |= KEY_RELEASED_BIT2; // E
 //                    done = true;
 //                    break;
 //                case 'F':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[1] |= 0x08; // F
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[1] |= KEY_RELEASED_BIT3; // F
 //                    done = true;
 //                    break;
 //                case 'G':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[1] |= 0x10; // G
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[1] |= KEY_RELEASED_BIT4; // G
 //                    done = true;
 //                    break;
 //                case 'H':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[6] |= 0x10; // H
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[6] |= KEY_RELEASED_BIT4; // H
 //                    done = true;
 //                    break;
 //                case 'I':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[5] |= 0x04; // I
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT2; // I
 //                    done = true;
 //                    break;
 //                case 'J':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[6] |= 0x08; // J
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[6] |= KEY_RELEASED_BIT3; // J
 //                    done = true;
 //                    break;
 //                case 'K':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[6] |= 0x04; // K
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[6] |= KEY_RELEASED_BIT2; // K
 //                    done = true;
 //                    break;
 //                case 'L':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[6] |= 0x02; // L
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[6] |= KEY_RELEASED_BIT1; // L
 //                    done = true;
 //                    break;
 //                case 'M':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[7] |= 0x04; // M
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[7] |= KEY_RELEASED_BIT2; // M
 //                    done = true;
 //                    break;
 //                case 'N':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[7] |= 0x08; // N
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[7] |= KEY_RELEASED_BIT3; // N
 //                    done = true;
 //                    break;
 //                case 'O':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[5] |= 0x02; // O
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT1; // O
 //                    done = true;
 //                    break;
 //                case 'P':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[5] |= 0x01; // P
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT0; // P
 //                    done = true;
 //                    break;
 //                case 'Q':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[2] |= 0x01; // Q
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[2] |= KEY_RELEASED_BIT0; // Q
 //                    done = true;
 //                    break;
 //                case 'R':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[2] |= 0x08; // R
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[2] |= KEY_RELEASED_BIT3; // R
 //                    done = true;
 //                    break;
 //                case 'S':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[1] |= 0x02; // S
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[1] |= KEY_RELEASED_BIT1; // S
 //                    done = true;
 //                    break;
 //                case 'T':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[2] |= 0x10; // T
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[2] |= KEY_RELEASED_BIT4; // T
 //                    done = true;
 //                    break;
 //                case 'U':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[5] |= 0x08; // U
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT3; // U
 //                    done = true;
 //                    break;
 //                case 'V':
@@ -1029,8 +1080,8 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'W':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[2] |= 0x02; // W
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[2] |= KEY_RELEASED_BIT1; // W
 //                    done = true;
 //                    break;
 //                case 'X':
@@ -1038,8 +1089,8 @@ public class Keyboard implements KeyListener {
 //                    done = true;
 //                    break;
 //                case 'Y':
-//                    rowKey[0] |= 0x01; // Caps Shift
-//                    rowKey[5] |= 0x10; // Y
+//                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+//                    rowKey[5] |= KEY_RELEASED_BIT4; // Y
 //                    done = true;
 //                    break;
 //                case 'Z':
@@ -1053,120 +1104,120 @@ public class Keyboard implements KeyListener {
 //                    // Aren't mappeable
 //                    break;
 //                case '_':
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[4] |= 0x01; // 0
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[4] |= KEY_RELEASED_BIT0; // 0
 //                    done = true;
 //                    break;
 //                case '`':
 //                    // Isn't mappeable
 //                    break;
 //                case 'a':
-//                    rowKey[1] |= 0x01; // A
+//                    rowKey[1] |= KEY_RELEASED_BIT0; // A
 //                    done = true;
 //                    break;
 //                case 'b':
-//                    rowKey[7] |= 0x10; // B
+//                    rowKey[7] |= KEY_RELEASED_BIT4; // B
 //                    done = true;
 //                    break;
 //                case 'c':
-//                    rowKey[0] |= 0x08; // C
+//                    rowKey[0] |= KEY_RELEASED_BIT3; // C
 //                    done = true;
 //                    break;
 //                case 'd':
-//                    rowKey[1] |= 0x04; // D
+//                    rowKey[1] |= KEY_RELEASED_BIT2; // D
 //                    done = true;
 //                    break;
 //                case 'e':
-//                    rowKey[2] |= 0x04; // E
+//                    rowKey[2] |= KEY_RELEASED_BIT2; // E
 //                    done = true;
 //                    break;
 //                case 'f':
-//                    rowKey[1] |= 0x08; // F
+//                    rowKey[1] |= KEY_RELEASED_BIT3; // F
 //                    done = true;
 //                    break;
 //                case 'g':
-//                    rowKey[1] |= 0x10; // G
+//                    rowKey[1] |= KEY_RELEASED_BIT4; // G
 //                    done = true;
 //                    break;
 //                case 'h':
-//                    rowKey[6] |= 0x10; // H
+//                    rowKey[6] |= KEY_RELEASED_BIT4; // H
 //                    done = true;
 //                    break;
 //                case 'i':
-//                    rowKey[5] |= 0x04; // I
+//                    rowKey[5] |= KEY_RELEASED_BIT2; // I
 //                    done = true;
 //                    break;
 //                case 'j':
-//                    rowKey[6] |= 0x08; // J
+//                    rowKey[6] |= KEY_RELEASED_BIT3; // J
 //                    done = true;
 //                    break;
 //                case 'k':
-//                    rowKey[6] |= 0x04; // K
+//                    rowKey[6] |= KEY_RELEASED_BIT2; // K
 //                    done = true;
 //                    break;
 //                case 'l':
-//                    rowKey[6] |= 0x02; // L
+//                    rowKey[6] |= KEY_RELEASED_BIT1; // L
 //                    done = true;
 //                    break;
 //                case 'm':
-//                    rowKey[7] |= 0x04; // M
+//                    rowKey[7] |= KEY_RELEASED_BIT2; // M
 //                    done = true;
 //                    break;
 //                case 'n':
-//                    rowKey[7] |= 0x08; // N
+//                    rowKey[7] |= KEY_RELEASED_BIT3; // N
 //                    done = true;
 //                    break;
 //                case 'o':
-//                    rowKey[5] |= 0x02; // O
+//                    rowKey[5] |= KEY_RELEASED_BIT1; // O
 //                    done = true;
 //                    break;
 //                case 'p':
-//                    rowKey[5] |= 0x01; // P
+//                    rowKey[5] |= KEY_RELEASED_BIT0; // P
 //                    done = true;
 //                    break;
 //                case 'q':
-//                    rowKey[2] |= 0x01; // Q
+//                    rowKey[2] |= KEY_RELEASED_BIT0; // Q
 //                    done = true;
 //                    break;
 //                case 'r':
-//                    rowKey[2] |= 0x08; // R
+//                    rowKey[2] |= KEY_RELEASED_BIT3; // R
 //                    done = true;
 //                    break;
 //                case 's':
-//                    rowKey[1] |= 0x02; // S
+//                    rowKey[1] |= KEY_RELEASED_BIT1; // S
 //                    done = true;
 //                    break;
 //                case 't':
-//                    rowKey[2] |= 0x10; // T
+//                    rowKey[2] |= KEY_RELEASED_BIT4; // T
 //                    done = true;
 //                    break;
 //                case 'u':
-//                    rowKey[5] |= 0x08; // U
+//                    rowKey[5] |= KEY_RELEASED_BIT3; // U
 //                    done = true;
 //                    break;
 //                case 'v':
-//                    rowKey[0] |= 0x10; // V
+//                    rowKey[0] |= KEY_RELEASED_BIT4; // V
 //                    done = true;
 //                    break;
 //                case 'w':
-//                    rowKey[2] |= 0x02; // W
+//                    rowKey[2] |= KEY_RELEASED_BIT1; // W
 //                    done = true;
 //                    break;
 //                case 'x':
-//                    rowKey[0] |= 0x04; // X
+//                    rowKey[0] |= KEY_RELEASED_BIT2; // X
 //                    done = true;
 //                    break;
 //                case 'y':
-//                    rowKey[5] |= 0x10; // Y
+//                    rowKey[5] |= KEY_RELEASED_BIT4; // Y
 //                    done = true;
 //                    break;
 //                case 'z':
-//                    rowKey[0] |= 0x02; // Z
+//                    rowKey[0] |= KEY_RELEASED_BIT1; // Z
 //                    done = true;
 //                    break;
 //                case 0xA3: // Pound sign
-//                    rowKey[7] |= 0x02; // Symbol-Shift
-//                    rowKey[0] |= 0x04; // X
+//                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
+//                    rowKey[0] |= KEY_RELEASED_BIT2; // X
 //                    done = true;
 //                    break;
 //            }
@@ -1177,244 +1228,260 @@ public class Keyboard implements KeyListener {
 
         int key = evt.getKeyCode();
         switch (key) {
-            // Fila SPACE - B
+            // Row Break/Space - B
             case KeyEvent.VK_SPACE:
-                rowKey[7] |= 0x01; //Spacebar
+                rowKey[7] |= KEY_RELEASED_BIT0; // Break/Space
                 break;
             case KeyEvent.VK_ALT:
-                rowKey[7] |= 0x02; // Symbol-Shift
+                rowKey[7] |= KEY_RELEASED_BIT1; // Symbol-Shift
                 break;
             case KeyEvent.VK_M:
-                rowKey[7] |= 0x04; // M
+                rowKey[7] |= KEY_RELEASED_BIT2; // M
                 break;
             case KeyEvent.VK_N:
-                rowKey[7] |= 0x08; // N
+                rowKey[7] |= KEY_RELEASED_BIT3; // N
                 break;
             case KeyEvent.VK_B:
-                rowKey[7] |= 0x10; // B
+                rowKey[7] |= KEY_RELEASED_BIT4; // B
                 break;
-            // Fila ENTER - H
+            // Row ENTER - H
             case KeyEvent.VK_ENTER:
-                rowKey[6] |= 0x01; // ENTER
+                rowKey[6] |= KEY_RELEASED_BIT0; // ENTER
                 break;
             case KeyEvent.VK_L:
-                rowKey[6] |= 0x02; // L
+                rowKey[6] |= KEY_RELEASED_BIT1; // L
                 break;
             case KeyEvent.VK_K:
-                rowKey[6] |= 0x04; // K
+                rowKey[6] |= KEY_RELEASED_BIT2; // K
                 break;
             case KeyEvent.VK_J:
-                rowKey[6] |= 0x08; // J
+                rowKey[6] |= KEY_RELEASED_BIT3; // J
                 break;
             case KeyEvent.VK_H:
-                rowKey[6] |= 0x10; // H
+                rowKey[6] |= KEY_RELEASED_BIT4; // H
                 break;
-            // Fila P - Y
+            // Row P - Y
             case KeyEvent.VK_P:
-                rowKey[5] |= 0x01; // P
+                rowKey[5] |= KEY_RELEASED_BIT0; // P
                 break;
             case KeyEvent.VK_O:
-                rowKey[5] |= 0x02; // O
+                rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_I:
-                rowKey[5] |= 0x04; // I
+                rowKey[5] |= KEY_RELEASED_BIT2; // I
                 break;
             case KeyEvent.VK_U:
-                rowKey[5] |= 0x08; // U
+                rowKey[5] |= KEY_RELEASED_BIT3; // U
                 break;
             case KeyEvent.VK_Y:
-                rowKey[5] |= 0x10; // Y
+                rowKey[5] |= KEY_RELEASED_BIT4; // Y
                 break;
-            // Fila 0 - 6
+            // Row 0 - 6
             case KeyEvent.VK_0:
-                rowKey[4] |= 0x01; // 0
+                rowKey[4] |= KEY_RELEASED_BIT0; // 0
                 break;
             case KeyEvent.VK_9:
-                rowKey[4] |= 0x02; // 9
+                rowKey[4] |= KEY_RELEASED_BIT1; // 9
                 break;
             case KeyEvent.VK_8:
-                rowKey[4] |= 0x04; // 8
+                rowKey[4] |= KEY_RELEASED_BIT2; // 8
                 break;
             case KeyEvent.VK_7:
-                rowKey[4] |= 0x08; // 7
+                rowKey[4] |= KEY_RELEASED_BIT3; // 7
                 break;
             case KeyEvent.VK_6:
-                rowKey[4] |= 0x10; // 6
+                rowKey[4] |= KEY_RELEASED_BIT4; // 6
                 break;
-            // Fila 1 - 5
+            // Row 1 - 5
             case KeyEvent.VK_1:
-                rowKey[3] |= 0x01; // 1
+                rowKey[3] |= KEY_RELEASED_BIT0; // 1
                 break;
             case KeyEvent.VK_2:
-                rowKey[3] |= 0x02; // 2
+                rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case KeyEvent.VK_3:
-                rowKey[3] |= 0x04; // 3
+                rowKey[3] |= KEY_RELEASED_BIT2; // 3
                 break;
             case KeyEvent.VK_4:
-                rowKey[3] |= 0x08; // 4
+                rowKey[3] |= KEY_RELEASED_BIT3; // 4
                 break;
             case KeyEvent.VK_5:
-                rowKey[3] |= 0x10; // 5
+                rowKey[3] |= KEY_RELEASED_BIT4; // 5
                 break;
-            // Fila Q - T
+            // Row Q - T
             case KeyEvent.VK_Q:
-                rowKey[2] |= 0x01; // Q
+                rowKey[2] |= KEY_RELEASED_BIT0; // Q
                 break;
             case KeyEvent.VK_W:
-                rowKey[2] |= 0x02; // W
+                rowKey[2] |= KEY_RELEASED_BIT1; // W
                 break;
             case KeyEvent.VK_E:
-                rowKey[2] |= 0x04; // E
+                rowKey[2] |= KEY_RELEASED_BIT2; // E
                 break;
             case KeyEvent.VK_R:
-                rowKey[2] |= 0x08; // R
+                rowKey[2] |= KEY_RELEASED_BIT3; // R
                 break;
             case KeyEvent.VK_T:
-                rowKey[2] |= 0x10; // T
+                rowKey[2] |= KEY_RELEASED_BIT4; // T
                 break;
-            // Fila A - G
+            // Row A - G
             case KeyEvent.VK_A:
-                rowKey[1] |= 0x01; // A
+                rowKey[1] |= KEY_RELEASED_BIT0; // A
                 break;
             case KeyEvent.VK_S:
-                rowKey[1] |= 0x02; // S
+                rowKey[1] |= KEY_RELEASED_BIT1; // S
                 break;
             case KeyEvent.VK_D:
-                rowKey[1] |= 0x04; // D
+                rowKey[1] |= KEY_RELEASED_BIT2; // D
                 break;
             case KeyEvent.VK_F:
-                rowKey[1] |= 0x08; // F
+                rowKey[1] |= KEY_RELEASED_BIT3; // F
                 break;
             case KeyEvent.VK_G:
-                rowKey[1] |= 0x10; // G
+                rowKey[1] |= KEY_RELEASED_BIT4; // G
                 break;
-            // Fila CAPS_SHIFT - V
+            // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                rowKey[0] |= 0x01; // Caps Shift
+                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 break;
             case KeyEvent.VK_Z:
-                rowKey[0] |= 0x02; // Z
+                rowKey[0] |= KEY_RELEASED_BIT1; // Z
                 break;
             case KeyEvent.VK_X:
-                rowKey[0] |= 0x04; // X
+                rowKey[0] |= KEY_RELEASED_BIT2; // X
                 break;
             case KeyEvent.VK_C:
-                rowKey[0] |= 0x08; // C
+                rowKey[0] |= KEY_RELEASED_BIT3; // C
                 break;
             case KeyEvent.VK_V:
-                rowKey[0] |= 0x10; // V
+                rowKey[0] |= KEY_RELEASED_BIT4; // V
                 break;
-            // Teclas de conveniencia
+            // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[4] |= 0x01; // 0
+                rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                rowKey[4] |= KEY_RELEASED_BIT0; // 0
                 break;
             case KeyEvent.VK_COMMA:
-                rowKey[7] |= 0x0A; // SYMBOL-SHIFT + N
+                rowKey[7] |= (KEY_RELEASED_BIT1 | KEY_RELEASED_BIT3); // SYMBOL-SHIFT + N
                 break;
             case KeyEvent.VK_PERIOD:
-                rowKey[7] |= 0x06; // SYMBOL-SHIFT + M
+                rowKey[7] |= (KEY_RELEASED_BIT1 | KEY_RELEASED_BIT2); // SYMBOL-SHIFT + M
                 break;
             case KeyEvent.VK_MINUS:
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
-                rowKey[6] |= 0x08; // J
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] |= KEY_RELEASED_BIT3; // J
                 break;
             case KeyEvent.VK_PLUS:
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
-                rowKey[6] |= 0x04; // K
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] |= KEY_RELEASED_BIT2; // K
+                break;
+            case KeyEvent.VK_EQUALS: // UK Keyboard
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[6] |= KEY_RELEASED_BIT1; // L
+                break;
+            case KeyEvent.VK_NUMBER_SIGN: // UK Keyboard
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[3] |= KEY_RELEASED_BIT2; // 3
+                break;
+            case KeyEvent.VK_SLASH: // UK Keyboard
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[0] |= KEY_RELEASED_BIT4; // V
+                break;
+            case KeyEvent.VK_SEMICOLON: // UK Keyboard
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
+                rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_ALT_GRAPH:
 //            case KeyEvent.VK_SHIFT:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[7] |= 0x02; // SYMBOL-SHIFT
+                rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                rowKey[7] |= KEY_RELEASED_BIT1; // SYMBOL-SHIFT
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                rowKey[0] |= 0x01; // CAPS
-                rowKey[3] |= 0x02; // 2
+                rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
-            // Emulación de Joysticks
+            // Joystick emulation
             case KeyEvent.VK_LEFT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= 0x01; // CAPS
+                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                     case CURSOR:
-                        rowKey[3] |= 0x10; // 5  -- Left arrow
+                        rowKey[3] |= KEY_RELEASED_BIT4; // 5 -- Left arrow
                         break;
                     case KEMPSTON:
-                        kempston &= 0xfd;
+                        kempston &= KEY_PRESSED_BIT1;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] |= 0x01; // 1 -- Left
+                        rowKey[4] |= KEY_RELEASED_BIT4; // 6 -- Left
                         break;
                     case SINCLAIR2:
-                        rowKey[4] |= 0x10; // 6 -- Left
+                        rowKey[3] |= KEY_RELEASED_BIT0; // 1 -- Left
                         break;
                     case FULLER:
-                        fuller |= 0x04;
+                        fuller |= KEY_RELEASED_BIT2;
                         break;
                 }
                 break;
             case KeyEvent.VK_DOWN:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= 0x01; // CAPS
+                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                     case CURSOR:
-                        rowKey[4] |= 0x10; // 6  -- Down arrow
+                        rowKey[4] |= KEY_RELEASED_BIT4; // 6 -- Down arrow
                         break;
                     case KEMPSTON:
-                        kempston &= 0xfb;
+                        kempston &= KEY_PRESSED_BIT2;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] |= 0x04; // 3 -- Down
+                        rowKey[4] |= KEY_RELEASED_BIT2; // 8 -- Down
                         break;
                     case SINCLAIR2:
-                        rowKey[4] |= 0x04; // 8 -- Down
+                        rowKey[3] |= KEY_RELEASED_BIT2; // 3 -- Down
                         break;
                     case FULLER:
-                        fuller |= 0x02;
+                        fuller |= KEY_RELEASED_BIT1;
                         break;
                 }
                 break;
             case KeyEvent.VK_UP:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= 0x01; // CAPS
+                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                     case CURSOR:
-                        rowKey[4] |= 0x08; // 7  -- Up arrow
+                        rowKey[4] |= KEY_RELEASED_BIT3; // 7  -- Up arrow
                         break;
                     case KEMPSTON:
-                        kempston &= 0xf7;
+                        kempston &= KEY_PRESSED_BIT3;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] |= 0x08; // 4 -- Up
+                        rowKey[4] |= KEY_RELEASED_BIT1; // 9 -- Up
                         break;
                     case SINCLAIR2:
-                        rowKey[4] |= 0x02; // 9 -- Up
+                        rowKey[3] |= KEY_RELEASED_BIT3; // 4 -- Up
                         break;
                     case FULLER:
-                        fuller |= 0x01;
+                        fuller |= KEY_RELEASED_BIT0;
                         break;
                 }
                 break;
             case KeyEvent.VK_RIGHT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= 0x01; // CAPS
+                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                     case CURSOR:
-                        rowKey[4] |= 0x04; // 8  -- Right arrow
+                        rowKey[4] |= KEY_RELEASED_BIT2; // 8 -- Right arrow
                         break;
                     case KEMPSTON:
-                        kempston &= 0xfe;
+                        kempston &= KEY_PRESSED_BIT0;
                         break;
                     case SINCLAIR1:
-                        rowKey[3] |= 0x02; // 2 -- Right
+                        rowKey[4] |= KEY_RELEASED_BIT3; // 7 -- Right
                         break;
                     case SINCLAIR2:
-                        rowKey[4] |= 0x08; // 7 -- Right
+                        rowKey[3] |= KEY_RELEASED_BIT1; // 2 -- Right
                         break;
                     case FULLER:
-                        fuller |= 0x08;
+                        fuller |= KEY_RELEASED_BIT3;
                         break;
                 }
                 break;
@@ -1422,15 +1489,15 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         break;
-                    case CURSOR:
-                    case SINCLAIR2:
-                        rowKey[4] |= 0x01;   // 0 -- Fire
-                        break;
                     case KEMPSTON:
-                        kempston &= 0xef;
+                        kempston &= KEY_PRESSED_BIT4;
                         break;
+                    case CURSOR:
                     case SINCLAIR1:
-                        rowKey[3] |= 0x10;  // 5  -- Fire
+                        rowKey[4] |= KEY_RELEASED_BIT0;  // 0 -- Fire
+                        break;
+                    case SINCLAIR2:
+                        rowKey[3] |= KEY_RELEASED_BIT4;  // 5  -- Fire
                         break;
                     case FULLER:
                         fuller |= 0x80;

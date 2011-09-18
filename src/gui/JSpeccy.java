@@ -814,7 +814,6 @@ public class JSpeccy extends javax.swing.JFrame {
     fileMenu.add(recentFilesMenu);
     fileMenu.add(jSeparator7);
 
-    thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Q, java.awt.event.InputEvent.ALT_MASK));
     thisIsTheEndMyFriend.setText(bundle.getString("JSpeccy.thisIsTheEndMyFriend.text")); // NOI18N
     thisIsTheEndMyFriend.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
