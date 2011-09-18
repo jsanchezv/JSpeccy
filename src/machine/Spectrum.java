@@ -2212,4 +2212,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void setSzxTapeMode(int mode) {
         szxTapeMode = mode;
     }
+    
+    // Accessors for IF1 methods
+    
+    public boolean if1IsCartridge(int drive) {
+        return if1.isCartridge(drive);
+    }
 }

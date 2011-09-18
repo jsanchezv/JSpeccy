@@ -236,13 +236,13 @@ public final class Memory {
         readPages[1] = RomPlus3[1];
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10];
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4];
+        readPages[4] = writePages[4] = Ram[4]; // Página 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0];
+        readPages[6] = writePages[6] = Ram[0]; // Página 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -286,19 +286,13 @@ public final class Memory {
         readPages[6] = writePages[6] = Ram[highPage << 1];
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
-        // Si está funcionando el IF1 o el MF, no tocar la ROM
-        if (IF1RomPaged || mfPagedIn)
+        // Si está funcionando el IF1, el IF2 o el MF, no tocar la ROM
+        if (IF1RomPaged || IF2RomPaged || mfPagedIn)
             return;
         
         // Set the active ROM
         switch (spectrumModel) {
             case SPECTRUM128K:
-                if (IF2RomPaged) {
-                    readPages[0] = IF2Rom[0];
-                    readPages[1] = IF2Rom[1];
-                    break;
-                }
-
                 if ((port7ffd & 0x10) == 0) {
                     readPages[0] = Rom128k[0];
                     readPages[1] = Rom128k[1];
@@ -308,10 +302,6 @@ public final class Memory {
                 }
                 break;
             case SPECTRUMPLUS2:
-                if (IF2RomPaged) {
-                    break;
-                }
-
                 if ((port7ffd & 0x10) == 0) {
                     readPages[0] = RomPlus2[0];
                     readPages[1] = RomPlus2[1];
@@ -349,7 +339,8 @@ public final class Memory {
     }
 
     private void doPagingPlus3() {
-        // Paging mode normal (bit0 of 0x1ffd to 0)
+        
+        // Normal paging mode (bit0 of 0x1ffd to 0)
         if ((bankP & 0x01) == 0) {
             
             if (mfPagedIn)
@@ -375,7 +366,7 @@ public final class Memory {
                 plus3RamMode = false;
             }
         } else {
-            // Special paging mode (all pages are RAM (bit0 of 0x1ffd to 1))
+            // Special paging mode (all RAM pages (bit0 of 0x1ffd to 1))
             plus3RamMode = true;
             switch (bankP & 0x06) {
                 case 0:
@@ -451,16 +442,16 @@ public final class Memory {
     }
 
     public boolean isSpectrumRom() {
-        if (mfPagedIn)
+        if (mfPagedIn || IF1RomPaged || IF2RomPaged)
             return false;
 
         boolean res = false;
         switch(spectrumModel.codeModel) {
             case SPECTRUM48K:
-                res = !IF1RomPaged && !IF2RomPaged;
+                res = true;
                 break;
             case SPECTRUM128K:
-                res = (bankM & 0x10) != 0 && !IF1RomPaged && !IF2RomPaged;
+                res = (bankM & 0x10) != 0;
                 break;
             case SPECTRUMPLUS3:
                 if (!plus3RamMode)
@@ -643,16 +634,16 @@ public final class Memory {
         
         mfPagedIn = false;
         
+        writePages[0] = writePages[1] = fakeROM;
+        
         if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
-            writePages[1] = fakeROM;
             return;
         }
         
         if (IF1RomPaged) {
             readPages[0] = readPages[1] = IF1Rom[0];
-            writePages[1] = fakeROM;
             return;
         }
         
@@ -662,10 +653,8 @@ public final class Memory {
             case SPECTRUM48K:
                 readPages[0] = Rom48k[0];
                 readPages[1] = Rom48k[1];
-                writePages[1] = fakeROM;
                 break;
             case SPECTRUM128K:
-                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = Rom128k[2];
                     readPages[1] = Rom128k[3];
@@ -674,7 +663,6 @@ public final class Memory {
                 }
                 break;
             case SPECTRUMPLUS2:
-                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = RomPlus2[2];
                     readPages[1] = RomPlus2[3];
@@ -684,7 +672,6 @@ public final class Memory {
                 break;
             case SPECTRUMPLUS2A:
             case SPECTRUMPLUS3:
-                writePages[1] = fakeROM;
                 if (pagingLocked) {
                     readPages[0] = RomPlus3[6];
                     readPages[1] = RomPlus3[7];
@@ -742,6 +729,7 @@ public final class Memory {
         
         IF1RomPaged = true;
         readPages[0] = readPages[1] = IF1Rom[0];
+        writePages[0] = writePages[1] = fakeROM;
     }
     
     public void unpageIF1Rom() {
@@ -754,9 +742,31 @@ public final class Memory {
         if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
+            writePages[0] = writePages[1] = fakeROM;
+            return;
+        }
+        
+        if (mfPagedIn) {
+            switch (spectrumModel.codeModel) {
+                case SPECTRUM48K:
+                    if (settings.getSpectrumSettings().isMf128On48K()) {
+                        readPages[0] = mfROM[1];
+                    } else {
+                        readPages[0] = mfROM[0];
+                    }
+                    break;
+                case SPECTRUM128K:
+                    readPages[0] = mfROM[1];
+                    break;
+                case SPECTRUMPLUS3:
+                    readPages[0] = mfROM[2];
+                    break;
+            }
+            readPages[1] = writePages[1] = mfRAM;
             return;
         }
 
+        writePages[0] = writePages[1] = fakeROM;
         switch (spectrumModel) {
             case SPECTRUM16K:
             case SPECTRUM48K:

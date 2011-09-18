@@ -336,6 +336,29 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            IF1MediaMenu.setEnabled(true);
+            switch (settings.getInterface1Settings().getMicrodriveUnits()) {
+                case 1:
+                    Mdrv2MediaMenu.setEnabled(false);
+                case 2:
+                    Mdrv3MediaMenu.setEnabled(false);
+                case 3:
+                    Mdrv4MediaMenu.setEnabled(false);
+                case 4:
+                    Mdrv5MediaMenu.setEnabled(false);
+                case 5:
+                    Mdrv6MediaMenu.setEnabled(false);
+                case 6:
+                    Mdrv7MediaMenu.setEnabled(false);
+                case 7:
+                    Mdrv8MediaMenu.setEnabled(false);
+            }
+        } else {
+            IF1MediaMenu.setEnabled(false);
+        }
+        
         spectrum.start();
     }
 
@@ -508,9 +531,33 @@ public class JSpeccy extends javax.swing.JFrame {
         mdrv4SaveAs = new javax.swing.JMenuItem();
         mdrv4WriteProt = new javax.swing.JCheckBoxMenuItem();
         Mdrv5MediaMenu = new javax.swing.JMenu();
+        mdrv5InsertNew = new javax.swing.JMenuItem();
+        mdrv5Insert = new javax.swing.JMenuItem();
+        mdrv5Eject = new javax.swing.JMenuItem();
+        mdrv5Save = new javax.swing.JMenuItem();
+        mdrv5SaveAs = new javax.swing.JMenuItem();
+        mdrv5WriteProt = new javax.swing.JCheckBoxMenuItem();
         Mdrv6MediaMenu = new javax.swing.JMenu();
+        mdrv6InsertNew = new javax.swing.JMenuItem();
+        mdrv6Insert = new javax.swing.JMenuItem();
+        mdrv6Eject = new javax.swing.JMenuItem();
+        mdrv6Save = new javax.swing.JMenuItem();
+        mdrv6SaveAs = new javax.swing.JMenuItem();
+        mdrv6WriteProt = new javax.swing.JCheckBoxMenuItem();
         Mdrv7MediaMenu = new javax.swing.JMenu();
+        mdrv7InsertNew = new javax.swing.JMenuItem();
+        mdrv7Insert = new javax.swing.JMenuItem();
+        mdrv7Eject = new javax.swing.JMenuItem();
+        mdrv7Save = new javax.swing.JMenuItem();
+        mdrv7SaveAs = new javax.swing.JMenuItem();
+        mdrv7WriteProt = new javax.swing.JCheckBoxMenuItem();
         Mdrv8MediaMenu = new javax.swing.JMenu();
+        mdrv8InsertNew = new javax.swing.JMenuItem();
+        mdrv8Insert = new javax.swing.JMenuItem();
+        mdrv8Eject = new javax.swing.JMenuItem();
+        mdrv8Save = new javax.swing.JMenuItem();
+        mdrv8SaveAs = new javax.swing.JMenuItem();
+        mdrv8WriteProt = new javax.swing.JCheckBoxMenuItem();
         IF2MediaMenu = new javax.swing.JMenu();
         insertIF2RomMediaMenu = new javax.swing.JMenuItem();
         ejectIF2RomMediaMenu = new javax.swing.JMenuItem();
@@ -1147,6 +1194,11 @@ public class JSpeccy extends javax.swing.JFrame {
     Mdrv1MediaMenu.setText(bundle.getString("JSpeccy.Mdrv1MediaMenu.text")); // NOI18N
 
     mdrv1InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv1InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
     Mdrv1MediaMenu.add(mdrv1InsertNew);
 
     mdrv1Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
@@ -1173,6 +1225,11 @@ public class JSpeccy extends javax.swing.JFrame {
     Mdrv2MediaMenu.setText(bundle.getString("JSpeccy.Mdrv2MediaMenu.text")); // NOI18N
 
     mdrv2InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv2InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
     Mdrv2MediaMenu.add(mdrv2InsertNew);
 
     mdrv2Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
@@ -1199,6 +1256,11 @@ public class JSpeccy extends javax.swing.JFrame {
     Mdrv3MediaMenu.setText(bundle.getString("JSpeccy.Mdrv3MediaMenu.text")); // NOI18N
 
     mdrv3InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv3InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
     Mdrv3MediaMenu.add(mdrv3InsertNew);
 
     mdrv3Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
@@ -1225,6 +1287,11 @@ public class JSpeccy extends javax.swing.JFrame {
     Mdrv4MediaMenu.setText(bundle.getString("JSpeccy.Mdrv4MediaMenu.text")); // NOI18N
 
     mdrv4InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv4InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
     Mdrv4MediaMenu.add(mdrv4InsertNew);
 
     mdrv4Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
@@ -1249,15 +1316,127 @@ public class JSpeccy extends javax.swing.JFrame {
     IF1MediaMenu.add(Mdrv4MediaMenu);
 
     Mdrv5MediaMenu.setText(bundle.getString("JSpeccy.Mdrv5MediaMenu.text")); // NOI18N
+
+    mdrv5InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv5InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
+    Mdrv5MediaMenu.add(mdrv5InsertNew);
+
+    mdrv5Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
+    Mdrv5MediaMenu.add(mdrv5Insert);
+
+    mdrv5Eject.setText(bundle.getString("JSpeccy.mdrvEject.text")); // NOI18N
+    mdrv5Eject.setEnabled(false);
+    Mdrv5MediaMenu.add(mdrv5Eject);
+
+    mdrv5Save.setText(bundle.getString("JSpeccy.mdrvSave.text")); // NOI18N
+    mdrv5Save.setEnabled(false);
+    Mdrv5MediaMenu.add(mdrv5Save);
+
+    mdrv5SaveAs.setText(bundle.getString("JSpeccy.mdrvSaveAs.text")); // NOI18N
+    mdrv5SaveAs.setEnabled(false);
+    Mdrv5MediaMenu.add(mdrv5SaveAs);
+
+    mdrv5WriteProt.setText(bundle.getString("JSpeccy.mdrvWriteProt.text")); // NOI18N
+    mdrv5WriteProt.setEnabled(false);
+    Mdrv5MediaMenu.add(mdrv5WriteProt);
+
     IF1MediaMenu.add(Mdrv5MediaMenu);
 
     Mdrv6MediaMenu.setText(bundle.getString("JSpeccy.Mdrv6MediaMenu.text")); // NOI18N
+
+    mdrv6InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv6InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
+    Mdrv6MediaMenu.add(mdrv6InsertNew);
+
+    mdrv6Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
+    Mdrv6MediaMenu.add(mdrv6Insert);
+
+    mdrv6Eject.setText(bundle.getString("JSpeccy.mdrvEject.text")); // NOI18N
+    mdrv6Eject.setEnabled(false);
+    Mdrv6MediaMenu.add(mdrv6Eject);
+
+    mdrv6Save.setText(bundle.getString("JSpeccy.mdrvSave.text")); // NOI18N
+    mdrv6Save.setEnabled(false);
+    Mdrv6MediaMenu.add(mdrv6Save);
+
+    mdrv6SaveAs.setText(bundle.getString("JSpeccy.mdrvSaveAs.text")); // NOI18N
+    mdrv6SaveAs.setEnabled(false);
+    Mdrv6MediaMenu.add(mdrv6SaveAs);
+
+    mdrv6WriteProt.setText(bundle.getString("JSpeccy.mdrvWriteProt.text")); // NOI18N
+    mdrv6WriteProt.setEnabled(false);
+    Mdrv6MediaMenu.add(mdrv6WriteProt);
+
     IF1MediaMenu.add(Mdrv6MediaMenu);
 
     Mdrv7MediaMenu.setText(bundle.getString("JSpeccy.Mdrv7MediaMenu.text")); // NOI18N
+
+    mdrv7InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv7InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
+    Mdrv7MediaMenu.add(mdrv7InsertNew);
+
+    mdrv7Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
+    Mdrv7MediaMenu.add(mdrv7Insert);
+
+    mdrv7Eject.setText(bundle.getString("JSpeccy.mdrvEject.text")); // NOI18N
+    mdrv7Eject.setEnabled(false);
+    Mdrv7MediaMenu.add(mdrv7Eject);
+
+    mdrv7Save.setText(bundle.getString("JSpeccy.mdrvSave.text")); // NOI18N
+    mdrv7Save.setEnabled(false);
+    Mdrv7MediaMenu.add(mdrv7Save);
+
+    mdrv7SaveAs.setText(bundle.getString("JSpeccy.mdrvSaveAs.text")); // NOI18N
+    mdrv7SaveAs.setEnabled(false);
+    Mdrv7MediaMenu.add(mdrv7SaveAs);
+
+    mdrv7WriteProt.setText(bundle.getString("JSpeccy.mdrvWriteProt.text")); // NOI18N
+    mdrv7WriteProt.setEnabled(false);
+    Mdrv7MediaMenu.add(mdrv7WriteProt);
+
     IF1MediaMenu.add(Mdrv7MediaMenu);
 
     Mdrv8MediaMenu.setText(bundle.getString("JSpeccy.Mdrv8MediaMenu.text")); // NOI18N
+
+    mdrv8InsertNew.setText(bundle.getString("JSpeccy.mdrvInsertNew.text")); // NOI18N
+    mdrv8InsertNew.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            mdrvInsertNewActionPerformed(evt);
+        }
+    });
+    Mdrv8MediaMenu.add(mdrv8InsertNew);
+
+    mdrv8Insert.setText(bundle.getString("JSpeccy.mdrvInsert.text")); // NOI18N
+    Mdrv8MediaMenu.add(mdrv8Insert);
+
+    mdrv8Eject.setText(bundle.getString("JSpeccy.mdrvEject.text")); // NOI18N
+    mdrv8Eject.setEnabled(false);
+    Mdrv8MediaMenu.add(mdrv8Eject);
+
+    mdrv8Save.setText(bundle.getString("JSpeccy.mdrvSave.text")); // NOI18N
+    mdrv8Save.setEnabled(false);
+    Mdrv8MediaMenu.add(mdrv8Save);
+
+    mdrv8SaveAs.setText(bundle.getString("JSpeccy.mdrvSaveAs.text")); // NOI18N
+    mdrv8SaveAs.setEnabled(false);
+    Mdrv8MediaMenu.add(mdrv8SaveAs);
+
+    mdrv8WriteProt.setText(bundle.getString("JSpeccy.mdrvWriteProt.text")); // NOI18N
+    mdrv8WriteProt.setEnabled(false);
+    Mdrv8MediaMenu.add(mdrv8WriteProt);
+
     IF1MediaMenu.add(Mdrv8MediaMenu);
 
     mediaMenu.add(IF1MediaMenu);
@@ -1602,6 +1781,86 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.muteSound(true);
             spectrum.muteSound(false);
         }
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            IF1MediaMenu.setEnabled(true);
+            switch (settings.getInterface1Settings().getMicrodriveUnits()) {
+                case 1:
+                    Mdrv2MediaMenu.setEnabled(false);
+                    Mdrv3MediaMenu.setEnabled(false);
+                    Mdrv4MediaMenu.setEnabled(false);
+                    Mdrv5MediaMenu.setEnabled(false);
+                    Mdrv6MediaMenu.setEnabled(false);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 2:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(false);
+                    Mdrv4MediaMenu.setEnabled(false);
+                    Mdrv5MediaMenu.setEnabled(false);
+                    Mdrv6MediaMenu.setEnabled(false);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 3:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(false);
+                    Mdrv5MediaMenu.setEnabled(false);
+                    Mdrv6MediaMenu.setEnabled(false);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 4:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(true);
+                    Mdrv5MediaMenu.setEnabled(false);
+                    Mdrv6MediaMenu.setEnabled(false);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 5:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(true);
+                    Mdrv5MediaMenu.setEnabled(true);
+                    Mdrv6MediaMenu.setEnabled(false);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 6:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(true);
+                    Mdrv5MediaMenu.setEnabled(true);
+                    Mdrv6MediaMenu.setEnabled(true);
+                    Mdrv7MediaMenu.setEnabled(false);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 7:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(true);
+                    Mdrv5MediaMenu.setEnabled(true);
+                    Mdrv6MediaMenu.setEnabled(true);
+                    Mdrv7MediaMenu.setEnabled(true);
+                    Mdrv8MediaMenu.setEnabled(false);
+                    break;
+                case 8:
+                    Mdrv2MediaMenu.setEnabled(true);
+                    Mdrv3MediaMenu.setEnabled(true);
+                    Mdrv4MediaMenu.setEnabled(true);
+                    Mdrv5MediaMenu.setEnabled(true);
+                    Mdrv6MediaMenu.setEnabled(true);
+                    Mdrv7MediaMenu.setEnabled(true);
+                    Mdrv8MediaMenu.setEnabled(true);
+                    break;
+            }
+        } else {
+            IF1MediaMenu.setEnabled(false);
+        }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 
     private void saveScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveScreenShotActionPerformed
@@ -1899,6 +2158,48 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.startEmulation();
     }//GEN-LAST:event_loadScreenShotActionPerformed
     
+    private void mdrvInsertNewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mdrvInsertNewActionPerformed
+
+        int drive = 0;
+        
+        if (evt.getSource() == mdrv1InsertNew) {
+            drive = 1;
+        }
+        
+        if (evt.getSource() == mdrv2InsertNew) {
+            drive = 2;
+        }
+        
+        if (evt.getSource() == mdrv3InsertNew) {
+            drive = 3;
+        }
+        
+        if (evt.getSource() == mdrv4InsertNew) {
+            drive = 4;
+        }
+        
+        if (evt.getSource() == mdrv5InsertNew) {
+            drive = 5;
+        }
+        
+        if (evt.getSource() == mdrv6InsertNew) {
+            drive = 6;
+        }
+        
+        if (evt.getSource() == mdrv7InsertNew) {
+            drive = 7;
+        }
+        
+        if (evt.getSource() == mdrv8InsertNew) {
+            drive = 8;
+        }
+        
+        if (drive == 0)
+            return;
+        
+        System.out.println(String.format("Insert New en unidad %d", drive));
+    }//GEN-LAST:event_mdrvInsertNewActionPerformed
+    
     /**
      * @param args the command line arguments
      */
@@ -1990,6 +2291,30 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem mdrv4Save;
     private javax.swing.JMenuItem mdrv4SaveAs;
     private javax.swing.JCheckBoxMenuItem mdrv4WriteProt;
+    private javax.swing.JMenuItem mdrv5Eject;
+    private javax.swing.JMenuItem mdrv5Insert;
+    private javax.swing.JMenuItem mdrv5InsertNew;
+    private javax.swing.JMenuItem mdrv5Save;
+    private javax.swing.JMenuItem mdrv5SaveAs;
+    private javax.swing.JCheckBoxMenuItem mdrv5WriteProt;
+    private javax.swing.JMenuItem mdrv6Eject;
+    private javax.swing.JMenuItem mdrv6Insert;
+    private javax.swing.JMenuItem mdrv6InsertNew;
+    private javax.swing.JMenuItem mdrv6Save;
+    private javax.swing.JMenuItem mdrv6SaveAs;
+    private javax.swing.JCheckBoxMenuItem mdrv6WriteProt;
+    private javax.swing.JMenuItem mdrv7Eject;
+    private javax.swing.JMenuItem mdrv7Insert;
+    private javax.swing.JMenuItem mdrv7InsertNew;
+    private javax.swing.JMenuItem mdrv7Save;
+    private javax.swing.JMenuItem mdrv7SaveAs;
+    private javax.swing.JCheckBoxMenuItem mdrv7WriteProt;
+    private javax.swing.JMenuItem mdrv8Eject;
+    private javax.swing.JMenuItem mdrv8Insert;
+    private javax.swing.JMenuItem mdrv8InsertNew;
+    private javax.swing.JMenuItem mdrv8Save;
+    private javax.swing.JMenuItem mdrv8SaveAs;
+    private javax.swing.JCheckBoxMenuItem mdrv8WriteProt;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;

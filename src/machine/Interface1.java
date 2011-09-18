@@ -147,6 +147,24 @@ public class Interface1 {
         }
     }
     
+    public boolean isCartridge(int drive) {
+        if (drive < 1 || drive > 8)
+            return false;
+        
+        return microdrive[drive - 1].isCartridge();
+    }
+    
+    public boolean isModified(int drive) {
+        if (drive < 1 || drive > 8)
+            return false;
+        
+        return microdrive[drive - 1].isModified();
+    }
+    
+    public byte getNumDrives() {
+        return numMicrodrives;
+    }
+    
     public void setNumDrives(byte drives) {
         if (drives < 1 || drives > 8)
             drives = 8;

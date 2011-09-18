@@ -555,7 +555,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         mdrPanel.add(numDrivesSpinner);
 
-        jLabel3.setPreferredSize(new java.awt.Dimension(50, 16));
+        jLabel3.setPreferredSize(new java.awt.Dimension(25, 16));
         mdrPanel.add(jLabel3);
 
         numSectorsLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numSectorsLabel.text")); // NOI18N
