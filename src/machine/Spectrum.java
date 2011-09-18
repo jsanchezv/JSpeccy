@@ -412,6 +412,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (hardResetPending) {
                 doHardReset();
                 hardResetPending = false;
+            } else {
+                z80.setPinReset();
             }
 
             doReset();

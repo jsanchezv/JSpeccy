@@ -105,12 +105,12 @@ public final class AY8912 {
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int volumeA, volumeB, volumeC;
-//    private int lastA, lastB, lastC;
+    private int lastA, lastB, lastC;
     private int audiotstates, samplesPerFrame;
     private MachineTypes spectrumModel;
 
     AY8912() {
-        maxAmplitude = 16384;
+        maxAmplitude = 16000;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
