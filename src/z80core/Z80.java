@@ -84,11 +84,10 @@
  *          07/06/2011 En las instrucciones INC/DEC (HL) el estado adicional
  *          estaba mal puesto, ya que va después del read y no antes. Corregido.
  * 
- *          04/07/2011 Se elimina el método push añadido el 28/03/2010 y se pone
- *          "inline" para PUSH AF/BC/DE/HL. Se optimizan también las instrucciones
- *          POP BC/DE/HL. El código de RETI se unifica con RETN y sus códigos
- *          duplicados. Ligeras modificaciones en DJNZ y en LDI/LDD/CPI/CPD. Se
- *          optimiza el tratamiento del registro MEMPTR.
+ *          04/07/2011 Se elimina el método push añadido el 28/03/2010 y se usa
+ *          el que queda en todos los casos. El código de RETI se unifica con
+ *          RETN y sus códigos duplicados. Ligeras modificaciones en DJNZ y en
+ *          LDI/LDD/CPI/CPD. Se optimiza el tratamiento del registro MEMPTR.
  * 
  *          11/07/2011 Se optimiza el tratamiento del carryFlag en las instrucciones
  *          SUB/SBC/SBC16/CP. Se optimiza el tratamiento del HalfCarry en las
@@ -100,6 +99,7 @@ package z80core;
 public class Z80 {
 
     private final MemIoOps MemIoImpl;
+    // Código de instrucción a ejecutar
     private int opCode;
     // Número de estados T que se llevan ejecutados
     public int tEstados;
@@ -964,18 +964,18 @@ public class Z80 {
 
     // Suma dos operandos de 16 bits sin carry afectando a los flags
     private int add16(int reg16, int oper16) {
-        int res = reg16 + oper16;
+        oper16 += reg16;
 
-        carryFlag = res > 0xffff;
-        sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | ((res >>> 8) & FLAG_53_MASK);
-        res &= 0xffff;
+        carryFlag = oper16 > 0xffff;
+        sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | ((oper16 >>> 8) & FLAG_53_MASK);
+        oper16 &= 0xffff;
 
-        if ((res & 0x0fff) < (reg16 & 0x0fff)) {
+        if ((oper16 & 0x0fff) < (reg16 & 0x0fff)) {
             sz5h3pnFlags |= HALFCARRY_MASK;
         }
 
         memptr = reg16 + 1;
-        return res;
+        return oper16;
     }
 
     // Suma con acarreo de 16 bits
@@ -1364,7 +1364,7 @@ public class Z80 {
         memptr = getRegBC();
 
         int work8 = MemIoImpl.peek8(getRegHL());
-        MemIoImpl.outPort(getRegBC(), work8);
+        MemIoImpl.outPort(memptr, work8);
         memptr--;
 
         decRegHL();
@@ -2438,10 +2438,7 @@ public class Z80 {
             }
             case 0xC5: {     /* PUSH BC */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regB);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regC);
+                push(getRegBC());
                 break;
             }
             case 0xC6: {     /* ADD A,n */
@@ -2549,10 +2546,7 @@ public class Z80 {
             }
             case 0xD5: {     /* PUSH DE */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regD);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regE);
+                push(getRegDE());
                 break;
             }
             case 0xD6: {     /* SUB n */
@@ -2682,10 +2676,7 @@ public class Z80 {
                 break;
             case 0xE5:       /* PUSH HL */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regH);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regL);
+                push(getRegHL());
                 break;
             case 0xE6:       /* AND n */
                 and(MemIoImpl.peek8(regPC));
@@ -2776,10 +2767,7 @@ public class Z80 {
                 break;
             case 0xF5:       /* PUSH AF */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, regA);
-                regSP = (regSP - 1) & 0xffff;
-                MemIoImpl.poke8(regSP, getFlags());
+                push(getRegAF());
                 break;
             case 0xF6:       /* OR n */
                 or(MemIoImpl.peek8(regPC));

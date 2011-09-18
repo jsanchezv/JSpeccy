@@ -311,7 +311,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         if (settings.getSpectrumSettings().isDoubleSize()) {
-            jscr.toggleDoubleSize();
+            jscr.setDoubleSize(true);
             doubleSizeOption.setSelected(true);
             doubleSizeToggleButton.setSelected(true);
             pack();
@@ -1402,7 +1402,8 @@ public class JSpeccy extends javax.swing.JFrame {
         else
             doubleSizeOption.setSelected(doubleSizeToggleButton.isSelected());
 
-        jscr.toggleDoubleSize();
+        settings.getSpectrumSettings().setDoubleSize(doubleSizeToggleButton.isSelected());
+        jscr.setDoubleSize(doubleSizeToggleButton.isSelected());
         pack();
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
 
@@ -1703,7 +1704,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (doubleSize != settings.getSpectrumSettings().isDoubleSize()) {
             doubleSizeToggleButton.setSelected(!doubleSize);
             doubleSizeOption.setSelected(!doubleSize);
-            jscr.toggleDoubleSize();
+            jscr.setDoubleSize(!doubleSize);
             pack();
         }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed

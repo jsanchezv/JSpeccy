@@ -518,9 +518,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 if (tape.flashLoad(memory)) {
                     invalidateScreen(true); // thanks Andrew Owen
                     return 0xC9; // RET opcode
+                } else {
+                    toggleTape();
                 }
-            } else {
-                toggleTape();
             }
         }
 

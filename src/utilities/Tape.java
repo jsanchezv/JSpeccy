@@ -20,6 +20,7 @@
 package utilities;
 
 import configuration.TapeType;
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -44,7 +45,7 @@ import z80core.Z80;
 public class Tape {
 
     private Z80 cpu;
-    private FileInputStream tapeFile;
+    private BufferedInputStream tapeFile;
     private ByteArrayOutputStream record;
     private File filename;
     private String filenameLabel;
@@ -69,7 +70,7 @@ public class Tape {
     private State statePlay;
     private int earBit;
     private static final int EAR_OFF = 0xbf;
-    private static final int EAR_ON = 0xbf;
+    private static final int EAR_ON = 0xff;
     private static final int EAR_MASK = 0x40;
     private long timeout;
     private long timeLastIn;
@@ -473,7 +474,7 @@ public class Tape {
         }
 
         try {
-            tapeFile = new FileInputStream(fileName);
+            tapeFile = new BufferedInputStream(new FileInputStream(fileName));
         } catch (FileNotFoundException fex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, fex);
             return false;

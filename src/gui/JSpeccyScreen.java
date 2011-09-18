@@ -53,8 +53,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         tvImage = bImage;
     }
 
-    public void toggleDoubleSize() {
-        doubleSize = !doubleSize;
+    public void setDoubleSize(boolean doubled) {
+        doubleSize = doubled;
         if (doubleSize) {
             this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH * 2,
                 Spectrum.SCREEN_HEIGHT * 2));
