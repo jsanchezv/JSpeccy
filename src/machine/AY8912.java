@@ -97,8 +97,6 @@ public final class AY8912 {
     private int[] bufC;
     private int pbuf;
     private int FREQ;
-    // Precalculate sample positions
-//    private int[] samplePos = new int[965];
     private double step, stepCounter;
     private int nSteps;
     // Tone channel levels
@@ -107,7 +105,7 @@ public final class AY8912 {
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int volumeA, volumeB, volumeC;
-    private int lastA, lastB, lastC;
+//    private int lastA, lastB, lastC;
     private int audiotstates, samplesPerFrame;
     private MachineTypes spectrumModel;
 
@@ -131,6 +129,8 @@ public final class AY8912 {
         maxAmplitude = amplitude;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
+//            System.out.println(String.format("volumeLevel[%d]: %d",
+//                idx, volumeLevel[idx]));
         }
     }
 
@@ -353,10 +353,6 @@ public final class AY8912 {
             
             if ((toneC || disableToneC) && (toneN || disableNoiseC))
                 volumeC += amplitudeC;
-            
-//            volumeA += outA ? amplitudeA : 0;
-//            volumeB += outB ? amplitudeB : 0;
-//            volumeC += outC ? amplitudeC : 0;
 
             nSteps++;
 
@@ -369,13 +365,13 @@ public final class AY8912 {
 //                bufA[pbuf] = (lastA + volumeA) >>> 1;
 //                bufB[pbuf] = (lastB + volumeB) >>> 1;
 //                bufC[pbuf] = (lastC + volumeC) >>> 1;
+//                lastA = volumeA;
+//                lastB = volumeB;
+//                lastC = volumeC;
                 bufA[pbuf] = volumeA / nSteps;
                 bufB[pbuf] = volumeB / nSteps;
                 bufC[pbuf] = volumeC / nSteps;
                 pbuf++;
-//                lastA = volumeA;
-//                lastB = volumeB;
-//                lastC = volumeC;
                 volumeA = volumeB = volumeC = nSteps = 0;
             }
         }

@@ -81,9 +81,9 @@ class Audio {
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
             audiotstates = bufp = level = lastLevel = 0;
             if (soundMode > 0) {
-                ay8912.setMaxAmplitude(21845); // 11000
+                ay8912.setMaxAmplitude(21844);
             } else {
-                ay8912.setMaxAmplitude(16384); // 7000-16300
+                ay8912.setMaxAmplitude(16384);
             }
 
             bufferSize = frameSize * 5;
@@ -210,18 +210,17 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        int sample;
         if (enabledAY) {
+            int sample;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32700 + (beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx]);
+                sample = -32700 + beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
                 buf[ptr++] = (byte) sample;
                 buf[ptr++] = (byte)(sample >>> 8);
             }
         } else {
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32700 + beeper[idx];
-                buf[ptr++] = (byte) sample;
-                buf[ptr++] = (byte) (sample >>> 8);
+                buf[ptr++] = (byte) beeper[idx];
+                buf[ptr++] = (byte) (beeper[idx] >>> 8);
             }
         }
         return ptr;
@@ -236,24 +235,22 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        byte lsb, msb;
         if (enabledAY) {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufB[idx] * 0.7);
-                sampleL = -32700 +(beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3);
-                sampleR = -32700 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx]);
+                sampleL = -32700 + beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3;
+                sampleR = -32700 + beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx];
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
-            int sample;
+            byte lsb, msb;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32700 + beeper[idx];
-                lsb = (byte) sample;
-                msb = (byte) (sample >>> 8);
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
@@ -272,24 +269,22 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        byte lsb, msb;
         if (enabledAY) {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufC[idx] * 0.7);
-                sampleL = -32700 + (beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3);
-                sampleR = -32700 + (beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx]);
+                sampleL = -32700 + beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3;
+                sampleR = -32700 + beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx];
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
-            int sample;
+            byte lsb, msb;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32700 + beeper[idx];
-                lsb = (byte) sample;
-                msb = (byte) (sample >>> 8);
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
@@ -308,24 +303,22 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        byte lsb, msb;
         if (enabledAY) {
             int sampleL, sampleR, center;
             for (int idx = 0; idx < bufp; idx++) {
                 center = (int)(ayBufA[idx] * 0.7);
-                sampleL = -32700 + (beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3);
-                sampleR = -32700 + (beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx]);
+                sampleL = -32700 + beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3;
+                sampleR = -32700 + beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx];
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
                 buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
-            int sample;
+            byte lsb, msb;
             for (int idx = 0; idx < bufp; idx++) {
-                sample = -32700 + beeper[idx];
-                lsb = (byte) sample;
-                msb = (byte) (sample >>> 8);
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
                 buf[ptr++] = lsb;
                 buf[ptr++] = msb;
                 buf[ptr++] = lsb;
