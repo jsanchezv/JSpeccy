@@ -124,10 +124,6 @@ public final class AY8912 {
         spectrumModel = model;
         if (samplesPerFrame != 0)
             step = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
-//        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
-//        for (int pos = 0; pos < samplePos.length; pos++) {
-//            samplePos[pos] = (int) (pos * divider);
-//        }
         reset();
     }
 
@@ -190,12 +186,6 @@ public final class AY8912 {
                 break;
             case NoisePeriod:
                 regAY[addressLatch] &= 0x1f;
-//                periodN = regAY[NoisePeriod];
-//                if (periodN == 0) {
-//                    periodN = 1;
-//                }
-//                periodN <<= 1;
-//                System.out.println(String.format("Noise Period: %d", periodN));
                 break;
             case Mixer:
                 disableToneA = (regAY[Mixer] & TONE_A) != 0;
@@ -204,35 +194,21 @@ public final class AY8912 {
                 disableNoiseA = (regAY[Mixer] & NOISE_A) != 0;
                 disableNoiseB = (regAY[Mixer] & NOISE_B) != 0;
                 disableNoiseC = (regAY[Mixer] & NOISE_C) != 0;
-//                if (!disableNoiseA || !disableNoiseB || !disableNoiseC)
-//                    System.out.println(String.format("Enable Register: %02X",
-//                        regAY[addressLatch]));
                 break;
             case AmplitudeA:
                 regAY[addressLatch] &= 0x1f;
                 amplitudeA = volumeLevel[value & 0x0f];
                 envA = (regAY[AmplitudeA] & ENVELOPE) != 0;
-//                if (envA) {
-//                    System.out.println("Envelope Chan A");
-//                } else {
-//                    System.out.println("amplitudeA: " + (value & 0x0f));
-//                }
                 break;
             case AmplitudeB:
                 regAY[addressLatch] &= 0x1f;
                 amplitudeB = volumeLevel[value & 0x0f];
                 envB = (regAY[AmplitudeB] & ENVELOPE) != 0;
-//                if (envB) {
-//                    System.out.println("Envelope Chan B");
-//                }
                 break;
             case AmplitudeC:
                 regAY[addressLatch] &= 0x1f;
                 amplitudeC = volumeLevel[value & 0x0f];
                 envC = (regAY[AmplitudeC] & ENVELOPE) != 0;
-//                if (envC) {
-//                    System.out.println("Envelope Chan C");
-//                }
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
@@ -258,9 +234,6 @@ public final class AY8912 {
                 }
                 Continue = false;
         }
-//        if (addressLatch < 14)
-//            System.out.println(String.format("setAYRegister %d: %02X",
-//                addressLatch, regAY[addressLatch]));
     }
 
     public void updateAY(int tstates) {
@@ -317,7 +290,6 @@ public final class AY8912 {
                 // End of code borrowed from MAME sources
             }
 
-//            if (envA || envB || envC) {
             if (++envelopeCounter >= envelopePeriod) {
                 envelopeCounter = 0;
 
@@ -358,14 +330,7 @@ public final class AY8912 {
                 if (envC) {
                     amplitudeC = volumeLevel[amplitudeEnv];
                 }
-
-//                if (envA || envB || envC)
-//                System.out.println(String.format("AmplitudeEnv = %d, %d",
-//                        amplitudeEnv, volumeLevel[amplitudeEnv]));
             }
-//            }
-
-//            System.out.println(String.format("volA: %d, volB: %d, volC: %d", volA, volB, volC));
 
             outA = (toneA || disableToneA) && (toneN || disableNoiseA);
             outB = (toneB || disableToneB) && (toneN || disableNoiseB);
@@ -380,16 +345,12 @@ public final class AY8912 {
             stepCounter += 16.0;
             if (stepCounter >= step) {
                 stepCounter -= step;
-//                System.out.println(String.format("stepCounter %f", stepCounter));
                 volumeA /= nSteps;
                 volumeB /= nSteps;
                 volumeC /= nSteps;
                 bufA[pbuf] = (lastA + volumeA) >>> 1;
                 bufB[pbuf] = (lastB + volumeB) >>> 1;
                 bufC[pbuf] = (lastC + volumeC) >>> 1;
-//                bufA[pbuf] = volumeA;
-//                bufB[pbuf] = volumeB;
-//                bufC[pbuf] = volumeC;
                 pbuf++;
                 lastA = volumeA;
                 lastB = volumeB;
@@ -397,7 +358,6 @@ public final class AY8912 {
                 volumeA = volumeB = volumeC = nSteps = 0;
             }
         }
-//        System.out.println(String.format("updateAY: resto de %d tstates", remain));
     }
 
     public void endFrame() {

@@ -30,8 +30,6 @@ class Audio {
     // Buffer de sonido para el frame actual, hay más espacio del necesario.
     private final byte[] buf = new byte[4096];
     private final int[] beeper = new int[1024];
-    // Un frame completo lleno de ceros para enviarlo como aperitivo.
-//    private byte[] nullbuf;
     // Buffer de sonido para el AY
     private final int[] ayBufA = new int[1024];
     private final int[] ayBufB = new int[1024];
@@ -42,7 +40,6 @@ class Audio {
     private int samplesPerFrame, frameSize, bufferSize;
     private int soundMode;
     private float timeRem, spf;
-//    private AY8912 ay;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
     private AY8912Type settings;
@@ -77,8 +74,6 @@ class Audio {
             timeRem = 0.0f;
             samplesPerFrame = samplingFrequency / 50;
             frameSize = samplesPerFrame * 2 * channels;
-//            System.out.println(String.format("frameSize = %d", frameSize));
-//            nullbuf = new byte[frameSize];
             if (model != spectrumModel) {
                 spectrumModel = model;
                 ay8912.setSpectrumModel(spectrumModel);
@@ -92,13 +87,10 @@ class Audio {
             }
 
             bufferSize = frameSize * 5;
-//            System.out.println(String.format("bufferSize = %d", bufferSize));
 
             try {
                 sdl.open(fmt, bufferSize);
-                // No se llama al método start hasta tener el primer buffer
                 sdl.start();
-//                firstFrame = true;
                 line = sdl;
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
@@ -117,7 +109,6 @@ class Audio {
             line.stop();
             line.close();
             line = null;
-//            firstFrame = false;
         }
     }
 
@@ -125,14 +116,12 @@ class Audio {
         tstates = tstates - audiotstates;
         audiotstates += tstates;
         float time = tstates;
-//        System.out.println(String.format("updateAudio: value = %d", value));
 
         synchronized (beeper) {
             if (time + timeRem > spf) {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
                 lastLevel = (lastLevel + level) >>> 1;
-//                lastLevel = (int) (lastLevel * 0.4 + level * 0.6);
                 beeper[bufp++] = lastLevel;
             } else {
                 timeRem += time;
@@ -142,7 +131,6 @@ class Audio {
 
             while (time > spf) {
                 lastLevel = (lastLevel + value) >>> 1;
-//                lastLevel = (int) (lastLevel * 0.4 + value * 0.6);
                 beeper[bufp++] = lastLevel;
                 time -= spf;
             }
@@ -152,8 +140,6 @@ class Audio {
         // para el próximo cambio de estado
         level = (int) (value * (time / spf));
         timeRem = time;
-//        System.out.println(String.format("tstates: %d speaker: %04x timeRem: %f level: %d",
-//            tstates, (short)value, timeRem, (short)level));
     }
 
     private void flushBuffer(int len) {
