@@ -7,6 +7,7 @@ package utilities;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import machine.MachineTypes;
 import machine.Memory;
@@ -38,10 +40,17 @@ public class Snapshots {
     private int lastfffd;
     private int psgRegs[] = new int[16];
     // Multiface support
-    private boolean haveMultiface, mfPagedIn, mf128on48k, mfLockout;
+    private boolean multiface, mfPagedIn, mf128on48k, mfLockout;
     // ULAplus support
     private boolean ULAplus, ULAplusEnabled;
     private int ULAplusRegister, ULAplusPalette[] = new int[64];
+    // IF2 ROM support
+    private boolean IF2RomPresent;
+    // Tape Support
+    private boolean tapeEmbedded, tapeLinked;
+    private byte tapeData[];
+    private int tapeBlock;
+    private String tapeName, tapeExtension;
 
     private MachineTypes snapshotModel;
     private int border;
@@ -292,11 +301,11 @@ public class Snapshots {
     }
 
     public boolean isMultiface() {
-        return haveMultiface;
+        return multiface;
     }
 
     public void setMultiface(boolean haveMF) {
-        haveMultiface = haveMF;
+        multiface = haveMF;
     }
 
     public boolean isMFPagedIn() {
@@ -355,6 +364,54 @@ public class Snapshots {
         ULAplusPalette[register] = color;
     }
 
+    public boolean isIF2RomPresent() {
+        return IF2RomPresent;
+    }
+
+    public void setIF2RomPresent(boolean state) {
+        IF2RomPresent = state;
+    }
+
+    public boolean isTapeEmbedded() {
+        return tapeEmbedded;
+    }
+
+    public void setTapeEmbedded(boolean state) {
+        tapeEmbedded = state;
+    }
+
+    public boolean isTapeLinked() {
+        return tapeLinked;
+    }
+
+    public void setTapeLinked(boolean state) {
+        tapeLinked = state;
+    }
+
+    public byte[] getTapeData() {
+        return tapeData;
+    }
+
+    public int getTapeBlock() {
+        return tapeBlock;
+    }
+
+    public void setTapeBlock(int block) {
+        tapeBlock = block;
+    }
+
+    public String getTapeName() {
+        return tapeName;
+    }
+
+    public void setTapeName(String filename) {
+        tapeName = filename;
+    }
+
+    public String getTapeExtension() {
+        return tapeExtension;
+    }
+
     public String getErrorString() {
         return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
             errorString[error]);
@@ -384,6 +441,9 @@ public class Snapshots {
             return saveZ80(filename, memory);
         }
 
+        if (filename.getName().toLowerCase().endsWith(".szx")) {
+            return saveSZX(filename, memory);
+        }
         error = 8;
         return false;
     }
@@ -1297,7 +1357,7 @@ public class Snapshots {
     private static final int ZXSKJT_SPECTRUMPLUS = 5;
     private static final int ZXSKJT_TIMEX1 = 6;
     private static final int ZXSKJT_TIMEX2 = 7;
-    private static final int ZXSKJT_DISABLED = 8;
+    private static final int ZXSKJT_NONE = 8;
 
     private static final int ZXSTBID_IF1 = 0x00314649;
     private static final int ZXSTIF1F_ENABLED = 1;
@@ -1389,6 +1449,7 @@ public class Snapshots {
         ByteArrayInputStream bais;
         InflaterInputStream iis;
         int addr = 0;
+        byte chData[];
 
         joystick = Joystick.NONE;
 
@@ -1446,40 +1507,67 @@ public class Snapshots {
 
                 switch (szxId) {
                     case ZXSTBID_CREATOR:
-                        byte szCreator[] = new byte[szxLen];
+                        byte szCreator[] = new byte[32];
                         readed = fIn.read(szCreator);
+//                        System.out.println(String.format("Creator: %s", new String(szCreator)));
+                        int majorVersion = fIn.read() + fIn.read() * 256;
+                        int minorVersion = fIn.read() + fIn.read() * 256;
+//                        System.out.println(String.format("Creator Version %d.%d",
+//                            majorVersion, minorVersion));
+                        szxLen -= 36;
+                        if (szxLen > 0) {
+                            chData = new byte[szxLen];
+                            readed = fIn.read(chData);
+//                            System.out.println(String.format("Creator Data: %s",
+//                                new String(chData)));
+                        }
                         break;
                     case ZXSTBID_Z80REGS:
-                        byte zxRegs[] = new byte[szxLen];
-                        readed = fIn.read(zxRegs);
-                        regAF = (zxRegs[0] & 0xff) | (zxRegs[1] << 8) & 0xffff;
-                        regBC = (zxRegs[2] & 0xff) | (zxRegs[3] << 8) & 0xffff;
-                        regDE = (zxRegs[4] & 0xff) | (zxRegs[5] << 8) & 0xffff;
-                        regHL = (zxRegs[6] & 0xff) | (zxRegs[7] << 8) & 0xffff;
-                        regAFalt = (zxRegs[8] & 0xff) | (zxRegs[9] << 8) & 0xffff;
-                        regBCalt = (zxRegs[10] & 0xff) | (zxRegs[11] << 8) & 0xffff;
-                        regDEalt = (zxRegs[12] & 0xff) | (zxRegs[13] << 8) & 0xffff;
-                        regHLalt = (zxRegs[14] & 0xff) | (zxRegs[15] << 8) & 0xffff;
-                        regIX = (zxRegs[16] & 0xff) | (zxRegs[17] << 8) & 0xffff;
-                        regIY = (zxRegs[18] & 0xff) | (zxRegs[19] << 8) & 0xffff;
-                        regSP = (zxRegs[20] & 0xff) | (zxRegs[21] << 8) & 0xffff;
-                        regPC = (zxRegs[22] & 0xff) | (zxRegs[23] << 8) & 0xffff;
-                        regI = zxRegs[24] & 0xff;
-                        regR = zxRegs[25] & 0xff;
-                        iff1 = (zxRegs[26] & 0xff )!= 0;
-                        iff2 = (zxRegs[27] & 0xff )!= 0;
-                        modeIM = zxRegs[28] & 0xff;
-                        tstates = ((zxRegs[32] & 0xff) << 24) | ((zxRegs[31] & 0xff) << 16) |
-                                ((zxRegs[30] & 0xff) << 8) | (zxRegs[29] & 0xff);
+                        if (szxLen != 37) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        byte z80Regs[] = new byte[szxLen];
+                        readed = fIn.read(z80Regs);
+                        regAF = (z80Regs[0] & 0xff) | (z80Regs[1] << 8) & 0xffff;
+                        regBC = (z80Regs[2] & 0xff) | (z80Regs[3] << 8) & 0xffff;
+                        regDE = (z80Regs[4] & 0xff) | (z80Regs[5] << 8) & 0xffff;
+                        regHL = (z80Regs[6] & 0xff) | (z80Regs[7] << 8) & 0xffff;
+                        regAFalt = (z80Regs[8] & 0xff) | (z80Regs[9] << 8) & 0xffff;
+                        regBCalt = (z80Regs[10] & 0xff) | (z80Regs[11] << 8) & 0xffff;
+                        regDEalt = (z80Regs[12] & 0xff) | (z80Regs[13] << 8) & 0xffff;
+                        regHLalt = (z80Regs[14] & 0xff) | (z80Regs[15] << 8) & 0xffff;
+                        regIX = (z80Regs[16] & 0xff) | (z80Regs[17] << 8) & 0xffff;
+                        regIY = (z80Regs[18] & 0xff) | (z80Regs[19] << 8) & 0xffff;
+                        regSP = (z80Regs[20] & 0xff) | (z80Regs[21] << 8) & 0xffff;
+                        regPC = (z80Regs[22] & 0xff) | (z80Regs[23] << 8) & 0xffff;
+                        regI = z80Regs[24] & 0xff;
+                        regR = z80Regs[25] & 0xff;
+                        iff1 = (z80Regs[26] & 0xff )!= 0;
+                        iff2 = (z80Regs[27] & 0xff )!= 0;
+                        modeIM = z80Regs[28] & 0xff;
+                        tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16) |
+                                ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
                         break;
                     case ZXSTBID_SPECREGS:
-                        byte spRegs[] = new byte[szxLen];
-                        readed = fIn.read(spRegs);
-                        border = spRegs[0] & 0x07;
-                        last7ffd = spRegs[1] & 0xff;
-                        last1ffd = spRegs[2] & 0xff;
+                        if (szxLen != 8) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        byte specRegs[] = new byte[szxLen];
+                        readed = fIn.read(specRegs);
+                        border = specRegs[0] & 0x07;
+                        last7ffd = specRegs[1] & 0xff;
+                        last1ffd = specRegs[2] & 0xff;
                         break;
                     case ZXSTBID_KEYBOARD:
+                        if (szxLen != 5) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         byte keyb[] = new byte[szxLen];
                         readed = fIn.read(keyb);
                         issue2 = (keyb[0] & ZXSTKF_ISSUE2) != 0;
@@ -1503,11 +1591,12 @@ public class Snapshots {
                                 joystick = Joystick.NONE;
                         }
                         break;
-                    case ZXSTBID_JOYSTICK:
-                        byte joy[] = new byte[szxLen];
-                        readed = fIn.read(joy);
-                        break;
                     case ZXSTBID_AY:
+                        if (szxLen != 18) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         byte ayRegs[] = new byte[szxLen];
                         readed = fIn.read(ayRegs);
                         enabledAY = true;
@@ -1520,24 +1609,29 @@ public class Snapshots {
                         }
                         break;
                     case ZXSTBID_RAMPAGE:
-                        byte ramp[] = new byte[3];
-                        readed = fIn.read(ramp);
+                        byte ramPage[] = new byte[3];
+                        readed = fIn.read(ramPage);
                         szxLen -= 3;
-                        byte page[] = new byte[szxLen];
-                        readed = fIn.read(page);
-                        if ((ramp[0] & ZXSTRF_COMPRESSED) == 0) {
-                            memory.loadPage(ramp[2] & 0xff, page);
+                        if (szxLen > 0x4000) {
+                            error = 10;
+                            fIn.close();
+                            return false;
+                        }
+                        chData = new byte[szxLen];
+                        readed = fIn.read(chData);
+                        if ((ramPage[0] & ZXSTRF_COMPRESSED) == 0) {
+                            memory.loadPage(ramPage[2] & 0xff, chData);
                             break;
                         }
                         // Compressed RAM page
-                        bais = new ByteArrayInputStream(page);
+                        bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
                         addr = 0;
                         while (addr < 0x4000) {
                             int value = iis.read();
                             if (value == -1)
                                 break;
-                            memory.writeByte(ramp[2] & 0xff, addr++, (byte)value);
+                            memory.writeByte(ramPage[2] & 0xff, addr++, (byte)value);
                         }
                         readed = iis.read();
                         iis.close();
@@ -1551,14 +1645,20 @@ public class Snapshots {
                         byte mf[] = new byte[2];
                         readed = fIn.read(mf);
                         szxLen -= 2;
-                        byte mfBuf[] = new byte[szxLen];
-                        readed = fIn.read(mfBuf);
+                        if (szxLen > 0x4000) {
+                            fIn.skip(szxLen);
+                            break;
+                        }
+
+                        chData = new byte[szxLen];
+                        readed = fIn.read(chData);
+//                        System.out.println("MF RAM readed bytes: " + readed);
                         if ((mf[1] & ZXSTMF_16KRAMMODE) != 0) {
-                            haveMultiface = false;
+                            multiface = false;
                             break;  // Config. no soportada
                         }
 
-                        haveMultiface = true;
+                        multiface = true;
                         if ((mf[0] & ZXSTMFM_128) != 0) {
                             mf128on48k = true;
                         }
@@ -1572,15 +1672,15 @@ public class Snapshots {
                         }
 
                         if ((mf[1] & ZXSTMF_COMPRESSED) == 0) {
-                            memory.loadMFRam(mfBuf);
+                            memory.loadMFRam(chData);
                             break;
                         }
                         // MF RAM compressed
-                        bais = new ByteArrayInputStream(mfBuf);
+                        bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
                         byte mfRAM[] = new byte[0x2000];
                         addr = 0;
-                        while (addr < 0x4000) {
+                        while (addr < mfRAM.length) {
                             int value = iis.read();
                             if (value == -1)
                                 break;
@@ -1588,13 +1688,19 @@ public class Snapshots {
                         }
                         readed = iis.read();
                         iis.close();
-                        if (addr != 0x2000 || readed != -1) {
-                            haveMultiface = false;
+                        if (addr != mfRAM.length || readed != -1) {
+                            System.out.println("Multiface RAM uncompress error!");
+                            multiface = false;
                             break;
                         }
                         memory.loadMFRam(mfRAM);
                         break;
                     case ZXSTBID_PALETTE:
+                        if (szxLen != 66) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         ULAplus = true;
                         byte ULAplusRegs[] = new byte[szxLen];
                         readed = fIn.read(ULAplusRegs);
@@ -1613,8 +1719,8 @@ public class Snapshots {
                         byte tape[] = new byte[4];
                         readed = fIn.read(tape);
                         szxLen -= tape.length;
-                        System.out.println(String.format("Tape Block #%d",
-                            (tape[0] & 0xff) + (tape[1] & 0xff) * 256));
+//                        System.out.println(String.format("Tape Block #%d",
+//                            (tape[0] & 0xff) + (tape[1] & 0xff) * 256));
 
                         byte qword[] = new byte[4];
                         readed = fIn.read(qword);
@@ -1624,54 +1730,107 @@ public class Snapshots {
                         readed = fIn.read(qword);
                         szxLen -= qword.length;
                         int cSize = dwMagicToInt(qword);
-                        System.out.println(String.format("uSize: %d, cSize: %d",
-                                uSize, cSize));
+//                        System.out.println(String.format("uSize: %d, cSize: %d",
+//                                uSize, cSize));
 
-                        byte fileExt[] = new byte[16];
-                        readed = fIn.read(fileExt);
-                        szxLen -= fileExt.length;
+                        byte szFileExtension[] = new byte[16];
+                        readed = fIn.read(szFileExtension);
+                        szxLen -= szFileExtension.length;
 
                         if ((tape[2] & ZXSTTP_EMBEDDED) != 0) {
-                            String extension = new String(fileExt);
-                            System.out.println(String.format("Tape embedded with extension: [%s]",
-                                    extension));
+                            // Hay que crear un String con la extensión sin
+                            // "comerse" los ceros del final, porque luego no se
+                            // ven, pero están....
+                            int nChars = 0;
+                            while(nChars < szFileExtension.length) {
+                                if (szFileExtension[nChars] == 0)
+                                    break;
+                                 nChars++;
+                            }
+                            tapeExtension = new String(szFileExtension, 0, nChars);
+                            tapeName = filename.getName();
+//                            System.out.println(String.format("Tape embedded with extension: [%s]",
+//                                    tapeExtension));
 
-                            byte cTape[] = new byte[szxLen];
-                            readed = fIn.read(cTape);
+                            chData = new byte[szxLen];
+                            readed = fIn.read(chData);
                             if ((tape[2] & ZXSTTP_COMPRESSED) != 0) {
-                                System.out.println("Tape compressed");
-                                bais = new ByteArrayInputStream(cTape);
+//                                System.out.println("Tape compressed");
+                                bais = new ByteArrayInputStream(chData);
                                 iis = new InflaterInputStream(bais);
-                                byte uTape[] = new byte[uSize];
+                                tapeData = new byte[uSize];
                                 addr = 0;
                                 while (addr < uSize) {
                                     int value = iis.read();
                                     if (value == -1) {
                                         break;
                                     }
-                                    uTape[addr++] = (byte) value;
+                                    tapeData[addr++] = (byte) value;
                                 }
                                 readed = iis.read();
                                 iis.close();
                                 if (addr != uSize || readed != -1) {
-                                    System.out.println("Tape decompression error!");
+                                    System.out.println("Tape uncompress error!");
                                     break;
                                 }
+                            } else {
+                                tapeData = chData;
                             }
+                            tapeEmbedded = true;
                         } else {
-                            byte link[] = new byte[szxLen];
-                            readed = fIn.read(link);
-                            String linkFile = new String(link);
-                            System.out.println("File linked: " + linkFile);
+                            chData = new byte[szxLen];
+                            readed = fIn.read(chData);
+                            tapeName = new String(chData, 0, szxLen - 1);
+//                            System.out.println("File linked: " + tapeName);
+                            tapeLinked = true;
                         }
                         break;
                     case ZXSTBID_IF2ROM:
                         byte dwCartSize[] = new byte[4];
                         readed = fIn.read(dwCartSize);
                         int romLen = dwMagicToInt(dwCartSize);
-                        System.out.println(String.format("IF2 ROM present. Lenght: %d", romLen));
-                        byte rom[] = new byte[romLen];
-                        readed = fIn.read(rom);
+//                        System.out.println(String.format("IF2 ROM present. Lenght: %d", romLen));
+                        if (romLen > 0x4000) {
+                            fIn.skip(romLen);
+                            break;
+                        }
+
+                        chData = new byte[romLen];
+                        readed = fIn.read(chData);
+                        if (romLen == 0x4000) {
+                            memory.insertIF2RomFromSZX(chData);
+                            IF2RomPresent = true;
+                            break;
+                        }
+
+                        // ROM is compressed
+                        bais = new ByteArrayInputStream(chData);
+                        iis = new InflaterInputStream(bais);
+                        byte IF2Rom[] = new byte[0x4000];
+                        addr = 0;
+                        while (addr < IF2Rom.length) {
+                            int value = iis.read();
+                            if (value == -1) {
+                                break;
+                            }
+                            IF2Rom[addr++] = (byte) value;
+                        }
+                        readed = iis.read();
+                        iis.close();
+                        if (addr != IF2Rom.length || readed != -1) {
+                            System.out.println("Rom uncompress error!");
+                            break;
+                        }
+                        memory.insertIF2RomFromSZX(IF2Rom);
+                        IF2RomPresent = true;
+                        break;
+                    case ZXSTBID_JOYSTICK:
+                        if (szxLen != 6) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        fIn.skip(szxLen);
                         break;
                     case ZXSTBID_ZXATASP:
                     case ZXSTBID_ATARAM:
@@ -1696,23 +1855,400 @@ public class Snapshots {
                     case ZXSTBID_SPECDRUM:
                     case ZXSTBID_USPEECH:
                     case ZXSTBID_ZXPRINTER:
-                        byte szxBlock[] = new byte[szxLen];
-                        readed = fIn.read(szxBlock);
+//                        chData = new byte[szxLen];
+                        fIn.skip(szxLen);
                         String blockID = new String(dwMagic);
                         System.out.println(String.format(
                             "SZX block ID '%s' readed but not emulated. Skipping...",
                             blockID));
                         break;
                     default:
-                        byte unknown[] = new byte[szxLen];
-                        readed = fIn.read(unknown);
+//                        chData = new byte[szxLen];
+//                        readed = fIn.read(chData);
+//                        fIn.skip(szxLen);
                         String header = new String(dwMagic);
                         System.out.println(String.format("Unknown SZX block ID: %s", header));
+                        fOut.close();
+                        error = 4;
+                        return false;
                 }
             }
         } catch (IOException ex) {
 //            ex.printStackTrace();
             error = 4;
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean saveSZX(File filename, Memory memory) {
+
+        try {
+            try {
+                fOut = new BufferedOutputStream(new FileOutputStream(filename));
+            } catch (FileNotFoundException ex) {
+                error = 2;
+                return false;
+            }
+
+            // SZX Header
+            String blockID = "ZXST";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(0x01); // SZX major version
+            fOut.write(0x03); // SZX minor version
+            switch (snapshotModel) {
+                case SPECTRUM16K:
+                    fOut.write(ZXSTMID_16K);
+                    break;
+                case SPECTRUM48K:
+                    fOut.write(ZXSTMID_48K);
+                    break;
+                case SPECTRUM128K:
+                    fOut.write(ZXSTMID_128K);
+                    break;
+                case SPECTRUMPLUS2:
+                    fOut.write(ZXSTMID_PLUS2);
+                    break;
+                case SPECTRUMPLUS2A:
+                    fOut.write(ZXSTMID_PLUS2A);
+                    break;
+                case SPECTRUMPLUS3:
+                    fOut.write(ZXSTMID_PLUS3);
+                    break;
+            }
+            fOut.write(0x01); // SZX reserved
+
+            // SZX Creator block
+            blockID = "CRTR";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(0x25);
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);  // CRTR lenght block
+            blockID = "JSpeccy 0.87";
+            byte[] szCreator = new byte[32];
+            System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
+                0, blockID.getBytes("US-ASCII").length);
+            fOut.write(szCreator);
+            fOut.write(0x00);
+            fOut.write(0x00); // JSpeccy major version (0)
+            fOut.write(0x00);
+            fOut.write(0x57); // JSpeccy minor version (87)
+            fOut.write(0x00); // chData
+
+            // SZX Z80REGS block
+            blockID = "Z80R";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(0x25);
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);  // Z80R lenght block (37 bytes)
+            byte[] z80r = new byte[37];
+            z80r[0] = (byte) regAF;
+            z80r[1] = (byte) (regAF >> 8);
+            z80r[2] = (byte) regBC;
+            z80r[3] = (byte) (regBC >> 8);
+            z80r[4] = (byte) regDE;
+            z80r[5] = (byte) (regDE >> 8);
+            z80r[6] = (byte) regHL;
+            z80r[7] = (byte) (regHL >> 8);
+            z80r[8] = (byte) regAFalt;
+            z80r[9] = (byte) (regAFalt >> 8);
+            z80r[10] = (byte) regBCalt;
+            z80r[11] = (byte) (regBCalt >> 8);
+            z80r[12] = (byte) regDEalt;
+            z80r[13] = (byte) (regDEalt >> 8);
+            z80r[14] = (byte) regHLalt;
+            z80r[15] = (byte) (regHLalt >> 8);
+            z80r[16] = (byte) regIX;
+            z80r[17] = (byte) (regIX >> 8);
+            z80r[18] = (byte) regIY;
+            z80r[19] = (byte) (regIY >> 8);
+            z80r[20] = (byte) regSP;
+            z80r[21] = (byte) (regSP >> 8);
+            z80r[22] = (byte) regPC;
+            z80r[23] = (byte) (regPC >> 8);
+            z80r[24] = (byte) regI;
+            z80r[25] = (byte) regR;
+            if (iff1)
+                z80r[26] = 0x01;
+            if (iff2)
+                z80r[27] = 0x01;
+            z80r[28] = (byte) modeIM;
+            z80r[29] = (byte) tstates;
+            z80r[30] = (byte) (tstates >> 8);
+            z80r[31] = (byte) (tstates >> 16);
+            z80r[32] = (byte) (tstates >> 24);
+            // ignore the chHoldIntReqCycles, chFlags & chBitReg fields
+            fOut.write(z80r);
+
+             // SZX SPECREGS block
+            blockID = "SPCR";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(0x08);
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);  // Z80R lenght block (8 bytes)
+            byte[] specr = new byte[8];
+            specr[0] = (byte)border;
+            specr[1] = (byte)last7ffd;
+            specr[2] = (byte)last1ffd;
+            // ignore the chEff7 & chFe fields
+            fOut.write(specr);
+
+            boolean[] save = new boolean[8];
+            switch (snapshotModel) {
+                case SPECTRUM16K:
+                    save[5] = true;
+                    break;
+                case SPECTRUM48K:
+                    save[0] = save[2] = save[5] = true;
+                    break;
+                default:
+                    Arrays.fill(save, true);
+            }
+
+            // RAM pages
+            byte[] ram = new byte[0x4000];
+            ByteArrayOutputStream baos;
+            DeflaterOutputStream dos;
+            for (int page = 0; page < 8; page++) {
+                if (save[page]) {
+                    memory.savePage(page, ram);
+                    baos = new ByteArrayOutputStream();
+                    dos = new DeflaterOutputStream(baos);
+                    dos.write(ram, 0, ram.length);
+                    dos.close();
+//                    System.out.println(String.format("Ram page: %d, compressed len: %d",
+//                        page, baos.size()));
+                    blockID = "RAMP";
+                    fOut.write(blockID.getBytes("US-ASCII"));
+                    int pageLen = baos.size() + 3;
+                    fOut.write(pageLen);
+                    fOut.write(pageLen >> 8);
+                    fOut.write(pageLen >> 16);
+                    fOut.write(pageLen >> 24);
+                    fOut.write(ZXSTRF_COMPRESSED);
+                    fOut.write(0x00);
+                    fOut.write(page);
+                    baos.writeTo(fOut);
+                }
+            }
+
+             // SZX KEYB block
+            blockID = "KEYB";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(0x05);
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);  // KEYB lenght block (5 bytes)
+            if (issue2) {
+                fOut.write(ZXSTKF_ISSUE2);
+            } else {
+                fOut.write(0x00);
+            }
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);
+            switch (joystick) {
+                case NONE:
+                    fOut.write(ZXSKJT_NONE);
+                    break;
+                case KEMPSTON:
+                    fOut.write(ZXSKJT_KEMPSTON);
+                    break;
+                case SINCLAIR1:
+                    fOut.write(ZXSKJT_SINCLAIR1);
+                    break;
+                case SINCLAIR2:
+                    fOut.write(ZXSKJT_SINCLAIR2);
+                    break;
+                case CURSOR:
+                    fOut.write(ZXSKJT_CURSOR);
+                    break;
+                case FULLER:
+                    fOut.write(ZXSKJT_FULLER);
+                    break;
+            }
+
+            // SZX AY block
+            if (enabledAY) {
+                byte[] ayID = new byte[4];
+                ayID[0] = 'A';
+                ayID[1] = 'Y';
+                fOut.write(ayID);
+                fOut.write(0x12);
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00);  // AY lenght block (18 bytes)
+                if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                    fOut.write(ZXSTAYF_128AY);
+                } else {
+                    fOut.write(0x00);
+                }
+                fOut.write(lastfffd);
+                for (int reg = 0; reg < 16; reg++) {
+                    fOut.write(psgRegs[reg]);
+                }
+            }
+
+            // SZX ULAplus block
+            if (ULAplus) {
+                blockID = "PLTT";
+                fOut.write(blockID.getBytes("US-ASCII"));
+                fOut.write(0x42);
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00);  // PLTT lenght block (66 bytes)
+                if (ULAplusEnabled) {
+                    fOut.write(ZXSTPALETTE_ENABLED);
+                } else {
+                    fOut.write(0x00);
+                }
+                fOut.write(ULAplusRegister);
+                for (int color = 0; color < 64; color++) {
+                    fOut.write(ULAplusPalette[color]);
+                }
+            }
+
+            // SZX Multiface block
+            if (multiface) {
+                blockID = "MFCE";
+                fOut.write(blockID.getBytes("US-ASCII"));
+
+                byte[] mfRam = new byte[0x2000];
+                memory.saveMFRam(mfRam);
+                baos = new ByteArrayOutputStream();
+                dos = new DeflaterOutputStream(baos);
+                dos.write(mfRam, 0, mfRam.length);
+                dos.close();
+//                System.out.println("Compressed MF RAM: " + baos.size());
+                int pageLen = baos.size() + 2;
+                fOut.write(pageLen);
+                fOut.write(pageLen >> 8);
+                fOut.write(pageLen >> 16);
+                fOut.write(pageLen >> 24);
+
+                if (mf128on48k)
+                    fOut.write(ZXSTMFM_128);
+                else
+                    fOut.write(0x00);
+
+                int mfFlags = ZXSTMF_COMPRESSED;
+                if (memory.isMultifacePaged()) {
+                    mfFlags |= ZXSTMF_PAGEDIN;
+                }
+                if (memory.isMultifaceLocked()
+                    && (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K
+                    || mf128on48k)) {
+                    mfFlags |= ZXSTMF_SOFTWARELOCKOUT;
+                }
+                fOut.write(mfFlags);
+                baos.writeTo(fOut);
+            }
+
+            // SZX IF2 ROM Block
+            if (memory.isIF2RomEnabled()) {
+                blockID = "IF2R";
+                fOut.write(blockID.getBytes("US-ASCII"));
+
+                byte[] if2Rom = new byte[0x4000];
+                memory.saveIF2Rom(if2Rom);
+                baos = new ByteArrayOutputStream();
+                dos = new DeflaterOutputStream(baos);
+                dos.write(if2Rom, 0, if2Rom.length);
+                dos.close();
+//                System.out.println("Compressed IF2 ROM: " + baos.size());
+                int pageLen = baos.size() + 4;
+                fOut.write(pageLen);
+                fOut.write(pageLen >> 8);
+                fOut.write(pageLen >> 16);
+                fOut.write(pageLen >> 24);
+                pageLen = baos.size();
+                fOut.write(pageLen);
+                fOut.write(pageLen >> 8);
+                fOut.write(pageLen >> 16);
+                fOut.write(pageLen >> 24);
+                baos.writeTo(fOut);
+            }
+
+            // SZX Tape Block
+            if (tapeLinked && !tapeEmbedded) {
+                blockID = "TAPE";
+                fOut.write(blockID.getBytes("US-ASCII"));
+                int blockLen = 28 + tapeName.length() + 1;
+                fOut.write(blockLen);
+                fOut.write(blockLen >> 8);
+                fOut.write(blockLen >> 16);
+                fOut.write(blockLen >> 24);
+
+                fOut.write(tapeBlock);
+                fOut.write(tapeBlock >> 8); // wCurrentBlockNo
+                fOut.write(0x00);
+                fOut.write(0x00); // wFlags
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00); // dwUncompressedSize
+                blockLen = tapeName.length() + 1;
+                fOut.write(blockLen);
+                fOut.write(blockLen >> 8);
+                fOut.write(blockLen >> 16);
+                fOut.write(blockLen >> 24); // dwCompressedSize
+                byte[] szFileExtension = new byte[16];
+                fOut.write(szFileExtension);
+                fOut.write(tapeName.getBytes("US-ASCII"));
+                fOut.write(0x00); // zero-terminated strings
+            }
+
+            if (!tapeLinked && tapeEmbedded) {
+                blockID = "TAPE";
+                fOut.write(blockID.getBytes("US-ASCII"));
+                File tapeFile = new File(tapeName);
+                fIn = new BufferedInputStream(new FileInputStream(tapeFile));
+                tapeData = new byte[fIn.available()];
+                fIn.read(tapeData);
+                baos = new ByteArrayOutputStream();
+                dos = new DeflaterOutputStream(baos);
+                dos.write(tapeData, 0, tapeData.length);
+                dos.close();
+//                System.out.println("Compressed IF2 ROM: " + baos.size());
+                int blockLen = 28 + baos.size();
+                fOut.write(blockLen);
+                fOut.write(blockLen >> 8);
+                fOut.write(blockLen >> 16);
+                fOut.write(blockLen >> 24);
+
+                fOut.write(tapeBlock);
+                fOut.write(tapeBlock >> 8); // wCurrentBlockNo
+                fOut.write(ZXSTTP_EMBEDDED | ZXSTTP_COMPRESSED); // wFlags
+                fOut.write(0x00);
+                fOut.write(tapeData.length);
+                fOut.write(tapeData.length >> 8);
+                fOut.write(tapeData.length >> 16);
+                fOut.write(tapeData.length >> 24); // dwUncompressedSize
+                blockLen = baos.size();
+                fOut.write(blockLen);
+                fOut.write(blockLen >> 8);
+                fOut.write(blockLen >> 16);
+                fOut.write(blockLen >> 24); // dwCompressedSize
+                byte[] szFileExtension = new byte[16];
+                szFileExtension[0] = 't';
+                if (tapeName.toLowerCase().endsWith("tzx")) {
+                    szFileExtension[1] = 'z';
+                    szFileExtension[2] = 'x';
+                } else {
+                    szFileExtension[1] = 'a';
+                    szFileExtension[2] = 'p';
+                }
+                fOut.write(szFileExtension);
+                baos.writeTo(fOut);
+            }
+            fOut.close();
+
+        } catch (IOException ex) {
+            error = 6;
             return false;
         }
 

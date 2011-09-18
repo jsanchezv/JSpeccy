@@ -201,12 +201,14 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
-        spectrum.setInfoLabels(modelLabel, speedLabel);
+        spectrum.setInfoLabels(modelLabel, speedLabel, tapeFilename);
         spectrum.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
-                specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
+            specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
-                sinclair1Joystick, sinclair2Joystick,
-                cursorJoystick, fullerJoystick);
+            sinclair1Joystick, sinclair2Joystick,
+            cursorJoystick, fullerJoystick);
+        spectrum.setMenuItems(insertIF2RomMediaMenu, ejectIF2RomMediaMenu,
+            playTapeMediaMenu);
         spectrum.tape.setTapeIcon(tapeLabel);
         tapeCatalog.setModel(spectrum.tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
@@ -246,7 +248,7 @@ public class JSpeccy extends javax.swing.JFrame {
             default:
                 spec48kHardware.setSelected(true);
         }
-        
+
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
             case 1:
                 kempstonJoystick.setSelected(true);
@@ -276,40 +278,40 @@ public class JSpeccy extends javax.swing.JFrame {
             pack();
         }
 
-        if (settings.getRecentFilesSettings().getRecentFile0() != null &&
-                !settings.getRecentFilesSettings().getRecentFile0().isEmpty()) {
+        if (settings.getRecentFilesSettings().getRecentFile0() != null
+            && !settings.getRecentFilesSettings().getRecentFile0().isEmpty()) {
             recentFile[0] = new File(settings.getRecentFilesSettings().getRecentFile0());
             recentFileMenu0.setText(recentFile[0].getName());
             recentFileMenu0.setToolTipText(recentFile[0].getAbsolutePath());
             recentFileMenu0.setEnabled(true);
         }
 
-        if (settings.getRecentFilesSettings().getRecentFile1() != null &&
-                !settings.getRecentFilesSettings().getRecentFile1().isEmpty()) {
+        if (settings.getRecentFilesSettings().getRecentFile1() != null
+            && !settings.getRecentFilesSettings().getRecentFile1().isEmpty()) {
             recentFile[1] = new File(settings.getRecentFilesSettings().getRecentFile1());
             recentFileMenu1.setText(recentFile[1].getName());
             recentFileMenu1.setToolTipText(recentFile[1].getAbsolutePath());
             recentFileMenu1.setEnabled(true);
         }
 
-        if (settings.getRecentFilesSettings().getRecentFile2() != null &&
-                !settings.getRecentFilesSettings().getRecentFile2().isEmpty()) {
+        if (settings.getRecentFilesSettings().getRecentFile2() != null
+            && !settings.getRecentFilesSettings().getRecentFile2().isEmpty()) {
             recentFile[2] = new File(settings.getRecentFilesSettings().getRecentFile2());
             recentFileMenu2.setText(recentFile[2].getName());
             recentFileMenu2.setToolTipText(recentFile[2].getAbsolutePath());
             recentFileMenu2.setEnabled(true);
         }
 
-        if (settings.getRecentFilesSettings().getRecentFile3() != null &&
-                !settings.getRecentFilesSettings().getRecentFile3().isEmpty()) {
+        if (settings.getRecentFilesSettings().getRecentFile3() != null
+            && !settings.getRecentFilesSettings().getRecentFile3().isEmpty()) {
             recentFile[3] = new File(settings.getRecentFilesSettings().getRecentFile3());
             recentFileMenu3.setText(recentFile[3].getName());
             recentFileMenu3.setToolTipText(recentFile[3].getAbsolutePath());
             recentFileMenu3.setEnabled(true);
         }
 
-        if (settings.getRecentFilesSettings().getRecentFile4() != null &&
-                !settings.getRecentFilesSettings().getRecentFile4().isEmpty()) {
+        if (settings.getRecentFilesSettings().getRecentFile4() != null
+            && !settings.getRecentFilesSettings().getRecentFile4().isEmpty()) {
             recentFile[4] = new File(settings.getRecentFilesSettings().getRecentFile4());
             recentFileMenu4.setText(recentFile[4].getName());
             recentFileMenu4.setToolTipText(recentFile[4].getAbsolutePath());
@@ -394,6 +396,17 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel2 = new javax.swing.JPanel();
         closeTapeBrowserButton = new javax.swing.JButton();
         tapeFilename = new javax.swing.JLabel();
+        saveSzxTape = new javax.swing.JDialog();
+        jPanel4 = new javax.swing.JPanel();
+        tapeMessageInfo = new javax.swing.JLabel();
+        tapeFilenameLabel = new javax.swing.JLabel();
+        saveSzxChoosePanel = new javax.swing.JPanel();
+        ignoreRadioButton = new javax.swing.JRadioButton();
+        linkedRadioButton = new javax.swing.JRadioButton();
+        embeddedRadioButton = new javax.swing.JRadioButton();
+        jPanel3 = new javax.swing.JPanel();
+        saveSzxCloseButton = new javax.swing.JButton();
+        saveSzxButtonGroup = new javax.swing.ButtonGroup();
         jPanel1 = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
@@ -524,6 +537,63 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeFilename.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         tapeFilename.setText(bundle.getString("JSpeccy.tapeFilename.text")); // NOI18N
         tapeBrowserDialog.getContentPane().add(tapeFilename, java.awt.BorderLayout.PAGE_START);
+
+        saveSzxTape.setTitle(bundle.getString("JSpeccy.saveSzxTapeDialog.title.text")); // NOI18N
+        saveSzxTape.setModal(true);
+
+        jPanel4.setLayout(new java.awt.GridLayout(3, 0, 5, 5));
+
+        tapeMessageInfo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        tapeMessageInfo.setText(bundle.getString("JSpeccy.tapeMessageInfo.text")); // NOI18N
+        jPanel4.add(tapeMessageInfo);
+
+        tapeFilenameLabel.setForeground(new java.awt.Color(204, 0, 0));
+        tapeFilenameLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jPanel4.add(tapeFilenameLabel);
+
+        saveSzxChoosePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("JSpeccy.saveSzxChoosePanel.title"))); // NOI18N
+
+        saveSzxButtonGroup.add(ignoreRadioButton);
+        ignoreRadioButton.setSelected(true);
+        ignoreRadioButton.setText(bundle.getString("JSpeccy.ignoreRadioButton.text")); // NOI18N
+        ignoreRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ignoreRadioButtonActionPerformed(evt);
+            }
+        });
+        saveSzxChoosePanel.add(ignoreRadioButton);
+
+        saveSzxButtonGroup.add(linkedRadioButton);
+        linkedRadioButton.setText(bundle.getString("JSpeccy.linkedRadioButton.text")); // NOI18N
+        linkedRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                linkedRadioButtonActionPerformed(evt);
+            }
+        });
+        saveSzxChoosePanel.add(linkedRadioButton);
+
+        saveSzxButtonGroup.add(embeddedRadioButton);
+        embeddedRadioButton.setText(bundle.getString("JSpeccy.embeddedRadioButton.text")); // NOI18N
+        embeddedRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                embeddedRadioButtonActionPerformed(evt);
+            }
+        });
+        saveSzxChoosePanel.add(embeddedRadioButton);
+
+        jPanel4.add(saveSzxChoosePanel);
+
+        saveSzxTape.getContentPane().add(jPanel4, java.awt.BorderLayout.CENTER);
+
+        saveSzxCloseButton.setText(bundle.getString("JSpeccy.saveSzxCloseButton.text")); // NOI18N
+        saveSzxCloseButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveSzxCloseButtonActionPerformed(evt);
+            }
+        });
+        jPanel3.add(saveSzxCloseButton);
+
+        saveSzxTape.getContentPane().add(jPanel3, java.awt.BorderLayout.PAGE_END);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle(bundle.getString("JSpeccy.title")); // NOI18N
@@ -1029,6 +1099,7 @@ public class JSpeccy extends javax.swing.JFrame {
     IF2MediaMenu.setText(bundle.getString("JSpeccy.IF2MediaMenu.text")); // NOI18N
 
     insertIF2RomMediaMenu.setText(bundle.getString("JSpeccy.insertIF2RomMediaMenu.text")); // NOI18N
+    insertIF2RomMediaMenu.setEnabled(false);
     insertIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             insertIF2RomMediaMenuActionPerformed(evt);
@@ -1266,8 +1337,15 @@ public class JSpeccy extends javax.swing.JFrame {
 
         int status = saveSnapshotDlg.showSaveDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
-            //spectrum.stopEmulation();
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
+            if (spectrum.tape.getTapeName() != null &&
+                    saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith("szx")) {
+                tapeFilenameLabel.setText(spectrum.tape.getTapeName().getName());
+                ignoreRadioButton.setSelected(true);
+                spectrum.setSzxTapeMode(0); // ignore by default
+                saveSzxTape.pack();
+                saveSzxTape.setVisible(true);
+            }
             spectrum.saveSnapshot(saveSnapshotDlg.getSelectedFile());
         }
         if (!paused)
@@ -1581,6 +1659,7 @@ public class JSpeccy extends javax.swing.JFrame {
             if (spectrum.insertIF2Rom(IF2RomDlg.getSelectedFile())) {
                 insertIF2RomMediaMenu.setEnabled(false);
                 ejectIF2RomMediaMenu.setEnabled(true);
+                spectrum.reset();
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                 JOptionPane.showMessageDialog(this, bundle.getString("LOAD_ROM_ERROR"),
@@ -1596,11 +1675,28 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.ejectIF2Rom();
         insertIF2RomMediaMenu.setEnabled(true);
         ejectIF2RomMediaMenu.setEnabled(false);
+        spectrum.reset();
     }//GEN-LAST:event_ejectIF2RomMediaMenuActionPerformed
 
     private void fullerJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullerJoystickActionPerformed
         spectrum.setJoystick(Spectrum.Joystick.FULLER);
     }//GEN-LAST:event_fullerJoystickActionPerformed
+
+    private void saveSzxCloseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSzxCloseButtonActionPerformed
+        saveSzxTape.setVisible(false);
+    }//GEN-LAST:event_saveSzxCloseButtonActionPerformed
+
+    private void linkedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_linkedRadioButtonActionPerformed
+        spectrum.setSzxTapeMode(1); // linked tape
+    }//GEN-LAST:event_linkedRadioButtonActionPerformed
+
+    private void embeddedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_embeddedRadioButtonActionPerformed
+        spectrum.setSzxTapeMode(2); // embedded tape
+    }//GEN-LAST:event_embeddedRadioButtonActionPerformed
+
+    private void ignoreRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ignoreRadioButtonActionPerformed
+        spectrum.setSzxTapeMode(0); // ignore tape
+    }//GEN-LAST:event_ignoreRadioButtonActionPerformed
     
     /**
      * @param args the command line arguments
@@ -1626,6 +1722,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
     private javax.swing.JMenuItem ejectIF2RomMediaMenu;
+    private javax.swing.JRadioButton embeddedRadioButton;
     private javax.swing.JToggleButton fastEmulationToggleButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
@@ -1634,12 +1731,15 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
+    private javax.swing.JRadioButton ignoreRadioButton;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JMenuItem insertIF2RomMediaMenu;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
@@ -1653,6 +1753,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem kempstonJoystick;
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
+    private javax.swing.JRadioButton linkedRadioButton;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JLabel modelLabel;
@@ -1678,6 +1779,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem rewindTapeMediaMenu;
     private javax.swing.JMenuItem saveScreenShot;
     private javax.swing.JMenuItem saveSnapshot;
+    private javax.swing.ButtonGroup saveSzxButtonGroup;
+    private javax.swing.JPanel saveSzxChoosePanel;
+    private javax.swing.JButton saveSzxCloseButton;
+    private javax.swing.JDialog saveSzxTape;
     private javax.swing.JMenuItem settingsOptionsMenu;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
@@ -1693,8 +1798,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JDialog tapeBrowserDialog;
     private javax.swing.JTable tapeCatalog;
     private javax.swing.JLabel tapeFilename;
+    private javax.swing.JLabel tapeFilenameLabel;
     private javax.swing.JLabel tapeLabel;
     private javax.swing.JMenu tapeMediaMenu;
+    private javax.swing.JLabel tapeMessageInfo;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     private javax.swing.JToolBar toolbarMenu;
     // End of variables declaration//GEN-END:variables

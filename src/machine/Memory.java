@@ -119,6 +119,11 @@ public final class Memory {
         System.arraycopy(mfRAM, 0, buffer, 0, buffer.length);
     }
 
+    public void saveIF2Rom(byte[] buffer) {
+        System.arraycopy(IF2Rom[0], 0, buffer, 0, IF2Rom[0].length);
+        System.arraycopy(IF2Rom[1], 0, buffer, 0x2000, IF2Rom[1].length);
+    }
+
     private void setMemoryMap16k() {
         if (IF2RomEnabled) {
             readPages[0] = IF2Rom[0];
@@ -652,8 +657,15 @@ public final class Memory {
         return true;
     }
 
+    public void insertIF2RomFromSZX(byte[] rom) {
+        System.arraycopy(rom, 0, IF2Rom[0], 0, IF2Rom[0].length);
+        System.arraycopy(rom, 0x2000, IF2Rom[1], 0, IF2Rom[1].length);
+        IF2RomEnabled = true;
+    }
+
     public void ejectIF2Rom() {
         IF2RomEnabled = false;
+        reset();
     }
 
     public boolean isIF2RomEnabled()  {

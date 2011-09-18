@@ -412,6 +412,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         keyboard48kPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.keyboard48kPanel.title.text"))); // NOI18N
         keyboard48kPanel.setLayout(new javax.swing.BoxLayout(keyboard48kPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
+        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText(bundle.getString("SettingsDialog.jlabel1.text")); // NOI18N
         jPanel3.add(jLabel1);
 
@@ -471,6 +472,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         multifaceModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifaceModelPanel.border.text"))); // NOI18N
         multifaceModelPanel.setLayout(new java.awt.GridLayout(2, 0));
 
+        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel2.setText(bundle.getString("SettingsDialog.MultifaceModelPanel.label.text")); // NOI18N
         multifaceModelPanel.add(jLabel2);
 

@@ -487,7 +487,6 @@ public class Tape {
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
         tapePlaying = tapeRecording = false;
-//        fastload = settings.isFastload();
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
             if (findTZXOffsetBlocks() == -1) {
@@ -505,8 +504,54 @@ public class Tape {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         }
+
         tapeTableModel.fireTableDataChanged();
         lsm.setSelectionInterval(0, 0);
+        cpu.setExecDone(false);
+        filenameLabel = filename.getName();
+        flashload = settings.isFlashload();
+        updateTapeIcon();
+        return true;
+    }
+
+    public boolean insertEmbeddedTape(String fileName, String extension,
+        byte[] tapeData, int selectedBlock) {
+        if (tapeInserted) {
+            return false;
+        }
+
+//        System.out.println(String.format("fileName: %s, extension: %s", fileName, extension));
+        tapeBuffer = new int[tapeData.length];
+        // Hay que cambiarle el tipo, sigh!!!
+        for (int idx = 0; idx < tapeData.length; idx++)
+            tapeBuffer[idx] = tapeData[idx] & 0xff;
+
+        filename = new File(fileName);
+        tapePos = idxHeader = 0;
+        tapeInserted = true;
+        statePlay = State.STOP;
+        timeout = timeLastIn = 0;
+        tapePlaying = tapeRecording = false;
+//        fastload = settings.isFastload();
+        tzxTape = extension.startsWith("tzx");
+        if (tzxTape) {
+            if (findTZXOffsetBlocks() == -1) {
+                nOffsetBlocks = 0;
+                return false;
+            }
+//            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
+//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
+//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
+//            }
+        } else {
+            findTAPOffsetBlocks();
+//            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
+//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
+//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
+//            }
+        }
+        tapeTableModel.fireTableDataChanged();
+        lsm.setSelectionInterval(selectedBlock, selectedBlock);
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
         flashload = settings.isFlashload();
@@ -560,6 +605,10 @@ public class Tape {
 
     public boolean isTzxTape() {
         return tzxTape;
+    }
+
+    public File getTapeName() {
+        return filename;
     }
 
     public boolean play() {

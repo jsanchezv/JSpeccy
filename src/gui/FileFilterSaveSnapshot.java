@@ -17,6 +17,7 @@ public class FileFilterSaveSnapshot extends FileFilter {
     public boolean accept(File fIn) {
         return fIn.getName().toLowerCase().endsWith(".sna") ||
                 fIn.getName().toLowerCase().endsWith(".z80") ||
+                fIn.getName().toLowerCase().endsWith(".szx") ||
                 fIn.isDirectory();
     }
 

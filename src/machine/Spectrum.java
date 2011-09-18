@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.SwingUtilities;
@@ -38,7 +39,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private Memory memory;
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
-    private int portFE, earBit = 0xbf, port7ffd, port1ffd;
+    private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
@@ -53,11 +54,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public Tape tape;
     private boolean paused;
     private boolean hardResetPending, resetPending;
-    private javax.swing.JLabel modelLabel, speedLabel;
+    private javax.swing.JLabel modelLabel, speedLabel, tapeFilename;
     private JRadioButtonMenuItem hardwareMenu16k, hardwareMenu48k, hardwareMenu128k,
             hardwareMenuPlus2, hardwareMenuPlus2A, hardwareMenuPlus3;
     private JRadioButtonMenuItem joystickNone, joystickKempston,
             joystickSinclair1, joystickSinclair2, joystickCursor, joystickFuller;
+    private JMenuItem insertIF2RomMenu, ejectIF2RomMenu, playTapeMenu;
 
     public static enum Joystick {
 
@@ -144,6 +146,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         spectrumModel = hardwareModel;
         memory.setSpectrumModel(spectrumModel);
         if (ramReset) {
+            memory.ejectIF2Rom();
             memory.hardReset();
         }
         tape.setSpectrumModel(spectrumModel);
@@ -161,10 +164,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 break;
             case SPECTRUM128K:
                 buildScreenTables128k();
+
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 contendedIOPage[1] = false;
+                insertIF2RomMenu.setEnabled(false);
                 break;
         }
 
@@ -172,24 +177,31 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             @Override
             public void run() {
+                ejectIF2RomMenu.setEnabled(false);
                 switch (spectrumModel) {
                     case SPECTRUM16K:
                         hardwareMenu16k.setSelected(true);
+                        insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUM48K:
                         hardwareMenu48k.setSelected(true);
+                        insertIF2RomMenu.setEnabled(true);
                         break;
                     case SPECTRUM128K:
                         hardwareMenu128k.setSelected(true);
+                        insertIF2RomMenu.setEnabled(false);
                         break;
                     case SPECTRUMPLUS2:
                         hardwareMenuPlus2.setSelected(true);
+                        insertIF2RomMenu.setEnabled(false);
                         break;
                     case SPECTRUMPLUS2A:
                         hardwareMenuPlus2A.setSelected(true);
+                        insertIF2RomMenu.setEnabled(false);
                         break;
                     case SPECTRUMPLUS3:
                         hardwareMenuPlus3.setSelected(true);
+                        insertIF2RomMenu.setEnabled(false);
                         break;
                 }
                 modelLabel.setToolTipText(spectrumModel.getLongModelName());
@@ -375,13 +387,20 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         hardwareMenuPlus3 = hwPlus3;
     }
 
+    public void setMenuItems(JMenuItem insert, JMenuItem eject, JMenuItem play) {
+        insertIF2RomMenu = insert;
+        ejectIF2RomMenu = eject;
+        playTapeMenu = play;
+    }
+
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
     }
 
-    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent) {
+    public void setInfoLabels(JLabel nameComponent, JLabel speedComponent, JLabel tapeComponent) {
         modelLabel = nameComponent;
         speedLabel = speedComponent;
+        tapeFilename = tapeComponent;
     }
 
     public synchronized void generateFrame() {
@@ -1096,7 +1115,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
         if (snap.loadSnapshot(filename, memory)) {
-            doReset();
 
             switch (snap.getSnapshotModel()) {
                 case SPECTRUM16K:
@@ -1119,6 +1137,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     break;
             }
 
+            doReset();
             z80.setRegAF(snap.getRegAF());
             z80.setRegBC(snap.getRegBC());
             z80.setRegDE(snap.getRegDE());
@@ -1152,6 +1171,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             issue2 = false;
             if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 issue2 = snap.isIssue2();
+                if (snap.isIF2RomPresent()) {
+                    SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            insertIF2RomMenu.setEnabled(false);
+                            ejectIF2RomMenu.setEnabled(true);
+                        }
+                    });
+                } else {
+                    memory.ejectIF2Rom();
+                }
             }
 
             Joystick snapJoystick = snap.getJoystick();
@@ -1222,13 +1253,31 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
             if (snap.isMultiface()) {
                 multiface = true;
-//                settings.getSpectrumSettings().setMultifaceEnabled(true);
                 mf128on48k = snap.isMF128on48k();
                 settings.getSpectrumSettings().setMf128On48K(mf128on48k);
                 if (snap.isMFPagedIn()) {
                     memory.multifacePageIn();
                 }
                 memory.setMultifaceLocked(snap.isMFLockout());
+            }
+
+            if (snap.isTapeEmbedded()) {
+                tape.eject();
+                tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
+                    snap.getTapeData(), snap.getTapeBlock());
+                playTapeMenu.setEnabled(true);
+                tapeFilename.setText(snap.getTapeName() + "." + snap.getTapeExtension());
+            }
+
+            if (snap.isTapeLinked()) {
+                File tapeLink = new File(snap.getTapeName());
+                if (tapeLink.exists()) {
+                    tape.eject();
+                    tape.insert(tapeLink);
+                    tape.setSelectedBlock(snap.getTapeBlock());
+                    playTapeMenu.setEnabled(true);
+                    tapeFilename.setText(tapeLink.getName());
+                }
             }
 
             invalidateScreen(true);
@@ -1282,8 +1331,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         }
 
-        snap.setEnabledAY(enabledAY);
         if (enabledAY) {
+            snap.setEnabledAY(true);
             int ayLatch = ay8912.getAddressLatch();
             snap.setPortfffd(ayLatch);
             for (int reg = 0; reg < 16; reg++) {
@@ -1291,6 +1340,30 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 snap.setPsgReg(reg, ay8912.readRegister());
             }
             ay8912.setAddressLatch(ayLatch);
+        }
+
+        if (ULAplusOn) {
+            snap.setULAplus(true);
+            snap.setULAplusEnabled(ULAplusMode);
+            snap.setULAplusRegister(paletteGroup);
+            for (int color = 0; color < 64; color++) {
+                snap.setULAplusColor(color, ULAplus[color >>> 4][color & 0x0f]);
+            }
+        }
+
+        if (multiface) {
+            snap.setMultiface(true);
+            snap.setMF128on48k(mf128on48k);
+        }
+
+        if (szxTapeMode != 0) {
+            snap.setTapeName(tape.getTapeName().getAbsolutePath());
+            snap.setTapeBlock(tape.getSelectedBlock());
+            if (szxTapeMode == 1) {
+                snap.setTapeLinked(true);
+            } else {
+                snap.setTapeEmbedded(true);
+            }
         }
 
         if (snap.saveSnapshot(filename, memory)) {
@@ -1995,5 +2068,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     public void ejectIF2Rom() {
         memory.ejectIF2Rom();
+    }
+
+    public void setSzxTapeMode(int mode) {
+        szxTapeMode = mode;
     }
 }
