@@ -22,7 +22,7 @@ import javax.sound.sampled.SourceDataLine;
 import configuration.AY8912Type;
 
 class Audio {
-    static final int FREQ = 48000;
+    static final int FREQ = 22050;
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
@@ -89,6 +89,7 @@ class Audio {
             }
 
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
+            ay8912.setAudioFreq(FREQ);
             ay8912.setSpectrumModel(spectrumModel);
             ay8912.reset();
         }

@@ -4,6 +4,8 @@
  */
 package machine;
 
+import java.util.Arrays;
+
 /**
  *
  * @author jsanchez
@@ -97,6 +99,7 @@ public final class AY8912 {
     private int[] chanB = new int[4440];
     private int[] chanC = new int[4440];
     private int pbuf;
+    private int FREQ;
     // Precalculate sample positions
     private int[] samplePos = new int[965];
 //    private final double Divider = 4.6164;
@@ -120,9 +123,9 @@ public final class AY8912 {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
-        divider = (double)spectrumModel.tstatesFrame / (960 * 16); //(48000 / 50 = 960)
+        divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
         for (int pos = 0; pos < samplePos.length; pos++) {
-            samplePos[pos] = (int) (pos * divider + 0.24);
+            samplePos[pos] = (int) (pos * divider);
         }
         reset();
     }
@@ -132,6 +135,10 @@ public final class AY8912 {
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
         }
+    }
+
+    public void setAudioFreq(int freq) {
+        FREQ = freq;
     }
 
     public int getAddressLatch() {
@@ -345,31 +352,8 @@ public final class AY8912 {
         if (pbuf == 0)
             return;
 
-//        System.out.println(String.format("endFrame: ticks = %d", ticks));
-//        double timePos;
         int pos0, pos1, pos2;
-        for (int sample = 0; sample < 961; sample++) {
-//            timePos = sample * Divider;
-//            pos = (int) timePos;
-//            timePos -= pos;
-//
-//            if (chanA[pos + 1] - chanA[pos] == 0) {
-//                bufA[sample] = chanA[pos];
-//            } else {
-//                bufA[sample] = (int)(chanA[pos] * (1-timePos) + chanA[pos+1] * timePos);
-//            }
-//
-//            if (chanB[pos + 1] - chanB[pos] == 0) {
-//                bufB[sample] = chanB[pos];
-//            } else {
-//                bufB[sample] = (int)(chanB[pos] * (1-timePos) + chanB[pos+1] * timePos);
-//            }
-//
-//            if (chanC[pos + 1] - chanC[pos] == 0) {
-//                bufC[sample] = chanC[pos];
-//            } else {
-//                bufC[sample] = (int)(chanC[pos] * (1-timePos) + chanC[pos+1] * timePos);
-//            }
+        for (int sample = 0; sample < FREQ / 50; sample++) {
             pos0 = samplePos[sample];
             pos1 = pos0 + 1;
             pos2 = pos0 + 2;
@@ -394,6 +378,12 @@ public final class AY8912 {
         Continue = false;
         Attack = true;
         envIncr = 1;
+        Arrays.fill(chanA, 0);
+        Arrays.fill(chanB, 0);
+        Arrays.fill(chanC, 0);
+        Arrays.fill(bufA, 0);
+        Arrays.fill(bufB, 0);
+        Arrays.fill(bufC, 0);
     }
 
     public void setBufferChannels(int[] bChanA, int[] bChanB, int[] bChanC) {
