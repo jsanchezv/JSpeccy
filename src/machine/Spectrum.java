@@ -1444,7 +1444,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         audio.open(spectrumModel, ay8912, enabledAY,
-            settings.getSpectrumSettings().isHifiSound() ? 44100 : 22050);
+            settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
         enabledSound = true;
     }
 
