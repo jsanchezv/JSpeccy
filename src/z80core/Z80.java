@@ -80,6 +80,9 @@
  *          rápido aplicar la operación lógica con la máscara donde proceda que
  *          llamar a un método pasándole dos parámetros. Se elimina también el
  *          método EXX y su código se pone en el switch principal.
+ * 
+ *          07/06/2011 En las instrucciones INC/DEC (HL) el estado adicional
+ *          estaba mal puesto, ya que va después del read y no antes. Corregido.
  *
  */
 package z80core;
@@ -1806,15 +1809,15 @@ public class Z80 {
             }
             case 0x34: {     /* INC (HL) */
                 work16 = getRegHL();
-                MemIoImpl.contendedStates(work16, 1);
                 work8 = inc8(MemIoImpl.peek8(work16));
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
             case 0x35: {     /* DEC (HL) */
                 work16 = getRegHL();
-                MemIoImpl.contendedStates(work16, 1);
                 work8 = dec8(MemIoImpl.peek8(work16));
+                MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
@@ -4147,7 +4150,6 @@ public class Z80 {
                 break;
             }
             case 0x65: {     /*LD IXh,IXl*/
-                work8 = regIXY;
                 regIXY = (regIXY & 0x00ff) | ((regIXY & 0xff) << 8);
                 break;
             }
@@ -4179,7 +4181,6 @@ public class Z80 {
                 break;
             }
             case 0x6C: {     /*LD IXl,IXh*/
-                work8 = regIXY;
                 regIXY = (regIXY & 0xff00) | (regIXY >>> 8);
                 break;
             }
