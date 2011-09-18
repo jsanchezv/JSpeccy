@@ -169,7 +169,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 contendedIOPage[1] = false;
-                insertIF2RomMenu.setEnabled(false);
                 break;
         }
 

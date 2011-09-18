@@ -95,20 +95,21 @@ public final class AY8912 {
     private int[] bufA;
     private int[] bufB;
     private int[] bufC;
-    private int[] chanA = new int[4440];
-    private int[] chanB = new int[4440];
-    private int[] chanC = new int[4440];
+//    private int[] chanA = new int[4440];
+//    private int[] chanB = new int[4440];
+//    private int[] chanC = new int[4440];
     private int pbuf;
     private int FREQ;
     // Precalculate sample positions
     private int[] samplePos = new int[965];
 //    private final double Divider = 4.6164;
-    private double divider;
+    private double divider, step, stepCounter;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
+    private int volumeA, volumeB, volumeC;
     private int audiotstates;
     private MachineTypes spectrumModel;
 
@@ -123,6 +124,7 @@ public final class AY8912 {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
+        step = (double)spectrumModel.tstatesFrame / (FREQ / 50);
         divider = (double)spectrumModel.tstatesFrame / ((FREQ / 50) * 16);
         for (int pos = 0; pos < samplePos.length; pos++) {
             samplePos[pos] = (int) (pos * divider);
@@ -257,6 +259,7 @@ public final class AY8912 {
 
     public void updateAY(int tstates) {
         boolean outA, outB, outC;
+        int volA, volB, volC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -327,40 +330,57 @@ public final class AY8912 {
             outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
             if (envA) {
-                chanA[pbuf] = outA ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
+                volA = outA ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
             } else {
-                chanA[pbuf] = outA ? amplitudeA : -amplitudeA;
+                volA = outA ? amplitudeA : -amplitudeA;
             }
+            volumeA = volumeA / 2 + volA / 2;
 
             if (envB) {
-                chanB[pbuf] = outB ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
+                volB = outB ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
             } else {
-                chanB[pbuf] = outB ? amplitudeB : -amplitudeB;
+                volB = outB ? amplitudeB : -amplitudeB;
             }
+//            volumeB = (int)(volumeB * 0.3 + volB * 0.7);
+            volumeB = volumeB / 2 + volB / 2;
 
             if (envC) {
-                chanC[pbuf] = outC ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
+                volC = outC ? volumeLevel[amplitudeEnv] : -volumeLevel[amplitudeEnv];
             } else {
-                chanC[pbuf] = outC ? amplitudeC : -amplitudeC;
+                volC = outC ? amplitudeC : -amplitudeC;
             }
-            pbuf++;
+//            volumeC = (int)(volumeC * 0.3 + volC * 0.7);
+            volumeC = volumeC / 2 + volC / 2;
+
+            stepCounter += 16.0;
+            if (stepCounter >= step) {
+                bufA[pbuf] = volumeA;
+                bufB[pbuf] = volumeB;
+                bufC[pbuf] = volumeC;
+                pbuf++;
+                stepCounter -= step;
+            }
         }
 //        System.out.println(String.format("updateAY: resto de %d tstates", remain));
     }
 
     public void endFrame() {
-        if (pbuf == 0)
-            return;
+//        System.out.println("# samples: " + getSampleCount());
+//        if (pbuf == 0)
+//            return;
 
-        int pos0, pos1, pos2;
-        for (int sample = 0; sample < FREQ / 50; sample++) {
-            pos0 = samplePos[sample];
-            pos1 = pos0 + 1;
-            pos2 = pos0 + 2;
-            bufA[sample] = (chanA[pos0] + chanA[pos1] + chanA[pos2]) / 3;
-            bufB[sample] = (chanB[pos0] + chanB[pos1] + chanB[pos2]) / 3;
-            bufC[sample] = (chanC[pos0] + chanC[pos1] + chanC[pos2]) / 3;
-        }
+//        int pos0, pos1, pos2;
+//        for (int sample = 0; sample < FREQ / 50; sample++) {
+//            pos0 = samplePos[sample];
+////            pos1 = pos0 + 1;
+////            pos2 = pos0 + 2;
+////            bufA[sample] = (chanA[pos0] + chanA[pos1] + chanA[pos2]) / 3;
+////            bufB[sample] = (chanB[pos0] + chanB[pos1] + chanB[pos2]) / 3;
+////            bufC[sample] = (chanC[pos0] + chanC[pos1] + chanC[pos2]) / 3;
+//            bufA[sample] = chanA[pos0];
+//            bufB[sample] = chanB[pos0];
+//            bufC[sample] = chanC[pos0];
+//        }
         pbuf = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }
@@ -369,6 +389,7 @@ public final class AY8912 {
         periodA = periodB = periodC = periodN = 1;
         counterA = counterB = counterC = counterN = 0;
         amplitudeA = amplitudeB = amplitudeC = amplitudeEnv = 0;
+        volumeA = volumeB = volumeC = 0;
         envelopePeriod = 0;
         addressLatch = 0;
         audiotstates = pbuf = 0;
@@ -378,15 +399,16 @@ public final class AY8912 {
         Continue = false;
         Attack = true;
         envIncr = 1;
-        Arrays.fill(chanA, 0);
-        Arrays.fill(chanB, 0);
-        Arrays.fill(chanC, 0);
+//        Arrays.fill(chanA, 0);
+//        Arrays.fill(chanB, 0);
+//        Arrays.fill(chanC, 0);
         if (bufA != null)
             Arrays.fill(bufA, 0);
         if (bufB != null)
             Arrays.fill(bufB, 0);
         if (bufC != null)
             Arrays.fill(bufC, 0);
+        stepCounter = 0;
     }
 
     public void setBufferChannels(int[] bChanA, int[] bChanB, int[] bChanC) {
@@ -396,6 +418,6 @@ public final class AY8912 {
     }
 
     public int getSampleCount() {
-        return (int)(pbuf / divider);
+        return pbuf;
     }
 }
