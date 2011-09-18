@@ -196,7 +196,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         ULAplusOn = settings.getSpectrumSettings().isULAplus();
         issue2 = settings.getSpectrumSettings().isIssue2();
         multiface = settings.getSpectrumSettings().isMultifaceEnabled();
-        mf128on48k = settings.getSpectrumSettings().isMf128In48K();
+        mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         loadTrap = settings.getTapeSettings().isFlashload();
     }
@@ -1240,7 +1240,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private int speaker;
     private static final int sp_volt[];
 
-    public boolean getSoundState() {
+    public boolean isMuteSound() {
         return muted;
     }
 

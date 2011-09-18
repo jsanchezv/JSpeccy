@@ -490,7 +490,10 @@ public class Tape {
 //        fastload = settings.isFastload();
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
-            findTZXOffsetBlocks();
+            if (findTZXOffsetBlocks() == -1) {
+                nOffsetBlocks = 0;
+                return false;
+            }
 //            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
@@ -825,6 +828,7 @@ public class Tape {
                     break;
                 default:
                     System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
+                    return -1; // Error en TZX
             }
         }
         return nOffsetBlocks;
@@ -1188,6 +1192,7 @@ public class Tape {
                 default:
                     System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
                     repeat = false;
+                    idxHeader++;
             }
         }
 //        System.out.println(String.format("tapeBufferLength: %d, tapePos: %d, blockLen: %d",

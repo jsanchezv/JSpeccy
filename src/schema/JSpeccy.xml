@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 15 de septiembre de 2010, 18:21
+    Created on : 17 de septiembre de 2010, 8:17
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -21,7 +21,7 @@
         <ns0:framesInt>2</ns0:framesInt>
         <ns0:doubleSize>false</ns0:doubleSize>
         <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
-        <ns0:mf128in48K>false</ns0:mf128in48K>
+        <ns0:mf128on48K>false</ns0:mf128on48K>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>

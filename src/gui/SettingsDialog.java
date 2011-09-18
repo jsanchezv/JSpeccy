@@ -92,7 +92,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         }
 
         multifaceEnabled.setSelected(settings.getSpectrumSettings().isMultifaceEnabled());
-        if (settings.getSpectrumSettings().isMf128In48K()) {
+        if (settings.getSpectrumSettings().isMf128On48K()) {
             multiface128RadioButton.setSelected(true);
         } else {
             multifaceOneRadioButton.setSelected(true);
@@ -614,7 +614,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_multifaceEnabledActionPerformed
 
     private void multifaceOneRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_multifaceOneRadioButtonActionPerformed
-        settings.getSpectrumSettings().setMf128In48K(multiface128RadioButton.isSelected());
+        settings.getSpectrumSettings().setMf128On48K(multiface128RadioButton.isSelected());
     }//GEN-LAST:event_multifaceOneRadioButtonActionPerformed
 
 

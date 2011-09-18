@@ -467,8 +467,8 @@ public final class Memory {
 
     /*
      * Existieron, básicamente, 3 modelos de Multiface, versión Spectrum:
-     * el Multiface One, para el Spectrum 48k, el Multiface 128, para el 128k/+2
-     * y el Multiface Plus 3, para el Spectrum +2A/+3. El MF128 podía funcionar
+     * el Multiface 1, para el Spectrum 48k, el Multiface 128, para el 128k/+2
+     * y el Multiface 3, para el Spectrum +2A/+3. El MF128 podía funcionar
      * también en el 16k/48k y el MF1 podía funcionar en el 128k en el modo 48k
      * con paginación bloqueada. El MF3 solo funcionaba los +2A/+3.
      *
@@ -505,7 +505,7 @@ public final class Memory {
      *       IN del puerto 0xbf, pagina el MF128
      *       IN del puerto 0x3f, despagina el MF128
      *
-     *     * Multiface Plus 3
+     *     * Multiface 3
      *       IN del puerto 0x3f, pagina el MF3
      *       IN del puerto 0xbf, despagina el MF3
      *       IN del puerto 0x1f3f, lectura del último valor enviado al puerto 0x1ffd
@@ -544,7 +544,7 @@ public final class Memory {
 //        System.out.println("Multiface paged IN");
         switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
-                if (settings.getSpectrumSettings().isMf128In48K())
+                if (settings.getSpectrumSettings().isMf128On48K())
                     readPages[0] = mfROM[1];
                 else
                     readPages[0] = mfROM[0];
