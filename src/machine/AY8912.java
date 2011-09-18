@@ -387,6 +387,9 @@ public final class AY8912 {
                 bufA[pbuf] = (lastA + volumeA) >>> 1;
                 bufB[pbuf] = (lastB + volumeB) >>> 1;
                 bufC[pbuf] = (lastC + volumeC) >>> 1;
+//                bufA[pbuf] = volumeA;
+//                bufB[pbuf] = volumeB;
+//                bufC[pbuf] = volumeC;
                 pbuf++;
                 lastA = volumeA;
                 lastB = volumeB;
