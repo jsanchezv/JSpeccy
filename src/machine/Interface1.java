@@ -48,7 +48,7 @@ public class Interface1 {
         
         commsClk = false;
         
-        if (!microdrive[0].insert(new File("/home/jsanchez/Spectrum/empty.mdr"))) {
+        if (!microdrive[0].insert(new File("/home/jsanchez/Spectrum/demo.mdr"))) {
             System.out.println("No se ha podido cargar el cartucho en MDR 1");
         }
         
@@ -125,12 +125,7 @@ public class Interface1 {
 //            } else {
 //                System.out.println("All MDR are stopped");
             }
-            
-//            for (int mdr = 7; mdr > 0; mdr--) {
-//                /* Rotate one drive */
-//                microdrive[mdr].setSelected(microdrive[mdr - 1].isSelected());
-//            }
-//            microdrive[0].setSelected((value & CTRL_OUT_COMMSDATA) != 0);
+            microdrive[mdrSelected].start();
         }
         commsClk = (value & CTRL_OUT_COMMSCLK) != 0;
     }

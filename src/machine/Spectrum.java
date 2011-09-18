@@ -884,6 +884,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 if ((port & 0x0018) == 0) {
                     System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
                         port & 0xff, value, z80.getRegPC()));
+//                    if1.writeDataPort(value);
                 }
                 
                 // Port 0xEF (IF1 Control Port)
