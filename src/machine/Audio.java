@@ -37,14 +37,14 @@ class Audio {
     private final int[] ayBufB = new int[1024];
     private final int[] ayBufC = new int[1024];
     private int bufp;
-    private int level;
+    private int level, lastLevel;
     private int audiotstates;
     private int samplesPerFrame, frameSize, bufferSize;
     private int soundMode;
     private float timeRem, spf;
 //    private AY8912 ay;
     private MachineTypes spectrumModel;
-    private boolean enabledAY;
+    private boolean enabledAY, firstFrame;
     private AY8912Type settings;
 
     Audio(AY8912Type ayConf) {
@@ -83,20 +83,21 @@ class Audio {
                 ay8912.setSpectrumModel(spectrumModel);
             }
             spf = (float) spectrumModel.getTstatesFrame() / samplesPerFrame;
-            audiotstates = bufp = level = 0;
+            audiotstates = bufp = level = lastLevel = 0;
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
             } else {
                 ay8912.setMaxAmplitude(16300); // 7000
             }
 
-            bufferSize = frameSize * 4;
+            bufferSize = frameSize * 5;
 //            System.out.println(String.format("bufferSize = %d", bufferSize));
 
             try {
                 sdl.open(fmt, bufferSize);
                 // No se llama al método start hasta tener el primer buffer
                 sdl.start();
+//                firstFrame = true;
                 line = sdl;
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
@@ -110,10 +111,11 @@ class Audio {
 
     synchronized void close() {
         if (line != null) {
-            line.flush();
+            line.drain();
             line.stop();
             line.close();
             line = null;
+//            firstFrame = false;
         }
     }
 
@@ -127,7 +129,8 @@ class Audio {
             if (time + timeRem > spf) {
                 level += ((spf - timeRem) / spf) * value;
                 time -= spf - timeRem;
-                beeper[bufp++] = level;
+                lastLevel = (lastLevel + level) >>> 1;
+                beeper[bufp++] = lastLevel;
             } else {
                 timeRem += time;
                 level += (time / spf) * value;
@@ -135,7 +138,8 @@ class Audio {
             }
 
             while (time > spf) {
-                beeper[bufp++] = value;
+                lastLevel = (lastLevel + value) >>> 1;
+                beeper[bufp++] = lastLevel;
                 time -= spf;
             }
         }
@@ -150,18 +154,22 @@ class Audio {
 
     private void flushBuffer(int len) {
 
+//        long time = System.currentTimeMillis();
         if (line != null) {
             int available = line.available();
-            if (available < frameSize) {
-//                System.out.println(String.format("Only available: %d", available));
-                return;
+            if (available < (frameSize >>> 1)) {
+                System.out.println(String.format("Only available: %d", available));
+                    return;
             }
 
             synchronized (buf) {
                 line.write(buf, 0, len);
-                if ((bufferSize - available) < (frameSize >>> 2)) {
-//                    System.out.println(String.format("Double sound frame. Full: %d", (bufferSize - available)));
-                    line.write(buf, 0, len);
+//                if (available == bufferSize) {
+                    if ((bufferSize - available) < (frameSize >>> 2)) {
+                    System.out.println(String.format("Empty audio buffer. %d bytes used at %d",
+                            (bufferSize - available), System.currentTimeMillis()));
+                    if (available == bufferSize)
+                        line.write(buf, 0, len);
                 }
             }
         }

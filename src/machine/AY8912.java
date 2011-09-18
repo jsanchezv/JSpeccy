@@ -258,7 +258,7 @@ public final class AY8912 {
 
     public void updateAY(int tstates) {
         boolean outA, outB, outC;
-        int volA, volB, volC;
+//        int volA, volB, volC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -346,36 +346,42 @@ public final class AY8912 {
 //            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
 //            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
 //            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-
+//
 //            volA = outA ? amplitudeA : 0;
 //            volumeA = (int) (volumeA / 5 + volA * 0.8);
-//            volumeA = (int) (volumeA * 0.3 + volA * 0.7);
+//            volumeA = (int) (volumeA * 0.6 + volA * 0.4);
 //            volumeA = (volumeA >> 1) + (volA >> 1);
+//            volumeA = (volumeA + volA) >>> 1;
 
 //            volB = outB ? amplitudeB : 0;
 //            volumeB = (int) (volumeB / 5 + volB * 0.8);
-//            volumeB = (int) (volumeB * 0.3 + volB * 0.7);
+//            volumeB = (int) (volumeB * 0.6 + volB * 0.4);
 //            volumeB = (volumeB >> 1) + (volB >> 1);
+//            volumeB = (volumeB + volB) >>> 1;
 
 //            volC = outC ? amplitudeC : 0;
 //            volumeC = (int) (volumeC / 5 + volC * 0.8);
-//            volumeC = (int) (volumeC * 0.3 + volC * 0.7);
+//            volumeC = (int) (volumeC * 0.6 + volC * 0.4);
 //            volumeC = (volumeC >> 1) + (volC >> 1);
+//            volumeC = (volumeC + volC) >>> 1;
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
                 outA = (toneA || disableToneA) && (toneN || disableNoiseA);
                 outB = (toneB || disableToneB) && (toneN || disableNoiseB);
                 outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-                volA = outA ? amplitudeA : 0;
-                volB = outB ? amplitudeB : 0;
-                volC = outC ? amplitudeC : 0;
-                bufA[pbuf] = (volumeA + volA) >>> 1;
-                bufB[pbuf] = (volumeB + volB) >>> 1;
-                bufC[pbuf] = (volumeC + volC) >>> 1;
-                volumeA = volA;
-                volumeB = volB;
-                volumeC = volC;
+//                volA = outA ? amplitudeA : 0;
+//                volB = outB ? amplitudeB : 0;
+//                volC = outC ? amplitudeC : 0;
+//                volumeA = (int) (volumeA * 0.4 + volA * 0.6);
+//                volumeB = (int) (volumeB * 0.4 + volB * 0.6);
+//                volumeC = (int) (volumeC * 0.4 + volC * 0.6);
+                volumeA = (volumeA + (outA ? amplitudeA : 0)) >>> 1;
+                volumeB = (volumeB + (outB ? amplitudeB : 0)) >>> 1;
+                volumeC = (volumeC + (outC ? amplitudeC : 0)) >>> 1;
+                bufA[pbuf] = volumeA;
+                bufB[pbuf] = volumeB;
+                bufC[pbuf] = volumeC;
                 pbuf++;
                 stepCounter -= step;
             }
@@ -384,6 +390,9 @@ public final class AY8912 {
     }
 
     public void endFrame() {
+        if (pbuf == 0)
+            return;
+
 //        System.out.println("# samples: " + getSampleCount());
 //        System.out.println(String.format("# AY samples: %d", pbuf));
         if (pbuf == samplesPerFrame - 1) {

@@ -420,7 +420,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             doReset();
             resetPending = false;
         }
-
+        
         long counter = framesByInt;
 
         firstLine = lastLine = 0;
