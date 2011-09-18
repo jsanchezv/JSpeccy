@@ -4,6 +4,7 @@
  */
 package machine;
 
+import java.io.File;
 import utilities.Microdrive;
 
 /**
@@ -32,22 +33,113 @@ public class Interface1 {
     // For OUTing
     private static final int RSN_OUT_NET_RXDATA = 0x01;
     
-    private byte mdrSelected;
+    private int mdrFlipFlop, mdrSelected;
     private byte numMicrodrives;
     private Microdrive microdrive[];
+    private boolean commsClk;
     
     public Interface1() {
+        mdrFlipFlop = 0;
         mdrSelected = 0;
         numMicrodrives = 8;
         microdrive = new Microdrive[8];
-        microdrive[0] = new Microdrive();
+        for (int mdr = 0; mdr < 8; mdr++)
+            microdrive[mdr] = new Microdrive();
+        
+        commsClk = false;
+        
+        if (!microdrive[0].insert(new File("/home/jsanchez/Spectrum/empty.mdr"))) {
+            System.out.println("No se ha podido cargar el cartucho en MDR 1");
+        }
+        
+        if (!microdrive[1].insert(new File("/home/jsanchez/Spectrum/wr-prot.mdr"))) {
+            System.out.println("No se ha podido cargar el cartucho en MDR 2");
+        }
+        
+        if (microdrive[1].isWriteProtected()) {
+            System.out.println("Cartridge 2 is WR-PROT");
+        }
+        
+        if (!microdrive[2].insert(new File("/home/jsanchez/Spectrum/unformatted.mdr"))) {
+            System.out.println("No se ha podido cargar el cartucho en MDR 3");
+        }
     }
     
     public int readControlPort() {
-        return microdrive[mdrSelected].getStatus();
+        if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
+//            System.out.println(String.format("readControlPort: Unit %d selected",
+//                mdrSelected));
+            return microdrive[mdrSelected].readStatus();
+        } else {
+            return 0xff;
+        }
     }
     
     public int readDataPort() {
-        return microdrive[mdrSelected].getByte();
+        if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
+//            System.out.println(String.format("readDataPort: Unit %d selected",
+//                mdrSelected));
+            return microdrive[mdrSelected].readData();
+        } else {
+            return 0xff;
+        }
+    }
+    
+    public void writeControlPort(int value) {
+        if ((value & CTRL_OUT_COMMSCLK) == 0 && commsClk) {
+            mdrFlipFlop <<= 1;
+            if ((value & CTRL_OUT_COMMSDATA) == 0) {
+                mdrFlipFlop |= 0x01;
+            }
+            
+            mdrFlipFlop &= 0xff;
+            if (mdrFlipFlop != 0) {
+                switch (mdrFlipFlop) {
+                    case 1:
+                        mdrSelected = 0;
+                        break;
+                    case 2:
+                        mdrSelected = 1;
+                        break;
+                    case 4:
+                        mdrSelected = 2;
+                        break;
+                    case 8:
+                        mdrSelected = 3;
+                        break;
+                    case 16:
+                        mdrSelected = 4;
+                        break;
+                    case 32:
+                        mdrSelected = 5;
+                        break;
+                    case 64:
+                        mdrSelected = 6;
+                        break;
+                    case 128:
+                        mdrSelected = 7;
+                        break;
+                }
+//                System.out.println(String.format("MDR %d [%d] selected",
+//                    mdrFlipFlop, mdrSelected));
+//            } else {
+//                System.out.println("All MDR are stopped");
+            }
+            
+//            for (int mdr = 7; mdr > 0; mdr--) {
+//                /* Rotate one drive */
+//                microdrive[mdr].setSelected(microdrive[mdr - 1].isSelected());
+//            }
+//            microdrive[0].setSelected((value & CTRL_OUT_COMMSDATA) != 0);
+        }
+        commsClk = (value & CTRL_OUT_COMMSCLK) != 0;
+    }
+    
+    public void writeDataPort(int value) {
+        if (mdrFlipFlop != 0) {
+//            System.out.println(String.format("readDataPort: Unit %d selected",
+//                mdrSelected));
+            microdrive[mdrSelected].writeData(value);
+        }
     }
 }
