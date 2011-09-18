@@ -2218,19 +2218,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     
     // Accessors for IF1 methods
     
-    public boolean if1IsCartridge(int drive) {
-        return if1.isCartridge(drive);
-    }
-    
-    public boolean if1IsModified(int drive) {
-        return if1.isModified(drive);
-    }
-    
-    public boolean if1InsertNew(int drive) {
-        return if1.insertNew(drive);
-    }
-    
-    public boolean if1IsWriteProtected(int drive) {
-        return if1.isWriteProtected(drive);
+    public Interface1 getInterface1() {
+        return if1;
     }
 }
