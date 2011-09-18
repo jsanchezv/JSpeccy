@@ -165,55 +165,62 @@ public final class AY8912 {
 
     public void writeRegister(int value) {
 
-        regAY[addressLatch] = value & 0xff;
-
         switch (addressLatch) {
             case FineToneA:
+                regAY[FineToneA] = value & 0xff;
+                periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
+                break;
             case CoarseToneA:
-                regAY[CoarseToneA] &= 0x0f;
-                periodA = regAY[CoarseToneA] * 256 + regAY[FineToneA];
-//                System.out.println("PeriodA: " + periodA);
+                regAY[CoarseToneA] = value & 0x0f;
+                periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
                 break;
             case FineToneB:
+                regAY[FineToneB] = value & 0xff;
+                periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
+                break;
             case CoarseToneB:
-                regAY[CoarseToneB] &= 0x0f;
-                periodB = regAY[CoarseToneB] * 256 + regAY[FineToneB];
+                regAY[CoarseToneB] = value & 0x0f;
+                periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
                 break;
             case FineToneC:
+                regAY[FineToneC] = value & 0xff;
+                periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
+                break;
             case CoarseToneC:
-                regAY[CoarseToneC] &= 0x0f;
-                periodC = regAY[CoarseToneC] * 256 + regAY[FineToneC];
+                regAY[CoarseToneC] = value & 0x0f;
+                periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
                 break;
             case NoisePeriod:
-                regAY[addressLatch] &= 0x1f;
+                regAY[NoisePeriod] = value & 0x1f;
                 break;
             case Mixer:
-                disableToneA = (regAY[Mixer] & TONE_A) != 0;
-                disableToneB = (regAY[Mixer] & TONE_B) != 0;
-                disableToneC = (regAY[Mixer] & TONE_C) != 0;
-                disableNoiseA = (regAY[Mixer] & NOISE_A) != 0;
-                disableNoiseB = (regAY[Mixer] & NOISE_B) != 0;
-                disableNoiseC = (regAY[Mixer] & NOISE_C) != 0;
+                regAY[Mixer] = value & 0xff;
+                disableToneA = (value & TONE_A) != 0;
+                disableToneB = (value & TONE_B) != 0;
+                disableToneC = (value & TONE_C) != 0;
+                disableNoiseA = (value & NOISE_A) != 0;
+                disableNoiseB = (value & NOISE_B) != 0;
+                disableNoiseC = (value & NOISE_C) != 0;
                 break;
             case AmplitudeA:
-                regAY[addressLatch] &= 0x1f;
-                envA = (regAY[AmplitudeA] & ENVELOPE) != 0;
+                regAY[AmplitudeA] = value & 0x1f;
+                envA = (value & ENVELOPE) != 0;
                 if (envA)
                     amplitudeA = volumeLevel[amplitudeEnv];
                 else
                     amplitudeA = volumeLevel[value & 0x0f];
                 break;
             case AmplitudeB:
-                regAY[addressLatch] &= 0x1f;
-                envB = (regAY[AmplitudeB] & ENVELOPE) != 0;
+                regAY[AmplitudeB] = value & 0x1f;
+                envB = (value & ENVELOPE) != 0;
                 if (envB)
                     amplitudeB = volumeLevel[amplitudeEnv];
                 else
                     amplitudeB = volumeLevel[value & 0x0f];
                 break;
             case AmplitudeC:
-                regAY[addressLatch] &= 0x1f;
-                envC = (regAY[AmplitudeC] & ENVELOPE) != 0;
+                regAY[AmplitudeC] = value & 0x1f;
+                envC = (value & ENVELOPE) != 0;
                 if (envC)
                     amplitudeC = volumeLevel[amplitudeEnv];
                 else
@@ -221,7 +228,8 @@ public final class AY8912 {
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
-                envelopePeriod = regAY[CoarseEnvelope] * 256 + regAY[FineEnvelope];
+                regAY[addressLatch] = value & 0xff;
+                envelopePeriod = (regAY[CoarseEnvelope] << 8) | regAY[FineEnvelope];
                 // Period = 0 is half as period = 1. (from MAME sources)
                 if (envelopePeriod == 0) {
                     envelopePeriod = 1;
@@ -231,7 +239,7 @@ public final class AY8912 {
                 }
                 break;
             case EnvelopeShapeCycle:
-                regAY[addressLatch] &= 0x0f;
+                regAY[EnvelopeShapeCycle] = value & 0x0f;
 //                System.out.println(String.format("envShape: %02x", value & 0x0f));
                 envelopeCounter = 0;
                 if ((value & ATTACK) != 0) {
@@ -242,11 +250,16 @@ public final class AY8912 {
                     Attack = false;
                 }
                 Continue = false;
+                break;
+            case IOPortA:
+            case IOPortB:
+                regAY[addressLatch] = value & 0xff;
+//                System.out.println(String.format("Write Reg: %d with %d",
+//                    addressLatch, value));
         }
     }
 
     public void updateAY(int tstates) {
-//        boolean outA, outB, outC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -341,10 +354,10 @@ public final class AY8912 {
                 }
             }
 
-//            outA = (toneA || disableToneA) && (toneN || disableNoiseA);
-//            outB = (toneB || disableToneB) && (toneN || disableNoiseB);
-//            outC = (toneC || disableToneC) && (toneN || disableNoiseC);
-
+            // Los valores oscilan entre 0..+VOL cuando el tono == 1 y
+            // es cero cuando tono == 0. Es incorrecto hacerlo oscilar
+            // entre -VOL...+VOL, ya que entonces no se reproducen efectos
+            // como la voz digitalizada de Robocop.
             if ((toneA || disableToneA) && (toneN || disableNoiseA))
                 volumeA += amplitudeA;
             
@@ -359,15 +372,6 @@ public final class AY8912 {
             stepCounter += 16.0;
             if (stepCounter >= step) {
                 stepCounter -= step;
-//                volumeA /= nSteps;
-//                volumeB /= nSteps;
-//                volumeC /= nSteps;
-//                bufA[pbuf] = (lastA + volumeA) >>> 1;
-//                bufB[pbuf] = (lastB + volumeB) >>> 1;
-//                bufC[pbuf] = (lastC + volumeC) >>> 1;
-//                lastA = volumeA;
-//                lastB = volumeB;
-//                lastC = volumeC;
                 bufA[pbuf] = volumeA / nSteps;
                 bufB[pbuf] = volumeB / nSteps;
                 bufC[pbuf] = volumeC / nSteps;
@@ -378,10 +382,6 @@ public final class AY8912 {
     }
 
     public void endFrame() {
-        if (pbuf == 0) {
-            return;
-        }
-
         pbuf = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }
@@ -401,7 +401,7 @@ public final class AY8912 {
         Attack = true;
     }
 
-    public void startFrame() {
+    public void startPlay() {
         audiotstates = pbuf = 0;
         stepCounter = 0.0;
         nSteps = 0;

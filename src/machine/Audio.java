@@ -98,7 +98,7 @@ class Audio {
 
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
             ay8912.setAudioFreq(samplingFrequency);
-            ay8912.startFrame();
+            ay8912.startPlay();
             ay = ay8912;
         }
     }

@@ -1176,7 +1176,7 @@ public class Tape {
                     System.out.println("CSW Block not supported!. Skipping...");
                     break;
                 case 0x19: // Generalized Data Block
-                    //printGDBHeader(tapePos);
+//                    printGDBHeader(tapePos);
                     idxHeader++;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;

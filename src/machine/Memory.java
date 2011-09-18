@@ -39,7 +39,7 @@ public final class Memory {
     // punteros a las 4 páginas
     private byte[][] readPages = new byte[8][];
     private byte[][] writePages = new byte[8][];
-    // Roms de los Multiface ([0]=MF1, [1]=MF128, [2]=MFPLUS3
+    // Roms de los Multiface ([0]=MF1, [1]=MF128, [2]=MFPLUS3)
     private byte[][] mfROM = new byte[3][PAGE_SIZE];
     // Ram del Multiface 8K para todos
     private byte[] mfRAM = new byte[PAGE_SIZE];
@@ -122,7 +122,7 @@ public final class Memory {
 
     public void saveIF2Rom(byte[] buffer) {
         System.arraycopy(IF2Rom[0], 0, buffer, 0, IF2Rom[0].length);
-        System.arraycopy(IF2Rom[1], 0, buffer, 0x2000, IF2Rom[1].length);
+        System.arraycopy(IF2Rom[1], 0, buffer, PAGE_SIZE, IF2Rom[1].length);
     }
 
     private void setMemoryMap16k() {
@@ -181,13 +181,13 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10];
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4];
+        readPages[4] = writePages[4] = Ram[4]; // Página 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0];
+        readPages[6] = writePages[6] = Ram[0]; // Página 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -208,13 +208,13 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10];
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4];
+        readPages[4] = writePages[4] = Ram[4]; // Página 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0];
+        readPages[6] = writePages[6] = Ram[0]; // Página 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -247,14 +247,25 @@ public final class Memory {
         mfLocked = true;
     }
 
+    /*
+     * Bits 0-2: RAM page (0-7) to map into memory at 0xc000.
+     * Bit 3: Select normal (0) or shadow (1) screen to be displayed.
+     *        The normal screen is in bank 5, whilst the shadow screen is in bank 7.
+     *        Note that this does not affect the memory between 0x4000 and 0x7fff,
+     *        which is always bank 5.
+     * Bit 4: ROM select. ROM 0 is the 128k editor and menu system; ROM 1 contains 48K BASIC.
+     * Bit 5: If set, memory paging will be disabled and further output to this
+     *        port will be ignored until the computer is reset.
+     */
     public void setPort7ffd(int port7ffd) {
 
-        port7ffd &= 0xff;
 //        System.out.println(String.format("Port 0x7ffd: %02x", port7ffd));
         if (pagingLocked)
             return;
 
-        bankM = port7ffd;
+        boolean romChanged = ((bankM ^ port7ffd) & 0x10) != 0;
+        
+        bankM = port7ffd & 0xff;
 
         // Set the page locking state
         pagingLocked = (port7ffd & 0x20) != 0;
@@ -268,56 +279,69 @@ public final class Memory {
 
         // Set the high page
         highPage = port7ffd & 0x07;
-        readPages[6] = writePages[6] = Ram[highPage * 2];
-        readPages[7] = writePages[7] = Ram[highPage * 2 + 1];
+        readPages[6] = writePages[6] = Ram[highPage << 1];
+        readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
         // Si está funcionando el MF, no tocar la ROM
         if (mfPagedIn)
             return;
         
         // Set the active ROM
-        switch (spectrumModel) {
-            case SPECTRUM128K:
-                if (IF2RomEnabled) {
-                    readPages[0] = IF2Rom[0];
-                    readPages[1] = IF2Rom[1];
-                    break;
-                }
+        if (romChanged) {
+            switch (spectrumModel) {
+                case SPECTRUM128K:
+                    if (IF2RomEnabled) {
+                        readPages[0] = IF2Rom[0];
+                        readPages[1] = IF2Rom[1];
+                        break;
+                    }
 
-                if ((port7ffd & 0x10) == 0) {
-                    readPages[0] = Rom128k[0];
-                    readPages[1] = Rom128k[1];
-                } else {
-                    readPages[0] = Rom128k[2];
-                    readPages[1] = Rom128k[3];
-                }
-                break;
-            case SPECTRUMPLUS2:
-                if (IF2RomEnabled)
+                    if ((port7ffd & 0x10) == 0) {
+                        readPages[0] = Rom128k[0];
+                        readPages[1] = Rom128k[1];
+                    } else {
+                        readPages[0] = Rom128k[2];
+                        readPages[1] = Rom128k[3];
+                    }
                     break;
-                
-                if ((port7ffd & 0x10) == 0) {
-                    readPages[0] = RomPlus2[0];
-                    readPages[1] = RomPlus2[1];
-                } else {
-                    readPages[0] = RomPlus2[2];
-                    readPages[1] = RomPlus2[3];
-                }
-                break;
-            case SPECTRUMPLUS2A:
-            case SPECTRUMPLUS3:
-                doPagingPlus3();
-                break;
+                case SPECTRUMPLUS2:
+                    if (IF2RomEnabled) {
+                        break;
+                    }
+
+                    if ((port7ffd & 0x10) == 0) {
+                        readPages[0] = RomPlus2[0];
+                        readPages[1] = RomPlus2[1];
+                    } else {
+                        readPages[0] = RomPlus2[2];
+                        readPages[1] = RomPlus2[3];
+                    }
+                    break;
+                case SPECTRUMPLUS2A:
+                case SPECTRUMPLUS3:
+                    doPagingPlus3();
+                    break;
+            }
         }
     }
 
+    /*
+     * Bit 0: Paging mode. 0=normal, 1=special
+     * Bit 1: In normal mode, ignored.
+     * Bit 2: In normal mode, high bit of ROM selection. The four ROMs are:
+     *        ROM 0: 128k editor, menu system and self-test program
+     *        ROM 1: 128k syntax checker
+     *        ROM 2: +3DOS
+     *        ROM 3: 48 BASIC
+     * Bit 3: Disk motor; 1=on, 0=off
+     * Bit 4: Printer port strobe.
+     */
     public void setPort1ffd(int port1ffd) {
-        port1ffd &= 0x07;
 //        System.out.println(String.format("Port 0x1ffd: %02x", port1ffd));
         if (pagingLocked)
             return;
 
-        bankP = port1ffd;
+        bankP = port1ffd & 0x07;
 
         doPagingPlus3();
     }
