@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!--
+    Document   : JSpeccy.xml
+    Created on : 2 de septiembre de 2010, 19:38
+    Author     : jsanchez
+    Description:
+        Purpose of the document follows.
+-->
+
+<ns0:JSpeccySettings  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+   xmlns:ns0='http://xml.netbeans.org/schema/JSpeccy'
+   xsi:schemaLocation='http://xml.netbeans.org/schema/JSpeccy JSpeccy.xsd'>
+    <ns0:SpectrumSettings>
+        <ns0:Issue2>false</ns0:Issue2>
+        <ns0:AYEnabled48k>false</ns0:AYEnabled48k>
+        <ns0:soundEnabled>true</ns0:soundEnabled>
+        <ns0:loadingNoise>true</ns0:loadingNoise>
+        <ns0:ULAplus>false</ns0:ULAplus>
+        <ns0:defaultModel>0</ns0:defaultModel>
+        <ns0:lateTimings>false</ns0:lateTimings>
+    </ns0:SpectrumSettings>
+    <ns0:MemorySettings>
+        <ns0:RomsDirectory></ns0:RomsDirectory>
+        <ns0:Rom48k>spectrum.rom</ns0:Rom48k>
+        <ns0:Rom128k0>128-0.rom</ns0:Rom128k0>
+        <ns0:Rom128k1>128-1.rom</ns0:Rom128k1>
+        <ns0:RomPlus20>plus2-0.rom</ns0:RomPlus20>
+        <ns0:RomPlus21>plus2-1.rom</ns0:RomPlus21>
+        <ns0:RomPlus30>plus3-0.rom</ns0:RomPlus30>
+        <ns0:RomPlus31>plus3-1.rom</ns0:RomPlus31>
+        <ns0:RomPlus32>plus3-2.rom</ns0:RomPlus32>
+        <ns0:RomPlus33>plus3-3.rom</ns0:RomPlus33>
+    </ns0:MemorySettings>
+    <ns0:TapeSettings>
+        <ns0:fastload>true</ns0:fastload>
+    </ns0:TapeSettings>
+    <ns0:KeyboardJoystickSettings>
+        <ns0:JoystickModel>0</ns0:JoystickModel>
+    </ns0:KeyboardJoystickSettings>
+    <ns0:AY8912Settings>
+        <ns0:soundMode>0</ns0:soundMode>
+    </ns0:AY8912Settings>
+
+</ns0:JSpeccySettings>

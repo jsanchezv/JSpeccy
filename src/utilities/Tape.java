@@ -12,6 +12,7 @@
  */
 package utilities;
 
+import configuration.TapeType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -55,7 +56,7 @@ public class Tape {
     private int earBit;
     private long timeout;
     private long timeLastIn;
-    private boolean fastload;
+//    private boolean fastload;
     private boolean tapeInserted;
     private boolean tzxTape;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
@@ -81,14 +82,16 @@ public class Tape {
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
     private ListSelectionModel lsm;
+    private TapeType settings;
 
-    public Tape(Z80 z80) {
+    public Tape(TapeType tapeSettings, Z80 z80) {
+        settings = tapeSettings;
         cpu = z80;
         statePlay = State.STOP;
         tapeInserted = tzxTape = false;
         tapePos = 0;
         timeout = timeLastIn = 0;
-        fastload = false;
+//        fastload = settings.isFastload();
         earBit = 0xbf;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
@@ -423,11 +426,6 @@ public class Tape {
     }
 
     public void notifyTstates(long frames, int tstates) {
-//        if (statePlay == State.STOP)
-//            return;
-//        if (timeout == 0)
-//            return;
-
         long now = frames * spectrumModel.tstatesFrame + tstates;
         timeout -= (now - timeLastIn);
 //        System.out.println("timeout: " + timeout);
@@ -470,7 +468,7 @@ public class Tape {
         tapeInserted = true;
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
-        fastload = true;
+//        fastload = settings.isFastload();
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
             findTZXOffsetBlocks();
@@ -517,11 +515,11 @@ public class Tape {
     }
 
     public boolean isFastload() {
-        return fastload;
+        return settings.isFastload();
     }
 
     public void setFastload(boolean fastmode) {
-        fastload = fastmode;
+        settings.setFastload(fastmode);
     }
 
     public boolean isTapeInserted() {
@@ -1222,7 +1220,7 @@ public class Tape {
 
         if (idxHeader == nOffsetBlocks) {
             cpu.setCarryFlag(false);
-            fastload = false;
+//            fastload = false;
             return;
         }
 
@@ -1237,7 +1235,7 @@ public class Tape {
 
             if (idxHeader == nOffsetBlocks) {
                 cpu.setCarryFlag(false);
-                fastload = false;
+//                fastload = false;
                 idxHeader = 0;
                 lsm.setSelectionInterval(idxHeader, idxHeader);
                 return;

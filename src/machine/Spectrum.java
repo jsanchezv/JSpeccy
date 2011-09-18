@@ -4,6 +4,7 @@
  */
 package machine;
 
+import configuration.*;
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -57,29 +58,63 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR
     };
     private Joystick joystick;
-    private boolean issue3;
+    private boolean issue3, loadingNoise;
+    private SpectrumType spectrumSettings;
 
-    public Spectrum() {
+    public Spectrum(JSpeccySettingsType settings) {
         super("SpectrumThread");
+        spectrumSettings = (SpectrumType) settings.getSpectrumSettings();
+        MemoryType memSettings = (MemoryType) settings.getMemorySettings();
+        TapeType tapeSettings = (TapeType) settings.getTapeSettings();
         z80 = new Z80(this);
-        memory = new Memory();
-        memory.loadRoms();
+        memory = new Memory(memSettings);
         initGFX();
         nFrame = speedometer = 0;
         framesByInt = 1;
         portFE = 0;
         port7ffd = 0;
-        timerFrame = new Timer("SpectrumClock", true);
         ay8912 = new AY8912();
         audio = new Audio();
-        tape = new Tape(z80);
-        soundOn = true;
+        tape = new Tape(tapeSettings, z80);
+        soundOn = spectrumSettings.isSoundEnabled();
+        loadingNoise = spectrumSettings.isLoadingNoise();
         paused = true;
-        selectHardwareModel(MachineTypes.SPECTRUM48K);
+
+        switch (spectrumSettings.getDefaultModel()) {
+            case 1:
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
+                break;
+            case 2:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            default:
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
+        }
         resetPending = false;
-        joystick = Joystick.NONE;
+
+        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
+            case 1:
+                joystick = Joystick.KEMPSTON;
+                break;
+            case 2:
+                joystick = Joystick.SINCLAIR1;
+                break;
+            case 3:
+                joystick = Joystick.SINCLAIR2;
+                break;
+            case 4:
+                joystick = Joystick.CURSOR;
+                break;
+            default:
+                joystick = Joystick.NONE;
+        }
+       
         keyboard = new Keyboard();
         keyboard.setJoystick(joystick);
+        timerFrame = new Timer("SpectrumClock", true);
     }
 
     public final void selectHardwareModel(MachineTypes hardwareModel) {
@@ -98,21 +133,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             case SPECTRUM48K:
                 buildScreenTables48k();
                 contendedRamPage[1] = contendedIOPage[1] = true;
+                enabledAY = spectrumSettings.isAYEnabled48K();
+                issue3 = !spectrumSettings.isIssue2();
                 break;
             case SPECTRUM128K:
             case SPECTRUMPLUS2:
                 buildScreenTables128k();
                 contendedRamPage[1] = contendedIOPage[1] = true;
+                issue3 = true;
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 Arrays.fill(contendedRamPage, false);
                 Arrays.fill(contendedIOPage, false);
                 contendedRamPage[1] = true;
+                issue3 = true;
                 break;
         }
         
-        issue3 = true;
         SwingUtilities.invokeLater(new Runnable() {
 
             public void run() {
@@ -193,6 +231,28 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     public void setJoystick(Joystick type) {
         joystick = type;
         keyboard.setJoystick(type);
+        
+        SwingUtilities.invokeLater(new Runnable() {
+
+            public void run() {
+                switch (joystick) {
+                    case NONE:
+                        joystickNone.setSelected(true);
+                        break;
+                    case KEMPSTON:
+                        joystickKempston.setSelected(true);
+                        break;
+                    case SINCLAIR1:
+                        joystickSinclair1.setSelected(true);
+                        break;
+                    case SINCLAIR2:
+                        joystickSinclair2.setSelected(true);
+                        break;
+                    case CURSOR:
+                        joystickCursor.setSelected(true);
+                }
+            }
+        });
     }
 
     public void setJoystickMenuItems(JMenuItem jNone, JMenuItem jKempston,
@@ -501,7 +561,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
         
         // ULAplus Data Port (read/write)
-        if ((port & 0x4004) == 0x4000) {
+        if (spectrumSettings.isULAplus() && (port & 0x4004) == 0x4000) {
             if (paletteGroup == 0x40) {
                 return ULAplusMode ? 0x01 : 0x00;
             } else {
@@ -549,7 +609,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
              * Solo en el modelo 128K, pero no en los +2A/+3, si se lee el puerto
              * 0x7ffd, el valor leído es reescrito en el puerto 0x7ffd.
              */
-            if (spectrumModel != MachineTypes.SPECTRUM48K) {
+            if (spectrumModel != MachineTypes.SPECTRUM48K &&
+                !memory.isPagingLocked()) {
                 if ((port & 0x8002) == 0) {
                     memory.setPort7ffd(floatbus);
                     // Si ha cambiado la pantalla visible hay que invalidar
@@ -602,7 +663,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
 
         if (spectrumModel == MachineTypes.SPECTRUM128K ||
-                spectrumModel == MachineTypes.SPECTRUMPLUS2) {
+                spectrumModel == MachineTypes.SPECTRUMPLUS2 &&
+                !memory.isPagingLocked()) {
             if ((port & 0x8002) == 0) {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
@@ -635,7 +697,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
             // bit12 set.
             if ((port & 0xF002) == 0x1000) {
                 memory.setPort1ffd(value);
-                if (memory.getPlus3RamMode()) {
+                if (memory.isPlus3RamMode()) {
                     switch ((value & 0x06) >> 1) {
                         case 0:
                             Arrays.fill(contendedRamPage, false);
@@ -670,7 +732,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
         }
 
         // ULAplus ports
-        if ((port & 0x0004) == 0) {
+        if (spectrumSettings.isULAplus() && (port & 0x0004) == 0) {
             // Control port (write only)
             if ((port & 0x4000) == 0) {
                 if ((value & 0x40) != 0) {
@@ -752,7 +814,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
 
     public void execDone(int tstates) {
         tape.notifyTstates(nFrame, z80.tEstados);
-        if (soundOn && tape.isPlaying()) {
+        if (soundOn && loadingNoise && tape.isPlaying()) {
             earBit = tape.getEarBit();
             int spkMic = (earBit == 0xbf) ? -2000 : 2000;
             if (spkMic != speaker) {
@@ -822,23 +884,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 joystick = snapJoystick;
                 keyboard.setJoystick(joystick);
 
-                switch (joystick) {
-                    case NONE:
-                        joystickNone.setSelected(true);
-                        break;
-                    case KEMPSTON:
-                        joystickKempston.setSelected(true);
-                        break;
-                    case SINCLAIR1:
-                        joystickSinclair1.setSelected(true);
-                        break;
-                    case SINCLAIR2:
-                        joystickSinclair2.setSelected(true);
-                        break;
-                    case CURSOR:
-                        joystickCursor.setSelected(true);
-                        break;
-                }
+//                switch (joystick) {
+//                    case NONE:
+//                        joystickNone.setSelected(true);
+//                        break;
+//                    case KEMPSTON:
+//                        joystickKempston.setSelected(true);
+//                        break;
+//                    case SINCLAIR1:
+//                        joystickSinclair1.setSelected(true);
+//                        break;
+//                    case SINCLAIR2:
+//                        joystickSinclair2.setSelected(true);
+//                        break;
+//                    case CURSOR:
+//                        joystickCursor.setSelected(true);
+//                        break;
+//                }
             }
 
             if (snap.getSnapshotModel() != MachineTypes.SPECTRUM48K) {
@@ -847,7 +909,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
                 if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
                     port1ffd = snap.getPort1ffd();
                     memory.setPort1ffd(port1ffd);
-                    if (memory.getPlus3RamMode()) {
+                    if (memory.isPlus3RamMode()) {
                         switch ((port1ffd & 0x06) >> 1) {
                             case 0:
                                 Arrays.fill(contendedRamPage, false);
@@ -1445,6 +1507,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps {
     private void buildScreenTables48k() {
         int col, scan;
 
+//        int lateTimings = spectrumSettings.isLateTimings() ? 1 : 0;
         Arrays.fill(states2scr, -1);
         for (int tstates = 14336; tstates < 57344; tstates += 4) {
             col = (tstates % 224) / 4;

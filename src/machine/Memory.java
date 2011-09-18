@@ -5,6 +5,7 @@
 
 package machine;
 
+import configuration.MemoryType;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -37,14 +38,18 @@ public final class Memory {
     private int screenPage, highPage, bankM, bankP;
     private boolean model128k, pagingLocked, plus3RamMode;
     MachineTypes spectrumModel;
+    MemoryType settings;
 
-    public Memory() {
+    public Memory(MemoryType memSettings) {
         spectrumModel = MachineTypes.SPECTRUM48K;
+        settings = memSettings;
         reset();
+        loadRoms();
     }
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
+        reset();
     }
 
     public int readScreenByte(int address) {
@@ -239,8 +244,12 @@ public final class Memory {
 //        return screenPage;
 //    }
 
-    public boolean getPlus3RamMode() {
+    public boolean isPlus3RamMode() {
         return plus3RamMode;
+    }
+
+    public boolean isPagingLocked() {
+        return pagingLocked;
     }
 
     // "La Abadía del Crimen" pone la página 7 en 0xC000 y selecciona la
@@ -283,26 +292,30 @@ public final class Memory {
     }
 
     public void loadRoms() {
-        if (!loadRomAsFile("spectrum.rom", Rom48k))
+        String romsDirectory = settings.getRomsDirectory();
+        if (!romsDirectory.isEmpty() && !romsDirectory.endsWith("/"))
+            romsDirectory += "/";
+
+        if (!loadRomAsFile(romsDirectory + settings.getRom48K(), Rom48k))
             loadRomAsResource("/roms/spectrum.rom", Rom48k);
 
-        if (!loadRomAsFile("128-0.rom", Rom128k[0]))
+        if (!loadRomAsFile(romsDirectory + settings.getRom128K0(), Rom128k[0]))
             loadRomAsResource("/roms/128-0.rom", Rom128k[0]);
-        if (!loadRomAsFile("128-1.rom", Rom128k[1]))
+        if (!loadRomAsFile(romsDirectory + settings.getRom128K1(), Rom128k[1]))
             loadRomAsResource("/roms/128-1.rom", Rom128k[1]);
 
-        if (!loadRomAsFile("plus2-0.rom", RomPlus2[0]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus20(), RomPlus2[0]))
             loadRomAsResource("/roms/plus2-0.rom", RomPlus2[0]);
-        if (!loadRomAsFile("plus2-1.rom", RomPlus2[1]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus21(), RomPlus2[1]))
             loadRomAsResource("/roms/plus2-1.rom", RomPlus2[1]);
 
-        if (!loadRomAsFile("plus3-0.rom", RomPlus3[0]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus30(), RomPlus3[0]))
             loadRomAsResource("/roms/plus3-0.rom", RomPlus3[0]);
-        if (!loadRomAsFile("plus3-1.rom", RomPlus3[1]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus31(), RomPlus3[1]))
             loadRomAsResource("/roms/plus3-1.rom", RomPlus3[1]);
-        if (!loadRomAsFile("plus3-2.rom", RomPlus3[2]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus32(), RomPlus3[2]))
             loadRomAsResource("/roms/plus3-2.rom", RomPlus3[2]);
-        if (!loadRomAsFile("plus3-3.rom", RomPlus3[3]))
+        if (!loadRomAsFile(romsDirectory + settings.getRomPlus33(), RomPlus3[3]))
             loadRomAsResource("/roms/plus3-3.rom", RomPlus3[3]);
 
     }

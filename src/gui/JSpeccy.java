@@ -9,6 +9,7 @@ package gui;
 import java.awt.BorderLayout;
 import java.awt.Toolkit;
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -16,8 +17,17 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.plaf.basic.BasicFileChooserUI;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Unmarshaller;
+import java.io.IOException;
+import javax.xml.bind.JAXBException;
 import machine.MachineTypes;
 import machine.Spectrum;
+import configuration.*;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 /**
  *
@@ -29,10 +39,102 @@ public class JSpeccy extends javax.swing.JFrame {
     File currentDirOpenSnapshot, currentDirSaveSnapshot, currentDirTape;
     JFileChooser openSnapshotDlg, saveSnapshotDlg, OpenTapeDlg;
     ListSelectionModel lsm;
+    JSpeccySettingsType settings;
     /** Creates new form JSpeccy */
     public JSpeccy() {
         initComponents();
-        spectrum = new Spectrum();
+        initEmulator();
+    }
+
+    private void verifyConfigFile(boolean deleteFile) {
+        File file = new File("JSpeccy.xml");
+        if (file.exists() && !deleteFile) {
+            return;
+        }
+
+        if (deleteFile) {
+            file.delete();
+        }
+
+        // Si el archivo de configuración no existe, lo crea de nuevo en el
+        // directorio actual copiándolo del bueno que hay siempre en el .jar
+        try {
+            InputStream input = Spectrum.class.getResourceAsStream("/schema/JSpeccy.xml");
+            FileOutputStream output = new FileOutputStream("JSpeccy.xml");
+
+            int value = input.read();
+            while (value != -1) {
+                output.write(value & 0xff);
+                value = input.read();
+            }
+
+            input.close();
+            output.close();
+        } catch (FileNotFoundException notFoundExcpt) {
+            notFoundExcpt.printStackTrace();
+        } catch (IOException ioExcpt) {
+            ioExcpt.printStackTrace();
+        }
+    }
+
+    private void readSettingsFile() {
+        verifyConfigFile(false);
+
+        boolean readed = true;
+        try {
+            // create a JAXBContext capable of handling classes generated into
+            // the configuration package
+            JAXBContext jc = JAXBContext.newInstance("configuration");
+
+            // create an Unmarshaller
+            Unmarshaller unmsh = jc.createUnmarshaller();
+
+            // unmarshal a po instance document into a tree of Java content
+            // objects composed of classes from the configuration package.
+            JAXBElement<?> settingsElement =
+                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+
+            settings = (JSpeccySettingsType) settingsElement.getValue();
+        } catch (JAXBException jexcpt) {
+            System.out.println("Something during unmarshalling go very bad!");
+            readed = false;
+        } catch (IOException ioexcpt) {
+            System.out.println("Can't open the JSpeccy.xml configuration file");
+        }
+
+        if (readed)
+            return;
+
+        System.out.println("Trying to create a new one JSpeccy.xml for you");
+
+        verifyConfigFile(true);
+        try {
+            // create a JAXBContext capable of handling classes generated into
+            // the configuration package
+            JAXBContext jc = JAXBContext.newInstance("configuration");
+
+            // create an Unmarshaller
+            Unmarshaller unmsh = jc.createUnmarshaller();
+
+            // unmarshal a po instance document into a tree of Java content
+            // objects composed of classes from the configuration package.
+            JAXBElement<?> settingsElement =
+                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+
+            settings = (JSpeccySettingsType) settingsElement.getValue();
+        } catch (JAXBException jexcpt) {
+            System.out.println("Something during unmarshalling go very very bad!");
+            readed = false;
+        } catch (IOException ioexcpt) {
+            System.out.println("Can't open the JSpeccy.xml configuration file anyway");
+            System.exit(0);
+        }
+
+    }
+
+    private void initEmulator() {
+        readSettingsFile();
+        spectrum = new Spectrum(settings);
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());

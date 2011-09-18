@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://xml.netbeans.org/schema/JSpeccy"
+    xmlns:tns="http://xml.netbeans.org/schema/JSpeccy"
+    elementFormDefault="qualified">
+    <xsd:element name="JSpeccySettings" type="tns:JSpeccySettingsType"/>
+    <xsd:complexType name="SpectrumType">
+        <xsd:sequence>
+            <xsd:element name="Issue2" default="false" type="xsd:boolean"/>
+            <xsd:element name="AYEnabled48k" type="xsd:boolean" default="false"/>
+            <xsd:element name="soundEnabled" type="xsd:boolean" default="true"/>
+            <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
+            <xsd:element name="ULAplus" type="xsd:boolean" default="false"/>
+            <xsd:element name="defaultModel" default="0">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:unsignedByte">
+                        <xsd:maxInclusive value="4"/>
+                        <xsd:minInclusive value="0"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+            <xsd:element name="lateTimings" type="xsd:boolean" default="false"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="MemoryType">
+        <xsd:sequence>
+            <xsd:element name="RomsDirectory" type="xsd:string"/>
+            <xsd:element name="Rom48k" type="xsd:string" default="spectrum.rom"/>
+            <xsd:element name="Rom128k0" type="xsd:string" default="128-0.rom"/>
+            <xsd:element name="Rom128k1" type="xsd:string" default="128-1.rom"/>
+            <xsd:element name="RomPlus20" type="xsd:string" default="plus2-0.rom"/>
+            <xsd:element name="RomPlus21" type="xsd:string" default="plus2-1.rom"/>
+            <xsd:element name="RomPlus30" type="xsd:string" default="plus3-0.rom"/>
+            <xsd:element name="RomPlus31" type="xsd:string" default="plus3-1.rom"/>
+            <xsd:element name="RomPlus32" type="xsd:string" default="plus3-2.rom"/>
+            <xsd:element name="RomPlus33" type="xsd:string" default="plus3-3.rom"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="TapeType">
+        <xsd:sequence>
+            <xsd:element name="fastload" type="xsd:boolean" default="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="KeyboardJoystickType">
+        <xsd:sequence>
+            <xsd:element name="JoystickModel" default="0">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:unsignedByte">
+                        <xsd:maxInclusive value="4"/>
+                        <xsd:minInclusive value="0"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="AY8912Type">
+        <xsd:sequence>
+            <xsd:element name="soundMode" default="0">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:unsignedByte">
+                        <xsd:maxInclusive value="2"/>
+                        <xsd:minInclusive value="0"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="JSpeccySettingsType">
+        <xsd:sequence>
+            <xsd:element name="SpectrumSettings" type="tns:SpectrumType"/>
+            <xsd:element name="MemorySettings" type="tns:MemoryType"/>
+            <xsd:element name="TapeSettings" type="tns:TapeType"/>
+            <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
+            <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>
