@@ -1564,7 +1564,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void changeSpeed(int speed) {
         if (speed > 1) {
             disableSound();
-            framesByInt = 25;
+            framesByInt = speed;
         } else {
             framesByInt = 1;
             // La velocidad rápida solo pinta 1 frame de cada 10, así que

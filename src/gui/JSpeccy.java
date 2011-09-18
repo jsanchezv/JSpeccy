@@ -403,6 +403,13 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void rotateRecentFile(File lastname) {
+        
+        for (int idx = 0; idx < 5; idx++) {
+            if(recentFile[idx] != null &&
+                lastname.getAbsolutePath().equals(recentFile[idx].getAbsolutePath()))
+                return;
+        }
+        
         recentFile[4] = recentFile[3];
         recentFile[3] = recentFile[2];
         recentFile[2] = recentFile[1];
@@ -1662,8 +1669,16 @@ public class JSpeccy extends javax.swing.JFrame {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         int AYsoundMode = settings.getAY8912Settings().getSoundMode();
         boolean hifiSound = settings.getSpectrumSettings().isHifiSound();
+        boolean muted = settings.getSpectrumSettings().isMutedSound();
+        boolean doubleSize = settings.getSpectrumSettings().isDoubleSize();
         settingsDialog.showDialog(this, bundle.getString("SETTINGS_DIALOG_TITLE"));
         spectrum.loadConfigVars();
+        if (muted != settings.getSpectrumSettings().isMutedSound()) {
+            spectrum.muteSound(!muted);
+            silenceMachineMenu.setSelected(!muted);
+            silenceSoundToggleButton.setSelected(!muted);
+        }
+        
         if ((AYsoundMode !=  settings.getAY8912Settings().getSoundMode() ||
             hifiSound != settings.getSpectrumSettings().isHifiSound()) &&
             !spectrum.isMuteSound()) {
@@ -1683,6 +1698,13 @@ public class JSpeccy extends javax.swing.JFrame {
         } else {
             IF1MediaMenu.setEnabled(false);
             IF2MediaMenu.setEnabled(false);
+        }
+        
+        if (doubleSize != settings.getSpectrumSettings().isDoubleSize()) {
+            doubleSizeToggleButton.setSelected(!doubleSize);
+            doubleSizeOption.setSelected(!doubleSize);
+            jscr.toggleDoubleSize();
+            pack();
         }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 

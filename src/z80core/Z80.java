@@ -87,9 +87,8 @@
  *          04/07/2011 Se elimina el método push añadido el 28/03/2010 y se pone
  *          "inline" para PUSH AF/BC/DE/HL. Se optimizan también las instrucciones
  *          POP BC/DE/HL. El código de RETI se unifica con RETN y sus códigos
- *          duplicados. Ligeras modificaciones en DJNZ y en LDI/LDD/CPI/CPD. La
- *          variable miembro opCode se sustituye por variables locales. Se optimiza
- *          el tratamiento del registro MEMPTR.
+ *          duplicados. Ligeras modificaciones en DJNZ y en LDI/LDD/CPI/CPD. Se
+ *          optimiza el tratamiento del registro MEMPTR.
  * 
  *          11/07/2011 Se optimiza el tratamiento del carryFlag en las instrucciones
  *          SUB/SBC/SBC16/CP. Se optimiza el tratamiento del HalfCarry en las
@@ -884,7 +883,6 @@ public class Z80 {
      * H_FLAG = (RESULT&0x0F)==0x0F
      * V_FLAG = RESULT==0x7F
      */
-    
     // Incrementa un valor de 8 bits modificando los flags oportunos
     private int inc8(int oper8) {
         oper8 = (oper8 + 1) & 0xff;
@@ -918,7 +916,7 @@ public class Z80 {
 
         return oper8;
     }
-    
+
     // Suma de 8 bits afectando a los flags
     private void add(int oper8) {
         int res = regA + oper8;
@@ -945,15 +943,17 @@ public class Z80 {
     private void adc(int oper8) {
         int res = regA + oper8;
 
-        if (carryFlag)
+        if (carryFlag) {
             res++;
+        }
 
         carryFlag = res > 0xff;
         res &= 0xff;
         sz5h3pnFlags = sz53n_addTable[res];
 
-        if (((regA ^ oper8 ^ res) & 0x10) != 0)
+        if (((regA ^ oper8 ^ res) & 0x10) != 0) {
             sz5h3pnFlags |= HALFCARRY_MASK;
+        }
 
         if (((regA ^ ~oper8) & (regA ^ res)) > 0x7f) {
             sz5h3pnFlags |= OVERFLOW_MASK;
@@ -982,22 +982,24 @@ public class Z80 {
     private void adc16(int reg16) {
         int regHL = getRegHL();
         memptr = regHL + 1;
-        
+
         int res = regHL + reg16;
-        if (carryFlag)
+        if (carryFlag) {
             res++;
+        }
 
         carryFlag = res > 0xffff;
         res &= 0xffff;
         setRegHL(res);
-        
+
         sz5h3pnFlags = sz53n_addTable[regH];
         if (res != 0) {
             sz5h3pnFlags &= ~ZERO_MASK;
         }
 
-        if (((res ^ regHL ^ reg16) & 0x1000) != 0)
+        if (((res ^ regHL ^ reg16) & 0x1000) != 0) {
             sz5h3pnFlags |= HALFCARRY_MASK;
+        }
 
         if (((regHL ^ ~reg16) & (regHL ^ res)) > 0x7fff) {
             sz5h3pnFlags |= OVERFLOW_MASK;
@@ -1007,7 +1009,7 @@ public class Z80 {
     // Resta de 8 bits
     private void sub(int oper8) {
         int res = regA - oper8;
-        
+
         carryFlag = res < 0;
         res &= 0xff;
         sz5h3pnFlags = sz53n_subTable[res];
@@ -1029,16 +1031,18 @@ public class Z80 {
     // Resta con acarreo de 8 bits
     private void sbc(int oper8) {
         int res = regA - oper8;
-        
-        if (carryFlag)
+
+        if (carryFlag) {
             res--;
+        }
 
         carryFlag = res < 0;
         res &= 0xff;
         sz5h3pnFlags = sz53n_subTable[res];
 
-        if (((regA ^ oper8 ^ res) & 0x10) != 0)
+        if (((regA ^ oper8 ^ res) & 0x10) != 0) {
             sz5h3pnFlags |= HALFCARRY_MASK;
+        }
 
         if (((regA ^ oper8) & (regA ^ res)) > 0x7f) {
             sz5h3pnFlags |= OVERFLOW_MASK;
@@ -1051,22 +1055,24 @@ public class Z80 {
     private void sbc16(int reg16) {
         int regHL = getRegHL();
         memptr = regHL + 1;
-        
+
         int res = regHL - reg16;
-        if (carryFlag)
+        if (carryFlag) {
             res--;
+        }
 
         carryFlag = res < 0;
         res &= 0xffff;
         setRegHL(res);
-        
+
         sz5h3pnFlags = sz53n_subTable[regH];
         if (res != 0) {
             sz5h3pnFlags &= ~ZERO_MASK;
         }
 
-        if (((res ^ regHL ^ reg16) & 0x1000) != 0)
+        if (((res ^ regHL ^ reg16) & 0x1000) != 0) {
             sz5h3pnFlags |= HALFCARRY_MASK;
+        }
 
         if (((regHL ^ reg16) & (regHL ^ res)) > 0x7fff) {
             sz5h3pnFlags |= OVERFLOW_MASK;
@@ -1159,33 +1165,6 @@ public class Z80 {
         MemIoImpl.poke8(regSP, word >>> 8);
         regSP = (regSP - 1) & 0xffff;
         MemIoImpl.poke8(regSP, word);
-    }
-
-    // EXX
-    private void exx() {
-        int work8 = regB;
-        regB = regBalt;
-        regBalt = work8;
-
-        work8 = regC;
-        regC = regCalt;
-        regCalt = work8;
-
-        work8 = regD;
-        regD = regDalt;
-        regDalt = work8;
-
-        work8 = regE;
-        regE = regEalt;
-        regEalt = work8;
-
-        work8 = regH;
-        regH = regHalt;
-        regHalt = work8;
-
-        work8 = regL;
-        regL = regLalt;
-        regLalt = work8;
     }
 
     // LDI
@@ -2595,7 +2574,29 @@ public class Z80 {
                 break;
             }
             case 0xD9: {     /* EXX */
-                exx();
+                work8 = regB;
+                regB = regBalt;
+                regBalt = work8;
+
+                work8 = regC;
+                regC = regCalt;
+                regCalt = work8;
+
+                work8 = regD;
+                regD = regDalt;
+                regDalt = work8;
+
+                work8 = regE;
+                regE = regEalt;
+                regEalt = work8;
+
+                work8 = regH;
+                regH = regHalt;
+                regHalt = work8;
+
+                work8 = regL;
+                regL = regLalt;
+                regLalt = work8;
                 break;
             }
             case 0xDA: {     /* JP C,nn */

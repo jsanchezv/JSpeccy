@@ -2119,7 +2119,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR lenght block
-            blockID = "JSpeccy 0.89 (03/07/2011)";
+            blockID = "JSpeccy 0.89 (15/07/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                 0, blockID.getBytes("US-ASCII").length);
