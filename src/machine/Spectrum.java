@@ -922,7 +922,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 }
 
                 if (tape.isTapeRecording() && ((portFE ^ value) & 0x08) != 0) {
-                    tape.recordPulse2(nFrame * spectrumModel.tstatesFrame + z80.tEstados,
+                    tape.recordPulse(nFrame * spectrumModel.tstatesFrame + z80.tEstados,
                             (portFE & 0x08) != 0);
                 }
                 //System.out.println(String.format("outPort: %04X %02x", port, value));

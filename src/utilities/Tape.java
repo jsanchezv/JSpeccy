@@ -1022,35 +1022,61 @@ public class Tape {
                     break;
                 case NEWDR_BYTE:
                     mask = 0x80;
+                    statePlay = State.NEWDR_BIT;
                 case NEWDR_BIT:
+                    boolean micPulse = false;
                     if ((tapeBuffer[tapePos] & mask) == 0) {
-                        earBit = EAR_OFF;
-                    } else {
                         earBit = EAR_ON;
+                    } else {
+                        earBit = EAR_OFF;
+                        micPulse = true;
                     }
-                    timeout = zeroLenght;
-                    mask >>>= 1;
-                    if (blockLen == 1 && bitsLastByte < 8) {
-                        if (mask == (0x80 >>> bitsLastByte)) {
-                            statePlay = State.PAUSE;
+                    timeout = 0;
+                    
+                    while (((tapeBuffer[tapePos] & mask) != 0) == micPulse) {
+                        timeout += zeroLenght;
+
+                        mask >>>= 1;
+                        if (mask == 0) {
+                            mask = 0x80;
                             tapePos++;
-                            break;
+                            if (--blockLen == 0) {
+                                statePlay = State.PAUSE;
+                                break;
+                            }
+                        } else {
+                            if (blockLen == 1 && bitsLastByte < 8) {
+                                if (mask == (0x80 >>> bitsLastByte)) {
+                                    statePlay = State.PAUSE;
+                                    tapePos++;
+                                    break;
+                                }
+                            }
                         }
                     }
-
-                    if (mask != 0) {
-                        statePlay = State.NEWDR_BIT;
-                        break;
-                    }
-
-                    tapePos++;
-                    if (--blockLen > 0) {
-                        statePlay = State.NEWDR_BYTE;
-                    } else {
-//                            System.out.println(String.format("Last byte: %02x",
-//                                    tapeBuffer[tapePos-1]));
-                        statePlay = State.PAUSE;
-                    }
+//                    timeout = zeroLenght;
+//                    mask >>>= 1;
+//                    if (blockLen == 1 && bitsLastByte < 8) {
+//                        if (mask == (0x80 >>> bitsLastByte)) {
+//                            statePlay = State.PAUSE;
+//                            tapePos++;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (mask != 0) {
+//                        statePlay = State.NEWDR_BIT;
+//                        break;
+//                    }
+//
+//                    tapePos++;
+//                    if (--blockLen > 0) {
+//                        statePlay = State.NEWDR_BYTE;
+//                    } else {
+////                            System.out.println(String.format("Last byte: %02x",
+////                                    tapeBuffer[tapePos-1]));
+//                        statePlay = State.PAUSE;
+//                    }
                     break;
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
@@ -1444,7 +1470,7 @@ public class Tape {
 
         timeLastIn = timeLastOut = 0;
         tapeRecording = true;
-        timeout = settings.isHighSamplingFreq() ? 79 : 158;
+//        timeout = settings.isHighSamplingFreq() ? 79 : 158;
         updateTapeIcon();
 
         return true;
@@ -1528,7 +1554,7 @@ public class Tape {
 //        bitsLastByte++;
 //    }
     
-    public void recordPulse2(long tstates, boolean micState) {
+    public void recordPulse(long tstates, boolean micState) {
         if (timeLastOut == 0) {
             timeLastOut = tstates;
             micBit = micState;
@@ -1537,8 +1563,8 @@ public class Tape {
         
         long len = tstates - timeLastOut;
         int sample = settings.isHighSamplingFreq() ? 79 : 158;
-        long pulses = (len + (sample >>> 1)) / sample;
-//        long pulses = len / sample;
+//        long pulses = (len + (sample >>> 1)) / sample;
+        long pulses = len / sample;
 //        System.out.println(
 //                String.format("(recordPulse2) Pulse Len: %d, , pulses: %d, state: %b",
 //                    len, pulses, micBit));
