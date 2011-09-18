@@ -2297,7 +2297,7 @@ public class Snapshots {
                 if (ULAplusEnabled) {
                     fOut.write(ZXSTPALETTE_ENABLED);
                 } else {
-                    fOut.write(0x00);
+                    fOut.write(ZXSTPALETTE_DISABLED);
                 }
                 fOut.write(ULAplusRegister);
                 for (int color = 0; color < 64; color++) {

@@ -563,12 +563,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     @Override
     public int peek16(int address) {
 
-        int lsb;
         if (contendedRamPage[address >>> 14]) {
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 3;
-        lsb = memory.readByte(address) & 0xff;
+        int lsb = memory.readByte(address) & 0xff;
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
