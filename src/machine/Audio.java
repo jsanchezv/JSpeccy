@@ -22,7 +22,7 @@ import javax.sound.sampled.SourceDataLine;
 import configuration.AY8912Type;
 
 class Audio {
-    static final int FREQ = 22050;
+    static final int FREQ = 48000;
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;

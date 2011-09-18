@@ -493,6 +493,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         } while (--counter > 0);
 
+        // In the 128K/+2 models, when register I is between 0x40-0x7F, the
+        // computer resets shortly.
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K &&
+                z80.getRegI() < 0x80 && z80.getRegI() > 0x3f)
+            z80.reset();
+
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
@@ -511,7 +517,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //        System.out.println(
 //         String.format("borderdirty: %b, screenDirty: %b, lastChgBorder: %d, nBorderChanges %d",
 //           borderDirty, screenDirty, lastChgBorder, nBorderChanges));
-
+        
         if (borderDirty || framesByInt > 1) {
             if (nBorderChanges == 0 && framesByInt == 1) {
                 borderDirty = borderChanged = false;
@@ -1114,6 +1120,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
+        if (memory.isIF2RomEnabled())
+            memory.ejectIF2Rom();
         if (snap.loadSnapshot(filename, memory)) {
 
             switch (snap.getSnapshotModel()) {
