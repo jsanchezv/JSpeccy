@@ -728,9 +728,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     break;
                 case SPECTRUM128K:
                     if ((port & 0xff) == 0xbf && !memory.isMultifaceLocked()) {
+//                        System.out.println(String.format("inPort: %04x\tPC: %04x",
+//                            port, z80.getRegPC()));
+                        if (port == 0x01bf && !memory.isMultifaceLocked()
+                            && memory.isMultifacePaged()) {
+                            return port7ffd;
+                        }
                         memory.pageMultiface();
                     }
                     if ((port & 0xff) == 0x3f && memory.isMultifacePaged()) {
+//                        System.out.println(String.format("inPort: %04x\tPC: %04x",
+//                            port, z80.getRegPC()));
                         memory.unpageMultiface();
                     }
                     break;
@@ -740,11 +748,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     }
 
                     if ((port & 0xff) == 0x3f) {
-                        if ((port & 0xff00) == 0x7f00 && !memory.isMultifaceLocked()
+//                        System.out.println(String.format("inPort: %04x\tPC: %04x",
+//                            port, z80.getRegPC()));
+                        if (port == 0x7f3f && !memory.isMultifaceLocked()
                             && memory.isMultifacePaged()) {
                             return port7ffd;
                         }
-                        if ((port & 0xff00) == 0x1f00 && !memory.isMultifaceLocked()
+                        if (port == 0x1f3f && !memory.isMultifaceLocked()
                             && memory.isMultifacePaged()) {
                             return port1ffd;
                         }
@@ -1232,7 +1242,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 issue2 = snap.isIssue2();
 
-                if (snap.isIF2RomPresent()) {
+                if (snap.isIF2RomPaged()) {
                     SwingUtilities.invokeLater(new Runnable() {
 
                         @Override
@@ -1400,6 +1410,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         snap.setJoystick(joystick);
         snap.setIssue2(issue2);
 
+        if (connectedIF1)
+            snap.setIF1Present(true);
+        
+        if (memory.isIF1RomPaged())
+            snap.setIF1RomPaged(true);
+        
+        if (memory.isIF2RomPaged())
+            snap.setIF2RomPaged(true);
+        
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
 
@@ -2220,5 +2239,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     
     public Interface1 getInterface1() {
         return if1;
+    }
+    
+    public boolean isIF1Connected() {
+        return connectedIF1;
+    }
+    
+    public MachineTypes getSpectrumModel() {
+        return spectrumModel;
     }
 }

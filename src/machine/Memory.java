@@ -560,6 +560,7 @@ public final class Memory {
      *     * Multiface 128
      *       IN del puerto 0xbf, pagina el MF128
      *       IN del puerto 0x3f, despagina el MF128
+     *       IN del puerto 0x013f, lectura del último valor enviado el puerto 0x7ffd
      *
      *     * Multiface 3
      *       IN del puerto 0x3f, pagina el MF3

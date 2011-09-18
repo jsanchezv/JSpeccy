@@ -211,10 +211,36 @@ public class Interface1 {
         return microdrive[drive].insertFromFile(filename);
     }
     
-    public boolean eject(int drive, boolean saveIt) {
+    public boolean eject(int drive) {
         if (drive <  0 || drive > 7)
             return false;
         
-        return microdrive[drive].eject(saveIt);
+        return microdrive[drive].eject();
+    }
+    
+    public boolean save(int drive) {
+        if (drive <  0 || drive > 7)
+            return false;
+        
+        return microdrive[drive].save();
+    }
+    
+    public boolean save(int drive, File name) {
+        if (drive <  0 || drive > 7)
+            return false;
+        
+        return microdrive[drive].save(name);
+    }
+    
+    public boolean hasDirtyCartridges() {
+        boolean res = false;
+        
+        for (int drive = 0; drive < numMicrodrives; drive++) {
+            if (microdrive[drive].isModified()) {
+                res = true;
+                break;
+            }
+        }
+        return res;
     }
 }

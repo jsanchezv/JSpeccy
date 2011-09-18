@@ -276,28 +276,10 @@ public class Microdrive {
         return true;
     }
     
-    public final boolean eject(boolean saveIt) {
+    public final boolean eject() {
         
         if (!isCartridge)
             return true;
-        
-        if (modified && saveIt) {
-            try {
-                mdrFileOut = new FileOutputStream(filename);
-            } catch (FileNotFoundException fex) {
-                Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, fex);
-                return false;
-            }
-
-            try {
-                mdrFileOut.write(cartridge);
-                mdrFileOut.close();
-                filename = null;
-            } catch (IOException ex) {
-                Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
-                return false;
-            }
-        }
         
         isCartridge = false;
         modified = false;
@@ -306,16 +288,42 @@ public class Microdrive {
         return true;
     }
     
-    public final boolean eject(File fileName) {
-        filename = fileName;
-        return eject(true);
-    }
-    
     public final String getFilename() {
         if (filename == null)
             return null;
         else
             return filename.getName();
+    }
+    
+    public final boolean save() {
+
+        if (!isCartridge || !modified) {
+            return true;
+        }
+
+        try {
+            mdrFileOut = new FileOutputStream(filename);
+        } catch (FileNotFoundException fex) {
+            Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, fex);
+            return false;
+        }
+
+        try {
+            mdrFileOut.write(cartridge);
+            mdrFileOut.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+
+        modified = false;
+        return true;
+    }
+    
+    public final boolean save(File newName) {
+        filename = newName;
+        modified = true;
+        return save();
     }
     
     private void testMDR() {

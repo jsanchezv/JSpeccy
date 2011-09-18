@@ -52,6 +52,9 @@
               <ResourceString bundle="gui/Bundle.properties" key="MicrodriveDialog.popupMenu.saveCartridge.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
             </Property>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="saveCartridgeActionPerformed"/>
+          </Events>
         </MenuItem>
         <MenuItem class="javax.swing.JMenuItem" name="saveAsCartridge">
           <Properties>
@@ -59,6 +62,9 @@
               <ResourceString bundle="gui/Bundle.properties" key="MicrodriveDialog.popupMenu.saveAsCartridge.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
             </Property>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="saveAsCartridgeActionPerformed"/>
+          </Events>
         </MenuItem>
       </SubComponents>
     </Container>

@@ -234,6 +234,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         addKeyListener(spectrum.getKeyboard());
 
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
         // Synchronize the file user settings with GUI settings
         switch (settings.getSpectrumSettings().getDefaultModel()) {
             case 0:
@@ -247,9 +248,11 @@ public class JSpeccy extends javax.swing.JFrame {
                 break;
             case 4:
                 specPlus2AHardware.setSelected(true);
+                IF1MediaMenu.setEnabled(false);
                 break;
             case 5:
                 specPlus3Hardware.setSelected(true);
+                IF1MediaMenu.setEnabled(false);
                 break;
             default:
                 spec48kHardware.setSelected(true);
@@ -337,19 +340,29 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
-        microdriveDialog = new MicrodriveDialog(settings.getInterface1Settings(),
-            spectrum.getInterface1());
-        
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
         
         spectrum.start();
     }
     
     private void exitEmulator() {
+        String msg;
+        int dialogType;
+        
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-        int ret = JOptionPane.showConfirmDialog(getContentPane(),
-                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("QUIT_JSPECCY"),
-                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+        
+        if (spectrum.getInterface1().hasDirtyCartridges()) {
+            msg = bundle.getString("DIRTY_CARTRIDGES_WARNING");
+            dialogType = JOptionPane.WARNING_MESSAGE;
+        } else {
+            msg = bundle.getString("ARE_YOU_SURE_QUESTION");
+            dialogType = JOptionPane.QUESTION_MESSAGE;
+        }
+        
+        int ret = JOptionPane.showConfirmDialog(getContentPane(), msg,
+                bundle.getString("QUIT_JSPECCY"),
+                JOptionPane.YES_NO_OPTION, dialogType); // NOI18N
+        
         if( ret == JOptionPane.YES_OPTION ) {
             spectrum.stopEmulation();
             saveRecentFiles();
@@ -1431,12 +1444,16 @@ public class JSpeccy extends javax.swing.JFrame {
     private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K, true);
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        IF2MediaMenu.setEnabled(true);
         spectrum.reset();
     }//GEN-LAST:event_spec48kHardwareActionPerformed
 
     private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K, true);
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        IF2MediaMenu.setEnabled(true);
         spectrum.reset();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
@@ -1460,6 +1477,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2, true);
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        IF2MediaMenu.setEnabled(true);
         spectrum.reset();
         
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
@@ -1467,6 +1486,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, true);
+        IF1MediaMenu.setEnabled(false);
+        IF2MediaMenu.setEnabled(false);
         spectrum.reset();
 
     }//GEN-LAST:event_specPlus2AHardwareActionPerformed
@@ -1483,7 +1504,14 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.muteSound(true);
             spectrum.muteSound(false);
         }
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        
+        if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+            IF2MediaMenu.setEnabled(true);
+        } else {
+            IF1MediaMenu.setEnabled(false);
+            IF2MediaMenu.setEnabled(false);
+        }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 
     private void saveScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveScreenShotActionPerformed
@@ -1559,8 +1587,16 @@ public class JSpeccy extends javax.swing.JFrame {
                   bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
                   JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
 
-        if( ret == JOptionPane.YES_OPTION )
+        if (ret == JOptionPane.YES_OPTION) {
             spectrum.hardReset();
+            if (settings.getSpectrumSettings().getDefaultModel() < 4) {
+                IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+                IF2MediaMenu.setEnabled(true);
+            } else {
+                IF1MediaMenu.setEnabled(false);
+                IF2MediaMenu.setEnabled(false);
+            }
+        }
     }//GEN-LAST:event_hardResetSpectrumButtonActionPerformed
 
     private void clearTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearTapeMediaMenuActionPerformed
@@ -1591,12 +1627,16 @@ public class JSpeccy extends javax.swing.JFrame {
     private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K, true);
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        IF2MediaMenu.setEnabled(true);
         spectrum.reset();
     }//GEN-LAST:event_spec16kHardwareActionPerformed
 
     private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3, true);
+        IF1MediaMenu.setEnabled(false);
+        IF2MediaMenu.setEnabled(false);
         spectrum.reset();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 

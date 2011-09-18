@@ -10,17 +10,13 @@
  */
 package gui;
 
-import configuration.Interface1Type;
 import java.awt.Component;
 import java.awt.Frame;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -35,15 +31,13 @@ import machine.Interface1;
 public class MicrodriveDialog extends javax.swing.JPanel {
 
     private JDialog microdriveDialog;
-    private Interface1Type settings;
     private Interface1 if1;
     private MicrodriveTableModel tableModel;
-    private JFileChooser openCartridgeDlg, saveCartridgeDlg;
+    private JFileChooser cartridgeDlg;
     private File currentDir;
 
     /** Creates new form MicrodriveDialog */
-    public MicrodriveDialog(Interface1Type config, Interface1 handler) {
-        settings = config;
+    public MicrodriveDialog(Interface1 handler) {
         if1 = handler;
         tableModel = new MicrodriveTableModel();
         initComponents();
@@ -124,9 +118,19 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         popupMenu.add(ejectCartridge);
 
         saveCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveCartridge.text")); // NOI18N
+        saveCartridge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveCartridgeActionPerformed(evt);
+            }
+        });
         popupMenu.add(saveCartridge);
 
         saveAsCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveAsCartridge.text")); // NOI18N
+        saveAsCartridge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveAsCartridgeActionPerformed(evt);
+            }
+        });
         popupMenu.add(saveAsCartridge);
 
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
@@ -180,42 +184,31 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         int row = microdrivesTable.getSelectedRow();
         if1.insertNew(row);
         tableModel.fireTableRowsUpdated(row, row);
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+            int ret = JOptionPane.showConfirmDialog(microdriveDialog.getContentPane(),
+                  bundle.getString("NEW_CARTRIDGE_WARNING"),
+                  bundle.getString("NEW_CARTRIDGE_WARNING_TITLE"),
+                  JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE); // NOI18N
     }//GEN-LAST:event_newCartridgeActionPerformed
 
     private void openCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openCartridgeActionPerformed
 
         int row = microdrivesTable.getSelectedRow();
         
-        if (openCartridgeDlg == null) {
-            openCartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            openCartridgeDlg.setFileFilter(new FileFilterCartridge());
-            currentDir = openCartridgeDlg.getCurrentDirectory();
+        if (cartridgeDlg == null) {
+            cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            cartridgeDlg.setFileFilter(new FileFilterCartridge());
+            currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
-            openCartridgeDlg.setCurrentDirectory(currentDir);
+            cartridgeDlg.setCurrentDirectory(currentDir);
         }
         
-        int status = openCartridgeDlg.showOpenDialog(this);
+        int status = cartridgeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
-            currentDir = openCartridgeDlg.getCurrentDirectory();
-            File filename = new File(openCartridgeDlg.getSelectedFile().getAbsolutePath());
-//            try {
-                if1.insertFile(row, filename);
+            currentDir = cartridgeDlg.getCurrentDirectory();
+//            File filename = new File(cartridgeDlg.getSelectedFile().getAbsolutePath());
+                if1.insertFile(row, cartridgeDlg.getSelectedFile());
                 tableModel.fireTableRowsUpdated(row, row);
-//            } catch (IOException ex) {
-//                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
-//            }
-//            spectrum.tape.eject();
-//            if (spectrum.tape.insert(filename)) {
-//                tapeFilename.setText(filename.getName());
-//                playTapeMediaMenu.setEnabled(true);
-//                clearTapeMediaMenu.setEnabled(true);
-//                rewindTapeMediaMenu.setEnabled(true);
-//                recordStartTapeMediaMenu.setEnabled(true);
-//            } else {
-//                ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-//                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
-//                        bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
-//            }
         }
     }//GEN-LAST:event_openCartridgeActionPerformed
 
@@ -232,9 +225,38 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                 return;
             }
         }
-        if1.eject(row, false);
+        
+        if1.eject(row);
         tableModel.fireTableRowsUpdated(row, row);
     }//GEN-LAST:event_ejectCartridgeActionPerformed
+
+    private void saveCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveCartridgeActionPerformed
+
+        int row = microdrivesTable.getSelectedRow();
+        
+        if1.save(row);
+        tableModel.fireTableRowsUpdated(row, row);
+    }//GEN-LAST:event_saveCartridgeActionPerformed
+
+    private void saveAsCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveAsCartridgeActionPerformed
+        int row = microdrivesTable.getSelectedRow();
+        
+        if (cartridgeDlg == null) {
+            cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            cartridgeDlg.setFileFilter(new FileFilterCartridge());
+            currentDir = cartridgeDlg.getCurrentDirectory();
+        } else {
+            cartridgeDlg.setCurrentDirectory(currentDir);
+        }
+        
+        int status = cartridgeDlg.showSaveDialog(this);
+        if (status == JFileChooser.APPROVE_OPTION) {
+            currentDir = cartridgeDlg.getCurrentDirectory();
+//            File filename = new File(cartridgeDlg.getSelectedFile().getAbsolutePath());
+                if1.save(row, cartridgeDlg.getSelectedFile());
+                tableModel.fireTableRowsUpdated(row, row);
+        }
+    }//GEN-LAST:event_saveAsCartridgeActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton closeButton;

@@ -386,15 +386,15 @@ public class Snapshots {
         return IF1RomPaged;
     }
 
-    public void setIF2RomPaged(boolean state) {
+    public void setIF1RomPaged(boolean state) {
         IF1RomPaged = state;
     }
     
-    public boolean isIF2RomPresent() {
+    public boolean isIF2RomPaged() {
         return IF2RomPresent;
     }
 
-    public void setIF2RomPresent(boolean state) {
+    public void setIF2RomPaged(boolean state) {
         IF2RomPresent = state;
     }
 
@@ -1009,18 +1009,40 @@ public class Snapshots {
                 if (hdrLen == 23) { // Z80 v2
                     switch (z80Header2[2]) {
                         case 0: // 48k
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUM16K;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM48K;
+                            
+                            IF1Present = false;
+                            break;
                         case 1: // 48k + IF.1
                             if (modifiedHW)
                                 snapshotModel = MachineTypes.SPECTRUM16K;
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
+                            
+                            IF1Present = true;
+                            if (z80Header2[4] == 0xff)
+                                IF1RomPaged = true;
                             break;
                         case 3: // 128k
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM128K;
+                            
+                            IF1Present = false;
+                            break;
                         case 4: // 128k + IF.1
                             if (modifiedHW)
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
+                            
+                            IF1Present = true;
+                            if (z80Header2[4] == 0xff)
+                                IF1RomPaged = true;
                             break;
                         case 7: // +3
                             if (modifiedHW)
@@ -1042,18 +1064,40 @@ public class Snapshots {
                 } else { // Z80 v3
                     switch (z80Header2[2]) {
                         case 0: // 48k
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUM16K;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM48K;
+                            
+                            IF1Present = false;
+                            break;
                         case 1: // 48k + IF.1
                             if (modifiedHW)
                                 snapshotModel = MachineTypes.SPECTRUM16K;
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
+                            
+                            IF1Present = true;
+                            if (z80Header2[4] == 0xff)
+                                IF1RomPaged = true;
                             break;
                         case 4: // 128k
+                            if (modifiedHW)
+                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            else
+                                snapshotModel = MachineTypes.SPECTRUM128K;
+                            
+                            IF1Present = false;
+                            break;
                         case 5: // 128k + IF.1
                             if (modifiedHW)
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
+                            
+                            IF1Present = true;
+                            if (z80Header2[4] == 0xff)
+                                IF1RomPaged = true;
                             break;
                         case 7: // +3
                             if (modifiedHW)
@@ -1218,9 +1262,14 @@ public class Snapshots {
                     z80HeaderV3[37] |= 0x80;
                     break;
                 case SPECTRUM48K:
+                    if (IF1Present)
+                        z80HeaderV3[34] = 1;
                     break;
                 case SPECTRUM128K:
-                    z80HeaderV3[34] = 4;
+                    if (IF1Present)
+                        z80HeaderV3[34] = 5;
+                    else
+                        z80HeaderV3[34] = 4;
                     break;
                 case SPECTRUMPLUS2:
                     z80HeaderV3[34] = 12;
@@ -1236,6 +1285,9 @@ public class Snapshots {
                 z80HeaderV3[35] = (byte) last7ffd;
             }
 
+            if (IF1RomPaged)
+                z80HeaderV3[36] = (byte) 0xff;
+            
             if (enabledAY)
                 z80HeaderV3[37] |= 0x04;
             
@@ -2007,7 +2059,7 @@ public class Snapshots {
             fOut.write(0x25);
             fOut.write(0x00);
             fOut.write(0x00);
-            fOut.write(0x00);  // Z80R lenght block (37 bytes)
+            fOut.write(0x00);  // Z80R length block (37 bytes)
             byte[] z80r = new byte[37];
             z80r[0] = (byte) regAF;
             z80r[1] = (byte) (regAF >> 8);

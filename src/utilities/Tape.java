@@ -1373,45 +1373,49 @@ public class Tape {
         int addr = cpu.getRegIX();   // Start Address
         int nBytes = cpu.getRegDE(); // Lenght
         BufferedOutputStream fOut = null;
+        record = new ByteArrayOutputStream();
 
+        // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
+        if (filename.getName().toLowerCase().endsWith("tzx")) {
+            if (nOffsetBlocks == 0) {
+                record.write('Z');
+                record.write('X');
+                record.write('T');
+                record.write('a');
+                record.write('p');
+                record.write('e');
+                record.write('!');
+                record.write(0x1A);
+                record.write(0x01);
+                record.write(0x20);
+            }
+            // Y ahora la cabecera de Normal Speed block
+            record.write(0x10); // TZX ID: Normal Speed Block
+            record.write(0xE8);
+            record.write(0x03); // pausa de 1000 ms estándar
+        }
+        record.write(nBytes + 2);
+        record.write((nBytes + 2) >>> 8);
+        int parity = cpu.getRegA();
+        record.write(parity);
+        int value;
+        for (int address = addr; address < addr + nBytes; address++) {
+            value = memory.readByte(address);
+            record.write(value);
+            parity ^= value;
+        }
+        record.write(parity);
+        
         try {
             fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
-            // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
-            if (filename.getName().toLowerCase().endsWith("tzx")) {
-                if (nOffsetBlocks == 0) {
-                    fOut.write('Z');
-                    fOut.write('X');
-                    fOut.write('T');
-                    fOut.write('a');
-                    fOut.write('p');
-                    fOut.write('e');
-                    fOut.write('!');
-                    fOut.write(0x1A);
-                    fOut.write(0x01);
-                    fOut.write(0x20);
-                }
-                // Y ahora la cabecera de Normal Speed block
-                fOut.write(0x10); // TZX ID: Normal Speed Block
-                fOut.write(0xE8);
-                fOut.write(0x03); // pausa de 1000 ms estándar
-            }
-            fOut.write(nBytes + 2);
-            fOut.write((nBytes + 2) >>> 8);
-            int parity = cpu.getRegA();
-            fOut.write(parity);
-            int value;
-            for(int address = addr; address < addr + nBytes; address++) {
-                value = memory.readByte(address) & 0xff;
-                fOut.write(value);
-                parity ^= value;
-            }
-            fOut.write(parity);
+            record.writeTo(fOut);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
+                record.close();
                 fOut.close();
             } catch (IOException ex) {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
