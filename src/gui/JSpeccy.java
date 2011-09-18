@@ -924,7 +924,7 @@ public class JSpeccy extends javax.swing.JFrame {
         else
             silenceSoundToggleButton.setSelected(silenceMachineMenu.isSelected());
 
-        spectrum.toggleSound();
+        spectrum.toggleSound(!silenceSoundToggleButton.isSelected());
     }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
 
     private void playTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playTapeMediaMenuActionPerformed
@@ -1070,9 +1070,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void fastEmulationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fastEmulationToggleButtonActionPerformed
         if (fastEmulationToggleButton.isSelected())
-            spectrum.toggleSpeed(settings.getSpectrumSettings().getFramesInt());
+            spectrum.changeSpeed(settings.getSpectrumSettings().getFramesInt());
         else
-            spectrum.toggleSpeed(1);
+            spectrum.changeSpeed(1);
     }//GEN-LAST:event_fastEmulationToggleButtonActionPerformed
 
     private void browserTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browserTapeMediaMenuActionPerformed

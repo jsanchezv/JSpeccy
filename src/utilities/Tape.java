@@ -64,7 +64,7 @@ public class Tape {
     private long timeout;
     private long timeLastIn;
 //    private boolean fastload;
-    private boolean tapeInserted, tapeRecording;
+    private boolean tapeInserted, tapePlaying, tapeRecording;
     private boolean tzxTape, flashload;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
     private final int LEADER_LENGHT = 2168;
@@ -97,7 +97,7 @@ public class Tape {
         tapeNotify = notifyObject;
         cpu = z80;
         statePlay = State.STOP;
-        tapeInserted = tapeRecording = false;
+        tapeInserted = tapePlaying = tapeRecording = false;
         pulse = tzxTape = false;
         flashload = settings.isFlashload();
         tapePos = 0;
@@ -133,7 +133,7 @@ public class Tape {
     }
 
     public void setSelectedBlock(int block) {
-        if (!tapeInserted || isPlaying() || block > nOffsetBlocks) {
+        if (!tapeInserted || isTapePlaying() || block > nOffsetBlocks) {
             return;
         }
 
@@ -451,7 +451,8 @@ public class Tape {
 
         if (tapeRecording)
             recordPulse();
-        else
+
+        if (tapePlaying)
             doPlay();
 
     }
@@ -485,7 +486,7 @@ public class Tape {
         tapeInserted = true;
         statePlay = State.STOP;
         timeout = timeLastIn = 0;
-        tapeRecording = false;
+        tapePlaying = tapeRecording = false;
 //        fastload = settings.isFastload();
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
@@ -515,7 +516,7 @@ public class Tape {
         tapeBuffer = null;
         filenameLabel = null;
         statePlay = State.STOP;
-        tapeRecording = false;
+        tapePlaying = tapeRecording = false;
         updateTapeIcon();
     }
 
@@ -527,13 +528,16 @@ public class Tape {
         earBit = earValue ? 0xff : 0xbf;
     }
 
-    public boolean isPlaying() {
-        return statePlay != State.STOP;
+    public boolean isTapePlaying() {
+        return tapePlaying;
     }
 
-    public boolean isStopped() {
-        return statePlay == State.STOP;
+    public boolean isTapeRecording() {
+        return tapeRecording;
     }
+//    public boolean isStopped() {
+//        return !tapePlaying;
+//    }
 
     public boolean isFlashLoad() {
         return flashload;
@@ -548,11 +552,7 @@ public class Tape {
     }
 
     public boolean isTapeReady() {
-        return (tapeInserted && statePlay == State.STOP && !tapeRecording);
-    }
-
-    public boolean isTapeRecording() {
-        return tapeRecording;
+        return (tapeInserted && !tapePlaying && !tapeRecording);
     }
 
     public boolean isTzxTape() {
@@ -560,10 +560,11 @@ public class Tape {
     }
 
     public boolean play() {
-        if (!tapeInserted || statePlay != State.STOP || tapeRecording) {
+        if (!tapeInserted || tapePlaying || tapeRecording) {
             return false;
         }
 
+        tapePlaying = true;
         statePlay = State.START;
         tapePos = offsetBlocks[idxHeader];
         timeLastIn = 0;
@@ -575,7 +576,7 @@ public class Tape {
     }
 
     public void stop() {
-        if (!tapeInserted || statePlay == State.STOP || tapeRecording) {
+        if (!tapeInserted || !tapePlaying || tapeRecording) {
             return;
         }
 
@@ -587,7 +588,7 @@ public class Tape {
     }
 
     public boolean rewind() {
-        if (!tapeInserted || statePlay != State.STOP  || tapeRecording) {
+        if (!tapeInserted || tapePlaying  || tapeRecording) {
             return false;
         }
 
@@ -629,8 +630,9 @@ public class Tape {
         switch (statePlay) {
             case STOP:
                 lsm.setSelectionInterval(idxHeader, idxHeader);
-                updateTapeIcon();
                 cpu.setExecDone(false);
+                tapePlaying = false;
+                updateTapeIcon();
                 timeLastIn = 0;
                 tapeNotify.tapeStop();
                 break;
@@ -703,7 +705,7 @@ public class Tape {
                     idxHeader = 0;
                     timeout = 1;
                     lsm.setSelectionInterval(idxHeader, idxHeader);
-                    tapeNotify.tapeStop();
+//                    tapeNotify.tapeStop();
                 } else {
                     idxHeader++;
                     statePlay = State.START; // START
@@ -836,6 +838,7 @@ public class Tape {
             switch (statePlay) {
                 case STOP:
                     cpu.setExecDone(false);
+                    tapePlaying = false;
                     updateTapeIcon();
                     tapeNotify.tapeStop();
                     break;
@@ -984,7 +987,7 @@ public class Tape {
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
                         statePlay = State.STOP;
-                        tapeNotify.tapeStop();
+//                        tapeNotify.tapeStop();
                         repeat = true;
                     } else {
                         timeout = endBlockPause;
@@ -1461,7 +1464,7 @@ public class Tape {
             return;
         }
 
-        if (statePlay == State.STOP && !tapeRecording) {
+        if (!tapePlaying && !tapeRecording) {
             enabledIcon = false;
         } else {
             enabledIcon = true;

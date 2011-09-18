@@ -40,7 +40,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
-    private boolean soundOn, enabledAY;
+    private boolean soundOn, enabledSound, enabledAY;
     private static final byte delayTstates[] =
             new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
     public MachineTypes spectrumModel;
@@ -208,24 +208,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-    public synchronized void startEmulation() {
+    public void startEmulation() {
 //        z80.setTEstados(0);
-//        audio.reset();
-//        invalidateScreen(true);
+        ay8912.reset();
+        audio.reset();
+        invalidateScreen(true);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
         paused = false;
-        if (soundOn) {
-            audio.open(spectrumModel, ay8912, enabledAY);
-        }
+        enableSound();
     }
 
-    public synchronized void stopEmulation() {
+    public void stopEmulation() {
         taskFrame.cancel();
         paused = true;
-        if (soundOn) {
-            audio.close();
-        }
+        disableSound();
 
         try {
             sleep(100);
@@ -254,7 +251,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
-    public synchronized void hardReset() {
+    public void hardReset() {
 
         switch (settings.getSpectrumSettings().getDefaultModel()) {
             case 0:
@@ -749,7 +746,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 speaker = spkMic;
             }
 
-            if (tape.isStopped() &&
+            if (!tape.isTapePlaying() &&
                 spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 // and con 0x18 para emular un Issue 2
                 // and con 0x10 para emular un Issue 3
@@ -931,7 +928,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             tape.setPulse((portFE & 0x08) != 0 ? true : false);
 
         tape.notifyTstates(nFrame, z80.tEstados);
-        if (soundOn && settings.getSpectrumSettings().isLoadingNoise() && tape.isPlaying()) {
+        if (soundOn && settings.getSpectrumSettings().isLoadingNoise() && tape.isTapePlaying()) {
             earBit = tape.getEarBit();
             int spkMic = (earBit == 0xbf) ? -2000 : 2000;
             if (spkMic != speaker) {
@@ -1141,34 +1138,54 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private int speaker;
     private static final int sp_volt[];
 
-    public void toggleSound() {
-        soundOn = !soundOn;
-        if (soundOn) {
-            audio.open(spectrumModel, ay8912, enabledAY);
-        } else {
-            if (enabledAY)
-                ay8912.endFrame();
-            audio.endFrame();
-            audio.flush();
-            audio.close();
-        }
+    public synchronized void toggleSound(boolean state) {
+        soundOn = state;
+        if (soundOn)
+            enableSound();
+        else
+            disableSound();
     }
 
-    public void toggleSpeed(int speed) {
-        stopEmulation();
+    public synchronized void enableSound() {
+        if (!soundOn || enabledSound)
+            return;
+
+        try {
+            while(frameInProgress)
+                wait();
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        audio.open(spectrumModel, ay8912, enabledAY);
+        enabledSound = true;
+
+    }
+
+    public synchronized void disableSound() {
+        if (!enabledSound)
+            return;
+
+        if (enabledAY)
+            ay8912.endFrame();
+        audio.endFrame();
+        audio.close();
+        enabledSound = false;
+
+    }
+
+    public synchronized void changeSpeed(int speed) {
+//        stopEmulation();
         if (speed > 1) {
-            if (soundOn) {
-                toggleSound();
-            }
+            disableSound();
             framesByInt = speed;
         } else {
             framesByInt = 1;
-            toggleSound();
             // La velocidad rápida solo pinta 1 frame de cada 10, así que
             // al volver a velocidad lenta hay que actualizar la pantalla
             jscr.repaint();
+            enableSound();
         }
-        startEmulation();
+//        startEmulation();
     }
 
     public void toggleTape() {
@@ -1728,14 +1745,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     @Override
     public void tapeStart() {
         if (settings.getTapeSettings().isAccelerateLoading() && framesByInt == 1) {
-            toggleSpeed(40);
+            changeSpeed(40);
         }
     }
 
     @Override
     public void tapeStop() {
         if (settings.getTapeSettings().isAccelerateLoading() && framesByInt > 1) {
-            toggleSpeed(1);
+            changeSpeed(1);
         }
     }
 

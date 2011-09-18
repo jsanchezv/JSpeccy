@@ -62,8 +62,7 @@ class Audio {
         timeRem = (float) 0.0;
         spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
         audiotstates = bufp = level = 0;
-        if (line == null)
-        {
+        if (line == null) {
             try {
                 sdl.open(fmt, nullbuf.length * 2); // Espacio para dos frames
                 // No se llama al método start hasta tener el primer buffer
@@ -72,10 +71,13 @@ class Audio {
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
+
+            ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
+            ay8912.setSpectrumModel(spectrumModel);
+            ay8912.reset();
+        } else {
+            System.out.println("Error!, ya está abierto!");
         }
-        ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
-        ay8912.setSpectrumModel(spectrumModel);
-        ay8912.reset();
     }
 
     synchronized void updateAudio(int tstates, int value) {
