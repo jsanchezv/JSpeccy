@@ -599,6 +599,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     optionsMenu.add(joystickOptionMenu);
 
+    settingsOptionsMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
     settingsOptionsMenu.setText(bundle.getString("JSpeccy.settings.text")); // NOI18N
     settingsOptionsMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -650,6 +651,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     machineMenu.add(hardResetMachineMenu);
 
+    nmiMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, java.awt.event.InputEvent.CTRL_MASK));
     nmiMachineMenu.setText(bundle.getString("JSpeccy.nmiMachineMenu.text")); // NOI18N
     nmiMachineMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1043,29 +1045,15 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_cursorJoystickActionPerformed
 
     private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
-//        boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
-
-//        if (!paused)
-//            spectrum.startEmulation();
+        spectrum.reset();
     }//GEN-LAST:event_spec48kHardwareActionPerformed
 
     private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
-//        boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
-
-//        if (!paused)
-//            spectrum.startEmulation();
+        spectrum.reset();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
     private void fastEmulationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fastEmulationToggleButtonActionPerformed
@@ -1076,7 +1064,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_fastEmulationToggleButtonActionPerformed
 
     private void browserTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browserTapeMediaMenuActionPerformed
-        //tapeBrowser.validate();
         tapeBrowserDialog.setVisible(true);
         tapeBrowserDialog.pack();
         tapeCatalog.doLayout();
@@ -1084,46 +1071,24 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void closeTapeBrowserButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeTapeBrowserButtonActionPerformed
         tapeBrowserDialog.setVisible(false);
-//        int row = tapeCatalog.getSelectedRow();
-//        if (row != -1) {
-//            spectrum.tape.setSelectedBlock(row);
-//        }
     }//GEN-LAST:event_closeTapeBrowserButtonActionPerformed
 
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
-//        boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-
-//        if (!paused)
-//            spectrum.startEmulation();
+        spectrum.reset();
+        
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
 
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
-//        boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+        spectrum.reset();
 
-//        if (!paused)
-//            spectrum.startEmulation();
     }//GEN-LAST:event_specPlus2AHardwareActionPerformed
 
     private void settingsOptionsMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_settingsOptionsMenuActionPerformed
-//        int ayMode = settings.getAY8912Settings().getSoundMode();
         settingsDialog.showDialog(this, "User Settings");
-//        if (ayMode != settings.getAY8912Settings().getSoundMode() &&
-//                !spectrum.getSoundState()) {
-//            spectrum.toggleSound(false);
-//            spectrum.toggleSound(true);
-//        }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 
     private void saveScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveScreenShotActionPerformed
@@ -1216,29 +1181,15 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_clearTapeMediaMenuActionPerformed
 
     private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
-//         boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
-
-//        if (!paused)
-//            spectrum.startEmulation();
+        spectrum.reset();
     }//GEN-LAST:event_spec16kHardwareActionPerformed
 
     private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
-//        boolean paused = spectrum.isPaused();
-//
-//        if (!paused)
-//            spectrum.stopEmulation();
 
-        spectrum.reset();
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-
-//        if (!paused)
-//            spectrum.startEmulation();
+        spectrum.reset();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 
     private void recordStartTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recordStartTapeMediaMenuActionPerformed

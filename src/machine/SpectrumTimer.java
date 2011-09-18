@@ -21,12 +21,7 @@ public class SpectrumTimer extends TimerTask {
     @Override
     public synchronized void run() {
 
-        if (!spectrum.isFrameInProgress()) {
-            spectrum.generateFrame();
-            spectrum.drawFrame();
-        } else {
-            notifyAll();
-        }
-
+        spectrum.generateFrame();
+        spectrum.drawFrame();
     }
 }

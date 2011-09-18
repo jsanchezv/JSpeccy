@@ -367,9 +367,11 @@ public final class Memory {
     // "La Abadía del Crimen" pone la página 7 en 0xC000 y selecciona la
     // pantalla de la página 7. A partir de ahí, la modifica en 0xC000 en
     // lugar de hacerlo en 0x4000, donde siempre está la página 5.
+    // Livingstone Supongo II, versión +2A/+3, usa las combinaciones "all RAM"
+    // de páginas 4, 5, 6, 3 y 4, 7, 6, 3.
     public boolean isScreenByte(int addr) {
         if (plus3RamMode) {
-            switch (bankP = 0x06) {
+            switch (bankP & 0x06) {
                 case 0: // Pages 0, 1, 2, 3
                     return false;
                 case 4: // Pages 4, 5, 6, 3
@@ -511,6 +513,12 @@ public final class Memory {
         readPages[1] = writePages[1] = mfRAM;
     }
 
+    /*
+     * Al despaginar los MF128/MFP3 hay que tener en cuenta que la
+     * paginación puede estar bloqueada (bit 5 de 0x7ffd). En ese
+     * caso, la ROM que entra es, por obligación, la del Spectrum 48k
+     * (ROM1 para el 128k/+2 y ROM3 para el +2A/+3.
+     */
     public void multifacePageOut() {
         if (!mfPagedIn)
             return;
@@ -671,7 +679,7 @@ public final class Memory {
                 return false;
             }
 
-            for (int frag = 0; frag < size / PAGE_SIZE; page++) {
+            for (int frag = 0; frag < size / PAGE_SIZE; frag++) {
                 int count = 0;
                 while (count != -1 && count < PAGE_SIZE) {
                     count += fIn.read(rom[page + frag], count, PAGE_SIZE - count);
