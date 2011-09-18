@@ -112,7 +112,7 @@ public class Tape {
         flashload = settings.isFlashload();
         tapePos = 0;
         timeout = timeLastIn = 0;
-        earBit = EAR_OFF;
+        earBit = EAR_ON;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
         nOffsetBlocks = 0;
@@ -627,6 +627,7 @@ public class Tape {
 
         tapePlaying = true;
         statePlay = State.START;
+//        earBit = EAR_ON;
         tapePos = offsetBlocks[idxHeader];
         timeLastIn = 0;
         cpu.setExecDone(true);
@@ -645,6 +646,12 @@ public class Tape {
             idxHeader = 0;
         }
         lsm.setSelectionInterval(idxHeader, idxHeader);
+        
+        cpu.setExecDone(false);
+        tapePlaying = false;
+        updateTapeIcon();
+        timeLastIn = 0;
+        tapeNotify.tapeStop();
     }
 
     public boolean rewind() {

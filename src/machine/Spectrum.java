@@ -743,8 +743,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             return keyboard.readFullerPort();
         }
 
+        // ULA Port
         if ((port & 0x0001) == 0) {
-            return keyboard.readKeyboardPort(port) & tape.getEarBit();
+            int res = keyboard.readKeyboardPort(port);
+            if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3
+                || tape.isTapePlaying()) {
+                res &= tape.getEarBit();
+            }
+            return res;
         }
 
         if (enabledAY) {
