@@ -35,9 +35,13 @@ public final class Memory {
     // punteros a las 4 páginas
     private byte[][] readPages = new byte[8][];
     private byte[][] writePages = new byte[8][];
+    // Roms de los Multiface ([0]=MF1, [1]=MF128, [2]=MFPLUS3
+    private byte[][] mfROM = new byte[3][PAGE_SIZE];
+    // Ram del Multiface 8K para todos
+    private byte[] mfRAM = new byte[PAGE_SIZE];
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage, highPage, bankM, bankP;
-    private boolean model128k, pagingLocked, plus3RamMode;
+    private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
     MachineTypes spectrumModel;
     MemoryType settings;
 
@@ -145,6 +149,7 @@ public final class Memory {
         model128k = true;
         pagingLocked = plus3RamMode = false;
         bankM = 0;
+        mfLocked = true;
     }
 
     private void setMemoryMapPlus2() {
@@ -164,6 +169,7 @@ public final class Memory {
         model128k = true;
         pagingLocked = plus3RamMode = false;
         bankM = 0;
+        mfLocked = true;
     }
 
     private void setMemoryMapPlus3() {
@@ -183,18 +189,20 @@ public final class Memory {
         model128k = true;
         pagingLocked = plus3RamMode = false;
         bankM = bankP = 0;
+        mfLocked = true;
     }
 
     public void setPort7ffd(int port7ffd) {
 
         port7ffd &= 0xff;
-        if (pagingLocked || port7ffd == bankM)
+//        System.out.println(String.format("Port 0x7ffd: %02x", port7ffd));
+        if (pagingLocked)
             return;
 
         bankM = port7ffd;
 
         // Set the page locking state
-        pagingLocked = (port7ffd & 0x20) == 0 ? false : true;
+        pagingLocked = (port7ffd & 0x20) != 0;
 
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 10 : 14;
@@ -207,6 +215,9 @@ public final class Memory {
         readPages[6] = writePages[6] = Ram[highPage * 2];
         readPages[7] = writePages[7] = Ram[highPage * 2 + 1];
 
+        if (mfPagedIn)
+            return;
+        
         // Set the active ROM
         switch (spectrumModel) {
             case SPECTRUM128K:
@@ -236,7 +247,8 @@ public final class Memory {
 
     public void setPort1ffd(int port1ffd) {
         port1ffd &= 0x07;
-        if (pagingLocked || port1ffd == bankP)
+//        System.out.println(String.format("Port 0x1ffd: %02x", port1ffd));
+        if (pagingLocked)
             return;
 
         bankP = port1ffd;
@@ -247,10 +259,14 @@ public final class Memory {
     private void doPagingPlus3() {
         // Paging mode normal (bit0 of 0x1ffd to 0)
         if ((bankP & 0x01) == 0) {
-            int rom = ((bankM & 0x10) >>> 4) | ((bankP & 0x04) >>> 1);
+            
+            if (mfPagedIn)
+                return;
 
-            readPages[0] = RomPlus3[rom * 2];
-            readPages[1] = RomPlus3[rom * 2 + 1];
+            int rom = ((bankM & 0x10) >>> 3) | (bankP & 0x04);
+
+            readPages[0] = RomPlus3[rom];
+            readPages[1] = RomPlus3[rom + 1];
             writePages[0] = writePages[1] = fakeROM;
             // Si estamos en Plus3RamMode es que estamos saliendo del modo
             // "all RAM" y hay que reponer las páginas a su lugar
@@ -331,6 +347,9 @@ public final class Memory {
     public boolean isSpectrumRom() {
         boolean res = false;
 
+        if (mfPagedIn)
+            return false;
+        
         switch(spectrumModel.codeModel) {
             case SPECTRUM48K:
                 res = true;
@@ -340,7 +359,7 @@ public final class Memory {
                 break;
             case SPECTRUMPLUS3:
                 if (!plus3RamMode)
-                    res = (((bankM & 0x10) >>> 4) | ((bankP & 0x04) >>> 1)) == 3;
+                    res = (((bankM & 0x10) >>> 3) | (bankP & 0x04)) == 6;
         }
         return res;
     }
@@ -384,6 +403,7 @@ public final class Memory {
     }
 
     public void reset() {
+        mfPagedIn = false;
         switch(spectrumModel) {
             case SPECTRUM16K:
                 setMemoryMap16k();
@@ -401,6 +421,150 @@ public final class Memory {
             case SPECTRUMPLUS3:
                 setMemoryMapPlus3();
         }
+    }
+
+    /*
+     * Existieron, básicamente, 3 modelos de Multiface, versión Spectrum:
+     * el Multiface One, para el Spectrum 48k, el Multiface 128, para el 128k/+2
+     * y el Multiface Plus 3, para el Spectrum +2A/+3.
+     *
+     * Todos tienen 8 KB de ROM que se paginan entre las direcciones 0x0000-0x1FFF
+     * y 8 KB de RAM que se paginan entre 0x2000-0x3FFF. De esta forma, sustituyen
+     * a la ROM del Spectrum en dos momentos principalmente:
+     *
+     * 1.- Cuando se pulsa el botón rojo del Multiface. Con ello se provoca una
+     *     NMI a la vez que mediante la señal del bus de expansión ROMCS se deja
+     *     a la ROM original en estado de alta impedancia. La NMI ejecuta entonces
+     *     la rutina en 0x0066 de la ROM del Multiface. En el 128K se inhabilita
+     *     el chip de la ROM (32 KB) y, por tanto, da igual cual de ellas estuviera
+     *     paginada. En el +2A/+3 hay dos chips de ROM físicas (32+32 KB) y en el
+     *     bus, en lugar de una señal ROMCS hay dos llamadas ROM 1 OE y ROM 2 OE. En
+     *     este caso, el fallo es que el +3 tiene modos "all RAM" en los cuales no hay
+     *     ROM que inhabilitar (si lo hay, pero da igual porque no se usan) y el
+     *     Multiface Plus 3 no funciona.
+     *     Además, en el MF128 y en el MF3 hay un "switch" interno que sirve de bloqueo
+     *     del aparato, para que éste no sea detectado por otro hardware (excusa fácil)
+     *     ni por el software. Este bloqueo se desactiva SIEMPRE al pulsar el botón rojo.
+     *
+     * 2.- Por programación, siempre que el aparato (MF128/MF3) no esté en estado de bloqueo.
+     *     Cada modelo de MF tiene un puerto de activación y otro de desactivación
+     *     (ambos diferentes entre todos ellos). El método consiste en leer de un puerto
+     *     determinado, lo que provoca la paginación/despaginación del aparato. La
+     *     relación de puertos es:
+     *
+     *     * Multiface One
+     *       IN del puerto 0x9f, pagina el MF
+     *       IN del puerto 0x1f, despagina el MF
+     *
+     *     * Multiface 128
+     *       IN del puerto 0xbf, pagina el MF128
+     *       IN del puerto 0x3f, despagina el MF128
+     *
+     *     * Multiface Plus 3
+     *       IN del puerto 0x3f, pagina el MF3
+     *       IN del puerto 0xbf, despagina el MF3
+     *       IN del puerto 0x1f3f, lectura del último valor enviado al puerto 0x1ffd
+     *       IN del puerto 0x7f3f, lectura del último valor enviado el puerto 0x7ffd
+     *
+     *     Los dos últimos puertos del MF3, solo son legibles cuando el aparato está
+     *     desbloqueado y, además, está paginada la ROM del MF3. Si no, devuelven
+     *     0xFF como todo puerto que no esté asignado.
+     *
+     *     El MF128 y el MF3 controlan el "switch" de bloqueo con una escritura (OUT) al
+     *     puerto 0x3f para activar el bloqueo y con un OUT al puerto 0xbf para desactivar
+     *     el bloqueo (es así como funciona la opción de ON/OFF del menú del MF). Esta
+     *     escritura funciona siempre que esté paginada la ROM del MF, el bloqueo
+     ^     desactivado y, supuestamente, pero no lo he comprobado, que el PC esté
+     *     en una dirección por debajo de 0x4000.
+     *     El valor enviado al puerto parece que es indiferente. El amigo Woodster, del
+     *     canal SPIN, me dijo el 12/09/2010:
+     *
+     *     [1:39pm] <Woodster> from the MF3 ROM when 'returning':
+     *     [1:39pm] <Woodster>         LD   A,(#2006)
+     *     [1:39pm] <Woodster>         BIT  2,A
+     *     [1:39pm] <Woodster>         JR   Z,L06E6
+     *     [1:39pm] <Woodster>         OUT  (#3F),A
+     *     [1:39pm] <Woodster>         JR   #06E8
+     *     [1:39pm] <Woodster> L06E6:  OUT  (#BF),A
+     *
+     *     La mayoría de información acerca de los detalles no evidentes proviene de él.
+     *     Thanks Woodster. :)
+     *
+     */
+    public void multifacePageIn() {
+        if (mfPagedIn || plus3RamMode)
+            return;
+
+        mfPagedIn = true;
+//        System.out.println("Multiface paged IN");
+        switch (spectrumModel.codeModel) {
+            case SPECTRUM48K:
+                readPages[0] = mfROM[0];
+                break;
+            case SPECTRUM128K:
+                readPages[0] = mfROM[1];
+                break;
+            case SPECTRUMPLUS3:
+                readPages[0] = mfROM[2];
+                break;
+        }
+        readPages[1] = writePages[1] = mfRAM;
+    }
+
+    public void multifacePageOut() {
+        if (!mfPagedIn)
+            return;
+        
+        mfPagedIn = false;
+//        System.out.println("Multiface paged OUT");
+        switch (spectrumModel) {
+            case SPECTRUM16K:
+            case SPECTRUM48K:
+                readPages[0] = Rom48k[0];
+                readPages[1] = Rom48k[1];
+                writePages[1] = fakeROM;
+                break;
+            case SPECTRUM128K:
+                writePages[0] = writePages[1] = fakeROM;
+                if (pagingLocked) {
+                    readPages[0] = Rom128k[2];
+                    readPages[1] = Rom128k[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+            case SPECTRUMPLUS2:
+                writePages[0] = writePages[1] = fakeROM;
+                if (pagingLocked) {
+                    readPages[0] = RomPlus2[2];
+                    readPages[1] = RomPlus2[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+            case SPECTRUMPLUS2A:
+            case SPECTRUMPLUS3:
+                writePages[0] = writePages[1] = fakeROM;
+                if (pagingLocked) {
+                    readPages[0] = RomPlus3[6];
+                    readPages[1] = RomPlus3[7];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+        }
+    }
+
+    public boolean isMultifacePaged() {
+        return mfPagedIn;
+    }
+
+    public void setMultifaceLocked(boolean state) {
+        mfLocked = state;
+    }
+
+    public boolean isMultifaceLocked() {
+        return mfLocked;
     }
 
     public void loadRoms() {
@@ -430,6 +594,12 @@ public final class Memory {
         if (!loadRomAsFile(romsDirectory + settings.getRomPlus33(), RomPlus3, 6, PAGE_SIZE * 2))
             loadRomAsResource("/roms/plus3-3.rom", RomPlus3, 6, PAGE_SIZE * 2);
 
+        if (!loadRomAsFile(romsDirectory + settings.getRomMF1(), mfROM, 0, PAGE_SIZE))
+            loadRomAsResource("/roms/mf1.rom", mfROM, 0, PAGE_SIZE);
+        if (!loadRomAsFile(romsDirectory + settings.getRomMF128(), mfROM, 1, PAGE_SIZE))
+            loadRomAsResource("/roms/mf128.rom", mfROM, 1, PAGE_SIZE);
+        if (!loadRomAsFile(romsDirectory + settings.getRomMFPlus3(), mfROM, 2, PAGE_SIZE))
+            loadRomAsResource("/roms/mfplus3.rom", mfROM, 2, PAGE_SIZE);
     }
 
     private boolean loadRomAsResource(String filename, byte[][] rom, int page, int size) {

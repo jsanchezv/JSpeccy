@@ -127,6 +127,13 @@ public final class AY8912 {
         reset();
     }
 
+    public void setMaxAmplitude(int amplitude) {
+        maxAmplitude = amplitude;
+        for (int idx = 0; idx < volumeLevel.length; idx++) {
+            volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
+        }
+    }
+
     public int getAddressLatch() {
         return addressLatch;
     }
@@ -335,6 +342,9 @@ public final class AY8912 {
     }
 
     public void endFrame() {
+        if (pbuf == 0)
+            return;
+
 //        System.out.println(String.format("endFrame: ticks = %d", ticks));
 //        double timePos;
         int pos0, pos1, pos2;

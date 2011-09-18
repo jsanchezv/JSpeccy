@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package machine;
 
 import java.util.TimerTask;
@@ -20,9 +19,14 @@ public class SpectrumTimer extends TimerTask {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
 
-        spectrum.generateFrame();
+        if (!spectrum.isFrameInProgress()) {
+            spectrum.generateFrame();
+            spectrum.drawFrame();
+        } else {
+            notifyAll();
+        }
 
     }
 }

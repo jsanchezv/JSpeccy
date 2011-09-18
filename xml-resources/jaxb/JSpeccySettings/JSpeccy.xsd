@@ -9,7 +9,7 @@
         <xsd:sequence>
             <xsd:element name="Issue2" default="false" type="xsd:boolean"/>
             <xsd:element name="AYEnabled48k" type="xsd:boolean" default="false"/>
-            <xsd:element name="soundEnabled" type="xsd:boolean" default="true"/>
+            <xsd:element name="mutedSound" type="xsd:boolean" default="false"/>
             <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
             <xsd:element name="ULAplus" type="xsd:boolean" default="false"/>
             <xsd:element name="defaultModel" default="1" form="qualified">
@@ -29,6 +29,7 @@
                 </xsd:simpleType>
             </xsd:element>
             <xsd:element name="doubleSize" type="xsd:boolean" default="false"/>
+            <xsd:element name="multifaceEnabled" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">
@@ -43,6 +44,9 @@
             <xsd:element name="RomPlus31" type="xsd:string" default="plus3-1.rom"/>
             <xsd:element name="RomPlus32" type="xsd:string" default="plus3-2.rom"/>
             <xsd:element name="RomPlus33" type="xsd:string" default="plus3-3.rom"/>
+            <xsd:element name="RomMF1" type="xsd:string" default="mf1.rom"/>
+            <xsd:element name="RomMF128" type="xsd:string" default="mf128.rom"/>
+            <xsd:element name="RomMFPlus3" type="xsd:string" default="mfplus3.rom"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="TapeType">
@@ -70,7 +74,7 @@
             <xsd:element name="soundMode" default="0">
                 <xsd:simpleType>
                     <xsd:restriction base="xsd:integer">
-                        <xsd:maxInclusive value="2"/>
+                        <xsd:maxInclusive value="3"/>
                         <xsd:minInclusive value="0"/>
                     </xsd:restriction>
                 </xsd:simpleType>

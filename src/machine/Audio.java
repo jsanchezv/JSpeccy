@@ -19,6 +19,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
+import configuration.AY8912Type;
 
 class Audio {
     static final int FREQ = 48000;
@@ -27,42 +28,56 @@ class Audio {
     private AudioFormat fmt;
     private SourceDataLine sdl;
     // Buffer de sonido para el frame actual, hay más espacio del necesario.
-    private final byte[] buf = new byte[2048];
+    private final byte[] buf = new byte[4096];
+    private final int[] beeper = new int[2048];
     // Un frame completo lleno de ceros para enviarlo como aperitivo.
-    private final int[] beeper = new int[965];
-    private final byte[] nullbuf = new byte[1920];
+    private final byte[] nullbuf = new byte[3840];
     // Buffer de sonido para el AY
-    private final int[] ayBufA = new int[965];
-    private final int[] ayBufB = new int[965];
-    private final int[] ayBufC = new int[965];
+    private final int[] ayBufA = new int[2048];
+    private final int[] ayBufB = new int[2048];
+    private final int[] ayBufC = new int[2048];
     private int bufp;
     private int level;
     private int audiotstates;
+    private int soundMode;
     private float timeRem, spf;
 //    private AY8912 ay;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
+    private AY8912Type settings;
 
-    Audio() {
-        try {
-            fmt = new AudioFormat(FREQ, 16, 1, true, false);
-            System.out.println(fmt);
-            infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
-            sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-            line = null;
-            java.util.Arrays.fill(nullbuf, (byte)0);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+    Audio(AY8912Type ayConf) {
+       settings = ayConf;
+       line = null;
+       java.util.Arrays.fill(nullbuf, (byte) 0);
     }
     
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY) {
-        spectrumModel = model;
-        enabledAY = hasAY;
-        timeRem = (float) 0.0;
-        spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
-        audiotstates = bufp = level = 0;
         if (line == null) {
+            try {
+                soundMode = settings.getSoundMode();
+                if (soundMode < 0 || soundMode > 3)
+                    soundMode = 0;
+
+                int channels =  soundMode > 0 ? 2 : 1;
+                fmt = new AudioFormat(FREQ, 16, channels, true, false);
+//                System.out.println(fmt);
+                infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
+                sdl = (SourceDataLine) AudioSystem.getLine(infoDataLine);
+            } catch (Exception excpt) {
+                Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, excpt);
+            }
+            spectrumModel = model;
+            enabledAY = hasAY;
+            timeRem = (float) 0.0;
+            spf = (float) spectrumModel.getTstatesFrame() / (FREQ / 50);
+            audiotstates = bufp = level = 0;
+            if (soundMode > 0) {
+                ay8912.setMaxAmplitude(11000);
+            } else {
+                ay8912.setMaxAmplitude(7000);
+            }
+
             try {
                 sdl.open(fmt, nullbuf.length * 2); // Espacio para dos frames
                 // No se llama al método start hasta tener el primer buffer
@@ -75,8 +90,15 @@ class Audio {
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
             ay8912.setSpectrumModel(spectrumModel);
             ay8912.reset();
-        } else {
-            System.out.println("Error!, ya está abierto!");
+        }
+    }
+
+    synchronized void close() {
+        if (line != null) {
+            line.stop();
+            line.flush();
+            line.close();
+            line = null;
         }
     }
 
@@ -134,6 +156,33 @@ class Audio {
     }
 
     public void endFrame() {
+
+        if (bufp == 0)
+            return;
+
+        int ptr = 0;
+
+        switch (soundMode) {
+            case 1: // Stereo ABC
+                ptr = endFrameStereoABC();
+                break;
+            case 2: // Stereo ACB
+                ptr = endFrameStereoACB();
+                break;
+            case 3:
+                ptr = endFrameStereoBAC();
+                break;
+            default:
+                ptr = endFrameMono();
+        }
+
+        flushBuffer(ptr);
+        bufp = 0;
+        audiotstates -= spectrumModel.tstatesFrame;
+    }
+
+    private int endFrameMono() {
+
         int ptr = 0;
 //        int ayCnt = ay.getSampleCount();
 //        System.out.println(String.format("BeeperChg %d", beeperChg));
@@ -142,7 +191,7 @@ class Audio {
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
         if (enabledAY) {
-            int sample;
+            int sample = 0;
             for (int idx = 0; idx < bufp; idx++) {
                 sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
                 buf[ptr++] = (byte) sample;
@@ -156,7 +205,6 @@ class Audio {
                 buf[ptr++] = (byte)(sample >>> 8);
             }
         } else {
-            byte lsb, msb;
             for (int idx = 0; idx < bufp; idx++) {
                 buf[ptr++] = (byte) beeper[idx];
                 buf[ptr++] = (byte) (beeper[idx] >>> 8);
@@ -164,24 +212,176 @@ class Audio {
             // Si el frame se ha quedado corto de una punta, rellenarlo
             // Copiamos el último sample del beeper
             if (ptr == 1918) {
-                lsb = (byte) beeper[958];
-                msb = (byte) (beeper[958] >>> 8);
-                buf[ptr++] = (byte) lsb;
-                buf[ptr++] = (byte) msb;
+                buf[ptr++] = (byte) beeper[958];
+                buf[ptr++] = (byte) (beeper[958] >>> 8);
             }
         }
-        flushBuffer(ptr);
-        bufp = 0;
-        audiotstates -= spectrumModel.tstatesFrame;
+        return ptr;
     }
 
-    synchronized void close() {
-        if (line != null) {
-            line.stop();
-            line.flush();
-            line.close();
-            line = null;
+    private int endFrameStereoABC() {
+
+        int ptr = 0;
+//        int ayCnt = ay.getSampleCount();
+//        System.out.println(String.format("BeeperChg %d", beeperChg));
+
+        // El código está repetido, lo que es correcto. Si no se hace así habría
+        // que meter la comprobación de enabledAY dentro del bucle, lo que
+        // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        byte lsb, msb;
+        if (enabledAY) {
+            int sampleL = 0, sampleR = 0, center = 0;
+            for (int idx = 0; idx < bufp; idx++) {
+                center = (int)(ayBufB[idx] * 0.7);
+                sampleL = beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3;
+                sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            if (ptr == 3836) {
+                center = (int)(ayBufB[959] * 0.7);
+                sampleL = beeper[958] + ayBufA[959] + center + ayBufC[959] / 3;
+                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufC[959];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+        } else {
+            for (int idx = 0; idx < bufp; idx++) {
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper
+            if (ptr == 3836) {
+                lsb = (byte) beeper[958];
+                msb = (byte) (beeper[958] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
         }
+        return ptr;
+    }
+
+    private int endFrameStereoACB() {
+
+        int ptr = 0;
+//        int ayCnt = ay.getSampleCount();
+//        System.out.println(String.format("BeeperChg %d", beeperChg));
+
+        // El código está repetido, lo que es correcto. Si no se hace así habría
+        // que meter la comprobación de enabledAY dentro del bucle, lo que
+        // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        byte lsb, msb;
+        if (enabledAY) {
+            int sampleL = 0, sampleR = 0, center = 0;
+            for (int idx = 0; idx < bufp; idx++) {
+                center = (int)(ayBufC[idx] * 0.7);
+                sampleL = beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3;
+                sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            if (ptr == 3836) {
+                center = (int)(ayBufC[959] * 0.7);
+                sampleL = beeper[958] + ayBufA[959] + center + ayBufB[959] / 3;
+                sampleR = beeper[958] + ayBufA[959] / 3 + center + ayBufB[959];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+        } else {
+            for (int idx = 0; idx < bufp; idx++) {
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper
+            if (ptr == 3836) {
+                lsb = (byte) beeper[958];
+                msb = (byte) (beeper[958] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
+        }
+        return ptr;
+    }
+
+    private int endFrameStereoBAC() {
+
+        int ptr = 0;
+//        int ayCnt = ay.getSampleCount();
+//        System.out.println(String.format("BeeperChg %d", beeperChg));
+
+        // El código está repetido, lo que es correcto. Si no se hace así habría
+        // que meter la comprobación de enabledAY dentro del bucle, lo que
+        // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        byte lsb, msb;
+        if (enabledAY) {
+            int sampleL = 0, sampleR = 0, center = 0;
+            for (int idx = 0; idx < bufp; idx++) {
+                center = (int)(ayBufA[idx] * 0.7);
+                sampleL = beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3;
+                sampleR = beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper y el último sample actualizado del AY
+            if (ptr == 3836) {
+                center = (int)(ayBufA[959] * 0.7);
+                sampleL = beeper[958] + ayBufB[959] + center + ayBufC[959] / 3;
+                sampleR = beeper[958] + ayBufB[959] / 3 + center + ayBufC[959];
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
+            }
+        } else {
+            for (int idx = 0; idx < bufp; idx++) {
+                lsb = (byte) beeper[idx];
+                msb = (byte) (beeper[idx] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
+            // Si el frame se ha quedado corto de una punta, rellenarlo
+            // Copiamos el último sample del beeper
+            if (ptr == 3836) {
+                lsb = (byte) beeper[958];
+                msb = (byte) (beeper[958] >>> 8);
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+            }
+        }
+        return ptr;
     }
 
     public void reset() {

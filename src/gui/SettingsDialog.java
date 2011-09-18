@@ -46,7 +46,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         spectrumModel.setSelectedIndex(settings.getSpectrumSettings().getDefaultModel());
 
-        enabledSound.setSelected(settings.getSpectrumSettings().isSoundEnabled());
+        soundMuted.setSelected(settings.getSpectrumSettings().isMutedSound());
 
         loadingNoise.setSelected(settings.getSpectrumSettings().isLoadingNoise());
 
@@ -76,6 +76,22 @@ public class SettingsDialog extends javax.swing.JPanel {
         } else {
             lowSampling.setSelected(true);
         }
+
+        switch (settings.getAY8912Settings().getSoundMode()) {
+            case 1: // Stereo ABC
+                AYABCMode.setSelected(true);
+                break;
+            case 2: // Stereo ACB
+                AYACBMode.setSelected(true);
+                break;
+            case 3: // Stereo BAC
+                AYBACMode.setSelected(true);
+                break;
+            default:
+                AYMonoMode.setSelected(true);
+        }
+
+        multifaceEnabled.setSelected(settings.getSpectrumSettings().isMultifaceEnabled());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -110,7 +126,8 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboardButtonGroup = new javax.swing.ButtonGroup();
         samplingButtonGroup = new javax.swing.ButtonGroup();
-        jPanel1 = new javax.swing.JPanel();
+        AYStereoModeButtonGroup = new javax.swing.ButtonGroup();
+        buttonPanel = new javax.swing.JPanel();
         saveSettingsButton = new javax.swing.JButton();
         closeButton = new javax.swing.JButton();
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -122,10 +139,20 @@ public class SettingsDialog extends javax.swing.JPanel {
         doubleSize = new javax.swing.JCheckBox();
         highSpeedPanel = new javax.swing.JPanel();
         speed = new javax.swing.JSlider();
+        multifacePanel = new javax.swing.JPanel();
+        multifaceEnabled = new javax.swing.JCheckBox();
         soundPanel = new javax.swing.JPanel();
-        enabledSound = new javax.swing.JCheckBox();
+        audioPanel = new javax.swing.JPanel();
+        soundMuted = new javax.swing.JCheckBox();
         loadingNoise = new javax.swing.JCheckBox();
+        AY8912Panel = new javax.swing.JPanel();
+        AYEnabled48k = new javax.swing.JPanel();
         enabledAY48k = new javax.swing.JCheckBox();
+        AYStereoMode = new javax.swing.JPanel();
+        AYMonoMode = new javax.swing.JRadioButton();
+        AYABCMode = new javax.swing.JRadioButton();
+        AYACBMode = new javax.swing.JRadioButton();
+        AYBACMode = new javax.swing.JRadioButton();
         tapePanel = new javax.swing.JPanel();
         loadPanel = new javax.swing.JPanel();
         flashload = new javax.swing.JCheckBox();
@@ -154,7 +181,7 @@ public class SettingsDialog extends javax.swing.JPanel {
                 saveSettingsButtonActionPerformed(evt);
             }
         });
-        jPanel1.add(saveSettingsButton);
+        buttonPanel.add(saveSettingsButton);
 
         closeButton.setText(bundle.getString("CLOSE")); // NOI18N
         closeButton.addActionListener(new java.awt.event.ActionListener() {
@@ -162,9 +189,9 @@ public class SettingsDialog extends javax.swing.JPanel {
                 closeButtonActionPerformed(evt);
             }
         });
-        jPanel1.add(closeButton);
+        buttonPanel.add(closeButton);
 
-        add(jPanel1, java.awt.BorderLayout.PAGE_END);
+        add(buttonPanel, java.awt.BorderLayout.PAGE_END);
 
         hardwarePanel.setLayout(new javax.swing.BoxLayout(hardwarePanel, javax.swing.BoxLayout.PAGE_AXIS));
 
@@ -181,6 +208,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         hardwarePanel.add(defaultModelPanel);
 
         videoPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
+        videoPanel.setLayout(new java.awt.GridLayout(2, 0));
 
         ULAplus.setText(bundle.getString("SettingsDialog.hardwarePanel.ULAplus.text")); // NOI18N
         ULAplus.addActionListener(new java.awt.event.ActionListener() {
@@ -218,17 +246,32 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         hardwarePanel.add(highSpeedPanel);
 
-        jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanel); // NOI18N
+        multifacePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.MultifacePanel.border.text"))); // NOI18N
 
-        soundPanel.setLayout(new javax.swing.BoxLayout(soundPanel, javax.swing.BoxLayout.PAGE_AXIS));
-
-        enabledSound.setText(bundle.getString("SettingsDialog.soundPanel.enabledSound.text")); // NOI18N
-        enabledSound.addActionListener(new java.awt.event.ActionListener() {
+        multifaceEnabled.setText(bundle.getString("SettingsDialog.multifacePanel.enabled.text")); // NOI18N
+        multifaceEnabled.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                enabledSoundActionPerformed(evt);
+                multifaceEnabledActionPerformed(evt);
             }
         });
-        soundPanel.add(enabledSound);
+        multifacePanel.add(multifaceEnabled);
+
+        hardwarePanel.add(multifacePanel);
+
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanel); // NOI18N
+
+        soundPanel.setLayout(new java.awt.GridLayout(2, 0));
+
+        audioPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.audioPanel.border.text"))); // NOI18N
+        audioPanel.setLayout(new javax.swing.BoxLayout(audioPanel, javax.swing.BoxLayout.PAGE_AXIS));
+
+        soundMuted.setText(bundle.getString("SettingsDialog.soundPanel.soundMuted.text")); // NOI18N
+        soundMuted.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                soundMutedActionPerformed(evt);
+            }
+        });
+        audioPanel.add(soundMuted);
 
         loadingNoise.setText(bundle.getString("SettingsDialog.soundPanel.loadingNoise.text")); // NOI18N
         loadingNoise.addActionListener(new java.awt.event.ActionListener() {
@@ -236,7 +279,14 @@ public class SettingsDialog extends javax.swing.JPanel {
                 loadingNoiseActionPerformed(evt);
             }
         });
-        soundPanel.add(loadingNoise);
+        audioPanel.add(loadingNoise);
+
+        soundPanel.add(audioPanel);
+
+        AY8912Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.AY8912Panel.border.text"))); // NOI18N
+        AY8912Panel.setLayout(new java.awt.GridLayout(1, 2));
+
+        AYEnabled48k.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.AYEnabled48kPanel.border.text"))); // NOI18N
 
         enabledAY48k.setText(bundle.getString("SettingsDialog.soundPanel.enabledAY48k.text")); // NOI18N
         enabledAY48k.addActionListener(new java.awt.event.ActionListener() {
@@ -244,11 +294,57 @@ public class SettingsDialog extends javax.swing.JPanel {
                 enabledAY48kActionPerformed(evt);
             }
         });
-        soundPanel.add(enabledAY48k);
+        AYEnabled48k.add(enabledAY48k);
+
+        AY8912Panel.add(AYEnabled48k);
+
+        AYStereoMode.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.AYStereoMode.border.text"))); // NOI18N
+        AYStereoMode.setLayout(new java.awt.GridLayout(4, 0));
+
+        AYStereoModeButtonGroup.add(AYMonoMode);
+        AYMonoMode.setSelected(true);
+        AYMonoMode.setText(bundle.getString("SettingsDialog.AYMonoMode.RadioButton.text")); // NOI18N
+        AYMonoMode.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AYMonoModeActionPerformed(evt);
+            }
+        });
+        AYStereoMode.add(AYMonoMode);
+
+        AYStereoModeButtonGroup.add(AYABCMode);
+        AYABCMode.setText(bundle.getString("SettingsDialog.AYABCMode.RadioButton.text")); // NOI18N
+        AYABCMode.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AYABCModeActionPerformed(evt);
+            }
+        });
+        AYStereoMode.add(AYABCMode);
+
+        AYStereoModeButtonGroup.add(AYACBMode);
+        AYACBMode.setText(bundle.getString("SettingsDialog.AYACBMode.RadioButton.text")); // NOI18N
+        AYACBMode.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AYACBModeActionPerformed(evt);
+            }
+        });
+        AYStereoMode.add(AYACBMode);
+
+        AYStereoModeButtonGroup.add(AYBACMode);
+        AYBACMode.setText(bundle.getString("SettingsDialog.AYBACMode.RadioButton.text")); // NOI18N
+        AYBACMode.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AYBACModeActionPerformed(evt);
+            }
+        });
+        AYStereoMode.add(AYBACMode);
+
+        AY8912Panel.add(AYStereoMode);
+
+        soundPanel.add(AY8912Panel);
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.soundPanel.TabTitle"), soundPanel); // NOI18N
 
-        tapePanel.setLayout(new java.awt.GridLayout(2, 1));
+        tapePanel.setLayout(new java.awt.GridLayout(2, 0));
 
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
         loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
@@ -413,9 +509,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_saveSettingsButtonActionPerformed
 
-    private void enabledSoundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enabledSoundActionPerformed
-        settings.getSpectrumSettings().setSoundEnabled(enabledSound.isSelected());
-    }//GEN-LAST:event_enabledSoundActionPerformed
+    private void soundMutedActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_soundMutedActionPerformed
+        settings.getSpectrumSettings().setMutedSound(soundMuted.isSelected());
+    }//GEN-LAST:event_soundMutedActionPerformed
 
     private void loadingNoiseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadingNoiseActionPerformed
         settings.getSpectrumSettings().setLoadingNoise(loadingNoise.isSelected());
@@ -449,16 +545,45 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getTapeSettings().setHighSamplingFreq(true);
     }//GEN-LAST:event_highSamplingActionPerformed
 
+    private void AYMonoModeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AYMonoModeActionPerformed
+        settings.getAY8912Settings().setSoundMode(0);
+    }//GEN-LAST:event_AYMonoModeActionPerformed
+
+    private void AYABCModeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AYABCModeActionPerformed
+        settings.getAY8912Settings().setSoundMode(1);
+    }//GEN-LAST:event_AYABCModeActionPerformed
+
+    private void AYACBModeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AYACBModeActionPerformed
+        settings.getAY8912Settings().setSoundMode(2);
+    }//GEN-LAST:event_AYACBModeActionPerformed
+
+    private void AYBACModeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AYBACModeActionPerformed
+        settings.getAY8912Settings().setSoundMode(3);
+    }//GEN-LAST:event_AYBACModeActionPerformed
+
+    private void multifaceEnabledActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_multifaceEnabledActionPerformed
+        settings.getSpectrumSettings().setMultifaceEnabled(multifaceEnabled.isSelected());
+    }//GEN-LAST:event_multifaceEnabledActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel AY8912Panel;
+    private javax.swing.JRadioButton AYABCMode;
+    private javax.swing.JRadioButton AYACBMode;
+    private javax.swing.JRadioButton AYBACMode;
+    private javax.swing.JPanel AYEnabled48k;
+    private javax.swing.JRadioButton AYMonoMode;
+    private javax.swing.JPanel AYStereoMode;
+    private javax.swing.ButtonGroup AYStereoModeButtonGroup;
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
+    private javax.swing.JPanel audioPanel;
+    private javax.swing.JPanel buttonPanel;
     private javax.swing.JButton closeButton;
     private javax.swing.JPanel defaultModelPanel;
     private javax.swing.JCheckBox doubleSize;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
-    private javax.swing.JCheckBox enabledSound;
     private javax.swing.JCheckBox flashload;
     private javax.swing.JPanel hardwarePanel;
     private javax.swing.JRadioButton highSampling;
@@ -466,7 +591,6 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JTabbedPane jTabbedPane1;
@@ -478,10 +602,13 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
     private javax.swing.JRadioButton lowSampling;
+    private javax.swing.JCheckBox multifaceEnabled;
+    private javax.swing.JPanel multifacePanel;
     private javax.swing.ButtonGroup samplingButtonGroup;
     private javax.swing.JPanel samplingPanel;
     private javax.swing.JPanel savePanel;
     private javax.swing.JButton saveSettingsButton;
+    private javax.swing.JCheckBox soundMuted;
     private javax.swing.JPanel soundPanel;
     private javax.swing.JComboBox spectrumModel;
     private javax.swing.JSlider speed;

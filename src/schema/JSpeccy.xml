@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 9 de septiembre de 2010, 14:24
+    Created on : 12 de septiembre de 2010, 21:49
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -14,12 +14,13 @@
     <ns0:SpectrumSettings>
         <ns0:Issue2>false</ns0:Issue2>
         <ns0:AYEnabled48k>false</ns0:AYEnabled48k>
-        <ns0:soundEnabled>true</ns0:soundEnabled>
+        <ns0:mutedSound>false</ns0:mutedSound>
         <ns0:loadingNoise>true</ns0:loadingNoise>
         <ns0:ULAplus>false</ns0:ULAplus>
         <ns0:defaultModel>1</ns0:defaultModel>
         <ns0:framesInt>2</ns0:framesInt>
         <ns0:doubleSize>false</ns0:doubleSize>
+        <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>
@@ -32,6 +33,9 @@
         <ns0:RomPlus31>plus3-1.rom</ns0:RomPlus31>
         <ns0:RomPlus32>plus3-2.rom</ns0:RomPlus32>
         <ns0:RomPlus33>plus3-3.rom</ns0:RomPlus33>
+        <ns0:RomMF1>mf1.rom</ns0:RomMF1>
+        <ns0:RomMF128>mf128.rom</ns0:RomMF128>
+        <ns0:RomMFPlus3>mfplus3.rom</ns0:RomMFPlus3>
     </ns0:MemorySettings>
     <ns0:TapeSettings>
         <ns0:flashload>true</ns0:flashload>
