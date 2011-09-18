@@ -852,18 +852,24 @@ public final class Memory {
                 return false;
             }
 
-            if (fIn.available() != 0x4000)
+            if (fIn.available() > 0x4000)
+                return false;
+
+            Arrays.fill(IF2Rom[0], (byte)0xff);
+            Arrays.fill(IF2Rom[1], (byte)0xff);
+            int readed = fIn.read(IF2Rom[0], 0, 0x2000);
+            if (readed == -1)
                 return false;
             
-            int readed = fIn.read(IF2Rom[0]);
-            if (readed != 0x2000) {
-                return false;
+            if (readed < 0x2000) {
+                return true;
             }
 
-            readed = fIn.read(IF2Rom[1]);
-            if (readed != 0x2000) {
+            if (fIn.available() > 0 )
+                readed = fIn.read(IF2Rom[1], 0, 0x2000);
+
+            if (readed == -1)
                 return false;
-            }
 
         } catch (IOException ex) {
             Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);

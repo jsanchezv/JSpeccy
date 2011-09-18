@@ -8,6 +8,13 @@
  * les da igual, excepto a los juegos de The Edge con su propia protección,
  * como "Starbike", "Brian Bloodaxe" y "That's the Spirit" que no cargan justamente
  * por eso. Debería ser algo seleccionado por el usuario.
+ *
+ * 21/01/2011 El problema del "Basil, the Great Mouse Detective" y del "MASK"
+ * ha sido solucionado en el tratamiento de los Turbo Data Block sin afectar a
+ * los juegos de The Edge. El único que sigue dando problemillas para cargar
+ * es el "Lone Wolf 3", pero da la impresión de que la rutina de carga reiniciable
+ * que usa es muy sensible y suele dar problemas en todos los emuladores que he
+ * probado. Con un poco de paciencia, acaba por cargar. :)
  * 
  */
 package utilities;
@@ -620,7 +627,6 @@ public class Tape {
         statePlay = State.START;
         tapePos = offsetBlocks[idxHeader];
         timeLastIn = 0;
-        earBit = 0xbf;
         cpu.setExecDone(true);
         updateTapeIcon();
         tapeNotify.tapeStart();
@@ -699,7 +705,8 @@ public class Tape {
                 tapePos += 2;
 //                System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-                earBit = 0xbf;
+//                earBit = 0xbf;
+                earBit = earBit == 0xbf ? 0xff : 0xbf;
                 timeout = LEADER_LENGHT;
                 statePlay = State.LEADER;
                 break;
@@ -1110,10 +1117,11 @@ public class Tape {
                         + (tapeBuffer[tapePos + 18] << 16);
                     tapePos += 19;
                     timeout = leaderLenght;
-                    statePlay = State.LEADER_NOCHG;
+                    // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
+                    // Así cargan los juegos problemáticos indicados en la cabecera
+                    statePlay = State.LEADER;
                     idxHeader++;
                     repeat = false;
-                    //earBit = 0xff; // ver nota en la cabecera
                     break;
                 case 0x12: // Pure Tone Block
                     leaderLenght = (tapeBuffer[tapePos + 1]
