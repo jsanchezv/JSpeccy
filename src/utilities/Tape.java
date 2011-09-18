@@ -68,6 +68,9 @@ public class Tape {
     };
     private State statePlay;
     private int earBit;
+    private static final int EAR_OFF = 0xbf;
+    private static final int EAR_ON = 0xbf;
+    private static final int EAR_MASK = 0x40;
     private long timeout;
     private long timeLastIn;
 //    private boolean fastload;
@@ -109,7 +112,7 @@ public class Tape {
         flashload = settings.isFlashload();
         tapePos = 0;
         timeout = timeLastIn = 0;
-        earBit = 0xbf;
+        earBit = EAR_OFF;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
         nOffsetBlocks = 0;
@@ -581,7 +584,7 @@ public class Tape {
     }
 
     public void setEarBit(boolean earValue) {
-        earBit = earValue ? 0xff : 0xbf;
+        earBit = earValue ? EAR_ON : EAR_OFF;
     }
 
     public boolean isTapePlaying() {
@@ -591,9 +594,6 @@ public class Tape {
     public boolean isTapeRecording() {
         return tapeRecording;
     }
-//    public boolean isStopped() {
-//        return !tapePlaying;
-//    }
 
     public boolean isFlashLoad() {
         return flashload;
@@ -706,13 +706,12 @@ public class Tape {
                 tapePos += 2;
 //                System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-//                earBit = 0xbf;
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 timeout = LEADER_LENGHT;
                 statePlay = State.LEADER;
                 break;
             case LEADER:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 if (--leaderPulses > 0) {
                     timeout = LEADER_LENGHT;
                     break;
@@ -721,14 +720,14 @@ public class Tape {
                 statePlay = State.SYNC;
                 break;
             case SYNC:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 timeout = SYNC2_LENGHT;
                 statePlay = State.NEWBYTE;
                 break;
             case NEWBYTE:
                 mask = 0x80; // se empieza por el bit 7
             case NEWBIT:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 if ((tapeBuffer[tapePos] & mask) == 0) {
                     bitTime = ZERO_LENGHT;
                 } else {
@@ -738,7 +737,7 @@ public class Tape {
                 statePlay = State.HALF2;
                 break;
             case HALF2:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 timeout = bitTime;
                 mask >>>= 1;
                 if (mask == 0) {
@@ -753,7 +752,7 @@ public class Tape {
                 }
                 break;
             case PAUSE:
-                earBit = earBit == 0xbf ? 0xff : 0xbf;
+                earBit ^= EAR_MASK;
                 timeout = END_BLOCK_PAUSE; // 1 seg. pausa
                 statePlay = State.PAUSE_STOP;
 //                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
@@ -913,7 +912,7 @@ public class Tape {
                     repeat = true;
                     break;
                 case LEADER:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                 case LEADER_NOCHG:
                     if (--leaderPulses != 0) {
                         timeout = leaderLenght;
@@ -924,18 +923,18 @@ public class Tape {
                     statePlay = State.SYNC;
                     break;
                 case SYNC:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                     timeout = sync2Lenght;
                     statePlay = State.NEWBYTE;
                     break;
                 case NEWBYTE_NOCHG:
                     // este cambio es para que se deshaga al entrar en el case
                     // de NEWBIT.
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                 case NEWBYTE:
                     mask = 0x80; // se empieza por el bit 7
                 case NEWBIT:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                     if ((tapeBuffer[tapePos] & mask) == 0) {
                         bitTime = zeroLenght;
                     } else {
@@ -945,7 +944,7 @@ public class Tape {
                     statePlay = State.HALF2;
                     break;
                 case HALF2:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                     timeout = bitTime;
                     mask >>>= 1;
                     if (blockLen == 1 && bitsLastByte < 8) {
@@ -971,7 +970,7 @@ public class Tape {
                     }
                     break;
                 case PAUSE:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                     statePlay = State.TZX_HEADER;
                     if (endBlockPause == 0) {
                         repeat = true;
@@ -982,7 +981,6 @@ public class Tape {
                 case TZX_HEADER:
                     if (idxHeader == nOffsetBlocks) {
 //                        System.out.println(String.format("Last Ear: %02x", earBit));
-                        //earBit = earBit == 0xbf ? 0xff : 0xbf;
                         statePlay = State.STOP;
                         idxHeader = 0;
                         repeat = true;
@@ -991,7 +989,7 @@ public class Tape {
                     decodeTzxHeader();
                     break;
                 case PURE_TONE:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                 case PURE_TONE_NOCHG:
                     if (leaderPulses-- != 0) {
                         timeout = leaderLenght;
@@ -1002,7 +1000,7 @@ public class Tape {
                     repeat = true;
                     break;
                 case PULSE_SEQUENCE:
-                    earBit = earBit == 0xbf ? 0xff : 0xbf;
+                    earBit ^= EAR_MASK;
                 case PULSE_SEQUENCE_NOCHG:
                     if (leaderPulses-- != 0) {
                         timeout = (tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8));
@@ -1017,9 +1015,9 @@ public class Tape {
                     mask = 0x80;
                 case NEWDR_BIT:
                     if ((tapeBuffer[tapePos] & mask) == 0) {
-                        earBit = 0xbf;
+                        earBit = EAR_OFF;
                     } else {
-                        earBit = 0xff;
+                        earBit = EAR_ON;
                     }
                     timeout = zeroLenght;
                     mask >>>= 1;
@@ -1195,7 +1193,8 @@ public class Tape {
                     idxHeader++;
                     break;
                 case 0x23: // Jump to Block
-                    short target = (short)(tapeBuffer[tapePos + 1] + (tapeBuffer[tapePos + 2] << 8));
+                    short target = (short)(tapeBuffer[tapePos + 1] +
+                        (tapeBuffer[tapePos + 2] << 8));
                     idxHeader += target;
                     break;
                 case 0x24: // Loop Start
@@ -1226,7 +1225,7 @@ public class Tape {
                     idxHeader++;
                     break;
                 case 0x2B: // Set Signal Level
-                    earBit = tapeBuffer[tapePos + 5] == 0 ? 0xbf : 0xff;
+                    earBit = tapeBuffer[tapePos + 5] == 0 ? EAR_OFF : EAR_ON;
                     idxHeader++;
                     break;
                 case 0x30: // Text Description
