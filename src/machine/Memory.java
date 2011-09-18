@@ -84,15 +84,10 @@ public final class Memory {
 
     private void setMemoryMap48k() {
         readPages[0] = Rom48k;
-        readPages[1] = Ram[5];
-        readPages[2] = Ram[2];
-        readPages[3] = Ram[0];
-
         writePages[0] = fakeROM;
-        writePages[1] = Ram[5];
-        writePages[2] = Ram[2];
-        writePages[3] = Ram[0];
-
+        readPages[1] = writePages[1] = Ram[5];
+        readPages[2] = writePages[2] = Ram[2];
+        readPages[3] = writePages[3] = Ram[0];
         screenPage = 5;
         model128k = false;
     }
@@ -194,53 +189,45 @@ public final class Memory {
 
             readPages[0] = RomPlus3[rom];
             writePages[0] = fakeROM;
-            plus3RamMode = false;
+            // Si estamos en Plus3RamMode es que estamos saliendo del modo
+            // "all RAM" y hay que reponer las páginas a su lugar
+            if (plus3RamMode) {
+                readPages[1] = writePages[1] = Ram[5];
+                readPages[2] = writePages[2] = Ram[2];
+                highPage = bankM & 0x07;
+                readPages[3] = writePages[3] = Ram[highPage];
+                plus3RamMode = false;
+            }
         } else {
-            // Special paging mode (all pages are RAM)
+            // Special paging mode (all pages are RAM (bit0 of 0x1ffd to 1))
             plus3RamMode = true;
-            switch ((bankP & 0x06) >>> 1) {
+            switch (bankP & 0x06) {
                 case 0:
-                    readPages[0] = Ram[0];
-                    writePages[0] = Ram[0];
-                    readPages[1] = Ram[1];
-                    writePages[1] = Ram[1];
-                    readPages[2] = Ram[2];
-                    writePages[2] = Ram[2];
-                    readPages[3] = Ram[3];
-                    writePages[3] = Ram[3];
+                    readPages[0] = writePages[0] = Ram[0];
+                    readPages[1] = writePages[1] = Ram[1];
+                    readPages[2] = writePages[2] = Ram[2];
+                    readPages[3] = writePages[3] = Ram[3];
                     highPage = 3;
-                    break;
-                case 1:
-                    readPages[0] = Ram[4];
-                    writePages[0] = Ram[4];
-                    readPages[1] = Ram[5];
-                    writePages[1] = Ram[5];
-                    readPages[2] = Ram[6];
-                    writePages[2] = Ram[6];
-                    readPages[3] = Ram[7];
-                    writePages[3] = Ram[7];
-                    highPage = 7;
                     break;
                 case 2:
-                    readPages[0] = Ram[4];
-                    writePages[0] = Ram[4];
-                    readPages[1] = Ram[5];
-                    writePages[1] = Ram[5];
-                    readPages[2] = Ram[6];
-                    writePages[2] = Ram[6];
-                    readPages[3] = Ram[3];
-                    writePages[3] = Ram[3];
+                    readPages[0] = writePages[0] = Ram[4];
+                    readPages[1] = writePages[1] = Ram[5];
+                    readPages[2] = writePages[2] = Ram[6];
+                    readPages[3] = writePages[3] = Ram[7];
+                    highPage = 7;
+                    break;
+                case 4:
+                    readPages[0] = writePages[0] = Ram[4];
+                    readPages[1] = writePages[1] = Ram[5];
+                    readPages[2] = writePages[2] = Ram[6];
+                    readPages[3] = writePages[3] = Ram[3];
                     highPage = 3;
                     break;
-                case 3:
-                    readPages[0] = Ram[4];
-                    writePages[0] = Ram[4];
-                    readPages[1] = Ram[7];
-                    writePages[1] = Ram[7];
-                    readPages[2] = Ram[6];
-                    writePages[2] = Ram[6];
-                    readPages[3] = Ram[3];
-                    writePages[3] = Ram[3];
+                case 6:
+                    readPages[0] = writePages[0] = Ram[4];
+                    readPages[1] = writePages[1] = Ram[7];
+                    readPages[2] = writePages[2] = Ram[6];
+                    readPages[3] = writePages[3] = Ram[3];
                     highPage = 3;
                     break;
             }

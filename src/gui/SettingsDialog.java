@@ -14,8 +14,16 @@ package gui;
 import configuration.*;
 import java.awt.Component;
 import java.awt.Frame;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JDialog;
 import javax.swing.SwingUtilities;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBElement;
 
 /**
  *
@@ -51,6 +59,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         enabledAY48k.setSelected(settings.getSpectrumSettings().isAYEnabled48K());
 
         speed.setValue(settings.getSpectrumSettings().getFramesInt());
+
+        doubleSize.setSelected(settings.getSpectrumSettings().isDoubleSize());
 
         if (settings.getSpectrumSettings().isIssue2()) {
             issue2.setSelected(true);
@@ -90,44 +100,58 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         buttonGroup1 = new javax.swing.ButtonGroup();
         jPanel1 = new javax.swing.JPanel();
-        jButton1 = new javax.swing.JButton();
+        saveSettingsButton = new javax.swing.JButton();
+        closeButton = new javax.swing.JButton();
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel2 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
+        hardwarePanel = new javax.swing.JPanel();
+        defaultModelPanel = new javax.swing.JPanel();
         spectrumModel = new javax.swing.JComboBox();
-        jPanel4 = new javax.swing.JPanel();
+        videoPanel = new javax.swing.JPanel();
         ULAplus = new javax.swing.JCheckBox();
-        jPanel6 = new javax.swing.JPanel();
+        doubleSize = new javax.swing.JCheckBox();
+        highSpeedPanel = new javax.swing.JPanel();
         speed = new javax.swing.JSlider();
-        jPanel5 = new javax.swing.JPanel();
+        soundPanel = new javax.swing.JPanel();
         enabledSound = new javax.swing.JCheckBox();
         loadingNoise = new javax.swing.JCheckBox();
         enabledAY48k = new javax.swing.JCheckBox();
-        jPanel7 = new javax.swing.JPanel();
+        tapePanel = new javax.swing.JPanel();
         flashload = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
-        jPanel8 = new javax.swing.JPanel();
-        jPanel9 = new javax.swing.JPanel();
+        keyboardPanel = new javax.swing.JPanel();
+        keyboard48kPanel = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
         issue2 = new javax.swing.JRadioButton();
         issue3 = new javax.swing.JRadioButton();
-        jPanel10 = new javax.swing.JPanel();
+        joystickPanel = new javax.swing.JPanel();
         joystick = new javax.swing.JComboBox();
 
         setLayout(new java.awt.BorderLayout());
 
-        jButton1.setText("Close");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        saveSettingsButton.setText(bundle.getString("SettingsDialog.saveSettingsButton.text")); // NOI18N
+        saveSettingsButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                saveSettingsButtonActionPerformed(evt);
             }
         });
-        jPanel1.add(jButton1);
+        jPanel1.add(saveSettingsButton);
+
+        closeButton.setText(bundle.getString("CLOSE")); // NOI18N
+        closeButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                closeButtonActionPerformed(evt);
+            }
+        });
+        jPanel1.add(closeButton);
 
         add(jPanel1, java.awt.BorderLayout.PAGE_END);
 
-        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.PAGE_AXIS));
+        hardwarePanel.setLayout(new javax.swing.BoxLayout(hardwarePanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder("Default Model"));
+        defaultModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.defaultModePanel.border.text"))); // NOI18N
 
         spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A" }));
         spectrumModel.addActionListener(new java.awt.event.ActionListener() {
@@ -135,23 +159,31 @@ public class SettingsDialog extends javax.swing.JPanel {
                 spectrumModelActionPerformed(evt);
             }
         });
-        jPanel3.add(spectrumModel);
+        defaultModelPanel.add(spectrumModel);
 
-        jPanel2.add(jPanel3);
+        hardwarePanel.add(defaultModelPanel);
 
-        jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
+        videoPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
 
-        ULAplus.setText("ULAplus support (64 color palette)");
+        ULAplus.setText(bundle.getString("SettingsDialog.hardwarePanel.ULAplus.text")); // NOI18N
         ULAplus.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 ULAplusActionPerformed(evt);
             }
         });
-        jPanel4.add(ULAplus);
+        videoPanel.add(ULAplus);
 
-        jPanel2.add(jPanel4);
+        doubleSize.setText(bundle.getString("SettingsDialog.hardwarePanel.doubleSize.text")); // NOI18N
+        doubleSize.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                doubleSizeActionPerformed(evt);
+            }
+        });
+        videoPanel.add(doubleSize);
 
-        jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder("High Speed (frames per Int.)"));
+        hardwarePanel.add(videoPanel);
+
+        highSpeedPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSpeedPanel.border.text"))); // NOI18N
 
         speed.setMajorTickSpacing(1);
         speed.setMaximum(10);
@@ -160,65 +192,118 @@ public class SettingsDialog extends javax.swing.JPanel {
         speed.setPaintTicks(true);
         speed.setSnapToTicks(true);
         speed.setPreferredSize(new java.awt.Dimension(300, 43));
-        jPanel6.add(speed);
+        speed.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                speedStateChanged(evt);
+            }
+        });
+        highSpeedPanel.add(speed);
 
-        jPanel2.add(jPanel6);
+        hardwarePanel.add(highSpeedPanel);
 
-        jTabbedPane1.addTab("Hardware", jPanel2);
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanel); // NOI18N
 
-        jPanel5.setLayout(new javax.swing.BoxLayout(jPanel5, javax.swing.BoxLayout.PAGE_AXIS));
+        soundPanel.setLayout(new javax.swing.BoxLayout(soundPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        enabledSound.setText("Sound Enabled");
-        jPanel5.add(enabledSound);
+        enabledSound.setText(bundle.getString("SettingsDialog.soundPanel.enabledSound.text")); // NOI18N
+        enabledSound.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                enabledSoundActionPerformed(evt);
+            }
+        });
+        soundPanel.add(enabledSound);
 
-        loadingNoise.setText("Loading Noise");
-        jPanel5.add(loadingNoise);
+        loadingNoise.setText(bundle.getString("SettingsDialog.soundPanel.loadingNoise.text")); // NOI18N
+        loadingNoise.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadingNoiseActionPerformed(evt);
+            }
+        });
+        soundPanel.add(loadingNoise);
 
-        enabledAY48k.setText("48k AY Enabled");
-        jPanel5.add(enabledAY48k);
+        enabledAY48k.setText(bundle.getString("SettingsDialog.soundPanel.enabledAY48k.text")); // NOI18N
+        enabledAY48k.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                enabledAY48kActionPerformed(evt);
+            }
+        });
+        soundPanel.add(enabledAY48k);
 
-        jTabbedPane1.addTab("Sound", jPanel5);
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.soundPanel.TabTitle"), soundPanel); // NOI18N
 
-        jPanel7.setLayout(new javax.swing.BoxLayout(jPanel7, javax.swing.BoxLayout.PAGE_AXIS));
+        tapePanel.setLayout(new javax.swing.BoxLayout(tapePanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        flashload.setText("Flashload Normal Speed Tape Blocks");
-        jPanel7.add(flashload);
+        flashload.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
+        flashload.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                flashloadActionPerformed(evt);
+            }
+        });
+        tapePanel.add(flashload);
 
-        acceleratedLoad.setText("Accelerated Loading");
-        jPanel7.add(acceleratedLoad);
+        acceleratedLoad.setText(bundle.getString("SettingsDialog.tapePanel.acceleratedLoad.text")); // NOI18N
+        acceleratedLoad.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                acceleratedLoadActionPerformed(evt);
+            }
+        });
+        tapePanel.add(acceleratedLoad);
 
-        jTabbedPane1.addTab("Tape", jPanel7);
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.tapePanel.TabTitle"), tapePanel); // NOI18N
 
-        jPanel8.setLayout(new javax.swing.BoxLayout(jPanel8, javax.swing.BoxLayout.PAGE_AXIS));
+        keyboardPanel.setLayout(new javax.swing.BoxLayout(keyboardPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        jPanel9.setBorder(javax.swing.BorderFactory.createTitledBorder("48k Keyboard"));
+        keyboard48kPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.keyboard48kPanel.title.text"))); // NOI18N
+        keyboard48kPanel.setLayout(new javax.swing.BoxLayout(keyboard48kPanel, javax.swing.BoxLayout.PAGE_AXIS));
+
+        jLabel1.setText(bundle.getString("SettingsDialog.jlabel1.text")); // NOI18N
+        jPanel3.add(jLabel1);
+
+        keyboard48kPanel.add(jPanel3);
 
         buttonGroup1.add(issue2);
-        issue2.setText("Issue 2");
-        jPanel9.add(issue2);
+        issue2.setText(bundle.getString("SettingsDialog.issue2RadioButton.text")); // NOI18N
+        issue2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                issue2ActionPerformed(evt);
+            }
+        });
+        jPanel2.add(issue2);
 
         buttonGroup1.add(issue3);
         issue3.setSelected(true);
-        issue3.setText("Issue 3");
-        jPanel9.add(issue3);
+        issue3.setText(bundle.getString("SettingsDialog.issue3RadioButton.text")); // NOI18N
+        issue3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                issue2ActionPerformed(evt);
+            }
+        });
+        jPanel2.add(issue3);
 
-        jPanel8.add(jPanel9);
+        keyboard48kPanel.add(jPanel2);
 
-        jPanel10.setBorder(javax.swing.BorderFactory.createTitledBorder("Joystick Emulation"));
+        keyboardPanel.add(keyboard48kPanel);
+
+        joystickPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.joystickPanel.border.text"))); // NOI18N
 
         joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek" }));
-        jPanel10.add(joystick);
+        joystick.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                joystickActionPerformed(evt);
+            }
+        });
+        joystickPanel.add(joystick);
 
-        jPanel8.add(jPanel10);
+        keyboardPanel.add(joystickPanel);
 
-        jTabbedPane1.addTab("Keyboard", jPanel8);
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.keyboardPanel.TabTitle"), keyboardPanel); // NOI18N
 
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
         settingsDialog.setVisible(false);
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }//GEN-LAST:event_closeButtonActionPerformed
 
     private void spectrumModelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spectrumModelActionPerformed
         settings.getSpectrumSettings().setDefaultModel(spectrumModel.getSelectedIndex());
@@ -228,32 +313,93 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setULAplus(ULAplus.isSelected());
     }//GEN-LAST:event_ULAplusActionPerformed
 
+    private void speedStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_speedStateChanged
+        settings.getSpectrumSettings().setFramesInt(speed.getValue());
+    }//GEN-LAST:event_speedStateChanged
+
+    private void issue2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_issue2ActionPerformed
+        settings.getSpectrumSettings().setIssue2(issue2.isSelected());
+    }//GEN-LAST:event_issue2ActionPerformed
+
+    private void joystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joystickActionPerformed
+        settings.getKeyboardJoystickSettings().setJoystickModel(joystick.getSelectedIndex());
+    }//GEN-LAST:event_joystickActionPerformed
+
+    private void saveSettingsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSettingsButtonActionPerformed
+        try {
+            BufferedOutputStream fOut =
+                new BufferedOutputStream(new FileOutputStream("JSpeccy.xml"));
+            // create an element for marshalling
+            JAXBElement<JSpeccySettingsType> confElement =
+                (new ObjectFactory()).createJSpeccySettings(settings);
+
+            // create a Marshaller and marshal to conf. file
+            JAXB.marshal(confElement, fOut);
+            try {
+                fOut.close();
+            } catch (IOException ex) {
+                Logger.getLogger(SettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(SettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_saveSettingsButtonActionPerformed
+
+    private void enabledSoundActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enabledSoundActionPerformed
+        settings.getSpectrumSettings().setSoundEnabled(enabledSound.isSelected());
+    }//GEN-LAST:event_enabledSoundActionPerformed
+
+    private void loadingNoiseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadingNoiseActionPerformed
+        settings.getSpectrumSettings().setLoadingNoise(loadingNoise.isSelected());
+    }//GEN-LAST:event_loadingNoiseActionPerformed
+
+    private void enabledAY48kActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enabledAY48kActionPerformed
+        settings.getSpectrumSettings().setAYEnabled48K(enabledAY48k.isSelected());
+    }//GEN-LAST:event_enabledAY48kActionPerformed
+
+    private void flashloadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_flashloadActionPerformed
+        settings.getTapeSettings().setFlashload(flashload.isSelected());
+    }//GEN-LAST:event_flashloadActionPerformed
+
+    private void acceleratedLoadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_acceleratedLoadActionPerformed
+        settings.getTapeSettings().setAccelerateLoading(acceleratedLoad.isSelected());
+    }//GEN-LAST:event_acceleratedLoadActionPerformed
+
+    private void doubleSizeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doubleSizeActionPerformed
+        settings.getSpectrumSettings().setDoubleSize(doubleSize.isSelected());
+    }//GEN-LAST:event_doubleSizeActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
     private javax.swing.ButtonGroup buttonGroup1;
+    private javax.swing.JButton closeButton;
+    private javax.swing.JPanel defaultModelPanel;
+    private javax.swing.JCheckBox doubleSize;
     private javax.swing.JCheckBox enabledAY48k;
     private javax.swing.JCheckBox enabledSound;
     private javax.swing.JCheckBox flashload;
+    private javax.swing.JPanel hardwarePanel;
+    private javax.swing.JPanel highSpeedPanel;
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
-    private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel4;
-    private javax.swing.JPanel jPanel5;
-    private javax.swing.JPanel jPanel6;
-    private javax.swing.JPanel jPanel7;
-    private javax.swing.JPanel jPanel8;
-    private javax.swing.JPanel jPanel9;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JComboBox joystick;
+    private javax.swing.JPanel joystickPanel;
+    private javax.swing.JPanel keyboard48kPanel;
+    private javax.swing.JPanel keyboardPanel;
     private javax.swing.JCheckBox loadingNoise;
+    private javax.swing.JButton saveSettingsButton;
+    private javax.swing.JPanel soundPanel;
     private javax.swing.JComboBox spectrumModel;
     private javax.swing.JSlider speed;
+    private javax.swing.JPanel tapePanel;
+    private javax.swing.JPanel videoPanel;
     // End of variables declaration//GEN-END:variables
 
 }

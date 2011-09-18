@@ -13,9 +13,11 @@
 package utilities;
 
 import configuration.TapeType;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -34,6 +36,7 @@ public class Tape {
 
     private Z80 cpu;
     private FileInputStream tapeFile;
+    private File filename;
     private String filenameLabel;
 //    private File tapeName;
     private int tapeBuffer[];
@@ -297,7 +300,7 @@ public class Tape {
                     switch (tapeBuffer[offset + 5]) {
                         case 0: // Program
                             msg = String.format(bundle.getString("PROGRAM_HEADER"),
-                                    getCleanMsg(offset + 4, 10));
+                                    getCleanMsg(offset + 6, 10));
                             break;
                         case 1: // Number array
                             msg = bundle.getString("NUMBER_ARRAY_HEADER");
@@ -307,7 +310,7 @@ public class Tape {
                             break;
                         case 3:
                             msg = String.format(bundle.getString("BYTES_HEADER"),
-                                    getCleanMsg(offset + 4, 10));
+                                    getCleanMsg(offset + 6, 10));
                             break;
                         default:
                             msg = String.format(bundle.getString("UNKN_HEADER_ID"),
@@ -442,13 +445,13 @@ public class Tape {
 
     }
 
-    public boolean insert(File filename) {
+    public boolean insert(File fileName) {
         if (tapeInserted) {
             return false;
         }
 
         try {
-            tapeFile = new FileInputStream(filename);
+            tapeFile = new FileInputStream(fileName);
         } catch (FileNotFoundException fex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, fex);
             return false;
@@ -461,6 +464,7 @@ public class Tape {
                 tapeBuffer[count++] = tapeFile.read() & 0xff;
             }
             tapeFile.close();
+            filename = fileName;
         } catch (IOException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             return false;
@@ -1196,11 +1200,10 @@ public class Tape {
             return;
         }
 
-        System.out.println("flashload!");
+//        System.out.println("flashload!");
 
         if (idxHeader == nOffsetBlocks) {
             cpu.setCarryFlag(false);
-//            fastload = false;
             return;
         }
 
@@ -1275,10 +1278,61 @@ public class Tape {
         idxHeader++;
         lsm.setSelectionInterval(idxHeader, idxHeader);
 
-//        tapePos += blockLen;
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
         return;
+    }
+
+    public void saveBlock(Memory memory) {
+        int addr = cpu.getRegIX();   // Start Address
+        int nBytes = cpu.getRegDE(); // Lenght
+        BufferedOutputStream fOut = null;
+
+        try {
+            fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
+            // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
+            if (filename.getName().toLowerCase().endsWith("tzx")) {
+                if (nOffsetBlocks == 0) {
+                    fOut.write('Z');
+                    fOut.write('X');
+                    fOut.write('T');
+                    fOut.write('a');
+                    fOut.write('p');
+                    fOut.write('e');
+                    fOut.write('!');
+                    fOut.write(0x1A);
+                    fOut.write(0x01);
+                    fOut.write(0x20);
+                }
+                // Y ahora la cabecera de normal Speed block
+                fOut.write(0x10);
+                fOut.write(0xE8);
+                fOut.write(0x03); // pausa de 1000 ms estándar
+            }
+            fOut.write(nBytes + 2);
+            fOut.write((nBytes + 2) >>> 8);
+            int parity = cpu.getRegA();
+            fOut.write(parity);
+            int value;
+            for(int address = addr; address < addr + nBytes; address++) {
+                value = memory.readByte(address) & 0xff;
+                fOut.write(value);
+                parity ^= value;
+            }
+            fOut.write(parity);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                fOut.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        eject();
+        insert(filename);
     }
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;

@@ -12,19 +12,17 @@ import javax.swing.filechooser.FileFilter;
  *
  * @author jsanchez
  */
-public class FileFilterTapeSnapshot extends FileFilter {
+public class FileFilterImage extends FileFilter {
     @Override
     public boolean accept(File fIn) {
-        return fIn.getName().toLowerCase().endsWith(".sna") ||
-                fIn.getName().toLowerCase().endsWith(".z80") ||
-                fIn.getName().toLowerCase().endsWith(".tap") ||
-                fIn.getName().toLowerCase().endsWith(".tzx") ||
+        return fIn.getName().toLowerCase().endsWith(".scr") ||
+                fIn.getName().toLowerCase().endsWith(".png") ||
                 fIn.isDirectory();
     }
 
     @Override
     public String getDescription() {
         return java.util.ResourceBundle.getBundle("gui/Bundle").getString(
-            "SNAPSHOT_TYPE"); // NOI18N
+            "IMAGE_TYPE"); // NOI18N
     }
 }
