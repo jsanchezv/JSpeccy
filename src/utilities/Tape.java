@@ -450,7 +450,7 @@ public class Tape {
 
     public void notifyTstates(long tstates) {
         
-        if (timeLastIn == 0 || timeout == 0) {
+        if (timeLastIn == 0) {
             timeLastIn = tstates;
             doPlay();
             return;
@@ -461,7 +461,14 @@ public class Tape {
 //            return;
 //        }
         
-        timeout -= (tstates - timeLastIn);
+        if (tstates < timeLastIn)
+            System.out.println("Time error!");
+        
+//        System.out.println(String.format("(notifyTstates) timeout: %d", timeout));
+        if (timeout > 0)
+            timeout -= (tstates - timeLastIn);
+        else
+            timeout = 0;
 
         timeLastIn = tstates;
 
@@ -470,7 +477,8 @@ public class Tape {
         }
 
 //        System.out.println(String.format("(notifyTstates) timeout: %d", timeout));
-        timeout = 0;
+//        if (timeout < -100)
+//            timeout = 0;
 
 //        if (tapeRecording) {
 //            recordPulse();
@@ -643,7 +651,7 @@ public class Tape {
         statePlay = State.START;
 //        earBit = EAR_ON;
         tapePos = offsetBlocks[idxHeader];
-        timeLastIn = 0;
+        timeLastIn = timeout = 0;
 //        cpu.setExecDone(true);
         updateTapeIcon();
         tapeNotify.tapeStart();
@@ -664,7 +672,7 @@ public class Tape {
 //        cpu.setExecDone(false);
         tapePlaying = false;
         updateTapeIcon();
-        timeLastIn = 0;
+        timeLastIn = timeout = 0;
         tapeNotify.tapeStop();
     }
 
@@ -936,7 +944,7 @@ public class Tape {
                 case LEADER:
                     earBit ^= EAR_MASK;
                 case LEADER_NOCHG:
-                    if (--leaderPulses != 0) {
+                    if (leaderPulses-- > 0) {
                         timeout = leaderLenght;
                         statePlay = State.LEADER;
                         break;
@@ -1009,11 +1017,16 @@ public class Tape {
                         break;
                     }
                     decodeTzxHeader();
+                    // De Normal/Turbo Data Block ya sale con timeout inicializado
+                    if (timeout <= 0)
+//                        repeat = true;
+//                    else
+//                        System.out.println(String.format("tzxHeader con timeout: %d", timeout));
                     break;
                 case PURE_TONE:
                     earBit ^= EAR_MASK;
                 case PURE_TONE_NOCHG:
-                    if (leaderPulses-- != 0) {
+                    if (leaderPulses-- > 0) {
                         timeout = leaderLenght;
                         statePlay = State.PURE_TONE;
                         break;
@@ -1024,7 +1037,7 @@ public class Tape {
                 case PULSE_SEQUENCE:
                     earBit ^= EAR_MASK;
                 case PULSE_SEQUENCE_NOCHG:
-                    if (leaderPulses-- != 0) {
+                    if (leaderPulses-- > 0) {
                         timeout = (tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8));
                         tapePos += 2;
                         statePlay = State.PULSE_SEQUENCE;
@@ -1143,7 +1156,7 @@ public class Tape {
                     blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
                     tapePos += 5;
                     leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-                    timeout = leaderLenght;
+//                    timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
                     repeat = false;
@@ -1168,10 +1181,10 @@ public class Tape {
                         + (tapeBuffer[tapePos + 17] << 8)
                         + (tapeBuffer[tapePos + 18] << 16);
                     tapePos += 19;
-                    timeout = leaderLenght;
+//                    timeout = leaderLenght;
                     // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
                     // Así cargan los juegos problemáticos indicados en la cabecera
-                    statePlay = State.LEADER;
+                    statePlay = State.LEADER_NOCHG;
                     idxHeader++;
                     repeat = false;
                     break;
