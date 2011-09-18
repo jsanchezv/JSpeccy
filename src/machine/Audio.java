@@ -46,6 +46,7 @@ class Audio {
     private MachineTypes spectrumModel;
     private boolean enabledAY;
     private AY8912Type settings;
+    private AY8912 ay;
 
     Audio(AY8912Type ayConf) {
        settings = ayConf;
@@ -87,7 +88,7 @@ class Audio {
             if (soundMode > 0) {
                 ay8912.setMaxAmplitude(21500); // 11000
             } else {
-                ay8912.setMaxAmplitude(16300); // 7000
+                ay8912.setMaxAmplitude(16300); // 7000-16300
             }
 
             bufferSize = frameSize * 5;
@@ -106,6 +107,7 @@ class Audio {
             ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
             ay8912.setAudioFreq(samplingFrequency);
             ay8912.startFrame();
+            ay = ay8912;
         }
     }
 
@@ -156,23 +158,17 @@ class Audio {
 
     private void flushBuffer(int len) {
 
-//        long time = System.currentTimeMillis();
         if (line != null) {
             int available = line.available();
             if (available < (frameSize >>> 1)) {
-//                System.out.println(String.format("Only available: %d", available));
-                    return;
+                return;
             }
 
             synchronized (buf) {
                 line.write(buf, 0, len);
-//                if (available == bufferSize) {
-//                    if ((bufferSize - available) < (frameSize >>> 2)) {
-//                    System.out.println(String.format("Empty audio buffer. %d bytes used at %d",
-//                            (bufferSize - available), System.currentTimeMillis()));
-                    if (available == bufferSize)
-                        line.write(buf, 0, len);
-//                }
+                if (available == bufferSize) {
+                    line.write(buf, 0, len);
+                }
             }
         }
     }
@@ -184,31 +180,16 @@ class Audio {
             line.flush();
     }
 
-//    public int available() {
-//        if (line == null) {
-//            return -1;
-//        }
-//        return line.available();
-//    }
-
     public void endFrame() {
 
         if (bufp == 0)
             return;
 
-//        System.out.println(String.format("# beeper samples: %d", bufp));
         int ptr = 0;
 
-        if (bufp == samplesPerFrame - 1) {
-//            System.out.println(String.format("El buffer del beeper solo tenía %d samples",
-//                bufp));
-            beeper[bufp] = beeper[bufp - 1];
-            bufp++;
-        }
-
-        if (bufp > samplesPerFrame) {
-//            System.out.println(String.format("El buffer del beeper tenía %d samples", bufp));
-            bufp = samplesPerFrame;
+        if (enabledAY) {
+            bufp = ay.getSampleCount();
+            ay.endFrame();
         }
 
         switch (soundMode) {

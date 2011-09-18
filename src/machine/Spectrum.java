@@ -461,7 +461,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (enabledSound) {
                 if (enabledAY) {
                     ay8912.updateAY(z80.tEstados);
-                    ay8912.endFrame();
                 }
                 audio.updateAudio(z80.tEstados, speaker);
                 audio.endFrame();
@@ -1455,9 +1454,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         enabledSound = false;
-        if (enabledAY) {
-            ay8912.endFrame();
-        }
+
         audio.endFrame();
         audio.close();
     }

@@ -107,6 +107,7 @@ public final class AY8912 {
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int volumeA, volumeB, volumeC;
+    private int lastA, lastB, lastC;
     private int audiotstates, samplesPerFrame;
     private MachineTypes spectrumModel;
 
@@ -264,7 +265,6 @@ public final class AY8912 {
 
     public void updateAY(int tstates) {
         boolean outA, outB, outC;
-        int volA, volB, volC;
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
 
@@ -371,47 +371,27 @@ public final class AY8912 {
             outB = (toneB || disableToneB) && (toneN || disableNoiseB);
             outC = (toneC || disableToneC) && (toneN || disableNoiseC);
 
-            volA = outA ? amplitudeA : 0;
-//            if (counterA == 1)
-//                volA = amplitudeA >>> 1;
-//            volumeA = (int) (volumeA / 5 + volA * 0.8);
-//            volumeA = (int) (volumeA * 0.7 + volA * 0.3);
-//            volumeA = (volumeA + volA) >>> 1;
-//            volumeA = ((volumeA << 2) + volA) / 5;
-            volumeA += volA;
-
-            volB = outB ? amplitudeB : 0;
-//            if (counterB == 1)
-//                volB = amplitudeB >>> 1;
-//            volumeB = (int) (volumeB / 5 + volB * 0.8);
-//            volumeB = (int) (volumeB * 0.7 + volB * 0.3);
-//            volumeB = (volumeB + volB) >>> 1;
-//            volumeB = ((volumeB << 2) + volB) / 5;
-            volumeB += volB;
-
-            volC = outC ? amplitudeC : 0;
-//            if (counterC == 1)
-//                volC = amplitudeC >>> 1;
-//            volumeC = (int) (volumeC / 5 + volC * 0.8);
-//            volumeC = (int) (volumeC * 0.7 + volC * 0.3);
-//            volumeC = (volumeC + volC) >>> 1;
-//            volumeC = ((volumeC << 2) + volC) / 5;
-            volumeC += volC;
+            volumeA += outA ? amplitudeA: 0;
+            volumeB += outB ? amplitudeB : 0;
+            volumeC += outC ? amplitudeC : 0;
 
             nSteps++;
 
             stepCounter += 16.0;
             if (stepCounter >= step) {
-//                System.out.println(String.format("Sample %d with nSteps %d", pbuf, nSteps));
+                stepCounter -= step;
+//                System.out.println(String.format("stepCounter %f", stepCounter));
                 volumeA /= nSteps;
                 volumeB /= nSteps;
                 volumeC /= nSteps;
-                bufA[pbuf] = volumeA;
-                bufB[pbuf] = volumeB;
-                bufC[pbuf] = volumeC;
-                nSteps = 1;
+                bufA[pbuf] = (lastA + volumeA) >>> 1;
+                bufB[pbuf] = (lastB + volumeB) >>> 1;
+                bufC[pbuf] = (lastC + volumeC) >>> 1;
                 pbuf++;
-                stepCounter -= step;
+                lastA = volumeA;
+                lastB = volumeB;
+                lastC = volumeC;
+                volumeA = volumeB = volumeC = nSteps = 0;
             }
         }
 //        System.out.println(String.format("updateAY: resto de %d tstates", remain));
@@ -422,16 +402,6 @@ public final class AY8912 {
             return;
         }
 
-//        System.out.println("# samples: " + getSampleCount());
-        if (pbuf != 640)
-            System.out.println(String.format("# AY samples: %d", pbuf));
-        if (pbuf == samplesPerFrame - 1) {
-//            System.out.println(String.format("El buffer del AY solo tenía %d samples",
-//                pbuf));
-            bufA[pbuf] = bufA[pbuf - 1];
-            bufB[pbuf] = bufB[pbuf - 1];
-            bufC[pbuf] = bufC[pbuf - 1];
-        }
         pbuf = 0;
         audiotstates -= spectrumModel.tstatesFrame;
     }
@@ -440,7 +410,7 @@ public final class AY8912 {
         periodA = periodB = periodC = periodN = 1;
         counterA = counterB = counterC = counterN = 0;
         amplitudeA = amplitudeB = amplitudeC = amplitudeEnv = 0;
-        volumeA = volumeB = volumeC = 0;
+        volumeA = volumeB = volumeC = nSteps = 0;
         envelopePeriod = 0;
         addressLatch = 0;
         toneA = toneB = toneC = toneN = false;
