@@ -150,17 +150,17 @@ public class Interface1 {
     }
     
     public boolean isCartridge(int drive) {
-        if (drive < 1 || drive > 8)
+        if (drive < 0 || drive > 7)
             return false;
         
-        return microdrive[drive - 1].isCartridge();
+        return microdrive[drive].isCartridge();
     }
     
     public boolean isModified(int drive) {
-        if (drive < 1 || drive > 8)
+        if (drive < 0 || drive > 7)
             return false;
         
-        return microdrive[drive - 1].isModified();
+        return microdrive[drive].isModified();
     }
     
     public byte getNumDrives() {
@@ -174,24 +174,47 @@ public class Interface1 {
         numMicrodrives = drives;
     }
     
-    public boolean insertNew(int drive) {
-        if (drive < 1 || drive > 8)
-            return false;
-        
-        return microdrive[drive -1].insertNew(settings.getCartridgeSize());
-    }
-    
     public boolean isWriteProtected(int drive) {
-        if (drive < 1 || drive > 8)
+        if (drive < 0 || drive > 7)
             return false;
         
-        return microdrive[drive - 1].isWriteProtected();
+        return microdrive[drive].isWriteProtected();
     }
     
     public void setWriteProtected(int drive, boolean state) {
-        if (drive < 1 || drive > 8)
+        if (drive < 0 || drive > 7)
             return;
         
-        microdrive[drive - 1].setWriteProtected(state);
+        microdrive[drive].setWriteProtected(state);
+    }
+    
+    public String getFilename(int drive) {
+        if (drive < 0 || drive > 7)
+            return null;
+        
+//        System.out.println(String.format("filename: %s", microdrive[drive].getFilename()));
+        return microdrive[drive].getFilename();
+    }
+    
+    public boolean insertNew(int drive) {
+        if (drive <  0 || drive > 7)
+            return false;
+        
+        return microdrive[drive].insertNew(settings.getCartridgeSize());
+    }
+    
+    
+    public boolean insertFile(int drive, File filename) {
+        if (drive <  0 || drive > 7)
+            return false;
+        
+        return microdrive[drive].insertFromFile(filename);
+    }
+    
+    public boolean eject(int drive, boolean saveIt) {
+        if (drive <  0 || drive > 7)
+            return false;
+        
+        return microdrive[drive].eject(saveIt);
     }
 }

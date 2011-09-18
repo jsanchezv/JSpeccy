@@ -337,10 +337,10 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
-        microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
+        microdriveDialog = new MicrodriveDialog(settings.getInterface1Settings(),
+            spectrum.getInterface1());
         
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-        }
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
         
         spectrum.start();
     }
@@ -498,7 +498,7 @@ public class JSpeccy extends javax.swing.JFrame {
         recordStartTapeMediaMenu = new javax.swing.JMenuItem();
         recordStopTapeMediaMenu = new javax.swing.JMenuItem();
         jSeparator8 = new javax.swing.JPopupMenu.Separator();
-        interface1MediaMenu = new javax.swing.JMenu();
+        IF1MediaMenu = new javax.swing.JMenu();
         microdrivesIF1MediaMenu = new javax.swing.JMenuItem();
         jSeparator9 = new javax.swing.JPopupMenu.Separator();
         IF2MediaMenu = new javax.swing.JMenu();
@@ -1138,7 +1138,7 @@ public class JSpeccy extends javax.swing.JFrame {
     mediaMenu.add(tapeMediaMenu);
     mediaMenu.add(jSeparator8);
 
-    interface1MediaMenu.setText(bundle.getString("JSpeccy.interface1MediaMenu.text")); // NOI18N
+    IF1MediaMenu.setText(bundle.getString("JSpeccy.IF1MediaMenu.text")); // NOI18N
 
     microdrivesIF1MediaMenu.setText(bundle.getString("JSpeccy.microdrivesIF1MediaMenu.text")); // NOI18N
     microdrivesIF1MediaMenu.addActionListener(new java.awt.event.ActionListener() {
@@ -1146,9 +1146,9 @@ public class JSpeccy extends javax.swing.JFrame {
             microdrivesIF1MediaMenuActionPerformed(evt);
         }
     });
-    interface1MediaMenu.add(microdrivesIF1MediaMenu);
+    IF1MediaMenu.add(microdrivesIF1MediaMenu);
 
-    mediaMenu.add(interface1MediaMenu);
+    mediaMenu.add(IF1MediaMenu);
     mediaMenu.add(jSeparator9);
 
     IF2MediaMenu.setText(bundle.getString("JSpeccy.IF2MediaMenu.text")); // NOI18N
@@ -1483,6 +1483,7 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.muteSound(true);
             spectrum.muteSound(false);
         }
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 
     private void saveScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveScreenShotActionPerformed
@@ -1512,20 +1513,21 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_saveScreenShotActionPerformed
 
     private void createTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTapeMediaMenuActionPerformed
-         boolean paused = spectrum.isPaused();
-        if( openTapeDlg == null ) {
+        boolean paused = spectrum.isPaused();
+        if (openTapeDlg == null) {
             openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             openTapeDlg.setFileFilter(new FileFilterTape());
             currentDirTape = openTapeDlg.getCurrentDirectory();
-        }
-        else
+        } else {
             openTapeDlg.setCurrentDirectory(currentDirTape);
+        }
 
-        if (!paused)
+        if (!paused) {
             spectrum.stopEmulation();
+        }
 
         int status = openTapeDlg.showOpenDialog(this);
-        if( status == JFileChooser.APPROVE_OPTION ) {
+        if (status == JFileChooser.APPROVE_OPTION) {
             currentDirTape = openTapeDlg.getCurrentDirectory();
             File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
             try {
@@ -1542,12 +1544,13 @@ public class JSpeccy extends javax.swing.JFrame {
                 recordStartTapeMediaMenu.setEnabled(true);
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-                    JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
+                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                         bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
             }
         }
-        if (!paused)
+        if (!paused) {
             spectrum.startEmulation();
+        }
     }//GEN-LAST:event_createTapeMediaMenuActionPerformed
 
     private void hardResetSpectrumButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hardResetSpectrumButtonActionPerformed
@@ -1802,6 +1805,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenu IF1MediaMenu;
     private javax.swing.JMenu IF2MediaMenu;
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JMenuItem browserTapeMediaMenu;
@@ -1825,7 +1829,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButton ignoreRadioButton;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JMenuItem insertIF2RomMediaMenu;
-    private javax.swing.JMenu interface1MediaMenu;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;

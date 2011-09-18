@@ -262,7 +262,6 @@ public class Microdrive {
             cartridge = new byte[mdrFileIn.available()];
             mdrFileIn.read(cartridge);
             mdrFileIn.close();
-            filename = fileName;
         } catch (IOException ex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
             return false;
@@ -272,6 +271,7 @@ public class Microdrive {
         modified = false;
         writeProtected = cartridge[cartridge.length - 1] != 0;
         updateSync();
+        filename = fileName;
 //        testMDR();
         return true;
     }
@@ -302,12 +302,20 @@ public class Microdrive {
         isCartridge = false;
         modified = false;
         writeProtected = true;
+        filename = null;
         return true;
     }
     
     public final boolean eject(File fileName) {
         filename = fileName;
         return eject(true);
+    }
+    
+    public final String getFilename() {
+        if (filename == null)
+            return null;
+        else
+            return filename.getName();
     }
     
     private void testMDR() {

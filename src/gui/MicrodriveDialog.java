@@ -10,13 +10,22 @@
  */
 package gui;
 
+import configuration.Interface1Type;
 import java.awt.Component;
 import java.awt.Frame;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.IOException;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.table.AbstractTableModel;
 import machine.Interface1;
 
 /**
@@ -26,16 +35,22 @@ import machine.Interface1;
 public class MicrodriveDialog extends javax.swing.JPanel {
 
     private JDialog microdriveDialog;
+    private Interface1Type settings;
     private Interface1 if1;
-    
+    private MicrodriveTableModel tableModel;
+    private JFileChooser openCartridgeDlg, saveCartridgeDlg;
+    private File currentDir;
+
     /** Creates new form MicrodriveDialog */
-    public MicrodriveDialog(Interface1 handler) {
+    public MicrodriveDialog(Interface1Type config, Interface1 handler) {
+        settings = config;
         if1 = handler;
+        tableModel = new MicrodriveTableModel();
         initComponents();
         MouseListener popupListener = new PopupListener();
         microdrivesTable.addMouseListener(popupListener);
     }
-    
+
     public boolean showDialog(Component parent, String title) {
         Frame owner = null;
         if (parent instanceof Frame) {
@@ -65,7 +80,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPopupMenu1 = new javax.swing.JPopupMenu();
+        popupMenu = new javax.swing.JPopupMenu();
         driveNumber = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JPopupMenu.Separator();
         newCartridge = new javax.swing.JMenuItem();
@@ -80,24 +95,39 @@ public class MicrodriveDialog extends javax.swing.JPanel {
 
         driveNumber.setText("jMenuItem1");
         driveNumber.setEnabled(false);
-        jPopupMenu1.add(driveNumber);
-        jPopupMenu1.add(jSeparator1);
+        popupMenu.add(driveNumber);
+        popupMenu.add(jSeparator1);
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         newCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.newCartridge.text")); // NOI18N
-        jPopupMenu1.add(newCartridge);
+        newCartridge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                newCartridgeActionPerformed(evt);
+            }
+        });
+        popupMenu.add(newCartridge);
 
         openCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.openCartridge.text")); // NOI18N
-        jPopupMenu1.add(openCartridge);
+        openCartridge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                openCartridgeActionPerformed(evt);
+            }
+        });
+        popupMenu.add(openCartridge);
 
         ejectCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.ejectCartridge.text")); // NOI18N
-        jPopupMenu1.add(ejectCartridge);
+        ejectCartridge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ejectCartridgeActionPerformed(evt);
+            }
+        });
+        popupMenu.add(ejectCartridge);
 
         saveCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveCartridge.text")); // NOI18N
-        jPopupMenu1.add(saveCartridge);
+        popupMenu.add(saveCartridge);
 
         saveAsCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveAsCartridge.text")); // NOI18N
-        jPopupMenu1.add(saveAsCartridge);
+        popupMenu.add(saveAsCartridge);
 
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
@@ -108,39 +138,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
             }
         });
 
-        microdrivesTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {new Byte((byte) 1), null, null, null},
-                {new Byte((byte) 2), null, null, null},
-                {new Byte((byte) 3), null, null, null},
-                {new Byte((byte) 4), null, null, null},
-                {new Byte((byte) 5), null, null, null},
-                {new Byte((byte) 6), null, null, null},
-                {new Byte((byte) 7), null, null, null},
-                {new Byte((byte) 8), null, null, null}
-            },
-            new String [] {
-                "# Drive", "File", "Read Only", "Modified"
-            }
-        ) {
-            Class[] types = new Class [] {
-                java.lang.Byte.class, java.lang.String.class, java.lang.Boolean.class, java.lang.Boolean.class
-            };
-            boolean[] canEdit = new boolean [] {
-                false, false, true, false
-            };
-
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
-        microdrivesTable.setCellSelectionEnabled(false);
-        microdrivesTable.setComponentPopupMenu(jPopupMenu1);
-        microdrivesTable.setRowSelectionAllowed(true);
+        microdrivesTable.setModel(tableModel);
         microdrivesTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         microdrivesTable.getTableHeader().setResizingAllowed(false);
         microdrivesTable.getTableHeader().setReorderingAllowed(false);
@@ -178,17 +176,77 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         microdriveDialog.setVisible(false);
     }//GEN-LAST:event_closeButtonActionPerformed
 
+    private void newCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_newCartridgeActionPerformed
+        int row = microdrivesTable.getSelectedRow();
+        if1.insertNew(row);
+        tableModel.fireTableRowsUpdated(row, row);
+    }//GEN-LAST:event_newCartridgeActionPerformed
+
+    private void openCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openCartridgeActionPerformed
+
+        int row = microdrivesTable.getSelectedRow();
+        
+        if (openCartridgeDlg == null) {
+            openCartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openCartridgeDlg.setFileFilter(new FileFilterCartridge());
+            currentDir = openCartridgeDlg.getCurrentDirectory();
+        } else {
+            openCartridgeDlg.setCurrentDirectory(currentDir);
+        }
+        
+        int status = openCartridgeDlg.showOpenDialog(this);
+        if (status == JFileChooser.APPROVE_OPTION) {
+            currentDir = openCartridgeDlg.getCurrentDirectory();
+            File filename = new File(openCartridgeDlg.getSelectedFile().getAbsolutePath());
+//            try {
+                if1.insertFile(row, filename);
+                tableModel.fireTableRowsUpdated(row, row);
+//            } catch (IOException ex) {
+//                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+//            }
+//            spectrum.tape.eject();
+//            if (spectrum.tape.insert(filename)) {
+//                tapeFilename.setText(filename.getName());
+//                playTapeMediaMenu.setEnabled(true);
+//                clearTapeMediaMenu.setEnabled(true);
+//                rewindTapeMediaMenu.setEnabled(true);
+//                recordStartTapeMediaMenu.setEnabled(true);
+//            } else {
+//                ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+//                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
+//                        bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+//            }
+        }
+    }//GEN-LAST:event_openCartridgeActionPerformed
+
+    private void ejectCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ejectCartridgeActionPerformed
+
+        int row = microdrivesTable.getSelectedRow();
+        
+        if (if1.isModified(row)) {
+            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+            int ret = JOptionPane.showConfirmDialog(microdriveDialog.getContentPane(),
+                  bundle.getString("EJECT_CARTRIDGE_MSG"), bundle.getString("EJECT_CARTRIDGE_TITLE"),
+                  JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE); // NOI18N
+            if( ret == JOptionPane.NO_OPTION ) {
+                return;
+            }
+        }
+        if1.eject(row, false);
+        tableModel.fireTableRowsUpdated(row, row);
+    }//GEN-LAST:event_ejectCartridgeActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton closeButton;
     private javax.swing.JMenuItem driveNumber;
     private javax.swing.JMenuItem ejectCartridge;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPopupMenu jPopupMenu1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JTable microdrivesTable;
     private javax.swing.JMenuItem newCartridge;
     private javax.swing.JMenuItem openCartridge;
+    private javax.swing.JPopupMenu popupMenu;
     private javax.swing.JMenuItem saveAsCartridge;
     private javax.swing.JMenuItem saveCartridge;
     // End of variables declaration//GEN-END:variables
@@ -206,11 +264,124 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         }
 
         private void showPopup(MouseEvent evt) {
-            if (evt.isPopupTrigger() && microdrivesTable.getSelectedRowCount() != 0) {
-                int row = microdrivesTable.getSelectedRow();
-                driveNumber.setText(String.format("Microdrive %d", row));
-                jPopupMenu1.show(evt.getComponent(), evt.getX(), evt.getY());
+            if (evt.isPopupTrigger()) {
+                if (microdrivesTable.getSelectedRowCount() == 0) {
+                    driveNumber.setText("Microdrive");
+                    newCartridge.setEnabled(false);
+                    openCartridge.setEnabled(false);
+                    ejectCartridge.setEnabled(false);
+                    saveCartridge.setEnabled(false);
+                    saveAsCartridge.setEnabled(false);
+                } else {
+                    int row = microdrivesTable.getSelectedRow();
+                    driveNumber.setText(String.format("Microdrive %d", row + 1));
+                    if (if1.isCartridge(row)) {
+                        newCartridge.setEnabled(false);
+                        openCartridge.setEnabled(false);
+                        ejectCartridge.setEnabled(true);
+                        saveCartridge.setEnabled(if1.getFilename(row) != null);
+                        saveAsCartridge.setEnabled(true);
+                    } else {
+                        newCartridge.setEnabled(true);
+                        openCartridge.setEnabled(true);
+                        ejectCartridge.setEnabled(false);
+                        saveCartridge.setEnabled(false);
+                        saveAsCartridge.setEnabled(false);
+                    }
+                }
+                popupMenu.show(evt.getComponent(), evt.getX(), evt.getY());
             }
+        }
+    }
+
+    private class MicrodriveTableModel extends AbstractTableModel {
+
+//    private Tape tape;
+        public MicrodriveTableModel() {
+            //tape = device;
+        }
+
+        @Override
+        public int getRowCount() {
+            return if1.getNumDrives();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 4;
+        }
+
+        @Override
+        public boolean isCellEditable(int row, int col) {
+            return col == 2;
+        }
+
+        @Override
+        public Class getColumnClass(int col) {
+            return getValueAt(0, col).getClass();
+        }
+
+        @Override
+        public Object getValueAt(int row, int col) {
+
+//        System.out.println(String.format("getValueAt row %d, col %d", row, col));
+            switch (col) {
+                case 0:
+                    return String.format("%4d", row + 1);
+                case 1:
+                    java.util.ResourceBundle bundle =
+                            java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+
+                    if (!if1.isCartridge(row)) {
+                        return bundle.getString("MicrodriveDialog.tableModel.nocartridge.txt");
+                    }
+
+                    String name = if1.getFilename(row);
+                    if (name == null) {
+                        name = bundle.getString("MicrodriveDialog.tableModel.nofilename.txt");
+                    }
+                    return name;
+                case 2:
+                    return if1.isWriteProtected(row);
+                case 3:
+                    return if1.isModified(row);
+                default:
+                    return "NOT EXISTANT COLUMN!";
+            }
+        }
+
+        @Override
+        public void setValueAt(Object value, int row, int col) {
+            if (col == 2) {
+                Boolean state = (Boolean) value;
+                if1.setWriteProtected(row, state);
+                fireTableRowsUpdated(row, row);
+            }
+        }
+
+        @Override
+        public String getColumnName(int col) {
+            java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+
+            String msg;
+
+            switch (col) {
+                case 0:
+                    msg = bundle.getString("MicrodriveDialog.tableModel.column0.txt");
+                    break;
+                case 1:
+                    msg = bundle.getString("MicrodriveDialog.tableModel.column1.txt");
+                    break;
+                case 2:
+                    msg = bundle.getString("MicrodriveDialog.tableModel.column2.txt");
+                    break;
+                case 3:
+                    msg = bundle.getString("MicrodriveDialog.tableModel.column3.txt");
+                    break;
+                default:
+                    msg = "COLUMN ERROR!";
+            }
+            return msg;
         }
     }
 }
