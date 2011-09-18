@@ -529,7 +529,6 @@ public final class Memory {
     }
 
     public void hardReset() {
-        reset();
         for (int page = 0; page < Ram.length; page++) {
             random.nextBytes(Ram[page]);
         }

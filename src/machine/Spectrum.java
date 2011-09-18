@@ -263,6 +263,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         ULAplusMode = false;
         paletteGroup = 0;
         invalidateScreen(true);
+        hardResetPending = resetPending = false;
     }
 
     public void hardReset() {
@@ -312,7 +313,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
         setJoystick(joystick);
         memory.hardReset();
-        reset();
     }
 
     public boolean isPaused() {
@@ -410,14 +410,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         if (resetPending) {
             if (hardResetPending) {
-                doHardReset();
-                hardResetPending = false;
+                doHardReset();                
             } else {
                 z80.setPinReset();
             }
 
             doReset();
-            resetPending = false;
         }
 
         long counter = framesByInt;
@@ -1020,7 +1018,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
 
             // ULAplus ports
-            if ((port & 0x0004) == 0 && ULAplusOn) {
+            if (ULAplusOn && (port & 0x0004) == 0) {
                 // Control port (write only)
                 if ((port & 0x4000) == 0) {
                     if ((value & 0x40) != 0) {

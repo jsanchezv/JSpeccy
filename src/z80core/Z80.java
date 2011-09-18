@@ -682,10 +682,9 @@ public class Z80 {
      * a 0xFFFF.
      * 
      * 29/05/2011: cuando la CPU recibe alimentación por primera vez, los
-     *             registros se inicializan a 0xFF, pero si se produce un reset
-     *             a través de la patilla correspondiente, los registros PC,
-     *             I y R se inicializan a 0, el resto se preservan.
-     *             Aún no está claro que sucede con el registro SP.
+     *             registros PC e IR se inicializan a cero y el resto a 0xFF.
+     *             Si se produce un reset a través de la patilla correspondiente,
+     *             los registros PC e IR se inicializan a 0 y el resto se preservan.
      *             En cualquier caso, todo parece depender bastante del modelo
      *             concreto de Z80, así que se escoge el comportamiento del
      *             modelo Zilog Z8400APS. Z80A CPU.
@@ -705,9 +704,11 @@ public class Z80 {
             regH = regHalt = 0xff;
             regL = regLalt = 0xff;
 
-            regIX = 0xffff;
-            regIY = 0xffff;
-            regSP = 0;
+            regIX = regIY = 0xffff;
+            
+            regSP = 0xffff;
+            
+            memptr = 0xffff;
         }
         
         regPC = 0;
@@ -720,8 +721,6 @@ public class Z80 {
         activeINT = false;
         halted = false;
         setIM(IM0);
-
-        memptr = 0;
 
         tEstados = 0;
     }
