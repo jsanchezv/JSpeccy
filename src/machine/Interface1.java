@@ -56,11 +56,7 @@ public class Interface1 {
             System.out.println("No se ha podido cargar el cartucho en MDR 2");
         }
         
-        if (microdrive[1].isWriteProtected()) {
-            System.out.println("Cartridge 2 is WR-PROT");
-        }
-        
-        if (!microdrive[2].insert(new File("/home/jsanchez/Spectrum/unformatted.mdr"))) {
+        if (!microdrive[2].insert(new File("/home/jsanchez/Spectrum/formatted.mdr"))) {
             System.out.println("No se ha podido cargar el cartucho en MDR 3");
         }
     }
@@ -127,7 +123,13 @@ public class Interface1 {
             }
             microdrive[mdrSelected].start();
         }
+        
+        if (mdrFlipFlop != 0)
+            microdrive[mdrSelected].writeControl(value);
+        
         commsClk = (value & CTRL_OUT_COMMSCLK) != 0;
+//        System.out.println(String.format("erase: %b, r/w: %b",
+//            (value & CTRL_OUT_ERASE) != 0, (value & CTRL_OUT_RW) != 0));
     }
     
     public void writeDataPort(int value) {

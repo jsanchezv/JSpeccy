@@ -681,22 +681,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if (connectedIF1) {
             // Port 0xE7 (Data Port)
             if ((port & 0x0018) == 0) {
-//                System.out.println(String.format("IN from %02x. PC = %04x",
-//                    port & 0xff, z80.getRegPC()));
+//                System.out.println(String.format("IN from MDR-DATA. PC = %04x",
+//                    z80.getRegPC()));
                 return if1.readDataPort();
             }
             
             // Port 0xEF (Control Port)
             if ((port & 0x0018) == 0x08) {
-                System.out.println(String.format("IN from %02x. PC = %04x",
-                    port & 0xff, z80.getRegPC()));
+//                System.out.println(String.format("IN from MDR-CRTL. PC = %04x",
+//                    z80.getRegPC()));
                 return if1.readControlPort();
             }
             
             // Port 0xF7 (RS232/Network Port)
             if ((port & 0x0018) == 0x10) {
-//                System.out.println(String.format("IN from %02x. PC = %04x",
-//                    port & 0xff, z80.getRegPC()));
+//                System.out.println(String.format("IN from RS232/Net. PC = %04x",
+//                    z80.getRegPC()));
             }
         }
         
@@ -882,22 +882,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (connectedIF1) {
                 // Port 0xE7 (Microdrive Data Port)
                 if ((port & 0x0018) == 0) {
-                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
-                        port & 0xff, value, z80.getRegPC()));
-//                    if1.writeDataPort(value);
+//                    System.out.println(String.format("OUT to MDR-DATA: %02x PC = %04x",
+//                        value, z80.getRegPC()));
+                    if1.writeDataPort(value);
                 }
                 
                 // Port 0xEF (IF1 Control Port)
                 if ((port & 0x0018) == 0x08) {
-//                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
-//                        port & 0xff, value, z80.getRegPC()));
+//                    System.out.println(String.format("OUT to MDR-CRTL: %02x. PC = %04x",
+//                        value, z80.getRegPC()));
                     if1.writeControlPort(value);
                 }
                 
                 // Port 0xF7 (RS232/Network Port)
                 if ((port & 0x0018) == 0x10) {
-//                    System.out.println(String.format("OUT to %02x: %02x. PC = %04x",
-//                        port & 0xff, value, z80.getRegPC()));
+//                    System.out.println(String.format("OUT to RS232/Net: %02x. PC = %04x",
+//                        value, z80.getRegPC()));
                 }
             }
         
