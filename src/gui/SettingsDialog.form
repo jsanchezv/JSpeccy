@@ -566,12 +566,13 @@
                 <Component class="javax.swing.JComboBox" name="joystick">
                   <Properties>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-                      <StringArray count="5">
+                      <StringArray count="6">
                         <StringItem index="0" value="None"/>
                         <StringItem index="1" value="Kempston"/>
                         <StringItem index="2" value="Sinclair 1"/>
                         <StringItem index="3" value="Sinclair 2"/>
                         <StringItem index="4" value="Cursor/AGF/Protek"/>
+                        <StringItem index="5" value="Fuller"/>
                       </StringArray>
                     </Property>
                   </Properties>

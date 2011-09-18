@@ -1236,14 +1236,56 @@ public class Snapshots {
     private static final int ZXSTMID_PLUS2 = 3;
     private static final int ZXSTMID_PLUS2A = 4;
     private static final int ZXSTMID_PLUS3 = 5;
+    private static final int ZXSTMID_PLUS3E = 6;
+    private static final int ZXSTMID_PENTAGON128 = 7;
+    private static final int ZXSTMID_TC2048 = 8;
+    private static final int ZXSTMID_TC2068 = 9;
+    private static final int ZXSTMID_SCORPION = 10;
+    private static final int ZXSTMID_SE = 11;
+    private static final int ZXSTMID_TS2068 = 12;
+    private static final int ZXSTMID_PENTAGON512 = 13;
+    private static final int ZXSTMID_PENTAGON1024 = 14;
+
+    private static final int ZXSTBID_ZXATASP = 0x5441585A;   // ZXAT
+    private static final int ZXSTAF_UPLOADJUMPER = 1;
+    private static final int ZXSTAF_WRITEPROTECT = 2;
+
+    private static final int ZXSTBID_ATARAM = 0x50525441;    // ATRP
+    private static final int ZXSTAF_COMPRESSED = 1;
+
+    private static final int ZXSTBID_AY = 0x00005941;        // AY\0\0
+    private static final int ZXSTAYF_FULLERBOX = 1;
+    private static final int ZXSTAYF_128AY = 2;
+
+    private static final int ZXSTBID_ZXCF = 0x4643585A;      // ZXCF
+    private static final int ZXSTCF_UPLOADJUMPER = 1;
+
+    private static final int ZXSTBID_CFRAM = 0x50524643;     // CFRP
+    private static final int ZXSTCRF_COMPRESSED = 1;
+
+    private static final int ZXSTBID_COVOX = 0x58564F43;     // COVX
+
+    private static final int ZXSTBID_BETA128 = 0x38323142;   // B128
+    private static final int ZXSTBETAF_CONNECTED = 1;
+    private static final int ZXSTBETAF_CUSTOMROM = 2;
+    private static final int ZXSTBETAF_PAGED = 4;
+    private static final int ZXSTBETAF_AUTOBOOT = 8;
+    private static final int ZXSTBETAF_SEEKLOWER = 16;
+    private static final int ZXSTBETAF_COMPRESSED = 32;
+
+    private static final int ZXSTBID_BETADISK = 0x4B534442;  // BDSK
 
     private static final int ZXSTBID_CREATOR = 0x52545243;   // CRTR
 
-    private static final int ZXSTBID_Z80REGS = 0x5230385A;   // Z80R
-    private static final int ZXSTZF_EILAST = 1;
-    private static final int ZXSTZF_HALTED = 2;
+    private static final int ZXSTBID_DOCK = 0x4B434F44;      // DOCK
 
-    private static final int ZXSTBID_SPECREGS = 0x52435053;  // SPCR
+    private static final int ZXSTBID_DSKFILE = 0x004B5344;   // DSK\0
+    private static final int ZXSTDSKF_COMPRESSED = 1;
+    private static final int ZXSTDSKF_EMBEDDED = 2;
+
+    private static final int ZXSTBID_GS = 0x00005347;        // GS\0\0
+
+    private static final int ZXSTBID_GSRAMPAGE = 0x50525347; // GSRP
 
     private static final int ZXSTBID_KEYBOARD = 0x4259454B;  // KEYB
     private static final int ZXSTKF_ISSUE2 = 1;
@@ -1257,6 +1299,13 @@ public class Snapshots {
     private static final int ZXSKJT_TIMEX2 = 7;
     private static final int ZXSKJT_DISABLED = 8;
 
+    private static final int ZXSTBID_IF1 = 0x00314649;
+    private static final int ZXSTIF1F_ENABLED = 1;
+    private static final int ZXSTIF1F_COMPRESSED = 2;
+    private static final int ZXSTIF1F_PAGED = 4;
+
+    private static final int ZXSTBID_IF2ROM = 0x52324649;    // IF2R
+
     private static final int ZXSTBID_JOYSTICK = 0x00594F4A;  // JOY\0
     private static final int ZXSTJT_KEMPSTON = 0;
     private static final int ZXSTJT_FULLER = 1;
@@ -1268,12 +1317,11 @@ public class Snapshots {
     private static final int ZXSTJT_TIMEX2 = 7;
     private static final int ZXSTJT_DISABLED = 8;
 
-    private static final int ZXSTBID_AY = 0x00005941;        // AY\0\0
-    private static final int ZXSTAYF_FULLERBOX = 1;
-    private static final int ZXSTAYF_128AY = 2;
+    private static final int ZXSTBID_MICRODRIVE = 0x5652444D; // MDRV
+    private static final int ZXSTMDF_COMPRESSED = 1;
+    private static final int ZXSTMDF_EMBEDDED = 2;
 
-    private static final int ZXSTBID_RAMPAGE = 0x504D4152;   // RAMP
-    private static final int ZXSTRF_COMPRESSED = 1;
+    private static final int ZXSTBID_MOUSE = 0x4D584D41;     // AMXM
 
     private static final int ZXSTBID_MULTIFACE = 0x4543464D; // MFCE
     private static final int ZXSTMFM_1 = 0;
@@ -1285,9 +1333,45 @@ public class Snapshots {
     private static final int ZXSTMF_DISABLED = 0x10;
     private static final int ZXSTMF_16KRAMMODE = 0x20;
 
+    private static final int ZXSTBID_RAMPAGE = 0x504D4152;   // RAMP
+    private static final int ZXSTRF_COMPRESSED = 1;
+
+    private static final int ZXSTBID_PLUS3DISK = 0x0000332B; // +3\0\0
+
+    private static final int ZXSTBID_PLUSD = 0x44534C50;     // PLSD
+
+    private static final int ZXSTBID_PLUSDDISK = 0x4B534450; // PDSK
+
+    private static final int ZXSTBID_ROM = 0x004D4F52;       // ROM\0
+
+    private static final int ZXSTBID_TIMEXREGS = 0x444C4353; // SCLD
+
+    private static final int ZXSTBID_SIMPLEIDE = 0x45444953; // SIDE
+
+    private static final int ZXSTBID_SPECDRUM = 0x4D555244;  // DRUM
+
+    private static final int ZXSTBID_SPECREGS = 0x52435053;  // SPCR
+
+    private static final int ZXSTBID_ZXTAPE = 0x45504154;    // TAPE
+    private static final int ZXSTTP_EMBEDDED = 1;
+    private static final int ZXSTTP_COMPRESSED = 2;
+
+    private static final int ZXSTBID_USPEECH = 0x45505355;   // USPE
+
+    private static final int ZXSTBID_ZXPRINTER = 0x5250585A; // ZXPR
+
+    private static final int ZXSTBID_Z80REGS = 0x5230385A;   // Z80R
+    private static final int ZXSTZF_EILAST = 1;
+    private static final int ZXSTZF_HALTED = 2;
+
+    // This definition isn't in Spectaculator documentation page.
+    // http://scratchpad.wikia.com/wiki/ZX_Spectrum_64_Colour_Mode
     private static final int ZXSTBID_PALETTE = 0x54544C50;    // PLTT
     private static final int ZXSTPALETTE_DISABLED = 0;
     private static final int ZXSTPALETTE_ENABLED = 1;
+
+    
+
 
     private int dwMagicToInt(byte[] dwMagic) {
         int value0 = dwMagic[0] & 0xff;
@@ -1402,6 +1486,9 @@ public class Snapshots {
                         switch (keyb[4] & 0xff) {
                             case ZXSKJT_KEMPSTON:
                                 joystick = Joystick.KEMPSTON;
+                                break;
+                            case ZXSKJT_FULLER:
+                                joystick = Joystick.FULLER;
                                 break;
                             case ZXSKJT_CURSOR:
                                 joystick = Joystick.CURSOR;
@@ -1521,6 +1608,100 @@ public class Snapshots {
                         for (int reg = 0; reg < 64; reg++) {
                             ULAplusPalette[reg] = ULAplusRegs[2 + reg] & 0xff;
                         }
+                        break;
+                    case ZXSTBID_ZXTAPE:
+                        byte tape[] = new byte[4];
+                        readed = fIn.read(tape);
+                        szxLen -= tape.length;
+                        System.out.println(String.format("Tape Block #%d",
+                            (tape[0] & 0xff) + (tape[1] & 0xff) * 256));
+
+                        byte qword[] = new byte[4];
+                        readed = fIn.read(qword);
+                        szxLen -= qword.length;
+                        int uSize = dwMagicToInt(qword);
+
+                        readed = fIn.read(qword);
+                        szxLen -= qword.length;
+                        int cSize = dwMagicToInt(qword);
+                        System.out.println(String.format("uSize: %d, cSize: %d",
+                                uSize, cSize));
+
+                        byte fileExt[] = new byte[16];
+                        readed = fIn.read(fileExt);
+                        szxLen -= fileExt.length;
+
+                        if ((tape[2] & ZXSTTP_EMBEDDED) != 0) {
+                            String extension = new String(fileExt);
+                            System.out.println(String.format("Tape embedded with extension: [%s]",
+                                    extension));
+
+                            byte cTape[] = new byte[szxLen];
+                            readed = fIn.read(cTape);
+                            if ((tape[2] & ZXSTTP_COMPRESSED) != 0) {
+                                System.out.println("Tape compressed");
+                                bais = new ByteArrayInputStream(cTape);
+                                iis = new InflaterInputStream(bais);
+                                byte uTape[] = new byte[uSize];
+                                addr = 0;
+                                while (addr < uSize) {
+                                    int value = iis.read();
+                                    if (value == -1) {
+                                        break;
+                                    }
+                                    uTape[addr++] = (byte) value;
+                                }
+                                readed = iis.read();
+                                iis.close();
+                                if (addr != uSize || readed != -1) {
+                                    System.out.println("Tape decompression error!");
+                                    break;
+                                }
+                            }
+                        } else {
+                            byte link[] = new byte[szxLen];
+                            readed = fIn.read(link);
+                            String linkFile = new String(link);
+                            System.out.println("File linked: " + linkFile);
+                        }
+                        break;
+                    case ZXSTBID_IF2ROM:
+                        byte dwCartSize[] = new byte[4];
+                        readed = fIn.read(dwCartSize);
+                        int romLen = dwMagicToInt(dwCartSize);
+                        System.out.println(String.format("IF2 ROM present. Lenght: %d", romLen));
+                        byte rom[] = new byte[romLen];
+                        readed = fIn.read(rom);
+                        break;
+                    case ZXSTBID_ZXATASP:
+                    case ZXSTBID_ATARAM:
+                    case ZXSTBID_ZXCF:
+                    case ZXSTBID_CFRAM:
+                    case ZXSTBID_COVOX:
+                    case ZXSTBID_BETA128:
+                    case ZXSTBID_BETADISK:
+                    case ZXSTBID_DOCK:
+                    case ZXSTBID_DSKFILE:
+                    case ZXSTBID_GS:
+                    case ZXSTBID_GSRAMPAGE:
+                    case ZXSTBID_IF1:
+                    case ZXSTBID_MICRODRIVE:
+                    case ZXSTBID_MOUSE:
+                    case ZXSTBID_PLUS3DISK:
+                    case ZXSTBID_PLUSD:
+                    case ZXSTBID_PLUSDDISK:
+                    case ZXSTBID_ROM:
+                    case ZXSTBID_TIMEXREGS:
+                    case ZXSTBID_SIMPLEIDE:
+                    case ZXSTBID_SPECDRUM:
+                    case ZXSTBID_USPEECH:
+                    case ZXSTBID_ZXPRINTER:
+                        byte szxBlock[] = new byte[szxLen];
+                        readed = fIn.read(szxBlock);
+                        String blockID = new String(dwMagic);
+                        System.out.println(String.format(
+                            "SZX block ID '%s' readed but not emulated. Skipping...",
+                            blockID));
                         break;
                     default:
                         byte unknown[] = new byte[szxLen];

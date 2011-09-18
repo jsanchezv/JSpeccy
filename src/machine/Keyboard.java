@@ -16,7 +16,7 @@ import machine.Spectrum.Joystick;
  */
 public class Keyboard implements KeyListener {
     private int rowKey[] = new int[8];
-    private int kempston;
+    private int kempston, fuller;
     private Joystick joystick;
 
     public Keyboard() {
@@ -26,15 +26,21 @@ public class Keyboard implements KeyListener {
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
         kempston = 0;
+        fuller = 0xff;
     }
 
     public void setJoystick(Joystick model) {
         joystick = model;
         kempston = 0;
+        fuller = 0xff;
     }
 
     public int readKempstonPort() {
         return kempston;
+    }
+
+    public int readFullerPort() {
+        return fuller;
     }
 
     public int readKeyboardPort(int port) {
@@ -249,6 +255,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] &= 0xef; // 6  -- Left
                         break;
+                    case FULLER:
+                        fuller &= 0xfb;
+                        break;
                 }
                 break;
             case KeyEvent.VK_DOWN:
@@ -266,6 +275,9 @@ public class Keyboard implements KeyListener {
                         break;
                     case SINCLAIR2:
                         rowKey[4] &= 0xfb; // 8  -- Down
+                        break;
+                    case FULLER:
+                        fuller &= 0xfd;
                         break;
                 }
                 break;
@@ -285,6 +297,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] &= 0xfd; // 9 -- Up
                         break;
+                    case FULLER:
+                        fuller &= 0xfe;
+                        break;
                 }
                 break;
             case KeyEvent.VK_RIGHT:
@@ -303,6 +318,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] &= 0xf7; // 7  -- Right
                         break;
+                    case FULLER:
+                        fuller &= 0xf7;
+                        break;
                 }
                 break;
             case KeyEvent.VK_DELETE:
@@ -318,6 +336,9 @@ public class Keyboard implements KeyListener {
                         break;
                     case SINCLAIR1:
                         rowKey[3] &= 0xef; // 5 -- Fire
+                        break;
+                    case FULLER:
+                        fuller &= 0x7f;
                         break;
                 }
                 break;
@@ -503,6 +524,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] |= 0x10; // 6 -- Left
                         break;
+                    case FULLER:
+                        fuller |= 0x04;
+                        break;
                 }
                 break;
             case KeyEvent.VK_DOWN:
@@ -520,6 +544,9 @@ public class Keyboard implements KeyListener {
                         break;
                     case SINCLAIR2:
                         rowKey[4] |= 0x04; // 8 -- Down
+                        break;
+                    case FULLER:
+                        fuller |= 0x02;
                         break;
                 }
                 break;
@@ -539,6 +566,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] |= 0x02; // 9 -- Up
                         break;
+                    case FULLER:
+                        fuller |= 0x01;
+                        break;
                 }
                 break;
             case KeyEvent.VK_RIGHT:
@@ -557,6 +587,9 @@ public class Keyboard implements KeyListener {
                     case SINCLAIR2:
                         rowKey[4] |= 0x08; // 7 -- Right
                         break;
+                    case FULLER:
+                        fuller |= 0x08;
+                        break;
                 }
                 break;
             case KeyEvent.VK_DELETE:
@@ -572,6 +605,9 @@ public class Keyboard implements KeyListener {
                         break;
                     case SINCLAIR1:
                         rowKey[3] |= 0x10;  // 5  -- Fire
+                        break;
+                    case FULLER:
+                        fuller |= 0x80;
                         break;
                 }
                 break;

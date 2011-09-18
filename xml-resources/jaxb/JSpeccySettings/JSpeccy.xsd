@@ -63,7 +63,7 @@
             <xsd:element name="JoystickModel" default="0">
                 <xsd:simpleType>
                     <xsd:restriction base="xsd:integer">
-                        <xsd:maxInclusive value="4"/>
+                        <xsd:maxInclusive value="5"/>
                         <xsd:minInclusive value="0"/>
                     </xsd:restriction>
                 </xsd:simpleType>

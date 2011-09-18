@@ -442,7 +442,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         joystickPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.joystickPanel.border.text"))); // NOI18N
 
-        joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek" }));
+        joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek", "Fuller" }));
         joystick.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 joystickActionPerformed(evt);

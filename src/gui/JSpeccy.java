@@ -41,8 +41,9 @@ public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
     File currentDirSnapshot, currentDirSaveSnapshot,
-        currentDirTape, currentDirSaveImage;
-    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg, saveImageDlg;
+        currentDirTape, currentDirSaveImage, currentDirRom;
+    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg, saveImageDlg,
+        IF2RomDlg;
     String lastSnapshotDir, lastTapeDir;
     File recentFile[] = new File[5];
     ListSelectionModel lsm;
@@ -204,7 +205,8 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
                 specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
         spectrum.setJoystickMenuItems(noneJoystick, kempstonJoystick,
-                sinclair1Joystick, sinclair2Joystick, cursorJoystick);
+                sinclair1Joystick, sinclair2Joystick,
+                cursorJoystick, fullerJoystick);
         spectrum.tape.setTapeIcon(tapeLabel);
         tapeCatalog.setModel(spectrum.tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
@@ -429,6 +431,7 @@ public class JSpeccy extends javax.swing.JFrame {
         sinclair1Joystick = new javax.swing.JRadioButtonMenuItem();
         sinclair2Joystick = new javax.swing.JRadioButtonMenuItem();
         cursorJoystick = new javax.swing.JRadioButtonMenuItem();
+        fullerJoystick = new javax.swing.JRadioButtonMenuItem();
         settingsOptionsMenu = new javax.swing.JMenuItem();
         machineMenu = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
@@ -456,6 +459,9 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator6 = new javax.swing.JPopupMenu.Separator();
         recordStartTapeMediaMenu = new javax.swing.JMenuItem();
         recordStopTapeMediaMenu = new javax.swing.JMenuItem();
+        IF2MediaMenu = new javax.swing.JMenu();
+        insertIF2RomMediaMenu = new javax.swing.JMenuItem();
+        ejectIF2RomMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
         aboutHelpMenu = new javax.swing.JMenuItem();
@@ -806,6 +812,15 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     joystickOptionMenu.add(cursorJoystick);
 
+    joystickButtonGroup.add(fullerJoystick);
+    fullerJoystick.setText(bundle.getString("JSpeccy.fullerJoystick.text")); // NOI18N
+    fullerJoystick.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            fullerJoystickActionPerformed(evt);
+        }
+    });
+    joystickOptionMenu.add(fullerJoystick);
+
     optionsMenu.add(joystickOptionMenu);
 
     settingsOptionsMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
@@ -1010,6 +1025,27 @@ public class JSpeccy extends javax.swing.JFrame {
     tapeMediaMenu.add(recordStopTapeMediaMenu);
 
     mediaMenu.add(tapeMediaMenu);
+
+    IF2MediaMenu.setText(bundle.getString("JSpeccy.IF2MediaMenu.text")); // NOI18N
+
+    insertIF2RomMediaMenu.setText(bundle.getString("JSpeccy.insertIF2RomMediaMenu.text")); // NOI18N
+    insertIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            insertIF2RomMediaMenuActionPerformed(evt);
+        }
+    });
+    IF2MediaMenu.add(insertIF2RomMediaMenu);
+
+    ejectIF2RomMediaMenu.setText(bundle.getString("JSpeccy.ejectIF2RomMediaMenu.text")); // NOI18N
+    ejectIF2RomMediaMenu.setEnabled(false);
+    ejectIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            ejectIF2RomMediaMenuActionPerformed(evt);
+        }
+    });
+    IF2MediaMenu.add(ejectIF2RomMediaMenu);
+
+    mediaMenu.add(IF2MediaMenu);
 
     jMenuBar1.add(mediaMenu);
 
@@ -1524,6 +1560,47 @@ public class JSpeccy extends javax.swing.JFrame {
     private void recentFileMenu4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu4ActionPerformed
         loadRecentFile(4);
     }//GEN-LAST:event_recentFileMenu4ActionPerformed
+
+    private void insertIF2RomMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_insertIF2RomMediaMenuActionPerformed
+        boolean paused = spectrum.isPaused();
+
+        if( IF2RomDlg == null ) {
+            IF2RomDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            IF2RomDlg.setFileFilter(new FileFilterRom());
+            currentDirRom = IF2RomDlg.getCurrentDirectory();
+        }
+        else
+            IF2RomDlg.setCurrentDirectory(currentDirRom);
+
+        if (!paused)
+            spectrum.stopEmulation();
+
+        int status = IF2RomDlg.showOpenDialog(getContentPane());
+        if (status == JFileChooser.APPROVE_OPTION) {
+            currentDirRom = IF2RomDlg.getCurrentDirectory();
+            if (spectrum.insertIF2Rom(IF2RomDlg.getSelectedFile())) {
+                insertIF2RomMediaMenu.setEnabled(false);
+                ejectIF2RomMediaMenu.setEnabled(true);
+            } else {
+                ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_ROM_ERROR"),
+                    bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        if (!paused)
+            spectrum.startEmulation();
+    }//GEN-LAST:event_insertIF2RomMediaMenuActionPerformed
+
+    private void ejectIF2RomMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ejectIF2RomMediaMenuActionPerformed
+        spectrum.ejectIF2Rom();
+        insertIF2RomMediaMenu.setEnabled(true);
+        ejectIF2RomMediaMenu.setEnabled(false);
+    }//GEN-LAST:event_ejectIF2RomMediaMenuActionPerformed
+
+    private void fullerJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullerJoystickActionPerformed
+        spectrum.setJoystick(Spectrum.Joystick.FULLER);
+    }//GEN-LAST:event_fullerJoystickActionPerformed
     
     /**
      * @param args the command line arguments
@@ -1538,6 +1615,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenu IF2MediaMenu;
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JMenuItem clearTapeMediaMenu;
@@ -1547,14 +1625,17 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
+    private javax.swing.JMenuItem ejectIF2RomMediaMenu;
     private javax.swing.JToggleButton fastEmulationToggleButton;
     private javax.swing.JMenu fileMenu;
+    private javax.swing.JRadioButtonMenuItem fullerJoystick;
     private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;
     private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
     private javax.swing.JMenuItem imageHelpMenu;
+    private javax.swing.JMenuItem insertIF2RomMediaMenu;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;

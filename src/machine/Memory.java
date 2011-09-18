@@ -8,6 +8,7 @@ package machine;
 import configuration.JSpeccySettingsType;
 import configuration.MemoryType;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +26,7 @@ public final class Memory {
     private final int PAGE_SIZE = 0x2000;
     
     private byte[][] Rom48k = new byte[2][PAGE_SIZE];
+    private byte[][] IF2Rom = new byte[2][PAGE_SIZE];
     private byte[][] Rom128k = new byte[4][PAGE_SIZE];
     private byte[][] RomPlus2 = new byte[4][PAGE_SIZE];
     private byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
@@ -43,6 +45,7 @@ public final class Memory {
     private byte[] mfRAM = new byte[PAGE_SIZE];
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage, highPage, bankM, bankP;
+    private boolean IF2RomEnabled;
     private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
     private MachineTypes spectrumModel;
     private JSpeccySettingsType settings;
@@ -54,6 +57,7 @@ public final class Memory {
         random = new Random();
         hardReset();
         loadRoms();
+        IF2RomEnabled = false;
     }
 
     public void setSpectrumModel(MachineTypes model) {
@@ -116,8 +120,13 @@ public final class Memory {
     }
 
     private void setMemoryMap16k() {
-        readPages[0] = Rom48k[0];
-        readPages[1] = Rom48k[1];
+        if (IF2RomEnabled) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        } else {
+            readPages[0] = Rom48k[0];
+            readPages[1] = Rom48k[1];
+        }
         writePages[0] = writePages[1] = fakeROM;
 
         readPages[2] = writePages[2] = Ram[10]; // Página 5
@@ -134,8 +143,13 @@ public final class Memory {
     }
 
     private void setMemoryMap48k() {
-        readPages[0] = Rom48k[0];
-        readPages[1] = Rom48k[1];
+        if (IF2RomEnabled) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        } else {
+            readPages[0] = Rom48k[0];
+            readPages[1] = Rom48k[1];
+        }
         writePages[0] = writePages[1] = fakeROM;
 
         readPages[2] = writePages[2] = Ram[10]; // Página 5
@@ -392,7 +406,7 @@ public final class Memory {
         boolean res = false;
         switch(spectrumModel.codeModel) {
             case SPECTRUM48K:
-                res = true;
+                res = !IF2RomEnabled;
                 break;
             case SPECTRUM128K:
                 res = (bankM & 0x10) != 0;
@@ -629,6 +643,23 @@ public final class Memory {
         return mfLocked;
     }
 
+    public boolean insertIF2Rom(File filename) {
+        if (!loadIF2Rom(filename)) {
+            return false;
+        }
+
+        IF2RomEnabled = true;
+        return true;
+    }
+
+    public void ejectIF2Rom() {
+        IF2RomEnabled = false;
+    }
+
+    public boolean isIF2RomEnabled()  {
+        return IF2RomEnabled;
+    }
+
     public void loadRoms() {
         MemoryType conf = settings.getMemorySettings();
         String romsDirectory = conf.getRomsDirectory();
@@ -773,5 +804,41 @@ public final class Memory {
         }
 
         return res;
+    }
+
+    private boolean loadIF2Rom(File filename) {
+        BufferedInputStream fIn = null;
+        try {
+            try {
+                fIn = new BufferedInputStream(new FileInputStream(filename));
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
+                return false;
+            }
+
+            if (fIn.available() != 0x4000)
+                return false;
+            
+            int readed = fIn.read(IF2Rom[0]);
+            if (readed != 0x2000) {
+                return false;
+            }
+
+            readed = fIn.read(IF2Rom[1]);
+            if (readed != 0x2000) {
+                return false;
+            }
+
+        } catch (IOException ex) {
+            Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                fIn.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        return true;
     }
 }
