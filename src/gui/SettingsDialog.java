@@ -34,13 +34,28 @@ public class SettingsDialog extends javax.swing.JPanel {
 
     private void updateUserSettings() {
 
-        if (settings.getSpectrumSettings().isULAplus()) {
-            jCheckBox1.setSelected(true);
-        }
+        spectrumModel.setSelectedIndex(settings.getSpectrumSettings().getDefaultModel());
+
+        enabledSound.setSelected(settings.getSpectrumSettings().isSoundEnabled());
+
+        loadingNoise.setSelected(settings.getSpectrumSettings().isLoadingNoise());
+
+        flashload.setSelected(settings.getTapeSettings().isFlashload());
+
+        acceleratedLoad.setSelected(settings.getTapeSettings().isAccelerateLoading());
+
+        ULAplus.setSelected(settings.getSpectrumSettings().isULAplus());
+
+        joystick.setSelectedIndex(settings.getKeyboardJoystickSettings().getJoystickModel());
+
+        enabledAY48k.setSelected(settings.getSpectrumSettings().isAYEnabled48K());
+
+        speed.setValue(settings.getSpectrumSettings().getFramesInt());
 
         if (settings.getSpectrumSettings().isIssue2()) {
-            jCheckBox2.setSelected(true);
-        }
+            issue2.setSelected(true);
+        } else
+            issue3.setSelected(true);
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -73,62 +88,172 @@ public class SettingsDialog extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jCheckBox1 = new javax.swing.JCheckBox();
-        jCheckBox2 = new javax.swing.JCheckBox();
+        buttonGroup1 = new javax.swing.ButtonGroup();
+        jPanel1 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel2 = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        spectrumModel = new javax.swing.JComboBox();
+        jPanel4 = new javax.swing.JPanel();
+        ULAplus = new javax.swing.JCheckBox();
+        jPanel6 = new javax.swing.JPanel();
+        speed = new javax.swing.JSlider();
+        jPanel5 = new javax.swing.JPanel();
+        enabledSound = new javax.swing.JCheckBox();
+        loadingNoise = new javax.swing.JCheckBox();
+        enabledAY48k = new javax.swing.JCheckBox();
+        jPanel7 = new javax.swing.JPanel();
+        flashload = new javax.swing.JCheckBox();
+        acceleratedLoad = new javax.swing.JCheckBox();
+        jPanel8 = new javax.swing.JPanel();
+        jPanel9 = new javax.swing.JPanel();
+        issue2 = new javax.swing.JRadioButton();
+        issue3 = new javax.swing.JRadioButton();
+        jPanel10 = new javax.swing.JPanel();
+        joystick = new javax.swing.JComboBox();
 
         setLayout(new java.awt.BorderLayout());
 
-        jCheckBox1.setText("ULAplus support");
-        jCheckBox1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox1ActionPerformed(evt);
-            }
-        });
-        add(jCheckBox1, java.awt.BorderLayout.CENTER);
-
-        jCheckBox2.setText("Issue 2 Keyboard");
-        jCheckBox2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox2ActionPerformed(evt);
-            }
-        });
-        add(jCheckBox2, java.awt.BorderLayout.PAGE_START);
-
-        jButton1.setText("Cerrar");
+        jButton1.setText("Close");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
-        add(jButton1, java.awt.BorderLayout.PAGE_END);
+        jPanel1.add(jButton1);
+
+        add(jPanel1, java.awt.BorderLayout.PAGE_END);
+
+        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.PAGE_AXIS));
+
+        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder("Default Model"));
+
+        spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A" }));
+        spectrumModel.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                spectrumModelActionPerformed(evt);
+            }
+        });
+        jPanel3.add(spectrumModel);
+
+        jPanel2.add(jPanel3);
+
+        jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
+
+        ULAplus.setText("ULAplus support (64 color palette)");
+        ULAplus.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ULAplusActionPerformed(evt);
+            }
+        });
+        jPanel4.add(ULAplus);
+
+        jPanel2.add(jPanel4);
+
+        jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder("High Speed (frames per Int.)"));
+
+        speed.setMajorTickSpacing(1);
+        speed.setMaximum(10);
+        speed.setMinimum(2);
+        speed.setPaintLabels(true);
+        speed.setPaintTicks(true);
+        speed.setSnapToTicks(true);
+        speed.setPreferredSize(new java.awt.Dimension(300, 43));
+        jPanel6.add(speed);
+
+        jPanel2.add(jPanel6);
+
+        jTabbedPane1.addTab("Hardware", jPanel2);
+
+        jPanel5.setLayout(new javax.swing.BoxLayout(jPanel5, javax.swing.BoxLayout.PAGE_AXIS));
+
+        enabledSound.setText("Sound Enabled");
+        jPanel5.add(enabledSound);
+
+        loadingNoise.setText("Loading Noise");
+        jPanel5.add(loadingNoise);
+
+        enabledAY48k.setText("48k AY Enabled");
+        jPanel5.add(enabledAY48k);
+
+        jTabbedPane1.addTab("Sound", jPanel5);
+
+        jPanel7.setLayout(new javax.swing.BoxLayout(jPanel7, javax.swing.BoxLayout.PAGE_AXIS));
+
+        flashload.setText("Flashload Normal Speed Tape Blocks");
+        jPanel7.add(flashload);
+
+        acceleratedLoad.setText("Accelerated Loading");
+        jPanel7.add(acceleratedLoad);
+
+        jTabbedPane1.addTab("Tape", jPanel7);
+
+        jPanel8.setLayout(new javax.swing.BoxLayout(jPanel8, javax.swing.BoxLayout.PAGE_AXIS));
+
+        jPanel9.setBorder(javax.swing.BorderFactory.createTitledBorder("48k Keyboard"));
+
+        buttonGroup1.add(issue2);
+        issue2.setText("Issue 2");
+        jPanel9.add(issue2);
+
+        buttonGroup1.add(issue3);
+        issue3.setSelected(true);
+        issue3.setText("Issue 3");
+        jPanel9.add(issue3);
+
+        jPanel8.add(jPanel9);
+
+        jPanel10.setBorder(javax.swing.BorderFactory.createTitledBorder("Joystick Emulation"));
+
+        joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek" }));
+        jPanel10.add(joystick);
+
+        jPanel8.add(jPanel10);
+
+        jTabbedPane1.addTab("Keyboard", jPanel8);
+
+        add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
-
-    private void jCheckBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBox1ActionPerformed
-        if (jCheckBox1.isSelected()) {
-            settings.getSpectrumSettings().setULAplus(true);
-        } else {
-            settings.getSpectrumSettings().setULAplus(false);
-        }
-    }//GEN-LAST:event_jCheckBox1ActionPerformed
-
-    private void jCheckBox2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBox2ActionPerformed
-        if (jCheckBox2.isSelected()) {
-            settings.getSpectrumSettings().setIssue2(true);
-        } else {
-            settings.getSpectrumSettings().setIssue2(false);
-        }
-    }//GEN-LAST:event_jCheckBox2ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         settingsDialog.setVisible(false);
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    private void spectrumModelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spectrumModelActionPerformed
+        settings.getSpectrumSettings().setDefaultModel(spectrumModel.getSelectedIndex());
+    }//GEN-LAST:event_spectrumModelActionPerformed
+
+    private void ULAplusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ULAplusActionPerformed
+        settings.getSpectrumSettings().setULAplus(ULAplus.isSelected());
+    }//GEN-LAST:event_ULAplusActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox ULAplus;
+    private javax.swing.JCheckBox acceleratedLoad;
+    private javax.swing.ButtonGroup buttonGroup1;
+    private javax.swing.JCheckBox enabledAY48k;
+    private javax.swing.JCheckBox enabledSound;
+    private javax.swing.JCheckBox flashload;
+    private javax.swing.JRadioButton issue2;
+    private javax.swing.JRadioButton issue3;
     private javax.swing.JButton jButton1;
-    private javax.swing.JCheckBox jCheckBox1;
-    private javax.swing.JCheckBox jCheckBox2;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel10;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
+    private javax.swing.JPanel jPanel8;
+    private javax.swing.JPanel jPanel9;
+    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JComboBox joystick;
+    private javax.swing.JCheckBox loadingNoise;
+    private javax.swing.JComboBox spectrumModel;
+    private javax.swing.JSlider speed;
     // End of variables declaration//GEN-END:variables
 
 }

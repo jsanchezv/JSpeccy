@@ -945,13 +945,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 }
             }
 
-            if (snap.getAYEnabled() || snap.getSnapshotModel().hasAY8912()) {
+            if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
                 enabledAY = true;
                 for (int reg = 0; reg < 16; reg++) {
                     ay8912.setAddressLatch(reg);
                     ay8912.writeRegister(snap.getPsgReg(reg));
                 }
-                ay8912.setAddressLatch(snap.getPortFffd());
+                ay8912.setAddressLatch(snap.getPortfffd());
             }
 
             System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
@@ -996,6 +996,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             snap.setPort7ffd(port7ffd);
             if (spectrumModel == MachineTypes.SPECTRUMPLUS3)
                 snap.setPort1ffd(port1ffd);
+        }
+        
+        snap.setEnabledAY(enabledAY);
+        if (enabledAY) {
             int ayLatch = ay8912.getAddressLatch();
             snap.setPortfffd(ayLatch);
             for (int reg = 0; reg < 16; reg++) {
@@ -1018,28 +1022,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     static final int SPEAKER_VOLUME = 7000;
     private int speaker;
     private static final int sp_volt[];
-    static boolean muted = false;
-    static int volume = 40; // %
-
-    void mute(boolean v) {
-        muted = v;
-        setvol();
-    }
-
-    int volume(int v) {
-        if (v < 0) {
-            v = 0;
-        } else if (v > 100) {
-            v = 100;
-        }
-        volume = v;
-        setvol();
-        return v;
-    }
-
-    int volumeChg(int chg) {
-        return volume(volume + chg);
-    }
 
     public void toggleSound() {
         soundOn = !soundOn;
@@ -1061,7 +1043,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (soundOn) {
                 toggleSound();
             }
-            framesByInt = 50;
+            framesByInt = 40;
         } else {
             framesByInt = 1;
             toggleSound();
@@ -1086,13 +1068,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     static void setvol() {
-        double a = muted ? 0 : volume / 100.;
-        a *= a;
-
-//      sp_volt[0] = (int)(-SPEAKER_VOLUME*a);
-//		sp_volt[1] = (int)(-SPEAKER_VOLUME*1.06*a);
-//		sp_volt[2] = (int)(SPEAKER_VOLUME*a);
-//		sp_volt[3] = (int)(SPEAKER_VOLUME*1.06*a);
         sp_volt[0] = (int) -SPEAKER_VOLUME;
         sp_volt[1] = (int) (-SPEAKER_VOLUME * 1.06);
         sp_volt[2] = (int) SPEAKER_VOLUME;

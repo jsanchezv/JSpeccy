@@ -12,11 +12,19 @@
             <xsd:element name="soundEnabled" type="xsd:boolean" default="true"/>
             <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
             <xsd:element name="ULAplus" type="xsd:boolean" default="false"/>
-            <xsd:element name="defaultModel" default="0">
+            <xsd:element name="defaultModel" default="0" form="qualified">
                 <xsd:simpleType>
-                    <xsd:restriction base="xsd:unsignedByte">
+                    <xsd:restriction base="xsd:integer">
                         <xsd:maxInclusive value="4"/>
                         <xsd:minInclusive value="0"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+            <xsd:element name="framesInt" form="qualified" default="2">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:integer">
+                        <xsd:maxInclusive value="10"/>
+                        <xsd:minInclusive value="2"/>
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
@@ -46,7 +54,7 @@
         <xsd:sequence>
             <xsd:element name="JoystickModel" default="0">
                 <xsd:simpleType>
-                    <xsd:restriction base="xsd:unsignedByte">
+                    <xsd:restriction base="xsd:integer">
                         <xsd:maxInclusive value="4"/>
                         <xsd:minInclusive value="0"/>
                     </xsd:restriction>
@@ -58,7 +66,7 @@
         <xsd:sequence>
             <xsd:element name="soundMode" default="0">
                 <xsd:simpleType>
-                    <xsd:restriction base="xsd:unsignedByte">
+                    <xsd:restriction base="xsd:integer">
                         <xsd:maxInclusive value="2"/>
                         <xsd:minInclusive value="0"/>
                     </xsd:restriction>

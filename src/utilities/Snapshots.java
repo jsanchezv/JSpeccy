@@ -30,7 +30,7 @@ public class Snapshots {
     private int regI, regR, modeIM;
     private boolean iff1, iff2;
     private int last7ffd;
-    private int flagsMode;
+    private boolean enabledAY;
     private int lastfffd;
     private int last1ffd;
     int psgRegs[] = new int[16];
@@ -225,7 +225,7 @@ public class Snapshots {
         last1ffd = port1ffd;
     }
 
-    public int getPortFffd() {
+    public int getPortfffd() {
         return lastfffd;
     }
 
@@ -241,15 +241,12 @@ public class Snapshots {
         psgRegs[reg] = value;
     }
 
-    public boolean getAYEnabled() {
-        return (flagsMode & 0x04) == 0 ? false : true;
+    public boolean getEnabledAY() {
+        return enabledAY;
     }
 
-    public void setAyEnabled(boolean ayEnabled) {
-        flagsMode &= 0xfb;
-        if (ayEnabled) {
-            flagsMode |= 0x04;
-        }
+    public void setEnabledAY(boolean ayEnabled) {
+        enabledAY = ayEnabled;
     }
 
     public int getBorder() {
@@ -304,9 +301,10 @@ public class Snapshots {
         if (filename.getName().toLowerCase().endsWith(".sna")) {
             return saveSNA(filename, memory);
         }
-        if( filename.getName().toLowerCase().endsWith(".z80") )
+        if (filename.getName().toLowerCase().endsWith(".z80")) {
             return saveZ80(filename, memory);
-        
+        }
+
         error = 8;
         return false;
     }
@@ -339,38 +337,49 @@ public class Snapshots {
                     return false;
             }
 
-            regI = fIn.read();
-            regHLalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regDEalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regBCalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regAFalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regHL = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regDE = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regBC = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regIY = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regIX = fIn.read() | (fIn.read() << 8) & 0xffff;
+            byte snaHeader[] = new byte[27];
+            int count = 0;
+            while (count != -1 && count < snaHeader.length) {
+                count += fIn.read(snaHeader, count, snaHeader.length - count);
+            }
+
+            if (count != snaHeader.length) {
+                error = 4;
+                fIn.close();
+                return false;
+            }
+
+            regI = snaHeader[0] & 0xff;
+            regHLalt = (snaHeader[1] & 0xff) | (snaHeader[2] << 8) & 0xffff;
+            regDEalt = (snaHeader[3] & 0xff) | (snaHeader[4] << 8) & 0xffff;
+            regBCalt = (snaHeader[5] & 0xff) | (snaHeader[6] << 8) & 0xffff;
+            regAFalt = (snaHeader[7] & 0xff) | (snaHeader[8] << 8) & 0xffff;
+            regHL = (snaHeader[9] & 0xff) | (snaHeader[10] << 8) & 0xffff;
+            regDE = (snaHeader[11] & 0xff) | (snaHeader[12] << 8) & 0xffff;
+            regBC = (snaHeader[13] & 0xff) | (snaHeader[14] << 8) & 0xffff;
+            regIY = (snaHeader[15] & 0xff) | (snaHeader[16] << 8) & 0xffff;
+            regIX = (snaHeader[17] & 0xff) | (snaHeader[18] << 8) & 0xffff;
 
             iff1 = iff2 = false;
-            int iff2EI = fIn.read() & 0xff;
-            if ((iff2EI & 0x04) != 0) {
+            if ((snaHeader[19] & 0x04) != 0) {
                 iff2 = true;
             }
 
-            if ((iff2EI & 0x02) != 0) {
+            if ((snaHeader[19] & 0x02) != 0) {
                 iff1 = true;
             }
 
-            regR = fIn.read();
-            regAF = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regSP = fIn.read() | (fIn.read() << 8) & 0xffff;
-            modeIM = fIn.read() & 0xff;
+            regR = snaHeader[20] & 0xff;
+            regAF = (snaHeader[21] & 0xff) | (snaHeader[22] << 8) & 0xffff;
+            regSP = (snaHeader[23] & 0xff) | (snaHeader[24] << 8) & 0xffff;
+            modeIM = snaHeader[25] & 0xff;
 
-            border = fIn.read() & 0x07;
+            border = snaHeader[26] & 0x07;
 
             byte buffer[] = new byte[0x4000];
 
             // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
-            int count = 0;
+            count = 0;
             while (count != -1 && count < 0x4000) {
                 count += fIn.read(buffer, count, 0x4000 - count);
             }
@@ -418,8 +427,9 @@ public class Snapshots {
                 // en qué página hay que poner los últimos 16K. Los leemos en
                 // un buffer temporal y luego los copiamos (que remedio!!!)
                 count = 0;
-                while (count != -1 && count < 0x4000)
+                while (count != -1 && count < 0x4000) {
                     count += fIn.read(buffer, count, 0x4000 - count);
+                }
 
                 if (count != 0x4000) {
                     error = 4;
@@ -446,7 +456,7 @@ public class Snapshots {
                     fIn.close();
                     return false;
                 }
-                
+
                 for (page = 0; page < 8; page++) {
                     if (!loaded[page]) {
                         count = 0;
@@ -506,70 +516,71 @@ public class Snapshots {
                 return false;
             }
 
-            fOut.write(regI);
-            fOut.write(regHLalt);
-            fOut.write(regHLalt >>> 8);
-            fOut.write(regDEalt);
-            fOut.write(regDEalt >>> 8);
-            fOut.write(regBCalt);
-            fOut.write(regBCalt >>> 8);
-            fOut.write(regAFalt);
-            fOut.write(regAFalt >>> 8);
-            fOut.write(regHL);
-            fOut.write(regHL >>> 8);
-            fOut.write(regDE);
-            fOut.write(regDE >>> 8);
-            fOut.write(regBC);
-            fOut.write(regBC >>> 8);
-            fOut.write(regIY);
-            fOut.write(regIY >>> 8);
-            fOut.write(regIX);
-            fOut.write(regIX >>> 8);
+            byte snaHeader[] = new byte[27];
+            snaHeader[0] = (byte) regI;
+            snaHeader[1] = (byte) regHLalt;
+            snaHeader[2] = (byte) (regHLalt >>> 8);
+            snaHeader[3] = (byte) regDEalt;
+            snaHeader[4] = (byte) (regDEalt >>> 8);
+            snaHeader[5] = (byte) regBCalt;
+            snaHeader[6] = (byte) (regBCalt >>> 8);
+            snaHeader[7] = (byte) regAFalt;
+            snaHeader[8] = (byte) (regAFalt >>> 8);
+            snaHeader[9] = (byte) regHL;
+            snaHeader[10] = (byte) (regHL >>> 8);
+            snaHeader[11] = (byte) regDE;
+            snaHeader[12] = (byte) (regDE >>> 8);
+            snaHeader[13] = (byte) regBC;
+            snaHeader[14] = (byte) (regBC >>> 8);
+            snaHeader[15] = (byte) regIY;
+            snaHeader[16] = (byte) (regIY >>> 8);
+            snaHeader[17] = (byte) regIX;
+            snaHeader[18] = (byte) (regIX >>> 8);
 
-            int iff2EI = 0;
             if (iff1) {
-                iff2EI |= 0x02;
+                snaHeader[19] |= 0x02;
             }
             if (iff2) {
-                iff2EI |= 0x04;
+                snaHeader[19] |= 0x04;
             }
-            fOut.write(iff2EI);
 
-            fOut.write(regR);
-            fOut.write(regAF);
-            fOut.write(regAF >>> 8);
+            snaHeader[20] = (byte) regR;
+            snaHeader[21] = (byte) regAF;
+            snaHeader[22] = (byte) (regAF >>> 8);
 
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, (byte)(regPC >>> 8));
+                memory.writeByte(regSP, (byte) (regPC >>> 8));
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, (byte)regPC);
+                memory.writeByte(regSP, (byte) regPC);
             }
 
-            fOut.write(regSP);
-            fOut.write(regSP >>> 8);
-            fOut.write(modeIM);
-            fOut.write(border);
+            snaHeader[23] = (byte) regSP;
+            snaHeader[24] = (byte) (regSP >>> 8);
+            snaHeader[25] = (byte) modeIM;
+            snaHeader[26] = (byte) border;
+
+            fOut.write(snaHeader, 0, snaHeader.length);
 
             byte buffer[] = new byte[0x4000];
 
             // Salvamos la página de la pantalla 0x4000-0x7FFF (5)
             memory.savePage(5, buffer);
-            fOut.write(buffer, 0, 0x4000);
+            fOut.write(buffer, 0, buffer.length);
 
             // Salvamos la página 0x8000-0xBFFF (2)
             memory.savePage(2, buffer);
-            fOut.write(buffer, 0, 0x4000);
+            fOut.write(buffer, 0, buffer.length);
 
             if (snapshotModel == MachineTypes.SPECTRUM48K) {
                 // Salvamos la página 0xC000-0xFFFF (0)
                 memory.savePage(0, buffer);
-                fOut.write(buffer, 0, 0x4000);
+                fOut.write(buffer, 0, buffer.length);
             } else {
                 // Salvamos la página en 0xC000-0xFFFF
                 memory.savePage((last7ffd & 0x07), buffer);
-                fOut.write(buffer, 0, 0x4000);
-            
+                fOut.write(buffer, 0, buffer.length);
+
                 boolean saved[] = new boolean[8];
                 saved[2] = saved[5] = true;
                 fOut.write(regPC);
@@ -580,7 +591,7 @@ public class Snapshots {
                 for (int page = 0; page < 8; page++) {
                     if (!saved[page]) {
                         memory.savePage(page, buffer);
-                        fOut.write(buffer, 0, 0x4000);
+                        fOut.write(buffer, 0, buffer.length);
                     }
                 }
             }
@@ -603,17 +614,17 @@ public class Snapshots {
             while (fIn.available() > 0 && address < length) {
                 int mem = fIn.read() & 0xff;
                 if (mem != 0xED) {
-                    buffer[address++] = (byte)mem;
+                    buffer[address++] = (byte) mem;
                 } else {
                     int mem2 = fIn.read() & 0xff;
                     if (mem2 != 0xED) {
-                        buffer[address++] = (byte)0xED;
-                        buffer[address++] = (byte)mem2;
+                        buffer[address++] = (byte) 0xED;
+                        buffer[address++] = (byte) mem2;
                     } else {
                         int nreps = fIn.read() & 0xff;
                         int value = fIn.read() & 0xff;
                         while (nreps-- > 0) {
-                            buffer[address++] = (byte)value;
+                            buffer[address++] = (byte) value;
                         }
                     }
                 }
@@ -628,13 +639,14 @@ public class Snapshots {
     private int countRepeatedByte(Memory memory, int page, int address, byte value) {
         int count = 0;
 
-        while(address < 0x4000 && count < 254 &&
-                value == memory.readByte(page, address++))
+        while (address < 0x4000 && count < 254
+            && value == memory.readByte(page, address++)) {
             count++;
+        }
 
         return count;
     }
-    
+
     private int compressPageZ80(Memory memory, byte buffer[], int page) {
         int address = 0;
         int addrDst = 0;
@@ -644,31 +656,31 @@ public class Snapshots {
         while (address < 0x4000) {
             value = memory.readByte(page, address++);
             nReps = countRepeatedByte(memory, page, address, value);
-            if (value == (byte)0xED) {
-                if(nReps == 0) {
+            if (value == (byte) 0xED) {
+                if (nReps == 0) {
                     // El byte que sigue a ED siempre se representa sin
                     // comprimir, aunque hayan repeticiones.
-                    buffer[addrDst++] = (byte)0xED;
+                    buffer[addrDst++] = (byte) 0xED;
                     buffer[addrDst++] = memory.readByte(page, address++);
                 } else {
                     // Varios ED consecutivos siempre se comprimen, aunque
                     // hayan menos de 5.
-                    buffer[addrDst++] = (byte)0xED;
-                    buffer[addrDst++] = (byte)0xED;
-                    buffer[addrDst++] = (byte)(nReps + 1);
-                    buffer[addrDst++] = (byte)0xED;
+                    buffer[addrDst++] = (byte) 0xED;
+                    buffer[addrDst++] = (byte) 0xED;
+                    buffer[addrDst++] = (byte) (nReps + 1);
+                    buffer[addrDst++] = (byte) 0xED;
                     address += nReps;
                 }
             } else {
                 if (nReps < 4) {
                     // Si hay menos de 5 valores consecutivos iguales
                     // no se comprimen.
-                    buffer[addrDst++] = (byte)value;
+                    buffer[addrDst++] = (byte) value;
                 } else {
-                    buffer[addrDst++] = (byte)0xED;
-                    buffer[addrDst++] = (byte)0xED;
-                    buffer[addrDst++] = (byte)(nReps + 1);
-                    buffer[addrDst++] = (byte)value;
+                    buffer[addrDst++] = (byte) 0xED;
+                    buffer[addrDst++] = (byte) 0xED;
+                    buffer[addrDst++] = (byte) (nReps + 1);
+                    buffer[addrDst++] = (byte) value;
                     address += nReps;
                 }
             }
@@ -691,33 +703,41 @@ public class Snapshots {
                 return false;
             }
 
-            regAF = (fIn.read() << 8) | fIn.read() & 0xffff;
-            regBC = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regHL = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regSP = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regI = fIn.read() & 0xff;
-            regR = fIn.read() & 0x7f;
+            byte z80Header1[] = new byte[30];
+            int count = 0;
+            while (count != -1 && count < z80Header1.length) {
+                count += fIn.read(z80Header1, count, z80Header1.length - count);
+            }
 
-            int byte12 = fIn.read() & 0xff;
-            if ((byte12 & 0x01) != 0) {
+            if (count != z80Header1.length) {
+                error = 4;
+                fIn.close();
+                return false;
+            }
+
+            regAF = (z80Header1[1] & 0xff) | (z80Header1[0] << 8) & 0xffff;
+            regBC = (z80Header1[2] & 0xff) | (z80Header1[3] << 8) & 0xffff;
+            regHL = (z80Header1[4] & 0xff) | (z80Header1[5] << 8) & 0xffff;
+            regPC = (z80Header1[6] & 0xff) | (z80Header1[7] << 8) & 0xffff;
+            regSP = (z80Header1[8] & 0xff) | (z80Header1[9] << 8) & 0xffff;
+            regI = z80Header1[10] & 0xff;
+            regR = z80Header1[11] & 0x7f;
+            if ((z80Header1[12] & 0x01) != 0) {
                 regR |= 0x80;
             }
-            border = (byte12 >>> 1) & 0x07;
-
-            regDE = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regBCalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regDEalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regHLalt = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regAFalt = (fIn.read() << 8) | fIn.read() & 0xffff;
-            regIY = fIn.read() | (fIn.read() << 8) & 0xffff;
-            regIX = fIn.read() | (fIn.read() << 8) & 0xffff;
-            iff1 = fIn.read() != 0 ? true : false;
-            iff2 = fIn.read() != 0 ? true : false;
-            int byte29 = fIn.read() & 0xff;
-            modeIM = byte29 & 0x03;
-            issue3 = (byte29 & 0x04) == 0 ? true : false;
-            switch (byte29 >>> 6) {
+            border = (z80Header1[12] >>> 1) & 0x07;
+            regDE = (z80Header1[13] & 0xff) | (z80Header1[14] << 8) & 0xffff;
+            regBCalt = (z80Header1[15] & 0xff) | (z80Header1[16] << 8) & 0xffff;
+            regDEalt = (z80Header1[17] & 0xff) | (z80Header1[18] << 8) & 0xffff;
+            regHLalt = (z80Header1[19] & 0xff) | (z80Header1[20] << 8) & 0xffff;
+            regAFalt = (z80Header1[22] & 0xff) | (z80Header1[21] << 8) & 0xffff;
+            regIY = (z80Header1[23] & 0xff) | (z80Header1[24] << 8) & 0xffff;
+            regIX = (z80Header1[25] & 0xff) | (z80Header1[26] << 8) & 0xffff;
+            iff1 = z80Header1[27] != 0 ? true : false;
+            iff2 = z80Header1[28] != 0 ? true : false;
+            modeIM = z80Header1[29] & 0x03;
+            issue3 = (z80Header1[29] & 0x04) == 0 ? true : false;
+            switch (z80Header1[29] >>> 6) {
                 case 0: // Cursor/AGF/Protek Joystick
                     // No es lo que dice la especificación, pero lo prefiero...
                     joystick = Joystick.NONE;
@@ -738,10 +758,10 @@ public class Snapshots {
                 snapshotModel = MachineTypes.SPECTRUM48K;
                 memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
                 memory.reset();
-                if ((byte12 & 0x20) == 0) { // el bloque no está comprimido
+                if ((z80Header1[12] & 0x20) == 0) { // el bloque no está comprimido
 
                     // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
-                    int count = 0;
+                    count = 0;
                     while (count != -1 && count < 0x4000) {
                         count += fIn.read(pageBuffer, count, 0x4000 - count);
                     }
@@ -806,10 +826,22 @@ public class Snapshots {
                     return false;
                 }
 
-                regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
-                int hwMode = fIn.read() & 0xff;
+                byte z80Header2[] = new byte[hdrLen];
+                count = 0;
+                while (count != -1 && count < z80Header2.length) {
+                    count += fIn.read(z80Header2, count, z80Header2.length - count);
+                }
+
+                if (count != z80Header2.length) {
+                    error = 4;
+                    fIn.close();
+                    return false;
+                }
+
+                regPC = (z80Header2[0] & 0xff) | (z80Header2[1] << 8) & 0xffff;
+
                 if (hdrLen == 23) { // Z80 v2
-                    switch (hwMode) {
+                    switch (z80Header2[2]) {
                         case 0: // 48k
                             snapshotModel = MachineTypes.SPECTRUM48K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
@@ -841,7 +873,7 @@ public class Snapshots {
                             return false;
                     }
                 } else { // Z80 v3
-                    switch (hwMode) {
+                    switch (z80Header2[2]) {
                         case 0: // 48k
                             snapshotModel = MachineTypes.SPECTRUM48K;
                             memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
@@ -874,38 +906,16 @@ public class Snapshots {
                     }
                 }
 
-                last7ffd = fIn.read() & 0xff;
-                int if1Paged = fIn.read() & 0xff;
-                flagsMode = fIn.read() & 0xff;
-                lastfffd = fIn.read() & 0xff;
+                last7ffd = z80Header2[3] & 0xff;
+                enabledAY = (z80Header2[5] & 0x04) != 0 ? true : false;
+                lastfffd = z80Header2[6] & 0xff;
                 for (int idx = 0; idx < 16; idx++) {
-                    psgRegs[idx] = fIn.read() & 0xff;
+                    psgRegs[idx] = z80Header2[7 + idx] & 0xff;
                 }
 
-                if (hdrLen > 23) { // Z80 v3.x
-                    int lowTstate = fIn.read() | (fIn.read() << 8) & 0xffff;
-                    int highTstate = fIn.read() & 0xff;
-                    int fooByte = fIn.read() & 0xff; // Spectator flag (always 0)
-                    int mgtRom = fIn.read() & 0xff;
-                    int multifaceRom = fIn.read() & 0xff;
-                    int rom0_8k = fIn.read() & 0xff;
-                    int rom8_16k = fIn.read() & 0xff;
-                    int keymaps[] = new int[5];
-                    for (int idx = 0; idx < 5; idx++) {
-                        keymaps[idx] = fIn.read() & 0xff;
-                        fooByte = fIn.read(); // always 0
-                    }
-                    int keyASCII[] = new int[5];
-                    for (int idx = 0; idx < 5; idx++) {
-                        keyASCII[idx] = fIn.read() | (fIn.read() << 8) & 0xffff;
-                    }
-                    int mgtType = fIn.read() & 0xff;
-                    int discipleButton = fIn.read() & 0xff;
-                    int discipleFlag = fIn.read() & 0xff;
-                    last1ffd = 0;
-                    if (hdrLen == 55) {
-                        last1ffd = fIn.read() & 0xff;
-                    }
+                last1ffd = 0;
+                if (hdrLen == 55) {
+                    last1ffd = z80Header2[54] & 0xff;
                 }
 
                 byte buffer[] = new byte[0x4000];
@@ -932,7 +942,7 @@ public class Snapshots {
                     }
 
                     if (blockLen == 0xffff) { // uncompressed data
-                        int count = 0;
+                        count = 0;
                         while (count != -1 && count < 0x4000) {
                             count += fIn.read(buffer, count, 0x4000 - count);
                         }
@@ -967,7 +977,7 @@ public class Snapshots {
 
         return true;
     }
-    
+
     // Solo se graban Z80's versión 3
     private boolean saveZ80(File filename, Memory memory) {
 
@@ -979,104 +989,91 @@ public class Snapshots {
                 return false;
             }
 
-            fOut.write(regAF >>> 8);
-            fOut.write(regAF);
-            fOut.write(regBC);
-            fOut.write(regBC >>> 8);
-            fOut.write(regHL);
-            fOut.write(regHL >>> 8);
-            fOut.write(0x00);
-            fOut.write(0x00); // Si regPC==0, el Z80 es version 2 o 3
-            fOut.write(regSP);
-            fOut.write(regSP >>> 8);
-            fOut.write(regI);
-            fOut.write(regR);
-            int flag = border << 1;
-            flag |= regR > 0x7f ? 0x01 : 0x00;
-            fOut.write(flag);
-            fOut.write(regDE);
-            fOut.write(regDE >>> 8);
-            fOut.write(regBCalt);
-            fOut.write(regBCalt >>> 8);
-            fOut.write(regDEalt);
-            fOut.write(regDEalt >>> 8);
-            fOut.write(regHLalt);
-            fOut.write(regHLalt >>> 8);
-            fOut.write(regAFalt >>> 8);
-            fOut.write(regAFalt);
-            fOut.write(regIY);
-            fOut.write(regIY >>> 8);
-            fOut.write(regIX);
-            fOut.write(regIX >>> 8);
-            int iff = iff1 ? 0x01 : 0x00;
-            fOut.write(iff);
-            iff = iff2 ? 0x01 : 0x00;
-            fOut.write(iff);
-            if (!issue3)
-                modeIM |= 0x04;
+            byte z80HeaderV3[] = new byte[87];
+            z80HeaderV3[0] = (byte)(regAF >>> 8);
+            z80HeaderV3[1] = (byte) regAF;
+            z80HeaderV3[2] = (byte) regBC;
+            z80HeaderV3[3] = (byte)(regBC >>> 8);
+            z80HeaderV3[4] = (byte) regHL;
+            z80HeaderV3[5] = (byte)(regHL >>> 8);
+            // Bytes 6 y 7 se dejan a 0, si regPC==0, el Z80 es version 2 o 3
+            z80HeaderV3[8] = (byte) regSP;
+            z80HeaderV3[9] = (byte)(regSP >>> 8);
+            z80HeaderV3[10] = (byte) regI;
+            z80HeaderV3[11] = (byte)(regR & 0x7f);
+            z80HeaderV3[12] = (byte)(border << 1);
+            if (regR > 0x7f)
+                z80HeaderV3[12] |= 0x01;
+            z80HeaderV3[13] = (byte) regDE;
+            z80HeaderV3[14] = (byte)(regDE >>> 8);
+            z80HeaderV3[15] = (byte) regBCalt;
+            z80HeaderV3[16] = (byte)(regBCalt >>> 8);
+            z80HeaderV3[17] = (byte) regDEalt;
+            z80HeaderV3[18] = (byte)(regDEalt >>> 8);
+            z80HeaderV3[19] = (byte) regHLalt;
+            z80HeaderV3[20] = (byte)(regHLalt >>> 8);
+            z80HeaderV3[21] = (byte)(regAF >>> 8);
+            z80HeaderV3[22] = (byte) regAF;
+            z80HeaderV3[23] = (byte) regIY;
+            z80HeaderV3[24] = (byte)(regIY >>> 8);
+            z80HeaderV3[25] = (byte) regIX;
+            z80HeaderV3[26] = (byte)(regIX >>> 8);
+            z80HeaderV3[27] = (byte) (iff1 ? 0x01 : 0x00);
+            z80HeaderV3[28] = (byte) (iff2 ? 0x01 : 0x00);
+            z80HeaderV3[29] = (byte) modeIM;
+
+            if (!issue3) {
+                z80HeaderV3[29] |= 0x04;
+            }
             switch (joystick) {
                 case NONE:
                 case CURSOR:
                     break;
                 case KEMPSTON:
-                    modeIM |= 0x40;
+                    z80HeaderV3[29] |= 0x40;
                     break;
                 case SINCLAIR1:
-                    modeIM |= 0x80;
+                    z80HeaderV3[29] |= 0x80;
                     break;
                 case SINCLAIR2:
-                    modeIM |= 0xC0;
+                    z80HeaderV3[29] |= 0xC0;
             }
-            fOut.write(modeIM);
             // Hasta aquí la cabecera v1.0, ahora viene lo propio de la v3.x
-            fOut.write(55);
-            fOut.write(0x00);  // Cabecera de 55 bytes (v3.x)
-            fOut.write(regPC);
-            fOut.write(regPC >>> 8);
+            z80HeaderV3[30] = 55; // Cabecera adicional de 55 bytes
+            z80HeaderV3[32] = (byte) regPC;
+            z80HeaderV3[33] = (byte)(regPC >>> 8);
 
-            byte hwMode = 0;
             switch (snapshotModel) {
                 case SPECTRUM48K:
                     break;
                 case SPECTRUM128K:
-                    hwMode = 4;
+                    z80HeaderV3[34] = 4;
                     break;
                 case SPECTRUMPLUS2:
-                    hwMode = 12;
+                    z80HeaderV3[34] = 12;
                     break;
                 case SPECTRUMPLUS3:
-                    hwMode = 13; // +2A ID
+                    z80HeaderV3[34] = 13; // +2A ID
             }
-            fOut.write(hwMode);
 
             if (snapshotModel != MachineTypes.SPECTRUM48K) {
-                fOut.write(last7ffd);
-            } else {
-                fOut.write(0x00);
+                z80HeaderV3[35] = (byte) last7ffd;
             }
-            fOut.write(0x00);  // byte 36
-            flagsMode |= 0x03; //  R register & LDIR emulation on
-            fOut.write(flagsMode);
-            fOut.write(lastfffd);
+
+            if (enabledAY)
+                z80HeaderV3[37] |= 0x04;
+            
+            z80HeaderV3[38] = (byte) lastfffd;
+
             for (int reg = 0; reg < 16; reg++) {
-                fOut.write(psgRegs[reg]);
+                z80HeaderV3[39 + reg] = (byte)psgRegs[reg];
             }
-            fOut.write(0x00); // lsb low T state counter
-            fOut.write(0x00); // msb low T state counter
-            fOut.write(0x00); // Hi T state counter
-            fOut.write(0x00); // flag for Spectator
-            fOut.write(0x00); // M.G.T. ROM paged
-            fOut.write(0x00); // Multiface ROM paged
-            fOut.write(0xff); // 0-8191 is ROM
-            fOut.write(0xff); // 8192-16383 is ROM
-            byte keymaps[] = new byte[20];
-            fOut.write(keymaps); // keymaps & ASCII words
-            fOut.write(0x00); // M.G.T. type
-            fOut.write(0x00); // Disciple inhibit button status
-            fOut.write(0xff); // Disciple inhibit flag
-            if (snapshotModel != MachineTypes.SPECTRUMPLUS3)
-                last1ffd = 0;
-            fOut.write(last1ffd);
+            
+            if (snapshotModel == MachineTypes.SPECTRUMPLUS3) {
+                z80HeaderV3[54] = (byte)last1ffd;
+            }
+
+            fOut.write(z80HeaderV3, 0, z80HeaderV3.length);
 
             byte buffer[] = new byte[0x4000];
             int bufLen;

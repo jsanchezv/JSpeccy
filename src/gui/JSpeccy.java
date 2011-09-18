@@ -995,7 +995,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 
     private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
-        settingsDialog.showDialog(getContentPane(), "User Settings");
+        settingsDialog.showDialog(this, "User Settings");
     }//GEN-LAST:event_jMenuItem1ActionPerformed
     
     /**

@@ -70,6 +70,7 @@ public class Keyboard implements KeyListener {
         return keys;
     }
 
+    @Override
     public void keyPressed(KeyEvent evt) {
 
         int key = evt.getKeyCode();
@@ -323,6 +324,7 @@ public class Keyboard implements KeyListener {
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent evt) {
         
         int key = evt.getKeyCode();
@@ -576,6 +578,7 @@ public class Keyboard implements KeyListener {
         }
     }
 
+    @Override
     public void keyTyped(java.awt.event.KeyEvent evt) {
         // TODO add your handling code here:
     }
