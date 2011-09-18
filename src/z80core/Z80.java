@@ -308,28 +308,30 @@ public class Z80 {
         return (regA << 8) | getFlags();
     }
 
-    public final void setRegAF(int valor) {
-        regA = (valor >>> 8) & 0xff;
-        setFlags(valor);
+    public final void setRegAF(int word) {
+        word &= 0xffff;
+        regA = word >>> 8;
+        setFlags(word);
     }
 
     public final int getRegAFalt() {
         return (regAalt << 8) | flagFalt;
     }
 
-    public final void setRegAFalt(int valor) {
-        regAalt = (valor >>> 8) & 0xff;
-        flagFalt = valor & 0xff;
+    public final void setRegAFalt(int word) {
+        word &= 0xffff;
+        regAalt = word >>> 8;
+        flagFalt = word & 0xff;
     }
 
     public final int getRegBC() {
-        return ((regB << 8) | regC);
+        return (regB << 8) | regC;
     }
 
     public final void setRegBC(int word) {
         word &= 0xffff;
         regB = word >>> 8;
-        regC = word & 0x00ff;
+        regC = word & 0xff;
     }
 
     private void incRegBC() {
@@ -359,23 +361,23 @@ public class Z80 {
     }
 
     public final int getRegBCalt() {
-        return ((regBalt << 8) | regCalt);
+        return (regBalt << 8) | regCalt;
     }
 
     public final void setRegBCalt(int word) {
         word &= 0xffff;
         regBalt = word >>> 8;
-        regCalt = word & 0x00ff;
+        regCalt = word & 0xff;
     }
 
     public final int getRegDE() {
-        return ((regD << 8) | regE);
+        return (regD << 8) | regE;
     }
 
     public final void setRegDE(int word) {
         word &= 0xffff;
         regD = word >>> 8;
-        regE = word & 0x00ff;
+        regE = word & 0xff;
     }
 
     private void incRegDE() {
@@ -405,23 +407,23 @@ public class Z80 {
     }
 
     public final int getRegDEalt() {
-        return ((regDalt << 8) | regEalt);
+        return (regDalt << 8) | regEalt;
     }
 
     public final void setRegDEalt(int word) {
         word &= 0xffff;
         regDalt = word >>> 8;
-        regEalt = word & 0x00ff;
+        regEalt = word & 0xff;
     }
 
     public final int getRegHL() {
-        return ((regH << 8) | regL);
+        return (regH << 8) | regL;
     }
 
     public final void setRegHL(int word) {
         word &= 0xffff;
         regH = word >>> 8;
-        regL = word & 0x00ff;
+        regL = word & 0xff;
     }
 
     /* Las funciones incRegXX y decRegXX están escritas pensando en que
@@ -455,13 +457,13 @@ public class Z80 {
     }
 
     public final int getRegHLalt() {
-        return ((regHalt << 8) | regLalt);
+        return (regHalt << 8) | regLalt;
     }
 
     public final void setRegHLalt(int word) {
         word &= 0xffff;
         regHalt = word >>> 8;
-        regLalt = word & 0x00ff;
+        regLalt = word & 0xff;
     }
 
     // Acceso a registros de propósito específico
@@ -485,16 +487,16 @@ public class Z80 {
         return regIX;
     }
 
-    public final void setRegIX(int valor) {
-        regIX = valor & 0xffff;
+    public final void setRegIX(int word) {
+        regIX = word & 0xffff;
     }
 
     public final int getRegIY() {
         return regIY;
     }
 
-    public final void setRegIY(int valor) {
-        regIY = valor & 0xffff;
+    public final void setRegIY(int word) {
+        regIY = word & 0xffff;
     }
 
     public final int getRegI() {
@@ -527,7 +529,7 @@ public class Z80 {
     
     // Acceso al registro oculto MEMPTR
     public final int getMemPtr() {
-        return memptr;
+        return memptr & 0xffff;
     }
     
     public final void setMemPtr(int valor) {
@@ -629,13 +631,13 @@ public class Z80 {
 
     // Acceso a los flags F
     public final int getFlags() {
-        int regF = sz5h3pnFlags;
+//        int regF = sz5h3pnFlags;
+//
+//        if (carryFlag) {
+//            regF |= CARRY_MASK;
+//        }
 
-        if (carryFlag) {
-            regF |= CARRY_MASK;
-        }
-
-        return regF;
+        return carryFlag ? sz5h3pnFlags | CARRY_MASK : sz5h3pnFlags;
     }
 
     public final void setFlags(int regF) {
@@ -867,13 +869,13 @@ public class Z80 {
     // Los 4 bits superiores de A no se tocan. ¡p'habernos matao!
     private void rrd() {
         int aux = (regA & 0x0f) << 4;
-        int regHL = getRegHL();
-        int memHL = MemIoImpl.peek8(regHL);
+        memptr = getRegHL();
+        int memHL = MemIoImpl.peek8(memptr);
         regA = (regA & 0xf0) | (memHL & 0x0f);
-        MemIoImpl.contendedStates(regHL, 4);
-        MemIoImpl.poke8(regHL, (memHL >>> 4) | aux);
+        MemIoImpl.contendedStates(memptr, 4);
+        MemIoImpl.poke8(memptr, (memHL >>> 4) | aux);
         sz5h3pnFlags = sz53pn_addTable[regA];
-        memptr = (regHL + 1) & 0xffff;
+        memptr++;
     }
 
     // A = A7 A6 A5 A4 (HL)7 (HL)6 (HL)5 (HL)4
@@ -884,13 +886,13 @@ public class Z80 {
     // Los 4 bits superiores de A no se tocan. ¡p'habernos matao!
     private void rld() {
         int aux = regA & 0x0f;
-        int regHL = getRegHL();
-        int memHL = MemIoImpl.peek8(regHL);
+        memptr = getRegHL();
+        int memHL = MemIoImpl.peek8(memptr);
         regA = (regA & 0xf0) | (memHL >>> 4);
-        MemIoImpl.contendedStates(regHL, 4);
-        MemIoImpl.poke8(regHL, ((memHL << 4) | aux) & 0xff);
+        MemIoImpl.contendedStates(memptr, 4);
+        MemIoImpl.poke8(memptr, ((memHL << 4) | aux) & 0xff);
         sz5h3pnFlags = sz53pn_addTable[regA];
-        memptr = (regHL + 1) & 0xffff;
+        memptr++;
     }
 
     // Rota a la derecha 1 bit el valor del argumento
@@ -973,13 +975,15 @@ public class Z80 {
     // Suma con acarreo de 16 bits
     private void adc16(int valor) {
         int carry = (carryFlag ? CARRY_MASK : 0x00);
-        int regHL = getRegHL();
-        memptr = (regHL + 1) & 0xffff;
+        int regHL = (regH << 8) | regL;
+        memptr = regHL + 1;
         int res = regHL + valor + carry;
 
         carryFlag = (res > 0xffff);
         res &= 0xffff;
-        setRegHL(res);
+        regH = res >>> 8;
+        regL = res & 0xff;
+        
         sz5h3pnFlags = sz53n_addTable[regH];
         if (res != 0) {
             sz5h3pnFlags &= ~ZERO_MASK;
@@ -1038,13 +1042,15 @@ public class Z80 {
     // Resta con acarreo de 16 bits
     private void sbc16(int valor) {
         int carry = (carryFlag ? CARRY_MASK : 0x00);
-        int regHL = getRegHL();
-        memptr = (regHL + 1) & 0xffff;
+        int regHL = (regH << 8) | regL;
+        memptr = regHL + 1;
         int res = regHL - valor - carry;
 
         carryFlag = (res & 0x10000) != 0;
         res &= 0xffff;
-        setRegHL(res);
+        regH = res >>> 8;
+        regL = res & 0xff;
+        
         sz5h3pnFlags = sz53n_subTable[regH];
         if (res != 0) {
             sz5h3pnFlags &= ~ZERO_MASK;
@@ -1139,16 +1145,16 @@ public class Z80 {
 
     // PUSH
     private void push(int valor) {
-        regSP--;
-        MemIoImpl.poke8(regSP & 0xffff, valor >>> 8);
+        regSP = (regSP - 1) & 0xffff;
+        MemIoImpl.poke8(regSP, valor >>> 8);
         regSP = (regSP - 1) & 0xffff;
         MemIoImpl.poke8(regSP, valor);
     }
-
+    
     // versión rápida de PUSH para cuando hay que guardar registros
     private void push(int msb, int lsb) {
-        regSP--;
-        MemIoImpl.poke8(regSP & 0xffff, msb);
+        regSP = (regSP - 1) & 0xffff;
+        MemIoImpl.poke8(regSP, msb);
         regSP = (regSP - 1) & 0xffff;
         MemIoImpl.poke8(regSP, lsb);
     }
@@ -1169,7 +1175,7 @@ public class Z80 {
             sz5h3pnFlags |= BIT5_MASK;
         }
 
-        if (regC != 0 || regB != 0) {
+        if ((regB | regC) != 0) {
             sz5h3pnFlags |= PARITY_MASK;
         }
     }
@@ -1190,7 +1196,7 @@ public class Z80 {
             sz5h3pnFlags |= BIT5_MASK;
         }
 
-        if (regC != 0 || regB != 0) {
+        if ((regB | regC) != 0) {
             sz5h3pnFlags |= PARITY_MASK;
         }
     }
@@ -1216,7 +1222,7 @@ public class Z80 {
             sz5h3pnFlags |= PARITY_MASK;
         }
 
-        memptr = (memptr + 1) & 0xffff;
+        memptr++;
     }
 
     // CPD
@@ -1240,7 +1246,7 @@ public class Z80 {
             sz5h3pnFlags |= PARITY_MASK;
         }
 
-        memptr = (memptr - 1) & 0xffff;
+        memptr--;
     }
 
     // INI
@@ -1421,8 +1427,7 @@ public class Z80 {
         tEstados += 7;
 
         regR++;
-        ffIFF1 = false;
-        ffIFF2 = false;
+        ffIFF1 = ffIFF2 = false;
         push(regPC);  // el push añadirá 6 t-estados (+contended si toca)
         if (modeINT == IM2) {
             regPC = MemIoImpl.peek16((regI << 8) | 0xff); // +6 t-estados
@@ -1520,6 +1525,7 @@ public class Z80 {
     private void decodeOpcode(int opCode) {
         int work8, work16;
         byte salto;
+        
         switch (opCode) {
             case 0x00:       /* NOP */
                 break;
@@ -1571,7 +1577,7 @@ public class Z80 {
             case 0x0A:       /* LD A,(BC) */
                 memptr = getRegBC();
                 regA = MemIoImpl.peek8(memptr);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 break;
             case 0x0B:       /* DEC BC */
                 MemIoImpl.contendedStates(getPairIR(), 2);
@@ -1602,11 +1608,12 @@ public class Z80 {
                 regB &= 0xff;
                 if (regB != 0) {
                     MemIoImpl.contendedStates(regPC, 5);
-                    memptr = (regPC + salto + 1) & 0xffff;
+                    memptr = regPC + salto + 1;
                     regPC = memptr;
                 } else {
-                    regPC = (regPC + 1) & 0xffff;
+                    regPC++ ;
                 }
+                regPC &= 0xffff;
                 break;
             case 0x11:       /* LD DE,nn */
                 setRegDE(MemIoImpl.peek16(regPC));
@@ -1661,7 +1668,7 @@ public class Z80 {
             case 0x1A: {     /* LD A,(DE) */
                 memptr = getRegDE();
                 regA = MemIoImpl.peek8(memptr);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 break;
             }
             case 0x1B: {     /* DEC DE */
@@ -1709,7 +1716,7 @@ public class Z80 {
             case 0x22: {     /* LD (nn),HL */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, getRegHL());
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -1753,7 +1760,7 @@ public class Z80 {
             case 0x2A: {     /* LD HL,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 setRegHL(MemIoImpl.peek16(memptr));
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -1848,7 +1855,7 @@ public class Z80 {
             case 0x3A: {     /* LD A,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 regA = MemIoImpl.peek8(memptr);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -2393,6 +2400,9 @@ public class Z80 {
             }
             case 0xC1: {     /* POP BC */
                 setRegBC(pop());
+//                work16 = pop();
+//                regB = work16 >>> 8;
+//                regC = work16 & 0xff;
                 break;
             }
             case 0xC2: {     /* JP NZ,nn */
@@ -2421,7 +2431,12 @@ public class Z80 {
             }
             case 0xC5: {     /* PUSH BC */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                push(regB, regC);
+                push(getRegBC());
+//                push(regB, regC);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regB);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regC);
                 break;
             }
             case 0xC6: {     /* ADD A,n */
@@ -2497,6 +2512,9 @@ public class Z80 {
             }
             case 0xD1: {     /* POP DE */
                 setRegDE(pop());
+//                work16 = pop();
+//                regD = work16 >>> 8;
+//                regE = work16 & 0xff;
                 break;
             }
             case 0xD2: {     /* JP NC,nn */
@@ -2528,7 +2546,12 @@ public class Z80 {
             }
             case 0xD5: {     /* PUSH DE */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                push(regD, regE);
+                push(getRegDE());
+//                push(regD, regE);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regD);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regE);
                 break;
             }
             case 0xD6: {     /* SUB n */
@@ -2586,8 +2609,9 @@ public class Z80 {
             }
             case 0xDB: {     /* IN A,(n) */
                 work8 = MemIoImpl.peek8(regPC);
-                memptr = (regA << 8) + work8 + 1;
-                regA = MemIoImpl.inPort((regA << 8) | work8);
+                memptr = (regA << 8) | work8;
+                regA = MemIoImpl.inPort(memptr);
+                memptr++;
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
@@ -2625,6 +2649,9 @@ public class Z80 {
                 break;
             case 0xE1:       /* POP HL */
                 setRegHL(pop());
+//                work16 = pop();
+//                regH = work16 >>> 8;
+//                regL = work16 & 0xff;
                 break;
             case 0xE2:       /* JP PO,nn */
                 memptr = MemIoImpl.peek16(regPC);
@@ -2657,7 +2684,12 @@ public class Z80 {
                 break;
             case 0xE5:       /* PUSH HL */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                push(regH, regL);
+                push(getRegHL());
+//                push(regH, regL);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regH);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regL);
                 break;
             case 0xE6:       /* AND n */
                 and(MemIoImpl.peek8(regPC));
@@ -2723,9 +2755,10 @@ public class Z80 {
                 }
                 break;
             case 0xF1:       /* POP AF */
-                work16 = pop();
-                regA = (work16 >>> 8);
-                setFlags(work16);
+                setRegAF(pop());
+//                work16 = pop();
+//                regA = work16 >>> 8;
+//                setFlags(work16);
                 break;
             case 0xF2:       /* JP P,nn */
                 memptr = MemIoImpl.peek16(regPC);
@@ -2750,7 +2783,12 @@ public class Z80 {
                 break;
             case 0xF5:       /* PUSH AF */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                push(regA, getFlags());
+                push(getRegAF());
+//                push(regA, getFlags());
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, regA);
+//                regSP = (regSP - 1) & 0xffff;
+//                MemIoImpl.poke8(regSP, getFlags());
                 break;
             case 0xF6:       /* OR n */
                 or(MemIoImpl.peek8(regPC));
@@ -3987,7 +4025,7 @@ public class Z80 {
             case 0x22: {     /*LD (nn),IX*/
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, regIXY);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -4017,7 +4055,7 @@ public class Z80 {
             case 0x2A: {     /*LD IX,(nn)*/
                 memptr = MemIoImpl.peek16(regPC);
                 regIXY = MemIoImpl.peek16(memptr);
-                memptr = (memptr + 1) & 0xffff;
+                memptr ++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5739,7 +5777,7 @@ public class Z80 {
             case 0x43: {     /* LD (nn),BC */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, getRegBC());
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5757,6 +5795,7 @@ public class Z80 {
                 break;
             }
             case 0x45:
+            case 0x4D:       /* RETI */
             case 0x55:
             case 0x5D:
             case 0x65:
@@ -5800,12 +5839,8 @@ public class Z80 {
             case 0x4B: {     /* LD BC,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 setRegBC(MemIoImpl.peek16(memptr));
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
-                break;
-            }
-            case 0x4D: {     /* RETI */
-                regPC = memptr = pop();
                 break;
             }
             case 0x4F: {     /* LD R,A */
@@ -5830,7 +5865,7 @@ public class Z80 {
             case 0x53: {     /* LD (nn),DE */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, getRegDE());
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5865,7 +5900,7 @@ public class Z80 {
             case 0x5B: {     /* LD DE,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 setRegDE(MemIoImpl.peek16(memptr));
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5900,7 +5935,7 @@ public class Z80 {
             case 0x63: {     /* LD (nn),HL */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, getRegHL());
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5925,7 +5960,7 @@ public class Z80 {
             case 0x6B: {     /* LD HL,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 setRegHL(MemIoImpl.peek16(memptr));
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -5950,20 +5985,21 @@ public class Z80 {
             case 0x73: {     /* LD (nn),SP */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, regSP);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
             case 0x78: {     /* IN A,(C) */
-                regA = MemIoImpl.inPort(getRegBC());
+                memptr = getRegBC();
+                regA = MemIoImpl.inPort(memptr);
                 sz5h3pnFlags = sz53pn_addTable[regA];
-                memptr = (getRegBC() + 1) & 0xffff;
+                memptr++;
                 break;
             }
             case 0x79: {     /* OUT (C),A */
                 memptr = getRegBC();
                 MemIoImpl.outPort(memptr, regA);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 break;
             }
             case 0x7A: {     /* ADC HL,SP */
@@ -5974,7 +6010,7 @@ public class Z80 {
             case 0x7B: {     /* LD SP,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 regSP = MemIoImpl.peek16(memptr);
-                memptr = (memptr + 1) & 0xffff;
+                memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -6014,7 +6050,7 @@ public class Z80 {
                 ldi();
                 if ((sz5h3pnFlags & PARITY_MASK) == PARITY_MASK) {
                     regPC = (regPC - 2) & 0xffff;
-                    memptr = (regPC + 1) & 0xffff;
+                    memptr = regPC + 1;
                     MemIoImpl.contendedStates((getRegDE() - 1) & 0xffff, 5);
                 }
                 break;
@@ -6024,7 +6060,7 @@ public class Z80 {
                 if ((sz5h3pnFlags & PARITY_MASK) == PARITY_MASK
                         && (sz5h3pnFlags & ZERO_MASK) == 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    memptr = (regPC + 1) & 0xffff;
+                    memptr = regPC + 1;
                     MemIoImpl.contendedStates((getRegHL() - 1) & 0xffff, 5);
                 }
                 break;
@@ -6049,7 +6085,7 @@ public class Z80 {
                 ldd();
                 if ((sz5h3pnFlags & PARITY_MASK) == PARITY_MASK) {
                     regPC = (regPC - 2) & 0xffff;
-                    memptr = (regPC + 1) & 0xffff;
+                    memptr = regPC + 1;
                     MemIoImpl.contendedStates((getRegDE() + 1) & 0xffff, 5);
                 }
                 break;
@@ -6059,7 +6095,7 @@ public class Z80 {
                 if ((sz5h3pnFlags & PARITY_MASK) == PARITY_MASK
                         && (sz5h3pnFlags & ZERO_MASK) == 0) {
                     regPC = (regPC - 2) & 0xffff;
-                    memptr = (regPC + 1) & 0xffff;
+                    memptr = regPC + 1;
                     MemIoImpl.contendedStates((getRegHL() + 1) & 0xffff, 5);
                 }
                 break;

@@ -2119,7 +2119,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR lenght block
-            blockID = "JSpeccy 0.89 (01/07/2011)";
+            blockID = "JSpeccy 0.89 (03/07/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                 0, blockID.getBytes("US-ASCII").length);
@@ -2127,7 +2127,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00); // JSpeccy major version (0)
             fOut.write(0x00);
-            fOut.write(0x58); // JSpeccy minor version (88)
+            fOut.write(0x59); // JSpeccy minor version (89)
             fOut.write(0x00); // chData
 
             // SZX Z80REGS block
@@ -2139,29 +2139,29 @@ public class Snapshots {
             fOut.write(0x00);  // Z80R length block (37 bytes)
             byte[] z80r = new byte[37];
             z80r[0] = (byte) regAF;
-            z80r[1] = (byte) (regAF >> 8);
+            z80r[1] = (byte) (regAF >>> 8);
             z80r[2] = (byte) regBC;
-            z80r[3] = (byte) (regBC >> 8);
+            z80r[3] = (byte) (regBC >>> 8);
             z80r[4] = (byte) regDE;
-            z80r[5] = (byte) (regDE >> 8);
+            z80r[5] = (byte) (regDE >>> 8);
             z80r[6] = (byte) regHL;
-            z80r[7] = (byte) (regHL >> 8);
+            z80r[7] = (byte) (regHL >>> 8);
             z80r[8] = (byte) regAFalt;
-            z80r[9] = (byte) (regAFalt >> 8);
+            z80r[9] = (byte) (regAFalt >>> 8);
             z80r[10] = (byte) regBCalt;
-            z80r[11] = (byte) (regBCalt >> 8);
+            z80r[11] = (byte) (regBCalt >>> 8);
             z80r[12] = (byte) regDEalt;
-            z80r[13] = (byte) (regDEalt >> 8);
+            z80r[13] = (byte) (regDEalt >>> 8);
             z80r[14] = (byte) regHLalt;
-            z80r[15] = (byte) (regHLalt >> 8);
+            z80r[15] = (byte) (regHLalt >>> 8);
             z80r[16] = (byte) regIX;
-            z80r[17] = (byte) (regIX >> 8);
+            z80r[17] = (byte) (regIX >>> 8);
             z80r[18] = (byte) regIY;
-            z80r[19] = (byte) (regIY >> 8);
+            z80r[19] = (byte) (regIY >>> 8);
             z80r[20] = (byte) regSP;
-            z80r[21] = (byte) (regSP >> 8);
+            z80r[21] = (byte) (regSP >>> 8);
             z80r[22] = (byte) regPC;
-            z80r[23] = (byte) (regPC >> 8);
+            z80r[23] = (byte) (regPC >>> 8);
             z80r[24] = (byte) regI;
             z80r[25] = (byte) regR;
             if (iff1)
@@ -2170,9 +2170,9 @@ public class Snapshots {
                 z80r[27] = 0x01;
             z80r[28] = (byte) modeIM;
             z80r[29] = (byte) tstates;
-            z80r[30] = (byte) (tstates >> 8);
-            z80r[31] = (byte) (tstates >> 16);
-            z80r[32] = (byte) (tstates >> 24);
+            z80r[30] = (byte) (tstates >>> 8);
+            z80r[31] = (byte) (tstates >>> 16);
+            z80r[32] = (byte) (tstates >>> 24);
             // ignore the chHoldIntReqCycles & chFlags fields
             z80r[35] = (byte) memptr;
             z80r[36] = (byte) (memptr >>> 8);
@@ -2221,9 +2221,9 @@ public class Snapshots {
                     fOut.write(blockID.getBytes("US-ASCII"));
                     int pageLen = baos.size() + 3;
                     fOut.write(pageLen);
-                    fOut.write(pageLen >> 8);
-                    fOut.write(pageLen >> 16);
-                    fOut.write(pageLen >> 24);
+                    fOut.write(pageLen >>> 8);
+                    fOut.write(pageLen >>> 16);
+                    fOut.write(pageLen >>> 24);
                     fOut.write(ZXSTRF_COMPRESSED);
                     fOut.write(0x00);
                     fOut.write(page);
@@ -2355,14 +2355,14 @@ public class Snapshots {
 //                System.out.println("Compressed IF2 ROM: " + baos.size());
                 int pageLen = baos.size() + 4;
                 fOut.write(pageLen);
-                fOut.write(pageLen >> 8);
-                fOut.write(pageLen >> 16);
-                fOut.write(pageLen >> 24);
+                fOut.write(pageLen >>> 8);
+                fOut.write(pageLen >>> 16);
+                fOut.write(pageLen >>> 24);
                 pageLen = baos.size();
                 fOut.write(pageLen);
-                fOut.write(pageLen >> 8);
-                fOut.write(pageLen >> 16);
-                fOut.write(pageLen >> 24);
+                fOut.write(pageLen >>> 8);
+                fOut.write(pageLen >>> 16);
+                fOut.write(pageLen >>> 24);
                 baos.writeTo(fOut);
             }
 
@@ -2372,12 +2372,12 @@ public class Snapshots {
                 fOut.write(blockID.getBytes("US-ASCII"));
                 int blockLen = 28 + tapeName.length() + 1;
                 fOut.write(blockLen);
-                fOut.write(blockLen >> 8);
-                fOut.write(blockLen >> 16);
-                fOut.write(blockLen >> 24);
+                fOut.write(blockLen >>> 8);
+                fOut.write(blockLen >>> 16);
+                fOut.write(blockLen >>> 24);
 
                 fOut.write(tapeBlock);
-                fOut.write(tapeBlock >> 8); // wCurrentBlockNo
+                fOut.write(tapeBlock >>> 8); // wCurrentBlockNo
                 fOut.write(0x00);
                 fOut.write(0x00); // wFlags
                 fOut.write(0x00);
@@ -2386,9 +2386,9 @@ public class Snapshots {
                 fOut.write(0x00); // dwUncompressedSize
                 blockLen = tapeName.length() + 1;
                 fOut.write(blockLen);
-                fOut.write(blockLen >> 8);
-                fOut.write(blockLen >> 16);
-                fOut.write(blockLen >> 24); // dwCompressedSize
+                fOut.write(blockLen >>> 8);
+                fOut.write(blockLen >>> 16);
+                fOut.write(blockLen >>> 24); // dwCompressedSize
                 byte[] szFileExtension = new byte[16];
                 fOut.write(szFileExtension);
                 fOut.write(tapeName.getBytes("US-ASCII"));
@@ -2409,23 +2409,23 @@ public class Snapshots {
 //                System.out.println("Compressed IF2 ROM: " + baos.size());
                 int blockLen = 28 + baos.size();
                 fOut.write(blockLen);
-                fOut.write(blockLen >> 8);
-                fOut.write(blockLen >> 16);
-                fOut.write(blockLen >> 24);
+                fOut.write(blockLen >>> 8);
+                fOut.write(blockLen >>> 16);
+                fOut.write(blockLen >>> 24);
 
                 fOut.write(tapeBlock);
-                fOut.write(tapeBlock >> 8); // wCurrentBlockNo
+                fOut.write(tapeBlock >>> 8); // wCurrentBlockNo
                 fOut.write(ZXSTTP_EMBEDDED | ZXSTTP_COMPRESSED); // wFlags
                 fOut.write(0x00);
                 fOut.write(tapeData.length);
-                fOut.write(tapeData.length >> 8);
-                fOut.write(tapeData.length >> 16);
-                fOut.write(tapeData.length >> 24); // dwUncompressedSize
+                fOut.write(tapeData.length >>> 8);
+                fOut.write(tapeData.length >>> 16);
+                fOut.write(tapeData.length >>> 24); // dwUncompressedSize
                 blockLen = baos.size();
                 fOut.write(blockLen);
-                fOut.write(blockLen >> 8);
-                fOut.write(blockLen >> 16);
-                fOut.write(blockLen >> 24); // dwCompressedSize
+                fOut.write(blockLen >>> 8);
+                fOut.write(blockLen >>> 16);
+                fOut.write(blockLen >>> 24); // dwCompressedSize
                 byte[] szFileExtension = new byte[16];
                 szFileExtension[0] = 't';
                 if (tapeName.toLowerCase().endsWith("tzx")) {
