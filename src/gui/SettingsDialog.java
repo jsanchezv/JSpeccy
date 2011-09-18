@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
@@ -100,7 +101,9 @@ public class SettingsDialog extends javax.swing.JPanel {
             multifaceOneRadioButton.setSelected(true);
         }
         
-        connectedIF1.setSelected(settings.getSpectrumSettings().isConnectedIF1());
+        connectedIF1.setSelected(settings.getInterface1Settings().isConnectedIF1());
+        numDrivesSpinner.setValue(settings.getInterface1Settings().getMicrodriveUnits());
+        cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -191,6 +194,12 @@ public class SettingsDialog extends javax.swing.JPanel {
         IF1PanelTab = new javax.swing.JPanel();
         connectedIF1Panel = new javax.swing.JPanel();
         connectedIF1 = new javax.swing.JCheckBox();
+        mdrPanel = new javax.swing.JPanel();
+        numDrivesLabel = new javax.swing.JLabel();
+        numDrivesSpinner = new javax.swing.JSpinner();
+        jLabel3 = new javax.swing.JLabel();
+        numSectorsLabel = new javax.swing.JLabel();
+        cartridgeSizeSpinner = new javax.swing.JSpinner();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -533,7 +542,36 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         IF1PanelTab.add(connectedIF1Panel);
 
-        jTabbedPane1.addTab("ZX Interface I", IF1PanelTab);
+        mdrPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("ZX Microdrives"));
+
+        numDrivesLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numDrivesLabel.text")); // NOI18N
+        mdrPanel.add(numDrivesLabel);
+
+        numDrivesSpinner.setModel(new javax.swing.SpinnerNumberModel(Byte.valueOf((byte)8), Byte.valueOf((byte)1), Byte.valueOf((byte)8), Byte.valueOf((byte)1)));
+        numDrivesSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                numDrivesSpinnerStateChanged(evt);
+            }
+        });
+        mdrPanel.add(numDrivesSpinner);
+
+        jLabel3.setPreferredSize(new java.awt.Dimension(50, 16));
+        mdrPanel.add(jLabel3);
+
+        numSectorsLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numSectorsLabel.text")); // NOI18N
+        mdrPanel.add(numSectorsLabel);
+
+        cartridgeSizeSpinner.setModel(new javax.swing.SpinnerNumberModel(180, 10, 254, 1));
+        cartridgeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                cartridgeSizeSpinnerStateChanged(evt);
+            }
+        });
+        mdrPanel.add(cartridgeSizeSpinner);
+
+        IF1PanelTab.add(mdrPanel);
+
+        jTabbedPane1.addTab("Interface I", IF1PanelTab);
 
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
@@ -655,8 +693,18 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_hifiSoundActionPerformed
 
     private void connectedIF1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectedIF1ActionPerformed
-        settings.getSpectrumSettings().setConnectedIF1(connectedIF1.isSelected());
+        settings.getInterface1Settings().setConnectedIF1(connectedIF1.isSelected());
     }//GEN-LAST:event_connectedIF1ActionPerformed
+
+    private void numDrivesSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_numDrivesSpinnerStateChanged
+        settings.getInterface1Settings().setMicrodriveUnits(
+                ((SpinnerNumberModel)numDrivesSpinner.getModel()).getNumber().byteValue());
+    }//GEN-LAST:event_numDrivesSpinnerStateChanged
+
+    private void cartridgeSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_cartridgeSizeSpinnerStateChanged
+        settings.getInterface1Settings().setCartridgeSize(
+                ((SpinnerNumberModel)cartridgeSizeSpinner.getModel()).getNumber().intValue());
+    }//GEN-LAST:event_cartridgeSizeSpinnerStateChanged
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -673,6 +721,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox acceleratedLoad;
     private javax.swing.JPanel audioPanel;
     private javax.swing.JPanel buttonPanel;
+    private javax.swing.JSpinner cartridgeSizeSpinner;
     private javax.swing.JButton closeButton;
     private javax.swing.JCheckBox connectedIF1;
     private javax.swing.JPanel connectedIF1Panel;
@@ -689,6 +738,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton issue3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
@@ -701,6 +751,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
     private javax.swing.JRadioButton lowSampling;
+    private javax.swing.JPanel mdrPanel;
     private javax.swing.JRadioButton multiface128RadioButton;
     private javax.swing.JCheckBox multifaceEnabled;
     private javax.swing.ButtonGroup multifaceModelButtonGroup;
@@ -708,6 +759,9 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton multifaceOneRadioButton;
     private javax.swing.JPanel multifacePanel;
     private javax.swing.JPanel multifacePanelTab;
+    private javax.swing.JLabel numDrivesLabel;
+    private javax.swing.JSpinner numDrivesSpinner;
+    private javax.swing.JLabel numSectorsLabel;
     private javax.swing.ButtonGroup samplingButtonGroup;
     private javax.swing.JPanel samplingPanel;
     private javax.swing.JPanel savePanel;

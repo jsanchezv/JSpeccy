@@ -4,6 +4,7 @@
  */
 package machine;
 
+import configuration.Interface1Type;
 import java.io.File;
 import utilities.Microdrive;
 
@@ -37,27 +38,29 @@ public class Interface1 {
     private byte numMicrodrives;
     private Microdrive microdrive[];
     private boolean commsClk;
+    private Interface1Type settings;
     
-    public Interface1() {
+    public Interface1(Interface1Type if1settings) {
+        settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
-        numMicrodrives = 8;
+        numMicrodrives = settings.getMicrodriveUnits();
         microdrive = new Microdrive[8];
         for (int mdr = 0; mdr < 8; mdr++)
             microdrive[mdr] = new Microdrive();
         
         commsClk = false;
         
-        if (!microdrive[0].insert(new File("/home/jsanchez/Spectrum/demo.mdr"))) {
+        if (!microdrive[0].insertFromFile(new File("/home/jsanchez/Spectrum/empty.mdr"))) {
             System.out.println("No se ha podido cargar el cartucho en MDR 1");
         }
         
-        if (!microdrive[1].insert(new File("/home/jsanchez/Spectrum/wr-prot.mdr"))) {
+        if (!microdrive[1].insertFromFile(new File("/home/jsanchez/Spectrum/wr-prot.mdr"))) {
             System.out.println("No se ha podido cargar el cartucho en MDR 2");
         }
         
-        if (!microdrive[2].insert(new File("/home/jsanchez/Spectrum/formatted.mdr"))) {
-            System.out.println("No se ha podido cargar el cartucho en MDR 3");
+        if (!microdrive[2].insertNew(settings.getCartridgeSize())) {
+            System.out.println("No se ha podido crear un cartucho en MDR 3");
         }
     }
     
@@ -116,12 +119,16 @@ public class Interface1 {
                         mdrSelected = 7;
                         break;
                 }
-//                System.out.println(String.format("MDR %d [%d] selected",
-//                    mdrFlipFlop, mdrSelected));
-//            } else {
-//                System.out.println("All MDR are stopped");
+                System.out.println(String.format("MDR %d [%d] selected",
+                    mdrFlipFlop, mdrSelected));
+            } else {
+                System.out.println("All MDR are stopped");
             }
-            microdrive[mdrSelected].start();
+            
+            if (mdrSelected > numMicrodrives - 1)
+                mdrFlipFlop = 0;
+            else
+                microdrive[mdrSelected].selected();
         }
         
         if (mdrFlipFlop != 0)
@@ -133,10 +140,17 @@ public class Interface1 {
     }
     
     public void writeDataPort(int value) {
-        if (mdrFlipFlop != 0) {
+        if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
 //            System.out.println(String.format("readDataPort: Unit %d selected",
 //                mdrSelected));
             microdrive[mdrSelected].writeData(value);
         }
+    }
+    
+    public void setNumDrives(byte drives) {
+        if (drives < 1 || drives > 8)
+            drives = 8;
+        
+        numMicrodrives = drives;
     }
 }

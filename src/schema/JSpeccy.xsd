@@ -32,7 +32,6 @@
             <xsd:element name="multifaceEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="mf128on48K" default="false" type="xsd:boolean"/>
             <xsd:element name="hifiSound" type="xsd:boolean" default="false"/>
-            <xsd:element name="connectedIF1" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">
@@ -93,6 +92,7 @@
             <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
             <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
             <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
+            <xsd:element name="Interface1Settings" type="tns:Interface1Type"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="RecentFilesType">
@@ -104,6 +104,28 @@
             <xsd:element name="recentFile4" type="xsd:string"/>
             <xsd:element name="lastSnapshotDir" type="xsd:string"/>
             <xsd:element name="lastTapeDir" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="Interface1Type">
+        <xsd:sequence>
+            <xsd:element name="connectedIF1" default="false" type="xsd:boolean"/>
+            <xsd:element name="microdriveUnits" default="8" maxOccurs="1">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:byte">
+                        <xsd:maxInclusive value="8"/>
+                        <xsd:minInclusive value="1"/>
+                        <xsd:totalDigits value="1"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+            <xsd:element name="cartridgeSize" default="180">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:integer">
+                        <xsd:minInclusive value="10"/>
+                        <xsd:maxInclusive value="254"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:schema>

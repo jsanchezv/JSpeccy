@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 9 de junio de 2011, 13:49
+    Created on : 16 de junio de 2011, 16:28
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -23,7 +23,6 @@
         <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
         <ns0:mf128on48K>false</ns0:mf128on48K>
         <ns0:hifiSound>false</ns0:hifiSound>
-        <ns0:connectedIF1>false</ns0:connectedIF1>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>
@@ -62,5 +61,10 @@
         <ns0:lastSnapshotDir></ns0:lastSnapshotDir>
         <ns0:lastTapeDir></ns0:lastTapeDir>
     </ns0:RecentFilesSettings>
+    <ns0:Interface1Settings>
+        <ns0:connectedIF1>false</ns0:connectedIF1>
+        <ns0:microdriveUnits>8</ns0:microdriveUnits>
+        <ns0:cartridgeSize>180</ns0:cartridgeSize>
+    </ns0:Interface1Settings>
 
 </ns0:JSpeccySettings>

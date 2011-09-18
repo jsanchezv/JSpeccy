@@ -85,7 +85,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         enabledSound = false;
         paused = true;
         tape = new Tape(settings.getTapeSettings(), z80, this);
-        if1 = new Interface1();
+        if1 = new Interface1(settings.getInterface1Settings());
 
         keyboard = new Keyboard();
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
@@ -157,11 +157,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             case SPECTRUM48K:
                 buildScreenTables48k();
                 enabledAY = specSettings.isAYEnabled48K();
-                connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
+                connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
                 break;
             case SPECTRUM128K:
                 buildScreenTables128k();
-                connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
+                connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
@@ -215,7 +215,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         loadTrap = settings.getTapeSettings().isFlashload();
-        connectedIF1 = settings.getSpectrumSettings().isConnectedIF1();
+        connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
+        if1.setNumDrives(settings.getInterface1Settings().getMicrodriveUnits());
+        
     }
     /*
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
@@ -681,15 +683,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if (connectedIF1) {
             // Port 0xE7 (Data Port)
             if ((port & 0x0018) == 0) {
-//                System.out.println(String.format("IN from MDR-DATA. PC = %04x",
-//                    z80.getRegPC()));
+                System.out.println(String.format("IN from MDR-DATA. PC = %04x",
+                    z80.getRegPC()));
                 return if1.readDataPort();
             }
             
             // Port 0xEF (Control Port)
             if ((port & 0x0018) == 0x08) {
-//                System.out.println(String.format("IN from MDR-CRTL. PC = %04x",
-//                    z80.getRegPC()));
+                System.out.println(String.format("IN from MDR-CRTL. PC = %04x",
+                    z80.getRegPC()));
                 return if1.readControlPort();
             }
             
@@ -882,22 +884,25 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             if (connectedIF1) {
                 // Port 0xE7 (Microdrive Data Port)
                 if ((port & 0x0018) == 0) {
-//                    System.out.println(String.format("OUT to MDR-DATA: %02x PC = %04x",
-//                        value, z80.getRegPC()));
+                    System.out.println(String.format("OUT to MDR-DATA: %02x PC = %04x",
+                        value, z80.getRegPC()));
                     if1.writeDataPort(value);
+                    return;
                 }
                 
                 // Port 0xEF (IF1 Control Port)
                 if ((port & 0x0018) == 0x08) {
-//                    System.out.println(String.format("OUT to MDR-CRTL: %02x. PC = %04x",
-//                        value, z80.getRegPC()));
+                    System.out.println(String.format("OUT to MDR-CRTL: %02x. PC = %04x",
+                        value, z80.getRegPC()));
                     if1.writeControlPort(value);
+                    return;
                 }
                 
                 // Port 0xF7 (RS232/Network Port)
                 if ((port & 0x0018) == 0x10) {
 //                    System.out.println(String.format("OUT to RS232/Net: %02x. PC = %04x",
 //                        value, z80.getRegPC()));
+                    return;
                 }
             }
         
