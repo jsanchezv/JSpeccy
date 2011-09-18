@@ -31,6 +31,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.xml.bind.JAXB;
 
 /**
@@ -50,7 +52,7 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccySettingsType settings;
     SettingsDialog settingsDialog;
     MicrodriveDialog microdriveDialog;
-    GuiComponents guiComponents = new GuiComponents();
+    
     ExtensionFilter allSnapTapeExtension = new ExtensionFilter("SNAPSHOT_TAPE_TYPE",
         new String[] { ".sna", ".z80", ".szx", ".tap", ".tzx" });
     ExtensionFilter snapshotExtension = new ExtensionFilter("SNAPSHOT_TYPE",
@@ -61,6 +63,8 @@ public class JSpeccy extends javax.swing.JFrame {
         new String[] { ".scr", ".png" });
     ExtensionFilter screenExtension = new ExtensionFilter("SCR_TYPE", ".scr");
     ExtensionFilter romExtension = new ExtensionFilter("ROM_TYPE", ".rom");
+    
+    Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
     
 
     /** Creates new form JSpeccy */
@@ -216,17 +220,8 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
-        guiComponents = new GuiComponents();
-        guiComponents.setInfoLabels(modelLabel, speedLabel, tapeFilename);
-        guiComponents.setHardwareMenuItems(spec16kHardware, spec48kHardware, spec128kHardware,
-            specPlus2Hardware, specPlus2AHardware, specPlus3Hardware);
-        guiComponents.setJoystickMenuItems(noneJoystick, kempstonJoystick,
-            sinclair1Joystick, sinclair2Joystick,
-            cursorJoystick, fullerJoystick);
-        guiComponents.setMenuItems(insertIF2RomMediaMenu, ejectIF2RomMediaMenu,
-            playTapeMediaMenu);
-        guiComponents.setTapeIcon(tapeLabel);
-        spectrum.setGuiComponents(guiComponents);
+        spectrum.setSpeedLabel(speedLabel);
+        spectrum.tape.setTapeIcon(tapeLabel);
         tapeCatalog.setModel(spectrum.tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
@@ -245,28 +240,52 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         addKeyListener(spectrum.getKeyboard());
 
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
         // Synchronize the file user settings with GUI settings
+        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+        }
+        
+        IF2MediaMenu.setEnabled(true);
+        insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
+        extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
+        
         switch (settings.getSpectrumSettings().getDefaultModel()) {
             case 0:
                 spec16kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
                 break;
             case 2:
                 spec128kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
                 break;
             case 3:
                 specPlus2Hardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
                 break;
             case 4:
                 specPlus2AHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
                 IF1MediaMenu.setEnabled(false);
+                mdrvLabel.setDisabledIcon(null);
+                IF2MediaMenu.setEnabled(false);
                 break;
             case 5:
                 specPlus3Hardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
                 IF1MediaMenu.setEnabled(false);
+                mdrvLabel.setDisabledIcon(null);
+                IF2MediaMenu.setEnabled(false);
                 break;
             default:
                 spec48kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
         }
 
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
@@ -352,6 +371,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         settingsDialog = new SettingsDialog(settings);
         microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
+        spectrum.getInterface1().setMdrvIcon(mdrvLabel);
         
         spectrum.start();
     }
@@ -425,6 +445,73 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     }
     
+    private void updateGuiSelections() {
+        
+        IF1MediaMenu.setEnabled(spectrum.isIF1Connected());
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+        } else {
+            mdrvLabel.setDisabledIcon(null);
+        }
+        IF2MediaMenu.setEnabled(true);
+        insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
+        extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
+        
+        switch (spectrum.getSpectrumModel()) {
+            case SPECTRUM16K:
+                spec16kHardware.setSelected(true);
+                break;
+            case SPECTRUM48K:
+                spec48kHardware.setSelected(true);
+                break;
+            case SPECTRUM128K:
+                spec128kHardware.setSelected(true);
+                break;
+            case SPECTRUMPLUS2:
+                specPlus2Hardware.setSelected(true);
+                break;
+            case SPECTRUMPLUS2A:
+                specPlus2AHardware.setSelected(true);
+                IF2MediaMenu.setEnabled(false);
+                break;
+            case SPECTRUMPLUS3:
+                specPlus3Hardware.setSelected(true);
+                IF2MediaMenu.setEnabled(false);
+                break;
+        }
+        
+        modelLabel.setToolTipText(spectrum.getSpectrumModel().getLongModelName());
+        modelLabel.setText(spectrum.getSpectrumModel().getShortModelName());
+
+        switch (spectrum.getJoystick()) {
+            case NONE:
+                noneJoystick.setSelected(true);
+                break;
+            case KEMPSTON:
+                kempstonJoystick.setSelected(true);
+                break;
+            case SINCLAIR1:
+                sinclair1Joystick.setSelected(true);
+                break;
+            case SINCLAIR2:
+                sinclair2Joystick.setSelected(true);
+                break;
+            case CURSOR:
+                cursorJoystick.setSelected(true);
+                break;
+            case FULLER:
+                fullerJoystick.setSelected(true);
+        }
+        
+        if (spectrum.tape.isTapeInserted()) {
+            playTapeMediaMenu.setEnabled(true);
+            tapeFilename.setText(spectrum.tape.getTapeFilename().getName());
+        } else {
+            playTapeMediaMenu.setEnabled(false);
+            tapeFilename.setText(null);
+        }
+    }
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -458,6 +545,8 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
+        mdrvLabel = new javax.swing.JLabel();
+        jSeparator10 = new javax.swing.JSeparator();
         tapeLabel = new javax.swing.JLabel();
         jSeparator2 = new javax.swing.JSeparator();
         speedLabel = new javax.swing.JLabel();
@@ -527,7 +616,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator9 = new javax.swing.JPopupMenu.Separator();
         IF2MediaMenu = new javax.swing.JMenu();
         insertIF2RomMediaMenu = new javax.swing.JMenuItem();
-        ejectIF2RomMediaMenu = new javax.swing.JMenuItem();
+        extractIF2RomMediaMenu = new javax.swing.JMenuItem();
         helpMenu = new javax.swing.JMenu();
         imageHelpMenu = new javax.swing.JMenuItem();
         aboutHelpMenu = new javax.swing.JMenuItem();
@@ -672,12 +761,28 @@ public class JSpeccy extends javax.swing.JFrame {
     jLabel1.setPreferredSize(new java.awt.Dimension(100, 16));
     jPanel1.add(jLabel1);
 
+    mdrvLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+    mdrvLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/microdrive_on.png"))); // NOI18N
+    mdrvLabel.setText(bundle.getString("JSpeccy.mdrvLabel.text")); // NOI18N
+    mdrvLabel.setEnabled(false);
+    mdrvLabel.setMaximumSize(new java.awt.Dimension(26, 26));
+    mdrvLabel.setMinimumSize(new java.awt.Dimension(26, 26));
+    mdrvLabel.setPreferredSize(new java.awt.Dimension(26, 26));
+    jPanel1.add(mdrvLabel);
+
+    jSeparator10.setOrientation(javax.swing.SwingConstants.VERTICAL);
+    jSeparator10.setMaximumSize(new java.awt.Dimension(5, 32767));
+    jSeparator10.setMinimumSize(new java.awt.Dimension(3, 16));
+    jSeparator10.setPreferredSize(new java.awt.Dimension(3, 16));
+    jSeparator10.setRequestFocusEnabled(false);
+    jPanel1.add(jSeparator10);
+
     tapeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
     tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Akai24x24.png"))); // NOI18N
     tapeLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
     tapeLabel.setEnabled(false);
     tapeLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    tapeLabel.setPreferredSize(new java.awt.Dimension(36, 26));
+    tapeLabel.setPreferredSize(new java.awt.Dimension(30, 26));
     tapeLabel.setRequestFocusEnabled(false);
     jPanel1.add(tapeLabel);
 
@@ -1185,14 +1290,14 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     IF2MediaMenu.add(insertIF2RomMediaMenu);
 
-    ejectIF2RomMediaMenu.setText(bundle.getString("JSpeccy.ejectIF2RomMediaMenu.text")); // NOI18N
-    ejectIF2RomMediaMenu.setEnabled(false);
-    ejectIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+    extractIF2RomMediaMenu.setText(bundle.getString("JSpeccy.extractIF2RomMediaMenu.text")); // NOI18N
+    extractIF2RomMediaMenu.setEnabled(false);
+    extractIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            ejectIF2RomMediaMenuActionPerformed(evt);
+            extractIF2RomMediaMenuActionPerformed(evt);
         }
     });
-    IF2MediaMenu.add(ejectIF2RomMediaMenu);
+    IF2MediaMenu.add(extractIF2RomMediaMenu);
 
     mediaMenu.add(IF2MediaMenu);
 
@@ -1252,6 +1357,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 lastSnapshotDir = openSnapshotDlg.getCurrentDirectory().getAbsolutePath();
                 rotateRecentFile(selectedFile);
                 spectrum.loadSnapshot(selectedFile);
+                updateGuiSelections();
             } else {
                 currentDirTape = openSnapshotDlg.getCurrentDirectory();
                 lastTapeDir = openSnapshotDlg.getCurrentDirectory().getAbsolutePath();
@@ -1414,9 +1520,9 @@ public class JSpeccy extends javax.swing.JFrame {
         int status = saveSnapshotDlg.showSaveDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
-            if (spectrum.tape.getTapeName() != null &&
+            if (spectrum.tape.getTapeFilename() != null &&
                     saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith("szx")) {
-                tapeFilenameLabel.setText(spectrum.tape.getTapeName().getName());
+                tapeFilenameLabel.setText(spectrum.tape.getTapeFilename().getName());
                 ignoreRadioButton.setSelected(true);
                 spectrum.setSzxTapeMode(0); // ignore by default
                 saveSzxTape.pack();
@@ -1431,46 +1537,73 @@ public class JSpeccy extends javax.swing.JFrame {
     private void noneJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noneJoystickActionPerformed
 
         spectrum.setJoystick(Spectrum.Joystick.NONE);
+        noneJoystick.setSelected(true);
 
 }//GEN-LAST:event_noneJoystickActionPerformed
 
     private void kempstonJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kempstonJoystickActionPerformed
 
         spectrum.setJoystick(Spectrum.Joystick.KEMPSTON);
+        kempstonJoystick.setSelected(true);
 
     }//GEN-LAST:event_kempstonJoystickActionPerformed
 
     private void sinclair1JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair1JoystickActionPerformed
 
         spectrum.setJoystick(Spectrum.Joystick.SINCLAIR1);
+        sinclair1Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair1JoystickActionPerformed
 
     private void sinclair2JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair2JoystickActionPerformed
 
         spectrum.setJoystick(Spectrum.Joystick.SINCLAIR2);
+        sinclair2Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair2JoystickActionPerformed
 
     private void cursorJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cursorJoystickActionPerformed
 
         spectrum.setJoystick(Spectrum.Joystick.CURSOR);
+        cursorJoystick.setSelected(true);
         
     }//GEN-LAST:event_cursorJoystickActionPerformed
 
     private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K, true);
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+            IF1MediaMenu.setEnabled(true);
+        } else {
+            mdrvLabel.setDisabledIcon(null);
+            IF1MediaMenu.setEnabled(false);
+        }
+        
         IF2MediaMenu.setEnabled(true);
+        
         spectrum.reset();
     }//GEN-LAST:event_spec48kHardwareActionPerformed
 
     private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K, true);
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+            IF1MediaMenu.setEnabled(true);
+        } else {
+            mdrvLabel.setDisabledIcon(null);
+            IF1MediaMenu.setEnabled(false);
+        }
+        
         IF2MediaMenu.setEnabled(true);
+        
         spectrum.reset();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
@@ -1494,8 +1627,19 @@ public class JSpeccy extends javax.swing.JFrame {
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2, true);
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+            IF1MediaMenu.setEnabled(true);
+        } else {
+            mdrvLabel.setDisabledIcon(null);
+            IF1MediaMenu.setEnabled(false);
+        }
+        
         IF2MediaMenu.setEnabled(true);
+        
         spectrum.reset();
         
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
@@ -1503,8 +1647,13 @@ public class JSpeccy extends javax.swing.JFrame {
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, true);
+        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
+        
         IF1MediaMenu.setEnabled(false);
+        mdrvLabel.setDisabledIcon(null);
         IF2MediaMenu.setEnabled(false);
+        
         spectrum.reset();
 
     }//GEN-LAST:event_specPlus2AHardwareActionPerformed
@@ -1523,7 +1672,13 @@ public class JSpeccy extends javax.swing.JFrame {
         }
         
         if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-            IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+            if (settings.getInterface1Settings().isConnectedIF1()) {
+                IF1MediaMenu.setEnabled(true);
+                mdrvLabel.setDisabledIcon(mdrOff);
+            } else {
+                IF1MediaMenu.setEnabled(true);
+                mdrvLabel.setDisabledIcon(null);
+            }
             IF2MediaMenu.setEnabled(true);
         } else {
             IF1MediaMenu.setEnabled(false);
@@ -1603,11 +1758,62 @@ public class JSpeccy extends javax.swing.JFrame {
     private void hardResetSpectrumButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hardResetSpectrumButtonActionPerformed
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         int ret = JOptionPane.showConfirmDialog(getContentPane(),
-                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
-                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+            bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
 
         if (ret == JOptionPane.YES_OPTION) {
             spectrum.hardReset();
+            switch (settings.getSpectrumSettings().getDefaultModel()) {
+                case 0:
+                    spec16kHardware.setSelected(true);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
+                    break;
+                case 2:
+                    spec128kHardware.setSelected(true);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
+                    break;
+                case 3:
+                    specPlus2Hardware.setSelected(true);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
+                    break;
+                case 4:
+                    specPlus2AHardware.setSelected(true);
+                    IF1MediaMenu.setEnabled(false);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
+                    break;
+                case 5:
+                    specPlus3Hardware.setSelected(true);
+                    IF1MediaMenu.setEnabled(false);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
+                    break;
+                default:
+                    spec48kHardware.setSelected(true);
+                    modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
+                    modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
+            }
+
+            switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
+                case 1:
+                    kempstonJoystick.setSelected(true);
+                    break;
+                case 2:
+                    sinclair1Joystick.setSelected(true);
+                    break;
+                case 3:
+                    sinclair2Joystick.setSelected(true);
+                    break;
+                case 4:
+                    cursorJoystick.setSelected(true);
+                    break;
+                default:
+                    noneJoystick.setSelected(true);
+            }
+
             if (settings.getSpectrumSettings().getDefaultModel() < 4) {
                 IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
                 IF2MediaMenu.setEnabled(true);
@@ -1646,16 +1852,32 @@ public class JSpeccy extends javax.swing.JFrame {
     private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K, true);
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+        modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
+        
+        if (settings.getInterface1Settings().isConnectedIF1()) {
+            mdrvLabel.setDisabledIcon(mdrOff);
+            IF1MediaMenu.setEnabled(true);
+        } else {
+            mdrvLabel.setDisabledIcon(null);
+            IF1MediaMenu.setEnabled(false);
+        }
+        
         IF2MediaMenu.setEnabled(true);
+        
         spectrum.reset();
     }//GEN-LAST:event_spec16kHardwareActionPerformed
 
     private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
 
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3, true);
+        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
+        modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
+        
         IF1MediaMenu.setEnabled(false);
+        mdrvLabel.setDisabledIcon(null);
         IF2MediaMenu.setEnabled(false);
+        
         spectrum.reset();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 
@@ -1772,7 +1994,7 @@ public class JSpeccy extends javax.swing.JFrame {
             currentDirRom = IF2RomDlg.getCurrentDirectory();
             if (spectrum.insertIF2Rom(IF2RomDlg.getSelectedFile())) {
                 insertIF2RomMediaMenu.setEnabled(false);
-                ejectIF2RomMediaMenu.setEnabled(true);
+                extractIF2RomMediaMenu.setEnabled(true);
                 spectrum.reset();
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -1785,15 +2007,16 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.startEmulation();
     }//GEN-LAST:event_insertIF2RomMediaMenuActionPerformed
 
-    private void ejectIF2RomMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ejectIF2RomMediaMenuActionPerformed
+    private void extractIF2RomMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_extractIF2RomMediaMenuActionPerformed
         spectrum.ejectIF2Rom();
         insertIF2RomMediaMenu.setEnabled(true);
-        ejectIF2RomMediaMenu.setEnabled(false);
+        extractIF2RomMediaMenu.setEnabled(false);
         spectrum.reset();
-    }//GEN-LAST:event_ejectIF2RomMediaMenuActionPerformed
+    }//GEN-LAST:event_extractIF2RomMediaMenuActionPerformed
 
     private void fullerJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullerJoystickActionPerformed
         spectrum.setJoystick(Spectrum.Joystick.FULLER);
+        fullerJoystick.setSelected(true);
     }//GEN-LAST:event_fullerJoystickActionPerformed
 
     private void saveSzxCloseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSzxCloseButtonActionPerformed
@@ -1877,8 +2100,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
-    private javax.swing.JMenuItem ejectIF2RomMediaMenu;
     private javax.swing.JRadioButton embeddedRadioButton;
+    private javax.swing.JMenuItem extractIF2RomMediaMenu;
     private javax.swing.JToggleButton fastEmulationToggleButton;
     private javax.swing.JMenu fileMenu;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
@@ -1898,6 +2121,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSeparator jSeparator10;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -1914,6 +2138,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButton linkedRadioButton;
     private javax.swing.JMenuItem loadScreenShot;
     private javax.swing.JMenu machineMenu;
+    private javax.swing.JLabel mdrvLabel;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JMenuItem microdrivesIF1MediaMenu;
     private javax.swing.JLabel modelLabel;

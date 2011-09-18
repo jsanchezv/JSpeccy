@@ -615,7 +615,7 @@ public class Tape {
         return tzxTape;
     }
 
-    public File getTapeName() {
+    public File getTapeFilename() {
         return filename;
     }
 
@@ -1518,6 +1518,7 @@ public class Tape {
         }
         bitsLastByte++;
     }
+    
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
 

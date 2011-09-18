@@ -45,8 +45,9 @@ public class Snapshots {
     private boolean ULAplus, ULAplusEnabled;
     private int ULAplusRegister, ULAplusPalette[] = new int[64];
     // IF1 support;
-    private boolean IF1Present, IF1RomPaged;
-    private int numDrives, driveRunning;
+    private boolean IF1Enabled, IF1RomPaged;
+    private byte numDrives;
+    private int driveRunning;
     private int cartridgePos[] = new int[8];
     private int preambleRem[] = new int[8];
     private String cartridgeFile[] = new String[8];
@@ -378,12 +379,12 @@ public class Snapshots {
         ULAplusPalette[register] = color;
     }
 
-    public boolean isIF1Present() {
-        return IF1Present;
+    public boolean isIF1Enabled() {
+        return IF1Enabled;
     }
 
     public void setIF1Present(boolean state) {
-        IF1Present = state;
+        IF1Enabled = state;
     }
     
     public boolean isIF1RomPaged() {
@@ -442,11 +443,11 @@ public class Snapshots {
         return tapeExtension;
     }
     
-    public int getNumDrives() {
+    public byte getNumDrives() {
         return numDrives;
     }
     
-    public void setNumDrives(int drives) {
+    public void setNumDrives(byte drives) {
         numDrives = drives;
     }
     
@@ -1034,7 +1035,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
                             
-                            IF1Present = false;
+                            IF1Enabled = false;
                             break;
                         case 1: // 48k + IF.1
                             if (modifiedHW)
@@ -1042,7 +1043,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
                             
-                            IF1Present = true;
+                            IF1Enabled = true;
                             if (z80Header2[4] == 0xff)
                                 IF1RomPaged = true;
                             break;
@@ -1052,7 +1053,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
                             
-                            IF1Present = false;
+                            IF1Enabled = false;
                             break;
                         case 4: // 128k + IF.1
                             if (modifiedHW)
@@ -1060,7 +1061,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
                             
-                            IF1Present = true;
+                            IF1Enabled = true;
                             if (z80Header2[4] == 0xff)
                                 IF1RomPaged = true;
                             break;
@@ -1089,7 +1090,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
                             
-                            IF1Present = false;
+                            IF1Enabled = false;
                             break;
                         case 1: // 48k + IF.1
                             if (modifiedHW)
@@ -1097,7 +1098,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM48K;
                             
-                            IF1Present = true;
+                            IF1Enabled = true;
                             if (z80Header2[4] == 0xff)
                                 IF1RomPaged = true;
                             break;
@@ -1107,7 +1108,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
                             
-                            IF1Present = false;
+                            IF1Enabled = false;
                             break;
                         case 5: // 128k + IF.1
                             if (modifiedHW)
@@ -1115,7 +1116,7 @@ public class Snapshots {
                             else
                                 snapshotModel = MachineTypes.SPECTRUM128K;
                             
-                            IF1Present = true;
+                            IF1Enabled = true;
                             if (z80Header2[4] == 0xff)
                                 IF1RomPaged = true;
                             break;
@@ -1284,11 +1285,11 @@ public class Snapshots {
                     z80HeaderV3[37] |= 0x80;
                     break;
                 case SPECTRUM48K:
-                    if (IF1Present)
+                    if (IF1Enabled)
                         z80HeaderV3[34] = 1;
                     break;
                 case SPECTRUM128K:
-                    if (IF1Present)
+                    if (IF1Enabled)
                         z80HeaderV3[34] = 5;
                     else
                         z80HeaderV3[34] = 4;
@@ -1558,11 +1559,11 @@ public class Snapshots {
 
     private int dwMagicToInt(byte[] dwMagic) {
         int value0 = dwMagic[0] & 0xff;
-        int value1 = dwMagic[1] & 0xff;
-        int value2 = dwMagic[2] & 0xff;
-        int value3 = dwMagic[3] & 0xff;
+        int value1 = (dwMagic[1] & 0xff) << 8;
+        int value2 = (dwMagic[2] & 0xff) << 16;
+        int value3 = (dwMagic[3] & 0xff) << 24;
 
-        return (value3 << 24) | (value2 << 16) | (value1 << 8) | value0;
+        return (value3 | value2 | value1 | value0);
     }
 
     private boolean loadSZX(File filename, Memory memory) {
@@ -1967,7 +1968,61 @@ public class Snapshots {
                             szxLen -= fIn.skip(szxLen);
                         break;
                     case ZXSTBID_IF1:
+                        if (snapshotModel.codeModel ==
+                            MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                            System.out.println(
+                                "SZX Error: +2a/+3 snapshot with IF1 block. Skipping");
+                            while (szxLen > 0)
+                                szxLen -= fIn.skip(szxLen);
+                            break;
+                        }
+                        
+                        int if1Flags;
+                        if1Flags = fIn.read() + fIn.read() * 256;
+                        szxLen -= 2;
+                        IF1Enabled = (if1Flags & ZXSTIF1F_ENABLED) != 0;
+                        IF1RomPaged = (if1Flags & ZXSTIF1F_PAGED) != 0;
+                        
+                        numDrives = (byte)fIn.read();
+                        szxLen--;
+                        if (numDrives < 1 || numDrives > 8)
+                            numDrives = 8;
+//                        szxLen -= fIn.skip(35);
+//                        int if1RomLen;
+//                        if1RomLen = fIn.read() + fIn.read() * 256;
+//                        szxLen -= 2;
+                        while (szxLen > 0)
+                            szxLen -= fIn.skip(szxLen);
+                        break;
                     case ZXSTBID_MICRODRIVE:
+                        // The MDRV have some design problems, so is ignored now.
+                        while (szxLen > 0)
+                            szxLen -= fIn.skip(szxLen);
+//                        if (snapshotModel.codeModel ==
+//                            MachineTypes.CodeModel.SPECTRUMPLUS3) {
+//                            System.out.println(
+//                                "SZX Error: +2a/+3 snapshot with MDRV block. Skipping");
+//                            while (szxLen > 0)
+//                                szxLen -= fIn.skip(szxLen);
+//                            break;
+//                        }
+//                        int mdrvFlags;
+//                        mdrvFlags = fIn.read() + fIn.read() * 256;
+//                        szxLen -= 2;
+//                        
+//                        int driveNum = fIn.read();
+//                        szxLen--;
+//                        if (driveNum < 1 || driveNum > 8) {
+//                            System.out.println(
+//                                String.format("MDRV %d block error. Skipping",
+//                                driveNum));
+//                        }
+//                        
+//                        int motor = fIn.read() & 0xff;
+//                        szxLen--;
+//                        if (motor == 1)
+//                            driveRunning = driveNum;
+                        break;
                     case ZXSTBID_ZXATASP:
                     case ZXSTBID_ATARAM:
                     case ZXSTBID_ZXCF:
@@ -2064,7 +2119,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR lenght block
-            blockID = "JSpeccy 0.88.5";
+            blockID = "JSpeccy 0.89 (01/07/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                 0, blockID.getBytes("US-ASCII").length);
@@ -2214,10 +2269,8 @@ public class Snapshots {
 
             // SZX AY block
             if (enabledAY) {
-                byte[] ayID = new byte[4];
-                ayID[0] = 'A';
-                ayID[1] = 'Y';
-                fOut.write(ayID);
+                blockID = "AY\0\0";
+                fOut.write(blockID.getBytes("US-ASCII"));
                 fOut.write(0x12);
                 fOut.write(0x00);
                 fOut.write(0x00);
@@ -2385,11 +2438,38 @@ public class Snapshots {
                 fOut.write(szFileExtension);
                 baos.writeTo(fOut);
             }
-            fOut.close();
+            
+            // IF1 SZX Block
+            if (IF1Enabled &&
+                snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                blockID = "IF1\0";
+                fOut.write(blockID.getBytes("US-ASCII"));
+                
+                fOut.write(0x28);
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00);  // IF1 block lenght (40 bytes without ROM)
+                
+                byte if1Flag = ZXSTIF1F_ENABLED;
+                if (IF1RomPaged)
+                    if1Flag |= ZXSTIF1F_PAGED;
+                fOut.write(if1Flag);
+                fOut.write(numDrives);
+                byte reserved[] = new byte[38]; // 35 reserved + wRomSize + chRomData[1]
+                fOut.write(reserved);
+            }
 
         } catch (IOException ex) {
             error = 6;
             return false;
+        } finally {
+            try {
+                fOut.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Snapshots.class.getName()).log(Level.SEVERE, null, ex);
+                error = 6;
+                return false;
+            }
         }
 
         return true;

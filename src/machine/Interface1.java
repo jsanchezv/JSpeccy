@@ -6,6 +6,7 @@ package machine;
 
 import configuration.Interface1Type;
 import java.io.File;
+import javax.swing.SwingUtilities;
 import utilities.Microdrive;
 
 /**
@@ -39,6 +40,7 @@ public class Interface1 {
     private Microdrive microdrive[];
     private boolean commsClk;
     private Interface1Type settings;
+    private int lan;
     
     public Interface1(Interface1Type if1settings) {
         settings = if1settings;
@@ -50,18 +52,7 @@ public class Interface1 {
             microdrive[mdr] = new Microdrive();
         
         commsClk = false;
-        
-//        if (!microdrive[0].insertFromFile(new File("/home/jsanchez/Spectrum/empty.mdr"))) {
-//            System.out.println("No se ha podido cargar el cartucho en MDR 1");
-//        }
-//        
-//        if (!microdrive[1].insertFromFile(new File("/home/jsanchez/Spectrum/wr-prot.mdr"))) {
-//            System.out.println("No se ha podido cargar el cartucho en MDR 2");
-//        }
-//        
-//        if (!microdrive[2].insertNew(settings.getCartridgeSize())) {
-//            System.out.println("No se ha podido crear un cartucho en MDR 3");
-//        }
+        lan = 0;
     }
     
     public int readControlPort() {
@@ -82,6 +73,10 @@ public class Interface1 {
         } else {
             return 0xff;
         }
+    }
+    
+    public int readLanPort() {
+        return lan;
     }
     
     public void writeControlPort(int value) {
@@ -131,6 +126,11 @@ public class Interface1 {
 //                System.out.println(String.format("MDR %d [%d] selected",
 //                    mdrFlipFlop, mdrSelected));
             }
+            
+            boolean motorOn = mdrFlipFlop != 0;
+            
+            if (mdrvIcon.isEnabled() != motorOn)
+                updateMdrvIcon();
         }
         
         if (mdrFlipFlop != 0)
@@ -147,6 +147,11 @@ public class Interface1 {
 //                mdrSelected));
             microdrive[mdrSelected].writeData(value);
         }
+    }
+    
+    public void writeLanPort(int value) {
+        lan = value;
+        return;
     }
     
     public boolean isCartridge(int drive) {
@@ -300,5 +305,29 @@ public class Interface1 {
             return;
         
         microdrive[drive].setPreambleRem(offset);
+    }
+    
+    private javax.swing.JLabel mdrvIcon;
+    public void setMdrvIcon(javax.swing.JLabel tapeLabel) {
+        mdrvIcon = tapeLabel;
+        updateMdrvIcon();
+    }
+    
+    private void updateMdrvIcon() {
+        if (mdrvIcon == null) {
+            return;
+        }
+
+        SwingUtilities.invokeLater(new Runnable() {
+
+            @Override
+            public void run() {
+                if (mdrFlipFlop == 0) {
+                    mdrvIcon.setEnabled(false);
+                } else {
+                    mdrvIcon.setEnabled(true);
+            }
+            }
+        });
     }
 }

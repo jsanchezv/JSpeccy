@@ -703,7 +703,7 @@ public final class Memory {
         IF2RomPaged = true;
     }
 
-    public void ejectIF2Rom() {
+    public void extractIF2Rom() {
         IF2RomPaged = false;
         reset();
     }
