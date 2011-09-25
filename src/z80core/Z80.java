@@ -92,6 +92,14 @@
  *          11/07/2011 Se optimiza el tratamiento del carryFlag en las instrucciones
  *          SUB/SBC/SBC16/CP. Se optimiza el tratamiento del HalfCarry en las
  *          instruciones ADC/ADC16/SBC/SBC16.
+ * 
+ *          25/09/2011 Introducidos los métodos get/setTimeout. De esa forma,
+ *          además de recibir una notificación después de cada instrucción ejecutada
+ *          se puede recibir tras N ciclos. En cualquier caso, execDone será llamada
+ *          con el número de ciclos ejecutados, sea tras una sola instrucción o tras
+ *          expirar el timeout programado. Si hay un timeout, éste seguirá vigente
+ *          hasta que se programe otro o se ponga a false execDone. Si el timeout
+ *          se programa a cero, se llamará a execDone tras cada instrucción.
  *
  */
 package z80core;
@@ -104,6 +112,7 @@ public class Z80 {
     // Número de estados T que se llevan ejecutados
     public int tEstados;
     private boolean execDone;
+    private int timeout, counter;
     // Posiciones de los flags
     private static final int CARRY_MASK = 0x01;
     private static final int ADDSUB_MASK = 0x02;
@@ -242,8 +251,8 @@ public class Z80 {
     // Constructor de la clase
     public Z80(MemIoOps memory) {
         MemIoImpl = memory;
-        tEstados = 0;
-        execDone = false;
+        tEstados = timeout = 0;
+//        execDone = false;
         reset();
     }
 
@@ -1493,6 +1502,17 @@ public class Z80 {
 
     public final void setExecDone(boolean notify) {
         execDone = notify;
+        timeout = counter = 0;
+    }
+    
+    public final int getTimeout() {
+        return timeout;
+    }
+    
+    public final void setTimeout(int tstates) {
+//        System.out.println("Timeout: " + tstates);
+        timeout = tstates;
+        counter = 0;
     }
 
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
@@ -1532,7 +1552,12 @@ public class Z80 {
             }
 
             if (execDone) {
-                MemIoImpl.execDone(tEstados - tmp);
+                counter += (tEstados - tmp);
+                
+                if (counter >= timeout) {
+                    MemIoImpl.execDone(counter);
+                    counter = 0;
+                }
             }
 
         } /* del while */
