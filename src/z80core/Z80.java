@@ -252,7 +252,7 @@ public class Z80 {
     public Z80(MemIoOps memory) {
         MemIoImpl = memory;
         tEstados = timeout = 0;
-//        execDone = false;
+        execDone = false;
         reset();
     }
 
