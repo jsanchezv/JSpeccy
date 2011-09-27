@@ -1441,7 +1441,10 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_silenceSoundToggleButtonActionPerformed
 
     private void playTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playTapeMediaMenuActionPerformed
-        spectrum.toggleTape();
+        if (spectrum.tape.isTapePlaying())
+            spectrum.tape.stop();
+        else
+            spectrum.tape.play();
     }//GEN-LAST:event_playTapeMediaMenuActionPerformed
 
     private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed

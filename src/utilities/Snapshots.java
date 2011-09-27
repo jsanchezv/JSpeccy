@@ -1921,7 +1921,7 @@ public class Snapshots {
                         byte dwCartSize[] = new byte[4];
                         readed = fIn.read(dwCartSize);
                         int romLen = dwMagicToInt(dwCartSize);
-//                        System.out.println(String.format("IF2 ROM present. Lenght: %d", romLen));
+//                        System.out.println(String.format("IF2 ROM present. Length: %d", romLen));
                         if (romLen > 0x4000) {
                             while (romLen > 0)
                             romLen -= fIn.skip(romLen);
@@ -2118,7 +2118,7 @@ public class Snapshots {
             fOut.write(0x25);
             fOut.write(0x00);
             fOut.write(0x00);
-            fOut.write(0x00);  // CRTR lenght block
+            fOut.write(0x00);  // CRTR length block
             blockID = "JSpeccy 0.89 (15/07/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
@@ -2184,7 +2184,7 @@ public class Snapshots {
             fOut.write(0x08);
             fOut.write(0x00);
             fOut.write(0x00);
-            fOut.write(0x00);  // Z80R lenght block (8 bytes)
+            fOut.write(0x00);  // Z80R length block (8 bytes)
             byte[] specr = new byte[8];
             specr[0] = (byte)border;
             specr[1] = (byte)last7ffd;
@@ -2237,7 +2237,7 @@ public class Snapshots {
             fOut.write(0x05);
             fOut.write(0x00);
             fOut.write(0x00);
-            fOut.write(0x00);  // KEYB lenght block (5 bytes)
+            fOut.write(0x00);  // KEYB length block (5 bytes)
             if (issue2) {
                 fOut.write(ZXSTKF_ISSUE2);
             } else {
@@ -2274,7 +2274,7 @@ public class Snapshots {
                 fOut.write(0x12);
                 fOut.write(0x00);
                 fOut.write(0x00);
-                fOut.write(0x00);  // AY lenght block (18 bytes)
+                fOut.write(0x00);  // AY length block (18 bytes)
                 if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                     fOut.write(ZXSTAYF_128AY);
                 } else {
@@ -2293,7 +2293,7 @@ public class Snapshots {
                 fOut.write(0x42);
                 fOut.write(0x00);
                 fOut.write(0x00);
-                fOut.write(0x00);  // PLTT lenght block (66 bytes)
+                fOut.write(0x00);  // PLTT length block (66 bytes)
                 if (ULAplusEnabled) {
                     fOut.write(ZXSTPALETTE_ENABLED);
                 } else {
@@ -2448,7 +2448,7 @@ public class Snapshots {
                 fOut.write(0x28);
                 fOut.write(0x00);
                 fOut.write(0x00);
-                fOut.write(0x00);  // IF1 block lenght (40 bytes without ROM)
+                fOut.write(0x00);  // IF1 block length (40 bytes without ROM)
                 
                 byte if1Flag = ZXSTIF1F_ENABLED;
                 if (IF1RomPaged)

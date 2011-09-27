@@ -72,8 +72,8 @@ public class Tape {
     private static final int EAR_OFF = 0xbf;
     private static final int EAR_ON = 0xff;
     private static final int EAR_MASK = 0x40;
-    private long timeout;
-    private long timeLastIn, timeLastOut;
+    private int timeout;
+    private long timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
     private boolean tzxTape, flashload;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
@@ -84,7 +84,7 @@ public class Tape {
     private final int ONE_LENGHT = 1710;
     private final int HEADER_PULSES = 8063;
     private final int DATA_PULSES = 3223;
-    private int END_BLOCK_PAUSE = 3500000; // 1 sec pause
+    private final int END_BLOCK_PAUSE = 3500000;
     // Variables para los tiempos de los ficheros TZX
     private int leaderLenght;
     private int leaderPulses;
@@ -112,7 +112,7 @@ public class Tape {
         tzxTape = false;
         flashload = settings.isFlashload();
         tapePos = 0;
-        timeout = timeLastIn = 0;
+        timeout = 0;
         earBit = EAR_ON;
         spectrumModel = MachineTypes.SPECTRUM48K;
         filenameLabel = null;
@@ -124,7 +124,6 @@ public class Tape {
 
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
-        END_BLOCK_PAUSE = spectrumModel.clockFreq;
     }
 
     public void setListSelectionModel(ListSelectionModel list) {
@@ -448,46 +447,11 @@ public class Tape {
         return tapeTableModel;
     }
 
-    public void notifyTstates(long tstates) {
+    public void notifyTimeout() {
+
+        doPlay();
         
-        if (timeLastIn == 0) {
-            timeLastIn = tstates;
-            doPlay();
-            return;
-        }
-        
-//        if (timeout == 0) {
-//            timeLastIn = tstates;
-//            return;
-//        }
-        
-        if (tstates < timeLastIn)
-            System.out.println("Time error!");
-        
-//        System.out.println(String.format("(notifyTstates) timeout: %d", timeout));
-        if (timeout > 0)
-            timeout -= (tstates - timeLastIn);
-        else
-            timeout = 0;
-
-        timeLastIn = tstates;
-
-        if (timeout > 0) {
-            return;
-        }
-
-//        System.out.println(String.format("(notifyTstates) timeout: %d", timeout));
-//        if (timeout < -100)
-//            timeout = 0;
-
-//        if (tapeRecording) {
-//            recordPulse();
-//        }
-
-//        if (tapePlaying) {
-            doPlay();
-//        }
-
+        cpu.setTimeout(timeout);
     }
 
     public boolean insert(File fileName) {
@@ -518,7 +482,7 @@ public class Tape {
         tapePos = idxHeader = 0;
         tapeInserted = true;
         statePlay = State.STOP;
-        timeout = timeLastIn = 0;
+        timeout = 0;
         tapePlaying = tapeRecording = false;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
         if (tzxTape) {
@@ -564,7 +528,7 @@ public class Tape {
         tapePos = idxHeader = 0;
         tapeInserted = true;
         statePlay = State.STOP;
-        timeout = timeLastIn = 0;
+        timeout = 0;
         tapePlaying = tapeRecording = false;
 //        fastload = settings.isFastload();
         tzxTape = extension.startsWith("tzx");
@@ -647,14 +611,17 @@ public class Tape {
             return false;
         }
 
+        if (idxHeader >= nOffsetBlocks) {
+            return false;
+        }
+        
         tapePlaying = true;
         statePlay = State.START;
-//        earBit = EAR_ON;
         tapePos = offsetBlocks[idxHeader];
-        timeLastIn = timeout = 0;
-//        cpu.setExecDone(true);
+        timeout = 0;
         updateTapeIcon();
         tapeNotify.tapeStart();
+        cpu.setExecDone(true);
         return true;
     }
 
@@ -664,15 +631,13 @@ public class Tape {
         }
 
         statePlay = State.STOP;
-        if (idxHeader == nOffsetBlocks) {
-            idxHeader = 0;
-        }
+
         lsm.setSelectionInterval(idxHeader, idxHeader);
         
-//        cpu.setExecDone(false);
+        cpu.setExecDone(false);
         tapePlaying = false;
         updateTapeIcon();
-        timeLastIn = timeout = 0;
+        timeout = 0;
         tapeNotify.tapeStop();
     }
 
@@ -682,6 +647,7 @@ public class Tape {
         }
 
         idxHeader = 0;
+        tapePos = offsetBlocks[idxHeader];
         lsm.setSelectionInterval(idxHeader, idxHeader);
         flashload = settings.isFlashload();
 
@@ -719,16 +685,12 @@ public class Tape {
         switch (statePlay) {
             case STOP:
                 lsm.setSelectionInterval(idxHeader, idxHeader);
-//                cpu.setExecDone(false);
+                cpu.setExecDone(false);
                 tapePlaying = false;
                 updateTapeIcon();
-                timeLastIn = 0;
                 tapeNotify.tapeStop();
                 break;
             case START:
-                if (idxHeader == nOffsetBlocks) {
-                    idxHeader = 0;
-                }
                 lsm.setSelectionInterval(idxHeader, idxHeader);
 //                System.out.println(String.format("Playing tap block :%d", idxHeader));
                 tapePos = offsetBlocks[idxHeader];
@@ -736,13 +698,13 @@ public class Tape {
                 tapePos += 2;
 //                System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-                earBit ^= EAR_MASK;
+                earBit = EAR_OFF;
                 timeout = LEADER_LENGHT;
                 statePlay = State.LEADER;
                 break;
             case LEADER:
                 earBit ^= EAR_MASK;
-                if (--leaderPulses > 0) {
+                if (leaderPulses-- > 0) {
                     timeout = LEADER_LENGHT;
                     break;
                 }
@@ -791,10 +753,8 @@ public class Tape {
             case PAUSE_STOP:
                 if (tapePos == tapeBuffer.length) {
                     statePlay = State.STOP;
-                    idxHeader = 0;
                     timeout = 1;
                     lsm.setSelectionInterval(idxHeader, idxHeader);
-//                    tapeNotify.tapeStop();
                 } else {
                     idxHeader++;
                     statePlay = State.START; // START
@@ -927,17 +887,14 @@ public class Tape {
             repeat = false;
             switch (statePlay) {
                 case STOP:
-//                    cpu.setExecDone(false);
+                    cpu.setExecDone(false);
                     tapePlaying = false;
                     updateTapeIcon();
                     tapeNotify.tapeStop();
                     break;
                 case START:
-                    if (idxHeader == nOffsetBlocks) {
-                        idxHeader = 0;
-                    }
                     tapePos = offsetBlocks[idxHeader];
-
+                    earBit = EAR_OFF;
                     statePlay = State.TZX_HEADER;
                     repeat = true;
                     break;
@@ -1009,19 +966,16 @@ public class Tape {
                     timeout = endBlockPause;
                     break;
                 case TZX_HEADER:
-                    if (idxHeader == nOffsetBlocks) {
+                    if (idxHeader >= nOffsetBlocks) {
 //                        System.out.println(String.format("Last Ear: %02x", earBit));
                         statePlay = State.STOP;
-                        idxHeader = 0;
                         repeat = true;
                         break;
                     }
                     decodeTzxHeader();
                     // De Normal/Turbo Data Block ya sale con timeout inicializado
                     if (timeout <= 0)
-//                        repeat = true;
-//                    else
-//                        System.out.println(String.format("tzxHeader con timeout: %d", timeout));
+                        repeat = true;
                     break;
                 case PURE_TONE:
                     earBit ^= EAR_MASK;
@@ -1053,13 +1007,12 @@ public class Tape {
                 case NEWDR_BIT:
                     boolean micPulse;
                     if ((tapeBuffer[tapePos] & mask) != 0) {
-//                        earBit = EAR_ON;
                         micPulse = true;
                     } else {
-//                        earBit = EAR_OFF;
                         micPulse = false;
                     }
                     earBit ^= EAR_MASK;
+                    timeout = 0;
                     
                     while (((tapeBuffer[tapePos] & mask) != 0) == micPulse) {
                         timeout += zeroLenght;
@@ -1082,37 +1035,10 @@ public class Tape {
                             }
                         }
                     }
-//                    if (timeout == 0) {
-//                        System.out.println("ERROR!, timeout a cero");
-//                    }
-//                    timeout = zeroLenght;
-//                    mask >>>= 1;
-//                    if (blockLen == 1 && bitsLastByte < 8) {
-//                        if (mask == (0x80 >>> bitsLastByte)) {
-//                            statePlay = State.PAUSE;
-//                            tapePos++;
-//                            break;
-//                        }
-//                    }
-//
-//                    if (mask != 0) {
-//                        statePlay = State.NEWDR_BIT;
-//                        break;
-//                    }
-//
-//                    tapePos++;
-//                    if (--blockLen > 0) {
-//                        statePlay = State.NEWDR_BYTE;
-//                    } else {
-////                            System.out.println(String.format("Last byte: %02x",
-////                                    tapeBuffer[tapePos-1]));
-//                        statePlay = State.PAUSE;
-//                    }
                     break;
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
                         statePlay = State.STOP;
-//                        tapeNotify.tapeStop();
                         repeat = true;
                     } else {
                         timeout = endBlockPause;
@@ -1126,8 +1052,10 @@ public class Tape {
 
     private void decodeTzxHeader() {
         boolean repeat = true;
+        timeout = 0;
+        
         while (repeat) {
-            if (idxHeader == nOffsetBlocks) {
+            if (idxHeader >= nOffsetBlocks) {
                 return;
             }
 
@@ -1156,7 +1084,6 @@ public class Tape {
                     blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
                     tapePos += 5;
                     leaderPulses = tapeBuffer[tapePos] < 0x80 ? HEADER_PULSES : DATA_PULSES;
-//                    timeout = leaderLenght;
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
                     repeat = false;
@@ -1181,9 +1108,9 @@ public class Tape {
                         + (tapeBuffer[tapePos + 17] << 8)
                         + (tapeBuffer[tapePos + 18] << 16);
                     tapePos += 19;
-//                    timeout = leaderLenght;
                     // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
                     // Así cargan los juegos problemáticos indicados en la cabecera
+                    // Cambio deshecho el 23/09/2011
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
                     repeat = false;
@@ -1345,96 +1272,108 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
-    public boolean flashLoad(Memory memory) {
-
-        if (!tapeInserted || cpu == null) {
-            return false;
-        }
-
-//        System.out.println("flashload!");
-
-        if (idxHeader == nOffsetBlocks) {
-            flashload = false;
-            cpu.setCarryFlag(false);
-            return false;
-        }
-
-        if (tzxTape) {
-            // Fastload only with Standard Speed Tape Blocks (and some
-            // identified erroneusly as Turbo Blocks
-            // (Midnight Resistance 128k as an example))
-            while (idxHeader < nOffsetBlocks) {
-                tapePos = offsetBlocks[idxHeader];
-                if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11) {
-                    break;
-                }
-                idxHeader++;
-            }
-
-            if (idxHeader == nOffsetBlocks) {
-                cpu.setCarryFlag(false);
-                idxHeader = 0;
-                lsm.setSelectionInterval(idxHeader, idxHeader);
-                return false;
-            }
-
-            lsm.setSelectionInterval(idxHeader, idxHeader);
-            if (tapeBuffer[tapePos] == 0x10) {
-                blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
-                tapePos += 5;
-            } else {
-                blockLen = tapeBuffer[tapePos + 16]
-                    + (tapeBuffer[tapePos + 17] << 8)
-                    + (tapeBuffer[tapePos + 18] << 16);
-                tapePos += 19;
-            }
-        } else {
-            tapePos = offsetBlocks[idxHeader];
-            blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
-//        System.out.println(String.format("tapePos: %X. blockLen: %X", tapePos, blockLen));
-            tapePos += 2;
-        }
-
-        // ¿Coincide el flag? (está en el registro A)
-        if (cpu.getRegA() != tapeBuffer[tapePos]) {
-            cpu.xor(tapeBuffer[tapePos]);
-            idxHeader++;
-            return false;
-        }
-        // La paridad incluye el byte de flag
-        cpu.setRegA(tapeBuffer[tapePos]);
-
-        int count = 0;
-        int addr = cpu.getRegIX();    // Address start
-        int nBytes = cpu.getRegDE();  // Lenght
-        while (count < nBytes && count < blockLen - 1) {
-            memory.writeByte(addr, (byte) tapeBuffer[tapePos + count + 1]);
-            cpu.xor(tapeBuffer[tapePos + count + 1]);
-            addr = (addr + 1) & 0xffff;
-            count++;
-        }
-
-        // Se cargarón los bytes pedidos en DE
-        if (count == nBytes) {
-            cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
-            cpu.cp(0x01);
-        }
-
-        // Hay menos bytes en la cinta de los indicados en DE
-        // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
-        // que se señaliza con CARRY==reset & ZERO==set
-        if (count < nBytes) {
-            cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
-        }
-        cpu.setRegIX(addr);
-        cpu.setRegDE(nBytes - count);
-        idxHeader++;
-        lsm.setSelectionInterval(idxHeader, idxHeader);
-
-//        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
-//            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
-        return true;
-    }
+//    public boolean flashLoad(Memory memory) {
+//
+//        if (!tapeInserted || tapePlaying || tapeRecording || cpu == null) {
+//            return false;
+//        }
+//
+////        System.out.println("flashload!");
+//
+//        if (idxHeader == nOffsetBlocks) {
+//            flashload = false;
+//            cpu.setCarryFlag(false);
+//            return false;
+//        }
+//
+//        // Fastload only with Standard Speed Tape Blocks (and some
+//        // identified erroneusly as Turbo Blocks
+//        // (Midnight Resistance 128k as an example))
+//        if (tzxTape) {
+//
+//            int oldHeader = idxHeader;
+//            while (idxHeader < nOffsetBlocks) {
+//                tapePos = offsetBlocks[idxHeader];
+//                int idHdr = tapeBuffer[tapePos];
+//                if (idHdr > 0x11 && idHdr < 0x20)
+//                {
+//                    idxHeader = oldHeader;
+//                    tapePos = offsetBlocks[idxHeader];
+//                    return false;
+//                }
+//                
+//                if (tapeBuffer[tapePos] == 0x10 || tapeBuffer[tapePos] == 0x11) {
+//                    break;
+//                }
+//                idxHeader++;
+//            }
+//
+//            if (idxHeader == nOffsetBlocks) {
+////                cpu.setCarryFlag(false);
+//                idxHeader = oldHeader;
+//                tapePos = offsetBlocks[idxHeader];
+////                lsm.setSelectionInterval(idxHeader, idxHeader);
+//                return false;
+//            }
+//
+//            lsm.setSelectionInterval(idxHeader, idxHeader);
+////            System.out.println("flashloading block " + idxHeader);
+//            if (tapeBuffer[tapePos] == 0x10) {
+//                blockLen = tapeBuffer[tapePos + 3] + (tapeBuffer[tapePos + 4] << 8);
+//                tapePos += 5;
+//            } else {
+//                blockLen = tapeBuffer[tapePos + 16]
+//                    + (tapeBuffer[tapePos + 17] << 8)
+//                    + (tapeBuffer[tapePos + 18] << 16);
+//                tapePos += 19;
+//            }
+//        } else {
+//            tapePos = offsetBlocks[idxHeader];
+//            blockLen = tapeBuffer[tapePos] + (tapeBuffer[tapePos + 1] << 8);
+////        System.out.println(String.format("tapePos: %X. blockLen: %X", tapePos, blockLen));
+//            tapePos += 2;
+//        }
+//
+//        // ¿Coincide el flag? (está en el registro A)
+//        if (cpu.getRegA() != tapeBuffer[tapePos]) {
+//            cpu.xor(tapeBuffer[tapePos]);
+//            idxHeader++;
+//            return false;
+//        }
+//        // La paridad incluye el byte de flag
+//        cpu.setRegA(tapeBuffer[tapePos]);
+//
+//        int count = 0;
+//        int addr = cpu.getRegIX();    // Address start
+//        int nBytes = cpu.getRegDE();  // Lenght
+//        while (count < nBytes && count < blockLen - 1) {
+//            memory.writeByte(addr, (byte) tapeBuffer[tapePos + count + 1]);
+//            cpu.xor(tapeBuffer[tapePos + count + 1]);
+//            addr = (addr + 1) & 0xffff;
+//            count++;
+//        }
+//
+//        // Se cargarón los bytes pedidos en DE
+//        if (count == nBytes) {
+//            cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
+//            cpu.cp(0x01);
+//        }
+//
+//        // Hay menos bytes en la cinta de los indicados en DE
+//        // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
+//        // que se señaliza con CARRY==reset & ZERO==set
+//        if (count < nBytes) {
+//            cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
+//        }
+//        cpu.setRegIX(addr);
+//        cpu.setRegDE(nBytes - count);
+//        idxHeader++;
+//        lsm.setSelectionInterval(idxHeader, idxHeader);
+//
+////        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
+////            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
+//        return true;
+//    }
 
     public void saveTapeBlock(Memory memory) {
         int addr = cpu.getRegIX();   // Start Address
@@ -1499,9 +1438,11 @@ public class Tape {
 
         record = new ByteArrayOutputStream();
 
-        timeLastIn = timeLastOut = 0;
+        timeLastOut = 0;
         tapeRecording = true;
-        freqSample = settings.isHighSamplingFreq() ? 79 : 158;
+        freqSample = settings.isHighSamplingFreq() ?
+                spectrumModel.clockFreq / 44100 :
+                spectrumModel.clockFreq / 22050;
         updateTapeIcon();
 
         return true;
@@ -1537,7 +1478,9 @@ public class Tape {
             }
             // Y ahora la cabecera de Direct Data Recording
             fOut.write(0x15); // TZX ID: Direct Recording Block
-            fOut.write(settings.isHighSamplingFreq() ? 79 : 158);
+            fOut.write(settings.isHighSamplingFreq() ?
+                spectrumModel.clockFreq / 44100 :
+                spectrumModel.clockFreq / 22050);
             fOut.write(0x00); // T-states per sample
             fOut.write(0x00);
             fOut.write(0x00); // no pause
@@ -1564,26 +1507,6 @@ public class Tape {
 
         return true;
     }
-
-//    public void setPulse(boolean bit) {
-//        pulse = bit;
-//    }
-
-//    public void recordPulse() {
-//        timeout = settings.isHighSamplingFreq() ? 79 : 158;
-//
-//        if (bitsLastByte == 8) {
-//            record.write(byteTmp);
-//            bitsLastByte = 0;
-//            byteTmp = 0;
-//        }
-//
-//        byteTmp <<= 1;
-//        if (pulse) {
-//            byteTmp |= 0x01;
-//        }
-//        bitsLastByte++;
-//    }
     
     public void recordPulse(long tstates, boolean micState) {
         if (timeLastOut == 0) {
@@ -1594,10 +1517,6 @@ public class Tape {
         
         long len = tstates - timeLastOut;
         long pulses = (len + (freqSample >>> 1)) / freqSample;
-//        long pulses = len / sample;
-//        System.out.println(
-//                String.format("(recordPulse2) Pulse Len: %d, , pulses: %d, state: %b",
-//                    len, pulses, micBit));
         
         while (pulses-- > 0) {
             if (bitsLastByte == 8) {

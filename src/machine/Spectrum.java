@@ -392,8 +392,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
 
             z80.tEstados -= spectrumModel.tstatesFrame;
-
             nFrame++;
+            
             if (!ULAplusMode && nFrame % 16 == 0) {
                 toggleFlash();
             }
@@ -404,8 +404,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 //                    System.out.println(String.format("Available audio buffer: %d", avail));
 //                }
                 long now = System.currentTimeMillis();
-                long diff = now - speedometer;
-                speed = 100000 / diff;
+//                long diff = now - speedometer;
+                speed = 100000 / (now - speedometer);
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -506,28 +506,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
         }
         
-        if (address == 0x0066 && multiface && !memory.isPlus3RamMode()) {
+        if (multiface && address == 0x0066 && !memory.isPlus3RamMode()) {
             memory.setMultifaceLocked(false);
             memory.pageMultiface();
             return memory.readByte(address) & 0xff;
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (address == 0x0556 && memory.isSpectrumRom() && tape.isTapeReady()) {
-            if (loadTrap) {
-                if (tape.flashLoad(memory)) {
-                    invalidateScreen(true); // thanks Andrew Owen
-                    return 0xC9; // RET opcode
-                } else {
-                    toggleTape();
-                }
-            }
+        if (loadTrap && address == 0x0556 &&
+                memory.isSpectrumRom() && tape.isTapeReady()) {
+            tape.play();
+
         }
 
         // SA_BYTES routine in Spectrum ROM at 0x04D0
         // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
         // to SA_BYTES by his start address.
-        if (address == 0x04D0 && saveTrap && memory.isSpectrumRom() && tape.isTapeReady()) {
+        if (saveTrap && address == 0x04D0 &&
+                memory.isSpectrumRom() && tape.isTapeReady()) {
             tape.saveTapeBlock(memory);
             return 0xC9; // RET opcode
         }
@@ -746,13 +742,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         // ULA Port
         if ((port & 0x0001) == 0) {
             int res = keyboard.readKeyboardPort(port);
+            earBit = tape.getEarBit();
             
-            boolean tapePlaying = tape.isTapePlaying();
-            if (tapePlaying) {
-                tape.notifyTstates(nFrame * spectrumModel.tstatesFrame + z80.tEstados);
+            if (tape.isTapePlaying()) {
                 if (enabledSound && specSettings.isLoadingNoise()) {
-                    earBit = tape.getEarBit();
-
                     int spkMic = (earBit == 0xbf) ? 0 : 4000;
 
                     if (spkMic != speaker) {
@@ -761,12 +754,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     }
                 }
             }
-            
-            if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3
-                || tapePlaying) {
-                res &= tape.getEarBit();
-            }
-            return res;
+            return res & earBit;
         }
 
         if (enabledAY) {
@@ -1133,22 +1121,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     @Override
     public void execDone(int tstates) {
-//        if (tape.isTapeRecording()) {
-//            tape.setPulse((portFE & 0x08) != 0);
-//        }
 
-//        tape.notifyTstates(nFrame, z80.tEstados);
+        if (tape.isTapePlaying())
+                tape.notifyTimeout();
 
-//        if (enabledSound && specSettings.isLoadingNoise() && tape.isTapePlaying()) {
-//            earBit = tape.getEarBit();
-//
-//            int spkMic = (earBit == 0xbf) ? 0 : 4000;
-//
-//            if (spkMic != speaker) {
-//                audio.updateAudio(z80.tEstados, speaker);
-//                speaker = spkMic;
-//            }
-//        }
     }
 
     public void loadSnapshot(File filename) {
@@ -1595,14 +1571,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             // al volver a velocidad lenta hay que actualizar la pantalla
             invalidateScreen(true);
             enableSound();
-        }
-    }
-
-    public void toggleTape() {
-        if (tape.isTapeReady()) {
-            tape.play();
-        } else {
-            tape.stop();
         }
     }
 
@@ -2160,7 +2128,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void tapeStart() {
         if (settings.getTapeSettings().isAccelerateLoading()) {
             stopEmulation();
-            framesByInt = 25;
+            changeSpeed(25);
 
             new Thread() {
 
@@ -2170,8 +2138,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                         generateFrame();
                         drawFrame();
                     }
-                    invalidateScreen(true);
-                    framesByInt = 1;
+                    changeSpeed(1);
                     startEmulation();
                 }
             }.start();
