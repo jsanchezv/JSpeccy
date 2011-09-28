@@ -2164,7 +2164,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     }
 
     public boolean stopRecording() {
-//        z80.setExecDone(false);
+        tape.recordPulse(nFrame * spectrumModel.tstatesFrame + z80.tEstados,
+            (portFE & 0x08) != 0);
         tape.stopRecording();
 
         return true;
