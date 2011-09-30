@@ -12,7 +12,6 @@ package gui;
 
 import java.awt.Component;
 import java.awt.Frame;
-import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -23,6 +22,7 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import machine.Interface1;
 
@@ -37,7 +37,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private MicrodriveTableModel tableModel;
     private JFileChooser cartridgeDlg;
     private File currentDir;
-    ExtensionFilter mdrExtension = new ExtensionFilter("CARTRIDGE_TYPE", ".mdr");
+    FileNameExtensionFilter mdrExtension;
 
     /** Creates new form MicrodriveDialog */
     public MicrodriveDialog(Interface1 handler) {
@@ -58,6 +58,10 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         microdrivesTable.getColumnModel().getColumn(0).setPreferredWidth(25);
         microdrivesTable.getColumnModel().getColumn(2).setPreferredWidth(25);
         microdrivesTable.getColumnModel().getColumn(3).setPreferredWidth(25);
+        
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        mdrExtension = new FileNameExtensionFilter(
+                bundle.getString("CARTRIDGE_TYPE"), "mdr");
     }
 
     public boolean showDialog(Component parent, String title) {

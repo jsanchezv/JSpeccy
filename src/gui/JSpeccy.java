@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.bind.JAXB;
 
 /**
@@ -52,17 +53,8 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccySettingsType settings;
     SettingsDialog settingsDialog;
     MicrodriveDialog microdriveDialog;
-    
-    ExtensionFilter allSnapTapeExtension = new ExtensionFilter("SNAPSHOT_TAPE_TYPE",
-        new String[] { ".sna", ".z80", ".szx", ".tap", ".tzx" });
-    ExtensionFilter snapshotExtension = new ExtensionFilter("SNAPSHOT_TYPE",
-        new String[] { ".sna", ".z80", ".szx" });
-    ExtensionFilter tapeExtension = new ExtensionFilter("TAPE_TYPE",
-        new String[] { ".tap", ".tzx" });
-    ExtensionFilter imageExtension = new ExtensionFilter("IMAGE_TYPE",
-        new String[] { ".scr", ".png" });
-    ExtensionFilter screenExtension = new ExtensionFilter("SCR_TYPE", ".scr");
-    ExtensionFilter romExtension = new ExtensionFilter("ROM_TYPE", ".rom");
+    FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
+            tapeExtension, imageExtension, screenExtension, romExtension;
     
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
     
@@ -373,6 +365,20 @@ public class JSpeccy extends javax.swing.JFrame {
         microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
         spectrum.getInterface1().setMdrvIcon(mdrvLabel);
         
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        allSnapTapeExtension = new FileNameExtensionFilter(
+                bundle.getString("SNAPSHOT_TAPE_TYPE"),
+                "sna", "z80", "szx", "tap", "tzx");
+        snapshotExtension = new FileNameExtensionFilter(
+                bundle.getString("SNAPSHOT_TYPE"), "sna", "z80", "szx");
+        tapeExtension = new FileNameExtensionFilter(
+                bundle.getString("TAPE_TYPE"), "tap", "tzx");
+        imageExtension = new FileNameExtensionFilter(
+                bundle.getString("IMAGE_TYPE"), "scr", "png");
+        screenExtension = new FileNameExtensionFilter(
+                bundle.getString("SCR_TYPE"), "scr");
+        romExtension  = new FileNameExtensionFilter(
+                bundle.getString("ROM_TYPE"), "rom");
         spectrum.start();
     }
     
