@@ -28,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,7 +76,7 @@ public class Tape {
     private int timeout;
     private long timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
-    private boolean tzxTape, flashload;
+    private boolean tzxTape;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
     private final int LEADER_LENGHT = 2168;
     private final int SYNC1_LENGHT = 667;
@@ -110,7 +111,6 @@ public class Tape {
         statePlay = State.STOP;
         tapeInserted = tapePlaying = tapeRecording = false;
         tzxTape = false;
-        flashload = settings.isFlashload();
         tapePos = 0;
         timeout = 0;
         earBit = EAR_ON;
@@ -148,7 +148,6 @@ public class Tape {
         }
 
         idxHeader = block;
-        flashload = settings.isFlashload();
     }
 
     public String getCleanMsg(int offset, int len) {
@@ -506,7 +505,6 @@ public class Tape {
         lsm.setSelectionInterval(0, 0);
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
-        flashload = settings.isFlashload();
         updateTapeIcon();
         return true;
     }
@@ -552,7 +550,6 @@ public class Tape {
         lsm.setSelectionInterval(selectedBlock, selectedBlock);
         cpu.setExecDone(false);
         filenameLabel = filename.getName();
-        flashload = settings.isFlashload();
         updateTapeIcon();
         return true;
     }
@@ -580,14 +577,6 @@ public class Tape {
 
     public boolean isTapeRecording() {
         return tapeRecording;
-    }
-
-    public boolean isFlashLoad() {
-        return flashload;
-    }
-
-    public void setFlashLoad(boolean fastmode) {
-        flashload = fastmode;
     }
 
     public boolean isTapeInserted() {
@@ -649,7 +638,6 @@ public class Tape {
         idxHeader = 0;
         tapePos = offsetBlocks[idxHeader];
         lsm.setSelectionInterval(idxHeader, idxHeader);
-        flashload = settings.isFlashload();
 
         return true;
     }
@@ -1392,16 +1380,23 @@ public class Tape {
         // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
         if (filename.getName().toLowerCase().endsWith("tzx")) {
             if (nOffsetBlocks == 0) {
-                record.write('Z');
-                record.write('X');
-                record.write('T');
-                record.write('a');
-                record.write('p');
-                record.write('e');
-                record.write('!');
+                
+                byte hdrTZX[], idTZX[];
+                try {
+                    hdrTZX = "ZXTape!".getBytes("US-ASCII");
+                    idTZX = "TZX created by JSpeccy v0.89".getBytes("US-ASCII");
+                } catch (UnsupportedEncodingException ex) {
+                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                    return;
+                }
+                
+                record.write(hdrTZX, 0, hdrTZX.length);
                 record.write(0x1A);
-                record.write(01); // TZX v1.20
+                record.write(01);  // TZX v1.20
                 record.write(20);
+                record.write(0x30);
+                record.write(idTZX.length);
+                record.write(idTZX, 0, idTZX.length);
             }
             // Y ahora la cabecera de Normal Speed block
             record.write(0x10); // TZX ID: Normal Speed Block
@@ -1475,8 +1470,8 @@ public class Tape {
             if (nOffsetBlocks == 0) {
                 fOut.write("ZXTape!".getBytes("US-ASCII"));
                 fOut.write(0x1A);
-                fOut.write(0x01);
-                fOut.write(0x20);
+                fOut.write(01);
+                fOut.write(20);
                 byte idTZX[] = "TZX created by JSpeccy v0.89".getBytes("US-ASCII");
                 fOut.write(0x30);
                 fOut.write(idTZX.length);
