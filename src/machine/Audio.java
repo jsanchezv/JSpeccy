@@ -1,10 +1,7 @@
 /*
  *	Audio.java
  *
- *  2009-2010 José Luis Sánchez
- *
- *  with parts from:
- *	Copyright 2007-2008 Jan Bobrowski <jb@wizard.ae.krakow.pl>
+ *  2009-2011 José Luis Sánchez
  *
  *	This program is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -198,7 +195,7 @@ class Audio {
 
         flushBuffer(ptr);
         bufp = 0;
-        audiotstates -= spectrumModel.tstatesFrame;
+        audiotstates %= spectrumModel.tstatesFrame;
     }
 
     private int endFrameMono() {

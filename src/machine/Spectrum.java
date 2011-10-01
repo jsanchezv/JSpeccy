@@ -391,7 +391,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 audio.endFrame();
             }
 
-            z80.tEstados -= spectrumModel.tstatesFrame;
+            z80.tEstados %= spectrumModel.tstatesFrame;
             nFrame++;
             
             if (!ULAplusMode && nFrame % 16 == 0) {
