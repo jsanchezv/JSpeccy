@@ -43,11 +43,10 @@ import javax.xml.bind.JAXB;
 public class JSpeccy extends javax.swing.JFrame {
     Spectrum spectrum;
     JSpeccyScreen jscr;
-    File currentDirSnapshot, currentDirSaveSnapshot,
-        currentDirTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
+    File currentFileSnapshot, currentDirSaveSnapshot,
+        currentFileTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
     JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
     JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
-    String lastSnapshotDir, lastTapeDir;
     File recentFile[] = new File[5];
     ListSelectionModel lsm;
     JSpeccySettingsType settings;
@@ -184,8 +183,10 @@ public class JSpeccy extends javax.swing.JFrame {
             settings.getRecentFilesSettings().setRecentFile3(recentFile[3].getAbsolutePath());
         if (recentFile[4] != null)
             settings.getRecentFilesSettings().setRecentFile4(recentFile[4].getAbsolutePath());
-        settings.getRecentFilesSettings().setLastSnapshotDir(lastSnapshotDir);
-        settings.getRecentFilesSettings().setLastTapeDir(lastTapeDir);
+        if (currentFileSnapshot != null)
+            settings.getRecentFilesSettings().setLastSnapshotDir(currentFileSnapshot.getParent());
+        if (currentFileTape != null)
+            settings.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
         try {
             BufferedOutputStream fOut =
@@ -347,18 +348,6 @@ public class JSpeccy extends javax.swing.JFrame {
             recentFileMenu4.setText(recentFile[4].getName());
             recentFileMenu4.setToolTipText(recentFile[4].getAbsolutePath());
             recentFileMenu4.setEnabled(true);
-        }
-
-        if (!settings.getRecentFilesSettings().getLastSnapshotDir().isEmpty()) {
-            lastSnapshotDir = settings.getRecentFilesSettings().getLastSnapshotDir();
-        } else {
-            lastSnapshotDir = "/home/jsanchez/Spectrum";
-        }
-
-        if (!settings.getRecentFilesSettings().getLastTapeDir().isEmpty()) {
-            lastTapeDir = settings.getRecentFilesSettings().getLastTapeDir();
-        } else {
-            lastTapeDir = "/home/jsanchez/Spectrum";
         }
 
         settingsDialog = new SettingsDialog(settings);
@@ -1345,46 +1334,43 @@ public class JSpeccy extends javax.swing.JFrame {
     private void openSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openSnapshotActionPerformed
         boolean paused = spectrum.isPaused();
         if( openSnapshotDlg == null ) {
-            openSnapshotDlg = new JFileChooser(lastSnapshotDir);
+            openSnapshotDlg = new JFileChooser(
+                    settings.getRecentFilesSettings().getLastSnapshotDir());
             openSnapshotDlg.addChoosableFileFilter(allSnapTapeExtension);
             openSnapshotDlg.addChoosableFileFilter(snapshotExtension);
             openSnapshotDlg.addChoosableFileFilter(tapeExtension);
             openSnapshotDlg.setFileFilter(allSnapTapeExtension);
-//            openSnapshotDlg.setFileFilter(new FileFilterTapeSnapshot());
-            currentDirSnapshot = openSnapshotDlg.getCurrentDirectory();
         }
         else
-            openSnapshotDlg.setCurrentDirectory(currentDirSnapshot);
+            openSnapshotDlg.setSelectedFile(currentFileSnapshot);
 
         if (!paused)
             spectrum.stopEmulation();
 
         int status = openSnapshotDlg.showOpenDialog(getContentPane());
         if (status == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = openSnapshotDlg.getSelectedFile();
-            settings.getRecentFilesSettings().setLastSnapshotDir(lastSnapshotDir);
-            if (selectedFile.getName().toLowerCase().endsWith(".sna") ||
-                selectedFile.getName().toLowerCase().endsWith(".z80") ||
-                selectedFile.getName().toLowerCase().endsWith(".szx")) {
-                currentDirSnapshot = openSnapshotDlg.getCurrentDirectory();
-                lastSnapshotDir = openSnapshotDlg.getCurrentDirectory().getAbsolutePath();
-                rotateRecentFile(selectedFile);
-                spectrum.loadSnapshot(selectedFile);
+            currentFileSnapshot = openSnapshotDlg.getSelectedFile();
+            settings.getRecentFilesSettings().setLastSnapshotDir(
+                    currentFileSnapshot.getParent());
+            
+            if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna") ||
+                currentFileSnapshot.getName().toLowerCase().endsWith(".z80") ||
+                currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
+                rotateRecentFile(currentFileSnapshot);
+                spectrum.loadSnapshot(currentFileSnapshot);
                 updateGuiSelections();
             } else {
-                currentDirTape = openSnapshotDlg.getCurrentDirectory();
-                lastTapeDir = openSnapshotDlg.getCurrentDirectory().getAbsolutePath();
-                lastSnapshotDir = lastTapeDir;
-                settings.getRecentFilesSettings().setLastTapeDir(lastTapeDir);
-                currentDirSnapshot = currentDirTape;
+                currentFileTape = openSnapshotDlg.getSelectedFile();
+                settings.getRecentFilesSettings().setLastTapeDir(
+                        currentFileTape.getParent());
                 spectrum.tape.eject();
-                if (spectrum.tape.insert(selectedFile)) {
-                    rotateRecentFile(selectedFile);
-                    tapeFilename.setText(selectedFile.getName());
+                if (spectrum.tape.insert(currentFileTape)) {
+                    rotateRecentFile(currentFileTape);
+                    tapeFilename.setText(currentFileTape.getName());
                     playTapeMediaMenu.setEnabled(true);
-                    clearTapeMediaMenu.setEnabled(true);
                     rewindTapeMediaMenu.setEnabled(true);
-                    recordStartTapeMediaMenu.setEnabled(true);
+                    clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
+                    recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -1456,30 +1442,30 @@ public class JSpeccy extends javax.swing.JFrame {
     private void openTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openTapeMediaMenuActionPerformed
         boolean paused = spectrum.isPaused();
         if( openTapeDlg == null ) {
-            openTapeDlg = new JFileChooser(lastTapeDir);
+            openTapeDlg = new JFileChooser(
+                    settings.getRecentFilesSettings().getLastTapeDir());
             openTapeDlg.addChoosableFileFilter(tapeExtension);
             openTapeDlg.setFileFilter(tapeExtension);
-            currentDirTape = openTapeDlg.getCurrentDirectory();
         }
         else
-            openTapeDlg.setCurrentDirectory(currentDirTape);
+            openTapeDlg.setSelectedFile(currentFileTape);
 
         if (!paused)
             spectrum.stopEmulation();
 
         int status = openTapeDlg.showOpenDialog(getContentPane());
         if (status == JFileChooser.APPROVE_OPTION) {
-            currentDirTape = openTapeDlg.getCurrentDirectory();
-            lastTapeDir = openTapeDlg.getCurrentDirectory().getAbsolutePath();
-            settings.getRecentFilesSettings().setLastTapeDir(lastTapeDir);
+            currentFileTape = openTapeDlg.getSelectedFile();
+            settings.getRecentFilesSettings().setLastTapeDir(
+                    currentFileTape.getParent());
             spectrum.tape.eject();
-            if (spectrum.tape.insert(openTapeDlg.getSelectedFile())) {
-                rotateRecentFile(openTapeDlg.getSelectedFile());
-                tapeFilename.setText(openTapeDlg.getSelectedFile().getName());
+            if (spectrum.tape.insert(currentFileTape)) {
+                rotateRecentFile(currentFileTape);
+                tapeFilename.setText(currentFileTape.getName());
                 playTapeMediaMenu.setEnabled(true);
-                clearTapeMediaMenu.setEnabled(true);
+                clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                 rewindTapeMediaMenu.setEnabled(true);
-                recordStartTapeMediaMenu.setEnabled(true);
+                recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                 JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -1751,9 +1737,8 @@ public class JSpeccy extends javax.swing.JFrame {
             openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             openTapeDlg.addChoosableFileFilter(tapeExtension);
             openTapeDlg.setFileFilter(tapeExtension);
-            currentDirTape = openTapeDlg.getCurrentDirectory();
         } else {
-            openTapeDlg.setCurrentDirectory(currentDirTape);
+            openTapeDlg.setCurrentDirectory(currentFileTape.getParentFile());
         }
 
         if (!paused) {
@@ -1762,26 +1747,27 @@ public class JSpeccy extends javax.swing.JFrame {
 
         int status = openTapeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
-            currentDirTape = openTapeDlg.getCurrentDirectory();
-            File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
+            currentFileTape = openTapeDlg.getSelectedFile();
             try {
-                filename.createNewFile();
+                currentFileTape.createNewFile();
+                spectrum.tape.eject();
+                if (spectrum.tape.insert(currentFileTape)) {
+                    rotateRecentFile(currentFileTape);
+                    tapeFilename.setText(currentFileTape.getName());
+                    playTapeMediaMenu.setEnabled(true);
+                    clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
+                    rewindTapeMediaMenu.setEnabled(true);
+                    recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
+                } else {
+                    ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                    JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
+                            bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                }
             } catch (IOException ex) {
                 Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
             }
-            spectrum.tape.eject();
-            if (spectrum.tape.insert(filename)) {
-                tapeFilename.setText(filename.getName());
-                playTapeMediaMenu.setEnabled(true);
-                clearTapeMediaMenu.setEnabled(true);
-                rewindTapeMediaMenu.setEnabled(true);
-                recordStartTapeMediaMenu.setEnabled(true);
-            } else {
-                ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-                JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
-                        bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
-            }
         }
+        
         if (!paused) {
             spectrum.startEmulation();
         }
@@ -1863,14 +1849,13 @@ public class JSpeccy extends javax.swing.JFrame {
             JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
 
         if (ret == JOptionPane.YES_OPTION && spectrum.tape.isTapeReady()) {
-            File filename = new File(openTapeDlg.getSelectedFile().getAbsolutePath());
             try {
-                if (filename.delete()) {
+                if (currentFileTape.delete()) {
                     spectrum.tape.eject();
                 }
 
-                if (filename.createNewFile()) {
-                    if (!spectrum.tape.insert(filename)) {
+                if (currentFileTape.createNewFile()) {
+                    if (!spectrum.tape.insert(currentFileTape)) {
                         JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                             bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                     }
@@ -1966,7 +1951,8 @@ public class JSpeccy extends javax.swing.JFrame {
                     spectrum.stopEmulation();
                 }
 
-                spectrum.loadSnapshot(recentFile[idx]);
+                currentFileSnapshot = recentFile[idx];
+                spectrum.loadSnapshot(currentFileSnapshot);
                 updateGuiSelections();
 
                 if (!paused) {
@@ -1974,11 +1960,14 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
             } else {
                 spectrum.tape.eject();
-                if (spectrum.tape.insert(recentFile[idx])) {
+                currentFileTape = recentFile[idx];
+                
+                if (spectrum.tape.insert(currentFileTape)) {
+                    tapeFilename.setText(currentFileTape.getName());
                     playTapeMediaMenu.setEnabled(true);
-                    clearTapeMediaMenu.setEnabled(true);
+                    clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                     rewindTapeMediaMenu.setEnabled(true);
-                    recordStartTapeMediaMenu.setEnabled(true);
+                    recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                 } else {
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                         bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
