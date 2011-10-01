@@ -62,7 +62,7 @@ public class Tape {
     private enum State {
 
         STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
-        NEWBYTE_NOCHG, NEWBIT, HALF2, PAUSE, TZX_HEADER, PURE_TONE,
+        NEWBYTE_NOCHG, NEWBIT, HALF2, LAST_PULSE, PAUSE, TZX_HEADER, PURE_TONE,
         PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, NEWDR_BYTE,
         NEWDR_BIT, PAUSE_STOP
     };
@@ -936,7 +936,7 @@ public class Tape {
                     mask >>>= 1;
                     if (blockLen == 1 && bitsLastByte < 8) {
                         if (mask == (0x80 >>> bitsLastByte)) {
-                            statePlay = State.PAUSE;
+                            statePlay = State.LAST_PULSE;
                             tapePos++;
                             break;
                         }
@@ -953,17 +953,23 @@ public class Tape {
                     } else {
 //                            System.out.println(String.format("Last byte: %02x",
 //                                    tapeBuffer[tapePos-1]));
-                        statePlay = State.PAUSE;
+                        statePlay = State.LAST_PULSE;
                     }
                     break;
-                case PAUSE:
+                case LAST_PULSE:
                     earBit ^= EAR_MASK;
-                    statePlay = State.TZX_HEADER;
                     if (endBlockPause == 0) {
+                        statePlay = State.TZX_HEADER;
                         repeat = true;
                         break;
                     }
+                    statePlay = State.PAUSE;
+                    timeout = 3500; // 1 msec by TZX spec
+                    break;
+                case PAUSE:
+                    earBit = EAR_OFF;
                     timeout = endBlockPause;
+                    statePlay = State.TZX_HEADER;
                     break;
                 case TZX_HEADER:
                     if (idxHeader >= nOffsetBlocks) {
@@ -1005,16 +1011,17 @@ public class Tape {
                     statePlay = State.NEWDR_BIT;
 //                    System.out.println(String.format("earBit: %02x", earBit));
                 case NEWDR_BIT:
-                    boolean micPulse;
+                    boolean earState;
                     if ((tapeBuffer[tapePos] & mask) != 0) {
-                        micPulse = true;
+                        earState = true;
+                        earBit = EAR_ON;
                     } else {
-                        micPulse = false;
+                        earState = false;
+                        earBit = EAR_OFF;
                     }
-                    earBit ^= EAR_MASK;
                     timeout = 0;
                     
-                    while (((tapeBuffer[tapePos] & mask) != 0) == micPulse) {
+                    while (((tapeBuffer[tapePos] & mask) != 0) == earState) {
                         timeout += zeroLenght;
 
                         mask >>>= 1;
@@ -1022,13 +1029,13 @@ public class Tape {
                             mask = 0x80;
                             tapePos++;
                             if (--blockLen == 0) {
-                                statePlay = State.PAUSE;
+                                statePlay = State.LAST_PULSE;
                                 break;
                             }
                         } else {
                             if (blockLen == 1 && bitsLastByte < 8) {
                                 if (mask == (0x80 >>> bitsLastByte)) {
-                                    statePlay = State.PAUSE;
+                                    statePlay = State.LAST_PULSE;
                                     tapePos++;
                                     break;
                                 }
@@ -1041,6 +1048,7 @@ public class Tape {
                         statePlay = State.STOP;
                         repeat = true;
                     } else {
+                        earBit = EAR_OFF;
                         timeout = endBlockPause;
                         statePlay = State.TZX_HEADER;
                     }
@@ -1465,25 +1473,21 @@ public class Tape {
             fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
             // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
             if (nOffsetBlocks == 0) {
-                fOut.write('Z');
-                fOut.write('X');
-                fOut.write('T');
-                fOut.write('a');
-                fOut.write('p');
-                fOut.write('e');
-                fOut.write('!');
+                fOut.write("ZXTape!".getBytes("US-ASCII"));
                 fOut.write(0x1A);
                 fOut.write(0x01);
                 fOut.write(0x20);
+                byte idTZX[] = "TZX created by JSpeccy v0.89".getBytes("US-ASCII");
+                fOut.write(0x30);
+                fOut.write(idTZX.length);
+                fOut.write(idTZX);
             }
             // Y ahora la cabecera de Direct Data Recording
             fOut.write(0x15); // TZX ID: Direct Recording Block
-            fOut.write(settings.isHighSamplingFreq() ?
-                spectrumModel.clockFreq / 44100 :
-                spectrumModel.clockFreq / 22050);
+            fOut.write(freqSample);
             fOut.write(0x00); // T-states per sample
             fOut.write(0x00);
-            fOut.write(0x00); // no pause
+            fOut.write(0x00); // 0 sec end block pause
             fOut.write(bitsLastByte);
             fOut.write(record.size());
             fOut.write(record.size() >>> 8);
