@@ -741,7 +741,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
         // ULA Port
         if ((port & 0x0001) == 0) {
-            int res = keyboard.readKeyboardPort(port);
             earBit = tape.getEarBit();
             
             if (tape.isTapePlaying()) {
@@ -754,7 +753,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                     }
                 }
             }
-            return res & earBit;
+            return keyboard.readKeyboardPort(port) & earBit;
         }
 
         if (enabledAY) {
