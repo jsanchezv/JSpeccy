@@ -1353,9 +1353,7 @@ public class JSpeccy extends javax.swing.JFrame {
             settings.getRecentFilesSettings().setLastSnapshotDir(
                     currentFileSnapshot.getParent());
             
-            if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna") ||
-                currentFileSnapshot.getName().toLowerCase().endsWith(".z80") ||
-                currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
+            if (snapshotExtension.accept(currentFileSnapshot)) {
                 rotateRecentFile(currentFileSnapshot);
                 spectrum.loadSnapshot(currentFileSnapshot);
                 updateGuiSelections();
@@ -1942,9 +1940,7 @@ public class JSpeccy extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, bundle.getString("RECENT_FILE_ERROR"),
                 bundle.getString("RECENT_FILE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE); //NOI18N
         } else {
-            if (recentFile[idx].getName().toLowerCase().endsWith(".sna") ||
-                recentFile[idx].getName().toLowerCase().endsWith(".z80") ||
-                recentFile[idx].getName().toLowerCase().endsWith(".szx")) {
+            if (snapshotExtension.accept(recentFile[idx])) {
                 boolean paused = spectrum.isPaused();
 
                 if (!paused) {
