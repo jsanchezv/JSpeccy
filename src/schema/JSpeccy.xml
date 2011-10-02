@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 2 de octubre de 2011, 13:51
+    Created on : 2 de octubre de 2011, 22:11
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -12,7 +12,6 @@
    xmlns:ns0='http://xml.netbeans.org/schema/JSpeccy'
    xsi:schemaLocation='http://xml.netbeans.org/schema/JSpeccy JSpeccy.xsd'>
     <ns0:SpectrumSettings>
-        <ns0:Issue2>false</ns0:Issue2>
         <ns0:AYEnabled48k>false</ns0:AYEnabled48k>
         <ns0:mutedSound>false</ns0:mutedSound>
         <ns0:loadingNoise>true</ns0:loadingNoise>
@@ -48,6 +47,8 @@
     </ns0:TapeSettings>
     <ns0:KeyboardJoystickSettings>
         <ns0:JoystickModel>0</ns0:JoystickModel>
+        <ns0:mapPCKeys>false</ns0:mapPCKeys>
+        <ns0:Issue2>false</ns0:Issue2>
     </ns0:KeyboardJoystickSettings>
     <ns0:AY8912Settings>
         <ns0:soundMode>0</ns0:soundMode>

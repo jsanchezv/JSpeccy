@@ -67,11 +67,13 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         doubleSize.setSelected(settings.getSpectrumSettings().isDoubleSize());
 
-        if (settings.getSpectrumSettings().isIssue2()) {
+        if (settings.getKeyboardJoystickSettings().isIssue2()) {
             issue2.setSelected(true);
         } else
             issue3.setSelected(true);
 
+        mapPCKeys.setSelected(settings.getKeyboardJoystickSettings().isMapPCKeys());
+        
         enableSaveTraps.setSelected(settings.getTapeSettings().isEnableSaveTraps());
 
         if (settings.getTapeSettings().isHighSamplingFreq()) {
@@ -181,6 +183,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         jPanel2 = new javax.swing.JPanel();
         issue2 = new javax.swing.JRadioButton();
         issue3 = new javax.swing.JRadioButton();
+        mapPCKeyPanel = new javax.swing.JPanel();
+        mapPCKeys = new javax.swing.JCheckBox();
         joystickPanel = new javax.swing.JPanel();
         joystick = new javax.swing.JComboBox();
         multifacePanelTab = new javax.swing.JPanel();
@@ -466,6 +470,18 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboardPanelTab.add(keyboard48kPanel);
 
+        mapPCKeyPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.mapPCKeysPanel.TabTitle"))); // NOI18N
+
+        mapPCKeys.setText(bundle.getString("SettingsDialog.mapPCKEysPanel.enabled.text")); // NOI18N
+        mapPCKeys.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                mapPCKeysActionPerformed(evt);
+            }
+        });
+        mapPCKeyPanel.add(mapPCKeys);
+
+        keyboardPanelTab.add(mapPCKeyPanel);
+
         joystickPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.joystickPanel.border.text"))); // NOI18N
 
         joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek", "Fuller" }));
@@ -593,7 +609,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_speedStateChanged
 
     private void issue2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_issue2ActionPerformed
-        settings.getSpectrumSettings().setIssue2(issue2.isSelected());
+        settings.getKeyboardJoystickSettings().setIssue2(issue2.isSelected());
     }//GEN-LAST:event_issue2ActionPerformed
 
     private void joystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joystickActionPerformed
@@ -706,6 +722,10 @@ public class SettingsDialog extends javax.swing.JPanel {
                 ((SpinnerNumberModel)cartridgeSizeSpinner.getModel()).getNumber().intValue());
     }//GEN-LAST:event_cartridgeSizeSpinnerStateChanged
 
+    private void mapPCKeysActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mapPCKeysActionPerformed
+        settings.getKeyboardJoystickSettings().setMapPCKeys(mapPCKeys.isSelected());
+    }//GEN-LAST:event_mapPCKeysActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -751,6 +771,8 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
     private javax.swing.JRadioButton lowSampling;
+    private javax.swing.JPanel mapPCKeyPanel;
+    private javax.swing.JCheckBox mapPCKeys;
     private javax.swing.JPanel mdrPanel;
     private javax.swing.JRadioButton multiface128RadioButton;
     private javax.swing.JCheckBox multifaceEnabled;

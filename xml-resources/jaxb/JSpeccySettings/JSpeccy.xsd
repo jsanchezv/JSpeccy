@@ -7,7 +7,6 @@
     <xsd:element name="JSpeccySettings" type="tns:JSpeccySettingsType"/>
     <xsd:complexType name="SpectrumType">
         <xsd:sequence>
-            <xsd:element name="Issue2" default="false" type="xsd:boolean"/>
             <xsd:element name="AYEnabled48k" type="xsd:boolean" default="false"/>
             <xsd:element name="mutedSound" type="xsd:boolean" default="false"/>
             <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
@@ -70,6 +69,8 @@
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
+            <xsd:element name="mapPCKeys" default="false" type="xsd:boolean"/>
+            <xsd:element name="Issue2" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="AY8912Type">

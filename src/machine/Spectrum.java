@@ -89,6 +89,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if1 = new Interface1(settings.getInterface1Settings());
 
         keyboard = new Keyboard();
+        keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
             case 1:
                 joystick = Joystick.KEMPSTON;
@@ -179,7 +180,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     public final void loadConfigVars() {
         ULAplusOn = settings.getSpectrumSettings().isULAplus();
-        issue2 = settings.getSpectrumSettings().isIssue2();
+        issue2 = settings.getKeyboardJoystickSettings().isIssue2();
+        keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
         multiface = settings.getSpectrumSettings().isMultifaceEnabled();
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
@@ -307,6 +309,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     
     public Keyboard getKeyboard() {
         return keyboard;
+    }
+    
+    public boolean getMapPCKeys() {
+        return keyboard.isMapPCKeys();
+    }
+    
+    public void setMapPCKeys(boolean state) {
+        keyboard.setMapPCKeys(state);
     }
 
     public Joystick getJoystick() {

@@ -16,7 +16,7 @@ import machine.Spectrum.Joystick;
 public class Keyboard implements KeyListener {
 
     private int rowKey[] = new int[8];
-    private boolean shiftPressed;
+    private boolean shiftPressed, mapPCKeys;
     private KeyEvent keyEventPending[] = new KeyEvent[8];
     private int kempston, fuller;
     private Joystick joystick;
@@ -61,7 +61,7 @@ public class Keyboard implements KeyListener {
 
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
-        shiftPressed = false;
+        shiftPressed = mapPCKeys = false;
         kempston = 0;
         fuller = 0xff;
         Arrays.fill(keyEventPending, null);
@@ -79,6 +79,16 @@ public class Keyboard implements KeyListener {
 
     public int readFullerPort() {
         return fuller;
+    }
+    
+    public boolean isMapPCKeys() {
+        return mapPCKeys;
+    }
+    
+    public void setMapPCKeys(boolean state) {
+        mapPCKeys = state;
+        shiftPressed = false;
+        Arrays.fill(keyEventPending, null);
     }
 
     public int readKeyboardPort(int port) {
@@ -117,18 +127,20 @@ public class Keyboard implements KeyListener {
     @Override
     public void keyPressed(KeyEvent evt) {
 
-        char keychar = evt.getKeyChar();
-        if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
+        if (mapPCKeys) {
+            char keychar = evt.getKeyChar();
+            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
 //            System.out.println("pressed " + keychar);
-            if (pressedKeyChar(keychar)) {
-                for (int key = 0; key < keyEventPending.length; key++) {
-                    if (keyEventPending[key] == null) {
-                        keyEventPending[key] = evt;
+                if (pressedKeyChar(keychar)) {
+                    for (int key = 0; key < keyEventPending.length; key++) {
+                        if (keyEventPending[key] == null) {
+                            keyEventPending[key] = evt;
 //                        System.out.println(String.format("Key pressed #%d: %c", key, keychar));
-                        break;
+                            break;
+                        }
                     }
+                    return;
                 }
-                return;
             }
         }
 
@@ -417,24 +429,26 @@ public class Keyboard implements KeyListener {
     @Override
     public void keyReleased(KeyEvent evt) {
 
-        char keychar = evt.getKeyChar();
+        if (mapPCKeys) {
+            char keychar = evt.getKeyChar();
 
-        if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
+            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
 //            System.out.println("released " + keychar);
-            for (int key = 0; key < keyEventPending.length; key++) {
-                if (keyEventPending[key] != null
-                    && evt.getKeyCode() == keyEventPending[key].getKeyCode()) {
-                    keychar = keyEventPending[key].getKeyChar();
-                    keyEventPending[key] = null;
+                for (int key = 0; key < keyEventPending.length; key++) {
+                    if (keyEventPending[key] != null
+                            && evt.getKeyCode() == keyEventPending[key].getKeyCode()) {
+                        keychar = keyEventPending[key].getKeyChar();
+                        keyEventPending[key] = null;
 //                    System.out.println(String.format("Key released #%d: %c\n", key, keychar));
+                    }
+                }
+
+                if (releasedKeyChar(keychar)) {
+                    return;
                 }
             }
-
-            if (releasedKeyChar(keychar)) {
-                return;
-            }
         }
-
+        
         int key = evt.getKeyCode();
         switch (key) {
             // Row Break/Space - B
