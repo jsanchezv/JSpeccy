@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 16 de junio de 2011, 16:28
+    Created on : 2 de octubre de 2011, 13:51
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -41,7 +41,7 @@
         <ns0:RomIF1>if1.rom</ns0:RomIF1>
     </ns0:MemorySettings>
     <ns0:TapeSettings>
-        <ns0:flashload>true</ns0:flashload>
+        <ns0:enableLoadTraps>true</ns0:enableLoadTraps>
         <ns0:accelerateLoading>true</ns0:accelerateLoading>
         <ns0:enableSaveTraps>true</ns0:enableSaveTraps>
         <ns0:highSamplingFreq>false</ns0:highSamplingFreq>

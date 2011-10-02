@@ -53,7 +53,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         hifiSound.setSelected(settings.getSpectrumSettings().isHifiSound());
 
-        flashload.setSelected(settings.getTapeSettings().isFlashload());
+        enableLoadTraps.setSelected(settings.getTapeSettings().isEnableLoadTraps());
 
         acceleratedLoad.setSelected(settings.getTapeSettings().isAccelerateLoading());
 
@@ -167,7 +167,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         AYBACMode = new javax.swing.JRadioButton();
         tapePanelTab = new javax.swing.JPanel();
         loadPanel = new javax.swing.JPanel();
-        flashload = new javax.swing.JCheckBox();
+        enableLoadTraps = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
@@ -374,13 +374,13 @@ public class SettingsDialog extends javax.swing.JPanel {
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
         loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        flashload.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
-        flashload.addActionListener(new java.awt.event.ActionListener() {
+        enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
+        enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                flashloadActionPerformed(evt);
+                enableLoadTrapsActionPerformed(evt);
             }
         });
-        loadPanel.add(flashload);
+        loadPanel.add(enableLoadTraps);
 
         acceleratedLoad.setText(bundle.getString("SettingsDialog.tapePanel.acceleratedLoad.text")); // NOI18N
         acceleratedLoad.addActionListener(new java.awt.event.ActionListener() {
@@ -640,9 +640,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setAYEnabled48K(enabledAY48k.isSelected());
     }//GEN-LAST:event_enabledAY48kActionPerformed
 
-    private void flashloadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_flashloadActionPerformed
-        settings.getTapeSettings().setFlashload(flashload.isSelected());
-    }//GEN-LAST:event_flashloadActionPerformed
+    private void enableLoadTrapsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enableLoadTrapsActionPerformed
+        settings.getTapeSettings().setEnableLoadTraps(enableLoadTraps.isSelected());
+    }//GEN-LAST:event_enableLoadTrapsActionPerformed
 
     private void acceleratedLoadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_acceleratedLoadActionPerformed
         settings.getTapeSettings().setAccelerateLoading(acceleratedLoad.isSelected());
@@ -727,9 +727,9 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel connectedIF1Panel;
     private javax.swing.JPanel defaultModelPanel;
     private javax.swing.JCheckBox doubleSize;
+    private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
-    private javax.swing.JCheckBox flashload;
     private javax.swing.JPanel hardwarePanelTab;
     private javax.swing.JCheckBox hifiSound;
     private javax.swing.JRadioButton highSampling;

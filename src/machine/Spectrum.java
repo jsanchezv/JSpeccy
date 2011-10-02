@@ -183,7 +183,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         multiface = settings.getSpectrumSettings().isMultifaceEnabled();
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
-        loadTrap = settings.getTapeSettings().isFlashload();
+        loadTrap = settings.getTapeSettings().isEnableLoadTraps();
         connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
         if1.setNumDrives(settings.getInterface1Settings().getMicrodriveUnits());
         
