@@ -383,7 +383,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             int fromTstates;
             while (z80.tEstados < spectrumModel.lastScrUpdate) {
                 fromTstates = z80.tEstados + 1;
-                z80.execute(fromTstates + 7);
+                z80.execute(fromTstates + 3);
                 updateScreen(fromTstates, z80.tEstados);
             }
 
@@ -526,7 +526,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         if (loadTrap && address == 0x0556 &&
                 memory.isSpectrumRom() && tape.isTapeReady()) {
             tape.play();
-
         }
 
         // SA_BYTES routine in Spectrum ROM at 0x04D0
