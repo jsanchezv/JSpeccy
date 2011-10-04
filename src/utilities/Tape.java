@@ -22,6 +22,7 @@ package utilities;
 import configuration.TapeType;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.InflaterInputStream;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
@@ -65,7 +67,7 @@ public class Tape {
         STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
         NEWBYTE_NOCHG, NEWBIT, HALF2, LAST_PULSE, PAUSE, TZX_HEADER, PURE_TONE,
         PURE_TONE_NOCHG, PULSE_SEQUENCE, PULSE_SEQUENCE_NOCHG, NEWDR_BYTE,
-        NEWDR_BIT, PAUSE_STOP
+        NEWDR_BIT, PAUSE_STOP, CSW_RLE, CSW_ZRLE
     };
     private State statePlay;
     private int earBit;
@@ -76,7 +78,7 @@ public class Tape {
     private int timeout;
     private long timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
-    private boolean tzxTape;
+    private boolean tzxTape, cswTape;
     /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
     private final int LEADER_LENGHT = 2168;
     private final int SYNC1_LENGHT = 667;
@@ -103,6 +105,8 @@ public class Tape {
     private TapeTableModel tapeTableModel;
     private ListSelectionModel lsm;
     private TapeType settings;
+    private ByteArrayInputStream bais;
+    private InflaterInputStream iis;
 
     public Tape(TapeType tapeSettings, Z80 z80, TapeNotify notifyObject) {
         settings = tapeSettings;
@@ -110,7 +114,7 @@ public class Tape {
         cpu = z80;
         statePlay = State.STOP;
         tapeInserted = tapePlaying = tapeRecording = false;
-        tzxTape = false;
+        tzxTape = cswTape = false;
         tapePos = 0;
         timeout = 0;
         earBit = EAR_ON;
@@ -167,12 +171,17 @@ public class Tape {
 
     public String getBlockType(int block) {
         java.util.ResourceBundle bundle =
-            java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+                java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
-        if (!tzxTape) {
+        if (cswTape) {
+            return String.format(bundle.getString("CSW_DATA"),
+                    tapeBuffer[0x17], tapeBuffer[0x18]);
+        }
+
+        if (!tzxTape && !cswTape) {
             return bundle.getString("STD_SPD_DATA");
         }
 
@@ -267,14 +276,28 @@ public class Tape {
 
     public String getBlockInfo(int block) {
         java.util.ResourceBundle bundle =
-            java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+                java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
+        if (cswTape) {
+            if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
+                return bundle.getString("CSW1_PULSES");
+            } else { // CSW v2.0
+                if (tapeBuffer[0x21] == 0x02) { // Z-RLE encoding
+                    return String.format(bundle.getString("CSW2_ZRLE_PULSES"),
+                            readInt(tapeBuffer, 0x1D, 4));
+                } else {
+                    return String.format(bundle.getString("CSW2_RLE_PULSES"),
+                            readInt(tapeBuffer, 0x1D, 4));
+                }
+            }
+        }
+
         String msg;
 
-        if (!tzxTape) {
+        if (!tzxTape && !cswTape) {
             int offset = offsetBlocks[block];
             int len = readInt(tapeBuffer, offset, 2);
 
@@ -282,7 +305,7 @@ public class Tape {
                 switch (tapeBuffer[offset + 3]) {
                     case 0: // Program
                         msg = String.format(bundle.getString("PROGRAM_HEADER"),
-                            getCleanMsg(offset + 4, 10));
+                                getCleanMsg(offset + 4, 10));
                         break;
                     case 1: // Number array
                         msg = bundle.getString("NUMBER_ARRAY_HEADER");
@@ -292,7 +315,7 @@ public class Tape {
                         break;
                     case 3:
                         msg = String.format(bundle.getString("BYTES_HEADER"),
-                            getCleanMsg(offset + 4, 10));
+                                getCleanMsg(offset + 4, 10));
                         break;
                     default:
                         msg = "";
@@ -316,7 +339,7 @@ public class Tape {
                     switch (tapeBuffer[offset + 5]) {
                         case 0: // Program
                             msg = String.format(bundle.getString("PROGRAM_HEADER"),
-                                getCleanMsg(offset + 6, 10));
+                                    getCleanMsg(offset + 6, 10));
                             break;
                         case 1: // Number array
                             msg = bundle.getString("NUMBER_ARRAY_HEADER");
@@ -326,11 +349,11 @@ public class Tape {
                             break;
                         case 3:
                             msg = String.format(bundle.getString("BYTES_HEADER"),
-                                getCleanMsg(offset + 6, 10));
+                                    getCleanMsg(offset + 6, 10));
                             break;
                         default:
                             msg = String.format(bundle.getString("UNKN_HEADER_ID"),
-                                tapeBuffer[offset + 5]);
+                                    tapeBuffer[offset + 5]);
                     }
                 } else {
                     msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
@@ -382,7 +405,7 @@ public class Tape {
                 break;
             case 0x23: // Jump to Block
                 msg = String.format(bundle.getString("NUMBER_OF_BLOCKS"),
-                    tapeBuffer[offset]);
+                        tapeBuffer[offset]);
                 break;
             case 0x24: // Loop Start
                 len = readInt(tapeBuffer, offset, 2);
@@ -444,19 +467,19 @@ public class Tape {
     public void notifyTimeout() {
 
         doPlay();
-        
+
         cpu.setTimeout(timeout);
     }
 
     private int readInt(byte buffer[], int start, int len) {
         int res = 0;
-        
+
         for (int idx = 0; idx < len; idx++) {
             res |= ((buffer[start + idx] << (idx * 8)) & (0xff << idx * 8));
         }
         return res;
     }
-    
+
     public boolean insert(File fileName) {
         if (tapeInserted) {
             return false;
@@ -485,6 +508,8 @@ public class Tape {
         timeout = 0;
         tapePlaying = tapeRecording = false;
         tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
+        cswTape = filename.getName().toLowerCase().endsWith(".csw");
+
         if (tzxTape) {
             if (findTZXOffsetBlocks() == -1) {
                 nOffsetBlocks = 0;
@@ -494,7 +519,15 @@ public class Tape {
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
-        } else {
+        }
+
+        if (cswTape) {
+            nOffsetBlocks = 1;
+            Arrays.fill(offsetBlocks, 0);
+
+        }
+
+        if (!tzxTape && !cswTape) {
             findTAPOffsetBlocks();
 //            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
@@ -511,7 +544,7 @@ public class Tape {
     }
 
     public boolean insertEmbeddedTape(String fileName, String extension,
-        byte[] tapeData, int selectedBlock) {
+            byte[] tapeData, int selectedBlock) {
         if (tapeInserted) {
             return false;
         }
@@ -600,7 +633,7 @@ public class Tape {
         if (idxHeader >= nOffsetBlocks) {
             return false;
         }
-        
+
         tapePlaying = true;
         statePlay = State.START;
         tapePos = offsetBlocks[idxHeader];
@@ -619,7 +652,7 @@ public class Tape {
         statePlay = State.STOP;
 
         lsm.setSelectionInterval(idxHeader, idxHeader);
-        
+
         cpu.setExecDone(false);
         tapePlaying = false;
         updateTapeIcon();
@@ -640,8 +673,12 @@ public class Tape {
     }
 
     private boolean doPlay() {
-        if (!tapeInserted) {
-            return false;
+//        if (!tapeInserted) {
+//            return false;
+//        }
+
+        if (cswTape) {
+            return playCsw();
         }
 
         if (tzxTape) {
@@ -750,9 +787,9 @@ public class Tape {
 
     private boolean isTZXHeader(int offset) {
         if (tapeBuffer[offset] == 'Z' && tapeBuffer[offset + 1] == 'X'
-            && tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a'
-            && tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e'
-            && tapeBuffer[offset + 6] == '!') {
+                && tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a'
+                && tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e'
+                && tapeBuffer[offset + 6] == '!') {
             return true;
         }
         return false;
@@ -956,8 +993,9 @@ public class Tape {
                     }
                     decodeTzxHeader();
                     // De Normal/Turbo Data Block ya sale con timeout inicializado
-                    if (timeout <= 0)
+                    if (timeout <= 0) {
                         repeat = true;
+                    }
                     break;
                 case PURE_TONE:
                     earBit ^= EAR_MASK;
@@ -996,7 +1034,7 @@ public class Tape {
                         earBit = EAR_OFF;
                     }
                     timeout = 0;
-                    
+
                     while (((tapeBuffer[tapePos] & mask) != 0) == earState) {
                         timeout += zeroLenght;
 
@@ -1037,7 +1075,7 @@ public class Tape {
     private void decodeTzxHeader() {
         boolean repeat = true;
         timeout = 0;
-        
+
         while (repeat) {
             if (idxHeader >= nOffsetBlocks) {
                 return;
@@ -1060,8 +1098,8 @@ public class Tape {
                     zeroLenght = ZERO_LENGHT;
                     oneLenght = ONE_LENGHT;
                     bitsLastByte = 8;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2) *
-                        (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     if (endBlockPause == 0) {
                         endBlockPause = END_BLOCK_PAUSE;
                     }
@@ -1080,8 +1118,8 @@ public class Tape {
                     oneLenght = readInt(tapeBuffer, tapePos + 9, 2);
                     leaderPulses = readInt(tapeBuffer, tapePos + 11, 2);
                     bitsLastByte = tapeBuffer[tapePos + 13] & 0xff;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 14, 2) *
-                        (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 14, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     blockLen = readInt(tapeBuffer, tapePos + 16, 3);
                     tapePos += 19;
                     // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
@@ -1110,8 +1148,8 @@ public class Tape {
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
                     oneLenght = readInt(tapeBuffer, tapePos + 3, 2);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2) *
-                        (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     blockLen = readInt(tapeBuffer, tapePos + 8, 3);
                     tapePos += 11;
                     statePlay = State.NEWBYTE_NOCHG;
@@ -1120,8 +1158,8 @@ public class Tape {
                     break;
                 case 0x15: // Direct Data Block
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
-                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2) *
-                        (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
                     blockLen = readInt(tapeBuffer, tapePos + 6, 3);
                     tapePos += 9;
@@ -1139,8 +1177,8 @@ public class Tape {
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
-                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2) *
-                        (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     tapePos += 3;
                     statePlay = State.PAUSE_STOP;
                     idxHeader++;
@@ -1153,7 +1191,7 @@ public class Tape {
                     idxHeader++;
                     break;
                 case 0x23: // Jump to Block
-                    short target = (short)readInt(tapeBuffer, tapePos + 1, 2);
+                    short target = (short) readInt(tapeBuffer, tapePos + 1, 2);
                     idxHeader += target;
                     break;
                 case 0x24: // Loop Start
@@ -1217,14 +1255,14 @@ public class Tape {
 
     private void printGDBHeader(int index) {
         int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8)
-            + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
+                + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
         int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
         int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8)
-            + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
+                + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
         int npp = tapeBuffer[index + 11];
         int asp = tapeBuffer[index + 12];
         int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8)
-            + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
+                + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
         int npd = tapeBuffer[index + 17];
         int asd = tapeBuffer[index + 18];
 
@@ -1238,6 +1276,87 @@ public class Tape {
         System.out.println(String.format("ASD: %d", asd));
     }
 
+    private boolean playCsw() {
+        switch (statePlay) {
+            case STOP:
+                cpu.setExecDone(false);
+                tapePlaying = false;
+                updateTapeIcon();
+                tapeNotify.tapeStop();
+                break;
+            case START:
+                if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
+                    earBit = ((tapeBuffer[0x1C] & 0x01) != 0) ? EAR_OFF : EAR_ON;
+                    freqSample = 3500000 / readInt(tapeBuffer, 0x19, 2);
+                    tapePos = 0x20;
+                    statePlay = State.CSW_RLE;
+                } else { // CSW v2.0
+                    earBit = ((tapeBuffer[0x22] & 0x01) != 0) ? EAR_OFF : EAR_ON;
+                    freqSample = 3500000 / readInt(tapeBuffer, 0x19, 4);
+                    tapePos = 0x34 + tapeBuffer[0x23];
+                    blockLen = readInt(tapeBuffer, 0x1D, 4);
+                    if (tapeBuffer[0x21] == 0x02) { // Z-RLE
+                        bais = new ByteArrayInputStream(tapeBuffer, tapePos,
+                                tapeBuffer.length - tapePos);
+                        iis = new InflaterInputStream(bais);
+                        statePlay = State.CSW_ZRLE;
+                        timeout = 0; // at next opcode
+                        return true;
+                    } else { // RLE as CSW v1.01
+                        statePlay = State.CSW_RLE;
+                    }
+                }
+            case CSW_RLE:
+                earBit ^= EAR_MASK;
+                
+                if (tapeBuffer[tapePos] != 0) {
+                    timeout = tapeBuffer[tapePos++];
+                } else {
+                    timeout = readInt(tapeBuffer, tapePos + 1, 4);
+                    tapePos += 5;
+                }
+
+                timeout *= freqSample;
+                
+                if (tapePos == tapeBuffer.length) {
+                    statePlay = State.STOP;
+                }
+
+                break;
+            case CSW_ZRLE:
+                earBit ^= EAR_MASK;
+                
+                try {
+                    timeout = iis.read();
+                    if (timeout < 0) {
+//                        System.out.println("1: End of stream " + blockLen);
+                        timeout = 0; // at next opcode
+                        statePlay = State.STOP;
+                        break;
+                    }
+                    
+                    if (timeout == 0) {
+                        byte nSamples[] = new byte[4];
+                        timeout = iis.read(nSamples, 0, 4);
+                        if (timeout == 4) {
+                            timeout = readInt(nSamples, 0, 4);
+                        } else {
+//                            System.out.println("2: End of stream " + blockLen);
+                            timeout = 0; // at next opcode
+                            statePlay = State.STOP;
+                            break;
+                        }
+                    }
+
+                    timeout *= freqSample;
+                    
+                } catch (IOException ex) {
+                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                break;
+        }
+        return true;
+    }
 
     public void saveTapeBlock(Memory memory) {
         int addr = cpu.getRegIX();   // Start Address
@@ -1248,18 +1367,17 @@ public class Tape {
         // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
         if (filename.getName().toLowerCase().endsWith("tzx")) {
             if (nOffsetBlocks == 0) {
-                
+
                 byte hdrTZX[], idTZX[];
                 try {
-                    hdrTZX = "ZXTape!".getBytes("US-ASCII");
-                    idTZX = "TZX created by JSpeccy v0.89".getBytes("US-ASCII");
+                    hdrTZX = "ZXTape!\u001A".getBytes("US-ASCII");
+                    idTZX = "TZX created with JSpeccy v0.89".getBytes("US-ASCII");
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
                     return;
                 }
-                
+
                 record.write(hdrTZX, 0, hdrTZX.length);
-                record.write(0x1A);
                 record.write(01);  // TZX v1.20
                 record.write(20);
                 record.write(0x30);
@@ -1311,9 +1429,7 @@ public class Tape {
 
         timeLastOut = 0;
         tapeRecording = true;
-        freqSample = settings.isHighSamplingFreq() ?
-                spectrumModel.clockFreq / 44100 :
-                spectrumModel.clockFreq / 22050;
+        freqSample = settings.isHighSamplingFreq() ? 79 : 158;
         updateTapeIcon();
 
         return true;
@@ -1336,11 +1452,10 @@ public class Tape {
             fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
             // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
             if (nOffsetBlocks == 0) {
-                fOut.write("ZXTape!".getBytes("US-ASCII"));
-                fOut.write(0x1A);
+                fOut.write("ZXTape!\u001A".getBytes("US-ASCII"));
                 fOut.write(01);
                 fOut.write(20);
-                byte idTZX[] = "TZX created by JSpeccy v0.89".getBytes("US-ASCII");
+                byte idTZX[] = "TZX created with JSpeccy v0.89".getBytes("US-ASCII");
                 fOut.write(0x30);
                 fOut.write(idTZX.length);
                 fOut.write(idTZX);
@@ -1374,17 +1489,17 @@ public class Tape {
 
         return true;
     }
-    
+
     public void recordPulse(long tstates, boolean micState) {
         if (timeLastOut == 0) {
             timeLastOut = tstates;
             micBit = micState;
             return;
         }
-        
+
         long len = tstates - timeLastOut;
         long pulses = (len + (freqSample >>> 1)) / freqSample;
-        
+
         while (pulses-- > 0) {
             if (bitsLastByte == 8) {
                 record.write(byteTmp);
@@ -1401,7 +1516,6 @@ public class Tape {
         timeLastOut = tstates;
         micBit = micState;
     }
-    
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
 
@@ -1468,8 +1582,8 @@ public class Tape {
 
         @Override
         public String getColumnName(int col) {
-            java.util.ResourceBundle bundle = 
-                java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+            java.util.ResourceBundle bundle =
+                    java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
 
             String msg;
 

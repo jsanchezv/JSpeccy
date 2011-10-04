@@ -357,11 +357,11 @@ public class JSpeccy extends javax.swing.JFrame {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         allSnapTapeExtension = new FileNameExtensionFilter(
                 bundle.getString("SNAPSHOT_TAPE_TYPE"),
-                "sna", "z80", "szx", "tap", "tzx");
+                "sna", "z80", "szx", "tap", "tzx", "csw");
         snapshotExtension = new FileNameExtensionFilter(
                 bundle.getString("SNAPSHOT_TYPE"), "sna", "z80", "szx");
         tapeExtension = new FileNameExtensionFilter(
-                bundle.getString("TAPE_TYPE"), "tap", "tzx");
+                bundle.getString("TAPE_TYPE"), "tap", "tzx", "csw");
         imageExtension = new FileNameExtensionFilter(
                 bundle.getString("IMAGE_TYPE"), "scr", "png");
         screenExtension = new FileNameExtensionFilter(
