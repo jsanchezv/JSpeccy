@@ -1757,20 +1757,21 @@ public class Snapshots {
                         // Compressed RAM page
                         bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
-                        addr = 0;
-                        while (addr < 0x4000) {
-                            int value = iis.read();
-                            if (value == -1)
+                        byte pageRAM[] = new byte[0x4000];
+                        readed = 0;
+                        while (readed < pageRAM.length) {
+                            int count = iis.read(pageRAM, readed, pageRAM.length - readed);
+                            if (count == -1)
                                 break;
-                            memory.writeByte(ramPage[2] & 0xff, addr++, (byte)value);
+                            readed += count;
                         }
-                        readed = iis.read();
                         iis.close();
-                        if (addr != 0x4000 || readed != -1) {
+                        if (readed != 0x4000) {
                             error = 10;
                             fIn.close();
                             return false;
                         }
+                        memory.loadPage(ramPage[2] & 0xff, pageRAM);
                         break;
                     case ZXSTBID_MULTIFACE:
                         byte mf[] = new byte[2];
@@ -1811,17 +1812,16 @@ public class Snapshots {
                         bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
                         byte mfRAM[] = new byte[0x2000];
-                        addr = 0;
-                        while (addr < mfRAM.length) {
-                            int value = iis.read();
-                            if (value == -1)
+                        readed = 0;
+                        while (readed < mfRAM.length) {
+                            int count = iis.read(mfRAM, readed, mfRAM.length - readed);
+                            if (count == -1)
                                 break;
-                            mfRAM[addr++] = (byte)value;
+                            readed += count;
                         }
-                        readed = iis.read();
                         iis.close();
-                        if (addr != mfRAM.length || readed != -1) {
-                            System.out.println("Multiface RAM uncompress error!");
+                        if (readed != mfRAM.length) {
+                            System.out.println("Multiface RAM uncompress error!: " + readed);
                             multiface = false;
                             break;
                         }
@@ -1891,17 +1891,15 @@ public class Snapshots {
                                 bais = new ByteArrayInputStream(chData);
                                 iis = new InflaterInputStream(bais);
                                 tapeData = new byte[uSize];
-                                addr = 0;
-                                while (addr < uSize) {
-                                    int value = iis.read();
-                                    if (value == -1) {
+                                readed = 0;
+                                while (readed < tapeData.length) {
+                                    int count = iis.read(tapeData, readed, tapeData.length - readed);
+                                    if (count == -1)
                                         break;
-                                    }
-                                    tapeData[addr++] = (byte) value;
+                                    readed += count;
                                 }
-                                readed = iis.read();
                                 iis.close();
-                                if (addr != uSize || readed != -1) {
+                                if (readed != uSize) {
                                     System.out.println("Tape uncompress error!");
                                     break;
                                 }
@@ -1940,17 +1938,15 @@ public class Snapshots {
                         bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
                         byte IF2Rom[] = new byte[0x4000];
-                        addr = 0;
-                        while (addr < IF2Rom.length) {
-                            int value = iis.read();
-                            if (value == -1) {
+                        readed = 0;
+                        while (readed < IF2Rom.length) {
+                            int count = iis.read(IF2Rom, readed, IF2Rom.length - readed);
+                            if (count == -1)
                                 break;
-                            }
-                            IF2Rom[addr++] = (byte) value;
+                            readed += count;
                         }
-                        readed = iis.read();
                         iis.close();
-                        if (addr != IF2Rom.length || readed != -1) {
+                        if (readed != IF2Rom.length) {
                             System.out.println("Rom uncompress error!");
                             break;
                         }
