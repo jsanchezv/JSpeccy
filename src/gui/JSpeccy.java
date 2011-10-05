@@ -1369,6 +1369,10 @@ public class JSpeccy extends javax.swing.JFrame {
                     rewindTapeMediaMenu.setEnabled(true);
                     clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                     recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
+                    if (currentFileTape.getName().toLowerCase().endsWith(".csw")) {
+                        clearTapeMediaMenu.setEnabled(false);
+                        recordStartTapeMediaMenu.setEnabled(false);
+                    }
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -1464,6 +1468,10 @@ public class JSpeccy extends javax.swing.JFrame {
                 clearTapeMediaMenu.setEnabled(currentFileTape.canWrite());
                 rewindTapeMediaMenu.setEnabled(true);
                 recordStartTapeMediaMenu.setEnabled(currentFileTape.canWrite());
+                if (currentFileTape.getName().toLowerCase().endsWith(".csw")) {
+                    clearTapeMediaMenu.setEnabled(false);
+                    recordStartTapeMediaMenu.setEnabled(false);
+                }
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                 JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),

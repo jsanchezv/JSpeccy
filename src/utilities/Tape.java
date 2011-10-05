@@ -33,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -50,6 +51,10 @@ public class Tape {
     private Z80 cpu;
     private BufferedInputStream tapeFile;
     private ByteArrayOutputStream record;
+    private DeflaterOutputStream dos;
+    private ByteArrayInputStream bais;
+    private InflaterInputStream iis;
+
     private File filename;
     private String filenameLabel;
     private byte tapeBuffer[];
@@ -61,7 +66,8 @@ public class Tape {
     private int mask;
     private int bitTime;
     private byte byteTmp;
-
+    private int cswPulses;
+    
     private enum State {
 
         STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
@@ -106,8 +112,7 @@ public class Tape {
     private TapeTableModel tapeTableModel;
     private ListSelectionModel lsm;
     private TapeType settings;
-    private ByteArrayInputStream bais;
-    private InflaterInputStream iis;
+    
 
     public Tape(TapeType tapeSettings, Z80 z80, TapeNotify notifyObject) {
         settings = tapeSettings;
@@ -285,7 +290,7 @@ public class Tape {
         if (cswTape) {
             if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
                 return String.format(bundle.getString("CSW1_PULSES"),
-                            readInt(tapeBuffer, 0x19, 2));
+                        readInt(tapeBuffer, 0x19, 2));
             } else { // CSW v2.0
                 if (tapeBuffer[0x21] == 0x02) { // Z-RLE encoding
                     return String.format(bundle.getString("CSW2_ZRLE_PULSES"),
@@ -383,8 +388,17 @@ public class Tape {
                 msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
                 break;
             case 0x18: // CSW Recording Block
-                len = readInt(tapeBuffer, offset, 4);
-                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
+//                len = readInt(tapeBuffer, offset, 4);
+                if (tapeBuffer[offset + 0x09] == 0x02) { // Z-RLE encoding
+                    msg = String.format(bundle.getString("CSW2_ZRLE_PULSES"),
+                            readInt(tapeBuffer, offset + 0x0A , 4),
+                            readInt(tapeBuffer, offset + 0x06, 3));
+                } else {
+                    msg = String.format(bundle.getString("CSW2_RLE_PULSES"),
+                            readInt(tapeBuffer, offset + 0x0A, 4),
+                            readInt(tapeBuffer, offset + 0x06, 3));
+                }
+//                msg = String.format(bundle.getString("BYTES_MESSAGE"), len);
                 break;
             case 0x19: // Generalized Data Block
                 len = readInt(tapeBuffer, offset, 4);
@@ -1069,6 +1083,66 @@ public class Tape {
                         statePlay = State.TZX_HEADER;
                     }
                     break;
+                case CSW_RLE:
+                    earBit ^= EAR_MASK;
+
+                    if (tapeBuffer[tapePos] != 0) {
+                        timeout = tapeBuffer[tapePos++];
+                        blockLen--;
+                    } else {
+                        timeout = readInt(tapeBuffer, tapePos + 1, 4);
+                        tapePos += 5;
+                        blockLen -= 5;
+                    }
+
+                    timeout *= cswStatesSample;
+
+                    if (blockLen == 0) {
+                        statePlay = State.PAUSE;
+                        repeat = true;
+                    }
+                    break;
+                case CSW_ZRLE:
+                    earBit ^= EAR_MASK;
+
+                    try {
+                        timeout = iis.read();
+                        if (timeout < 0) {
+                            iis.close();
+                            bais.close();
+                            repeat = true;
+                            statePlay = State.PAUSE;
+                            break;
+                        }
+
+                        if (timeout == 0) {
+                            byte nSamples[] = new byte[4];
+                            while (timeout < 4) {
+                                int count = iis.read(nSamples, timeout,
+                                        nSamples.length - timeout);
+                                if (count == -1) {
+                                    break;
+                                }
+                                timeout += count;
+                            }
+
+                            if (timeout == 4) {
+                                timeout = readInt(nSamples, 0, 4);
+                            } else {
+                                iis.close();
+                                bais.close();
+                                repeat = true;
+                                statePlay = State.PAUSE;
+                                break;
+                            }
+                        }
+
+                        timeout *= cswStatesSample;
+
+                    } catch (IOException ex) {
+                        Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    break;
             }
         } while (repeat);
         return true;
@@ -1173,9 +1247,19 @@ public class Tape {
                     endBlockPause = readInt(tapeBuffer, tapePos + 5, 2)
                             * (END_BLOCK_PAUSE / 1000);
                     cswStatesSample = 3500000.0f / readInt(tapeBuffer, tapePos + 7, 3);
-                    
+                    blockLen = readInt(tapeBuffer, tapePos + 1, 4) - 10;
+                    if (tapeBuffer[tapePos + 10] == 0x02) {
+                        statePlay = State.CSW_ZRLE;
+                        bais = new ByteArrayInputStream(tapeBuffer, tapePos + 15, blockLen);
+                        iis = new InflaterInputStream(bais);
+                    } else {
+                        statePlay = State.CSW_RLE;
+                    }
+                    tapePos += 15;
                     idxHeader++;
-                    System.out.println("CSW Block not supported!. Skipping...");
+                    // al entrar la primera vez deshará el cambio
+                    earBit ^= EAR_MASK;
+                    repeat = false;
                     break;
                 case 0x19: // Generalized Data Block
 //                    printGDBHeader(tapePos);
@@ -1311,10 +1395,10 @@ public class Tape {
                         statePlay = State.CSW_RLE;
                     }
                 }
-                // No break statement, that's correct. :)
+            // No break statement, that's correct. :)
             case CSW_RLE:
                 earBit ^= EAR_MASK;
-                
+
                 if (tapeBuffer[tapePos] != 0) {
                     timeout = tapeBuffer[tapePos++];
                 } else {
@@ -1323,7 +1407,7 @@ public class Tape {
                 }
 
                 timeout *= cswStatesSample;
-                
+
                 if (tapePos == tapeBuffer.length) {
                     statePlay = State.STOP;
                 }
@@ -1331,7 +1415,7 @@ public class Tape {
                 break;
             case CSW_ZRLE:
                 earBit ^= EAR_MASK;
-                
+
                 try {
                     timeout = iis.read();
                     if (timeout < 0) {
@@ -1341,18 +1425,18 @@ public class Tape {
                         statePlay = State.STOP;
                         break;
                     }
-                    
+
                     if (timeout == 0) {
                         byte nSamples[] = new byte[4];
                         while (timeout < 4) {
                             int count = iis.read(nSamples, timeout,
-                                nSamples.length - timeout);
-                            if (count == -1)
+                                    nSamples.length - timeout);
+                            if (count == -1) {
                                 break;
+                            }
                             timeout += count;
-                            System.out.println("readed: " + timeout);
                         }
-                        
+
                         if (timeout == 4) {
                             timeout = readInt(nSamples, 0, 4);
                         } else {
@@ -1365,7 +1449,7 @@ public class Tape {
                     }
 
                     timeout *= cswStatesSample;
-                    
+
                 } catch (IOException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -1445,7 +1529,16 @@ public class Tape {
 
         timeLastOut = 0;
         tapeRecording = true;
-        freqSample = settings.isHighSamplingFreq() ? 79 : 158;
+        if (settings.isHighSamplingFreq()) {
+            freqSample = 45454;
+            cswStatesSample = 77.0f; // 3500000.0f / 45454 = 77.0f
+            cswPulses = 0;
+            dos = new DeflaterOutputStream(record);
+        } else {
+            freqSample = 79;
+            cswStatesSample = 79.36508f; // 3500000.0f / 44100 = 79.36508f
+        }
+        
         updateTapeIcon();
 
         return true;
@@ -1454,11 +1547,6 @@ public class Tape {
     public boolean stopRecording() {
         if (!tapeRecording) {
             return false;
-        }
-
-        if (bitsLastByte != 0) {
-            byteTmp <<= (8 - bitsLastByte);
-            record.write(byteTmp);
         }
 
 //        System.out.println(String.format("Record size: %d", record.size()));
@@ -1476,17 +1564,46 @@ public class Tape {
                 fOut.write(idTZX.length);
                 fOut.write(idTZX);
             }
-            // Y ahora la cabecera de Direct Data Recording
-            fOut.write(0x15); // TZX ID: Direct Recording Block
-            fOut.write(freqSample);
-            fOut.write(0x00); // T-states per sample
-            fOut.write(0x00);
-            fOut.write(0x00); // 0 sec end block pause
-            fOut.write(bitsLastByte);
-            fOut.write(record.size());
-            fOut.write(record.size() >>> 8);
-            fOut.write(record.size() >>> 16);
-            record.writeTo(fOut);
+            
+            if (settings.isHighSamplingFreq()) {
+                dos.close();
+                record.close();
+                // Y ahora la cabecera de CSW Recording
+                fOut.write(0x18); // TZX ID: CSW Recording
+                fOut.write(record.size() + 10);
+                fOut.write((record.size() + 10) >>> 8);
+                fOut.write((record.size() + 10) >>> 16);
+                fOut.write((record.size() + 10) >>> 24);
+                fOut.write(0x00);
+                fOut.write(0x00); // 0 sec end block pause
+                fOut.write(freqSample);
+                fOut.write(freqSample >>> 8);
+                fOut.write(freqSample >>> 16);
+                fOut.write(0x02); // Z-RLE encoding
+                fOut.write(cswPulses);
+                fOut.write(cswPulses >>> 8);
+                fOut.write(cswPulses >>> 16);
+                fOut.write(cswPulses >>> 24);
+                record.writeTo(fOut);
+            } else {
+                if (bitsLastByte != 0) {
+                    byteTmp <<= (8 - bitsLastByte);
+                    record.write(byteTmp);
+                }
+                    
+                // Y ahora la cabecera de Direct Data Recording
+                fOut.write(0x15); // TZX ID: Direct Recording Block
+                fOut.write(freqSample);
+                fOut.write(0x00); // T-states per sample
+                fOut.write(0x00);
+                fOut.write(0x00); // 0 sec end block pause
+                fOut.write(bitsLastByte);
+                fOut.write(record.size());
+                fOut.write(record.size() >>> 8);
+                fOut.write(record.size() >>> 16);
+                record.close();
+                record.writeTo(fOut);
+            }
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -1498,6 +1615,7 @@ public class Tape {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        
         eject();
         insert(filename);
         tapeRecording = false;
@@ -1514,24 +1632,44 @@ public class Tape {
         }
 
         long len = tstates - timeLastOut;
-        long pulses = (len + (freqSample >>> 1)) / freqSample;
+        int pulses = (int) (len / cswStatesSample);
 
-        while (pulses-- > 0) {
-            if (bitsLastByte == 8) {
-                record.write(byteTmp);
-                bitsLastByte = 0;
-                byteTmp = 0;
+        if (settings.isHighSamplingFreq()) { // CSW
+            cswPulses++;
+            
+            try {
+                if (pulses > 255) {
+                    dos.write(0);
+                    dos.write(pulses);
+                    dos.write(pulses >>> 8);
+                    dos.write(pulses >>> 16);
+                    dos.write(pulses >>> 24);
+                } else {
+                    dos.write(pulses);
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
+        } else { // DRB
+            while (pulses-- > 0) {
+                if (bitsLastByte == 8) {
+                    record.write(byteTmp);
+                    bitsLastByte = 0;
+                    byteTmp = 0;
+                }
 
-            byteTmp <<= 1;
-            if (micBit) {
-                byteTmp |= 0x01;
+                byteTmp <<= 1;
+                if (micBit) {
+                    byteTmp |= 0x01;
+                }
+                bitsLastByte++;
             }
-            bitsLastByte++;
         }
+        
         timeLastOut = tstates;
         micBit = micState;
     }
+    
     private javax.swing.JLabel tapeIcon;
     private boolean enabledIcon;
 

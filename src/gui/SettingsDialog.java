@@ -413,7 +413,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         samplingButtonGroup.add(lowSampling);
         lowSampling.setSelected(true);
-        lowSampling.setText("22050 Hz");
+        lowSampling.setText("DRB (44100 Hz)");
         lowSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 lowSamplingActionPerformed(evt);
@@ -422,7 +422,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         samplingPanel.add(lowSampling);
 
         samplingButtonGroup.add(highSampling);
-        highSampling.setText("44100 Hz");
+        highSampling.setText("CSW Z-RLE (45454 Hz)");
         highSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 highSamplingActionPerformed(evt);
