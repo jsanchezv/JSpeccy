@@ -100,6 +100,7 @@ public class Tape {
     private int nLoops;
     private int loopStart;
     private int freqSample;
+    private float cswStatesSample;
     private final TapeNotify tapeNotify;
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
@@ -178,7 +179,7 @@ public class Tape {
 
         if (cswTape) {
             return String.format(bundle.getString("CSW_DATA"),
-                    tapeBuffer[0x17], tapeBuffer[0x18]);
+                    tapeBuffer[0x17], tapeBuffer[0x18]); // CSW major.minor version
         }
 
         if (!tzxTape && !cswTape) {
@@ -283,14 +284,15 @@ public class Tape {
 
         if (cswTape) {
             if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
-                return bundle.getString("CSW1_PULSES");
+                return String.format(bundle.getString("CSW1_PULSES"),
+                            readInt(tapeBuffer, 0x19, 2));
             } else { // CSW v2.0
                 if (tapeBuffer[0x21] == 0x02) { // Z-RLE encoding
                     return String.format(bundle.getString("CSW2_ZRLE_PULSES"),
-                            readInt(tapeBuffer, 0x1D, 4));
+                            readInt(tapeBuffer, 0x1D, 4), readInt(tapeBuffer, 0x19, 4));
                 } else {
                     return String.format(bundle.getString("CSW2_RLE_PULSES"),
-                            readInt(tapeBuffer, 0x1D, 4));
+                            readInt(tapeBuffer, 0x1D, 4), readInt(tapeBuffer, 0x19, 4));
                 }
             }
         }
@@ -1168,6 +1170,10 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x18: // CSW Recording Block
+                    endBlockPause = readInt(tapeBuffer, tapePos + 5, 2)
+                            * (END_BLOCK_PAUSE / 1000);
+                    cswStatesSample = 3500000.0f / readInt(tapeBuffer, tapePos + 7, 3);
+                    
                     idxHeader++;
                     System.out.println("CSW Block not supported!. Skipping...");
                     break;
@@ -1287,14 +1293,13 @@ public class Tape {
             case START:
                 if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
                     earBit = ((tapeBuffer[0x1C] & 0x01) != 0) ? EAR_OFF : EAR_ON;
-                    freqSample = 3500000 / readInt(tapeBuffer, 0x19, 2);
+                    cswStatesSample = 3500000.0f / readInt(tapeBuffer, 0x19, 2);
                     tapePos = 0x20;
                     statePlay = State.CSW_RLE;
                 } else { // CSW v2.0
                     earBit = ((tapeBuffer[0x22] & 0x01) != 0) ? EAR_OFF : EAR_ON;
-                    freqSample = 3500000 / readInt(tapeBuffer, 0x19, 4);
+                    cswStatesSample = 3500000.0f / readInt(tapeBuffer, 0x19, 4);
                     tapePos = 0x34 + tapeBuffer[0x23];
-                    blockLen = readInt(tapeBuffer, 0x1D, 4);
                     if (tapeBuffer[0x21] == 0x02) { // Z-RLE
                         bais = new ByteArrayInputStream(tapeBuffer, tapePos,
                                 tapeBuffer.length - tapePos);
@@ -1306,6 +1311,7 @@ public class Tape {
                         statePlay = State.CSW_RLE;
                     }
                 }
+                // No break statement, that's correct. :)
             case CSW_RLE:
                 earBit ^= EAR_MASK;
                 
@@ -1316,7 +1322,7 @@ public class Tape {
                     tapePos += 5;
                 }
 
-                timeout *= freqSample;
+                timeout *= cswStatesSample;
                 
                 if (tapePos == tapeBuffer.length) {
                     statePlay = State.STOP;
@@ -1329,7 +1335,8 @@ public class Tape {
                 try {
                     timeout = iis.read();
                     if (timeout < 0) {
-//                        System.out.println("1: End of stream " + blockLen);
+                        iis.close();
+                        bais.close();
                         timeout = 0; // at next opcode
                         statePlay = State.STOP;
                         break;
@@ -1337,18 +1344,27 @@ public class Tape {
                     
                     if (timeout == 0) {
                         byte nSamples[] = new byte[4];
-                        timeout = iis.read(nSamples, 0, 4);
+                        while (timeout < 4) {
+                            int count = iis.read(nSamples, timeout,
+                                nSamples.length - timeout);
+                            if (count == -1)
+                                break;
+                            timeout += count;
+                            System.out.println("readed: " + timeout);
+                        }
+                        
                         if (timeout == 4) {
                             timeout = readInt(nSamples, 0, 4);
                         } else {
-//                            System.out.println("2: End of stream " + blockLen);
+                            iis.close();
+                            bais.close();
                             timeout = 0; // at next opcode
                             statePlay = State.STOP;
                             break;
                         }
                     }
 
-                    timeout *= freqSample;
+                    timeout *= cswStatesSample;
                     
                 } catch (IOException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
