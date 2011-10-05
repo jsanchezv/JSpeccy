@@ -105,7 +105,7 @@ public final class AY8912 {
     private boolean disableNoiseA, disableNoiseB, disableNoiseC;
     private boolean envA, envB, envC;
     private int volumeA, volumeB, volumeC;
-    private int lastA, lastB, lastC;
+//    private int lastA, lastB, lastC;
     private int audiotstates, samplesPerFrame;
     private MachineTypes spectrumModel;
 
