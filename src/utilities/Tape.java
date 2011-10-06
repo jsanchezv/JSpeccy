@@ -145,7 +145,7 @@ public class Tape {
             return 1;
         }
 
-        return nOffsetBlocks;
+        return nOffsetBlocks + 1;
     }
 
     public int getSelectedBlock() {
@@ -182,6 +182,9 @@ public class Tape {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
+        if (block >= nOffsetBlocks)
+            return bundle.getString("END_OF_TAPE");
+        
         if (cswTape) {
             return String.format(bundle.getString("CSW_DATA"),
                     tapeBuffer[0x17], tapeBuffer[0x18]); // CSW major.minor version
@@ -283,10 +286,14 @@ public class Tape {
     public String getBlockInfo(int block) {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
+        
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
-
+        
+        if (block >= nOffsetBlocks)
+            return bundle.getString("END_OF_TAPE");
+        
         if (cswTape) {
             if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
                 return String.format(bundle.getString("CSW1_PULSES"),
@@ -789,12 +796,11 @@ public class Tape {
 //                    tapeBuffer.length, tapePos));
                 break;
             case PAUSE_STOP:
+                idxHeader++;
                 if (tapePos == tapeBuffer.length) {
                     statePlay = State.STOP;
                     timeout = 1;
-                    lsm.setSelectionInterval(idxHeader, idxHeader);
                 } else {
-                    idxHeader++;
                     statePlay = State.START; // START
                 }
         }
@@ -916,6 +922,7 @@ public class Tape {
             repeat = false;
             switch (statePlay) {
                 case STOP:
+                    lsm.setSelectionInterval(idxHeader, idxHeader);
                     cpu.setExecDone(false);
                     tapePlaying = false;
                     updateTapeIcon();
@@ -1224,8 +1231,8 @@ public class Tape {
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
                     oneLenght = readInt(tapeBuffer, tapePos + 3, 2);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2)
-                            * (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2) *
+                            (END_BLOCK_PAUSE / 1000);
                     blockLen = readInt(tapeBuffer, tapePos + 8, 3);
                     tapePos += 11;
                     statePlay = State.NEWBYTE_NOCHG;
@@ -1234,8 +1241,8 @@ public class Tape {
                     break;
                 case 0x15: // Direct Data Block
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
-                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2)
-                            * (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2) *
+                            (END_BLOCK_PAUSE / 1000);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
                     blockLen = readInt(tapeBuffer, tapePos + 6, 3);
                     tapePos += 9;
@@ -1262,7 +1269,7 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x19: // Generalized Data Block
-//                    printGDBHeader(tapePos);
+                    printGDBHeader(tapePos);
                     idxHeader++;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
@@ -1369,6 +1376,8 @@ public class Tape {
     private boolean playCsw() {
         switch (statePlay) {
             case STOP:
+                idxHeader++;
+                lsm.setSelectionInterval(idxHeader, idxHeader);
                 cpu.setExecDone(false);
                 tapePlaying = false;
                 updateTapeIcon();
@@ -1536,7 +1545,6 @@ public class Tape {
             dos = new DeflaterOutputStream(record);
         } else {
             freqSample = 79;
-            cswStatesSample = 79.36508f; // 3500000.0f / 44100 = 79.36508f
         }
         
         updateTapeIcon();
@@ -1632,10 +1640,10 @@ public class Tape {
         }
 
         long len = tstates - timeLastOut;
-        int pulses = (int) (len / cswStatesSample);
 
         if (settings.isHighSamplingFreq()) { // CSW
             cswPulses++;
+            int pulses = (int) (len / cswStatesSample);
             
             try {
                 if (pulses > 255) {
@@ -1651,6 +1659,7 @@ public class Tape {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         } else { // DRB
+            int pulses = (int) (len / freqSample);
             while (pulses-- > 0) {
                 if (bitsLastByte == 8) {
                     record.write(byteTmp);
