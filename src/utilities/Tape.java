@@ -607,13 +607,19 @@ public class Tape {
         return true;
     }
 
-    public void eject() {
+    public boolean eject() {
+        if (tapePlaying || tapeRecording)
+            return false;
+        
         tapeInserted = false;
         tapeBuffer = null;
         filenameLabel = null;
-        statePlay = State.STOP;
-        tapePlaying = tapeRecording = false;
+        nOffsetBlocks = 0;
+        tapeTableModel.fireTableDataChanged();
+//        statePlay = State.STOP;
+//        tapePlaying = tapeRecording = false;
         updateTapeIcon();
+        return true;
     }
 
     public int getEarBit() {
@@ -632,6 +638,10 @@ public class Tape {
         return tapeRecording;
     }
 
+    public boolean isTapeRunning() {
+        return tapePlaying || tapeRecording;
+    }
+    
     public boolean isTapeInserted() {
         return tapeInserted;
     }
@@ -1418,6 +1428,7 @@ public class Tape {
                 timeout *= cswStatesSample;
 
                 if (tapePos == tapeBuffer.length) {
+                    timeout = 0; // at next opcode
                     statePlay = State.STOP;
                 }
 
@@ -1548,6 +1559,7 @@ public class Tape {
         }
         
         updateTapeIcon();
+        tapeNotify.tapeStart();
 
         return true;
     }
@@ -1624,9 +1636,10 @@ public class Tape {
             }
         }
         
+        tapeRecording = false;
+        tapeNotify.tapeStop();
         eject();
         insert(filename);
-        tapeRecording = false;
         updateTapeIcon();
 
         return true;

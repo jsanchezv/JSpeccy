@@ -2142,7 +2142,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
                 @Override
                 public void run() {
-                    while (tape.isTapePlaying()) {
+                    while (tape.isTapeRunning()) {
                         generateFrame();
                         drawFrame();
                     }
@@ -2166,12 +2166,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             return false;
         }
 
-//        z80.setExecDone(true);
-
         return true;
     }
 
     public boolean stopRecording() {
+        if (!tape.isTapeRecording())
+            return false;
+        
         tape.recordPulse(nFrame * spectrumModel.tstatesFrame + z80.tEstados,
             (portFE & 0x08) != 0);
         tape.stopRecording();
