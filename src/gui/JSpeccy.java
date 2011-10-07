@@ -634,6 +634,8 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator6 = new javax.swing.JPopupMenu.Separator();
         recordStartTapeMediaMenu = new javax.swing.JMenuItem();
         recordStopTapeMediaMenu = new javax.swing.JMenuItem();
+        jSeparator13 = new javax.swing.JPopupMenu.Separator();
+        refreshTapeMediaMenu = new javax.swing.JMenuItem();
         jSeparator8 = new javax.swing.JPopupMenu.Separator();
         IF1MediaMenu = new javax.swing.JMenu();
         microdrivesIF1MediaMenu = new javax.swing.JMenuItem();
@@ -700,12 +702,11 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonRec.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
         tapeBrowserButtonRec.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tapeBrowserButtonRecActionPerformed(evt);
+                recordStartTapeMediaMenuActionPerformed(evt);
             }
         });
         tapeBrowserToolbar.add(tapeBrowserButtonRec);
 
-        jSeparator11.setOrientation(javax.swing.SwingConstants.HORIZONTAL);
         jSeparator11.setSeparatorSize(new java.awt.Dimension(25, 10));
         tapeBrowserToolbar.add(jSeparator11);
 
@@ -730,7 +731,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonRew.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
         tapeBrowserButtonRew.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tapeBrowserButtonRewActionPerformed(evt);
+                rewindTapeMediaMenuActionPerformed(evt);
             }
         });
         tapeBrowserToolbar.add(tapeBrowserButtonRew);
@@ -1355,6 +1356,16 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     tapeMediaMenu.add(recordStopTapeMediaMenu);
+    tapeMediaMenu.add(jSeparator13);
+
+    refreshTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, java.awt.event.InputEvent.CTRL_MASK));
+    refreshTapeMediaMenu.setText(bundle.getString("JSpeccy.refreshTapeMediaMenu.text")); // NOI18N
+    refreshTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            refreshTapeMediaMenuActionPerformed(evt);
+        }
+    });
+    tapeMediaMenu.add(refreshTapeMediaMenu);
 
     mediaMenu.add(tapeMediaMenu);
     mediaMenu.add(jSeparator8);
@@ -1539,11 +1550,6 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeBrowserButtonEject.setEnabled(true);
         } else {
             spectrum.tape.play();
-            tapeBrowserButtonRec.setEnabled(false);
-            tapeBrowserButtonPlay.setEnabled(false);
-            tapeBrowserButtonRew.setEnabled(false);
-            tapeBrowserButtonEject.setEnabled(false);
-            tapeBrowserButtonStop.setEnabled(true);
         }
     }//GEN-LAST:event_playTapeMediaMenuActionPerformed
 
@@ -2228,33 +2234,6 @@ public class JSpeccy extends javax.swing.JFrame {
         microdriveDialog.showDialog(this, bundle.getString("MICRODRIVES_DIALOG_TITLE"));
     }//GEN-LAST:event_microdrivesIF1MediaMenuActionPerformed
 
-    private void tapeBrowserButtonRecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonRecActionPerformed
-
-        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-        if (!spectrum.tape.isTapeReady()) {
-            JOptionPane.showMessageDialog(this,
-                bundle.getString("RECORD_START_ERROR"), bundle.getString("RECORD_START_TITLE"),
-                JOptionPane.ERROR_MESSAGE); // NOI18N
-        } else {         
-            if (spectrum.startRecording()) {
-                tapeBrowserButtonRec.setEnabled(false);
-                tapeBrowserButtonPlay.setEnabled(false);
-                tapeBrowserButtonRew.setEnabled(false);
-                tapeBrowserButtonEject.setEnabled(false);
-                tapeBrowserButtonStop.setEnabled(true);
-                recordStartTapeMediaMenu.setEnabled(false);
-                recordStopTapeMediaMenu.setEnabled(true);
-            } else {
-                JOptionPane.showMessageDialog(this,
-                bundle.getString("RECORD_START_FORMAT_ERROR"),
-                    bundle.getString("RECORD_START_FORMAT_TITLE"),
-                JOptionPane.ERROR_MESSAGE); // NOI18N
-            }
-        }
-
-        playTapeMediaMenu.setSelected(false);
-    }//GEN-LAST:event_tapeBrowserButtonRecActionPerformed
-
     private void tapeBrowserButtonStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonStopActionPerformed
         if (spectrum.tape.isTapePlaying()) {
             spectrum.tape.stop();
@@ -2287,12 +2266,10 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_tapeBrowserButtonStopActionPerformed
 
-    private void tapeBrowserButtonRewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonRewActionPerformed
-        spectrum.tape.rewind();
-    }//GEN-LAST:event_tapeBrowserButtonRewActionPerformed
-
     private void tapeBrowserButtonPlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonPlayActionPerformed
-        spectrum.tape.play();
+        if (spectrum.tape.isTapeReady()) {
+            spectrum.tape.play();
+        }
     }//GEN-LAST:event_tapeBrowserButtonPlayActionPerformed
 
     private void tapeBrowserButtonEjectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonEjectActionPerformed
@@ -2306,6 +2283,14 @@ public class JSpeccy extends javax.swing.JFrame {
             playTapeMediaMenu.setEnabled(false);
         }
     }//GEN-LAST:event_tapeBrowserButtonEjectActionPerformed
+
+    private void refreshTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshTapeMediaMenuActionPerformed
+        if (currentFileTape != null && currentFileTape.exists() &&
+                spectrum.tape.isTapeReady()) {
+            spectrum.tape.eject();
+            spectrum.tape.insert(currentFileTape);
+        }
+    }//GEN-LAST:event_refreshTapeMediaMenuActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2354,6 +2339,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSeparator jSeparator10;
     private javax.swing.JToolBar.Separator jSeparator11;
     private javax.swing.JToolBar.Separator jSeparator12;
+    private javax.swing.JPopupMenu.Separator jSeparator13;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -2391,6 +2377,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenu recentFilesMenu;
     private javax.swing.JMenuItem recordStartTapeMediaMenu;
     private javax.swing.JMenuItem recordStopTapeMediaMenu;
+    private javax.swing.JMenuItem refreshTapeMediaMenu;
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JMenuItem rewindTapeMediaMenu;

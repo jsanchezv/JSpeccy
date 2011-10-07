@@ -414,6 +414,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         samplingButtonGroup.add(lowSampling);
         lowSampling.setSelected(true);
         lowSampling.setText("DRB (44100 Hz)");
+        lowSampling.setToolTipText("Direct Recording Block");
         lowSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 lowSamplingActionPerformed(evt);
@@ -423,6 +424,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         samplingButtonGroup.add(highSampling);
         highSampling.setText("CSW Z-RLE (45454 Hz)");
+        highSampling.setToolTipText("Compressed Square Wave Run Lenght Encoding");
         highSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 highSamplingActionPerformed(evt);

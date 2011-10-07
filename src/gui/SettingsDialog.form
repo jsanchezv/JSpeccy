@@ -442,7 +442,7 @@
                   <Properties>
                     <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                       <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">
-                        <TitledBorder title="Recording to">
+                        <TitledBorder title="To TZX Block">
                           <ResourceString PropertyName="titleX" bundle="gui/Bundle.properties" key="SettingsDialog.highSamplingFreq.border.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                         </TitledBorder>
                       </Border>
@@ -460,6 +460,7 @@
                         </Property>
                         <Property name="selected" type="boolean" value="true"/>
                         <Property name="text" type="java.lang.String" value="DRB (44100 Hz)"/>
+                        <Property name="toolTipText" type="java.lang.String" value="Direct Recording Block"/>
                       </Properties>
                       <Events>
                         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="lowSamplingActionPerformed"/>
@@ -471,6 +472,7 @@
                           <ComponentRef name="samplingButtonGroup"/>
                         </Property>
                         <Property name="text" type="java.lang.String" value="CSW Z-RLE (45454 Hz)"/>
+                        <Property name="toolTipText" type="java.lang.String" value="Compressed Square Wave Run Lenght Encoding"/>
                       </Properties>
                       <Events>
                         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="highSamplingActionPerformed"/>

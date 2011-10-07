@@ -1555,11 +1555,10 @@ public class Tape {
             cswPulses = 0;
             dos = new DeflaterOutputStream(record);
         } else {
-            freqSample = 79;
+            freqSample = 79; // 44.1 Khz
         }
         
         updateTapeIcon();
-        tapeNotify.tapeStart();
 
         return true;
     }
@@ -1637,7 +1636,6 @@ public class Tape {
         }
         
         tapeRecording = false;
-        tapeNotify.tapeStop();
         eject();
         insert(filename);
         updateTapeIcon();
@@ -1652,7 +1650,7 @@ public class Tape {
             return;
         }
 
-        long len = tstates - timeLastOut;
+        int len = (int) (tstates - timeLastOut);
 
         if (settings.isHighSamplingFreq()) { // CSW
             cswPulses++;
@@ -1672,7 +1670,8 @@ public class Tape {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         } else { // DRB
-            int pulses = (int) (len / freqSample);
+            int pulses = len + (freqSample >>> 1);
+            pulses = len / freqSample;
             while (pulses-- > 0) {
                 if (bitsLastByte == 8) {
                     record.write(byteTmp);

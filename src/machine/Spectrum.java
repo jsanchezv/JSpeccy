@@ -2142,7 +2142,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
                 @Override
                 public void run() {
-                    while (tape.isTapeRunning()) {
+                    while (tape.isTapePlaying()) {
                         generateFrame();
                         drawFrame();
                     }
