@@ -140,7 +140,7 @@ public class Tape {
         lsm = list;
     }
 
-    public int getNumBlocks() {
+    private int getNumBlocks() {
         if (!tapeInserted) {
             return 1;
         }
@@ -160,7 +160,7 @@ public class Tape {
         idxHeader = block;
     }
 
-    public String getCleanMsg(int offset, int len) {
+    private String getCleanMsg(int offset, int len) {
         byte msg[] = new byte[len];
 
         // Hay que quitar los caracteres especiales
@@ -175,7 +175,7 @@ public class Tape {
         return new String(msg);
     }
 
-    public String getBlockType(int block) {
+    private String getBlockType(int block) {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         if (!tapeInserted) {
@@ -195,12 +195,9 @@ public class Tape {
         }
 
         int offset = offsetBlocks[block];
-        if (isTZXHeader(offset)) {
-            return "ZXTape!";
-        }
 
         String msg;
-        switch (tapeBuffer[offset]) {
+        switch ((tapeBuffer[offset] & 0xff)) {
             case 0x10: // Standard speed data block
                 msg = bundle.getString("STD_SPD_DATA");
                 break;
@@ -273,8 +270,9 @@ public class Tape {
             case 0x35: // Custom Info Block
                 msg = bundle.getString("CUSTOM_INFO");
                 break;
-            case 0x5A: // "Glue" Block
-                msg = bundle.getString("GLUE_BLOCK");
+            case 'Z': // ZXTape!
+//                msg = bundle.getString("GLUE_BLOCK");
+                msg = "ZXTape!";
                 break;
             default:
                 msg = String.format(bundle.getString("UNKN_TZX_BLOCK"), tapeBuffer[offset]);
@@ -283,7 +281,7 @@ public class Tape {
         return msg;
     }
 
-    public String getBlockInfo(int block) {
+    private String getBlockInfo(int block) {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
         
@@ -295,11 +293,11 @@ public class Tape {
             return bundle.getString("END_OF_TAPE");
         
         if (cswTape) {
-            if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
+            if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
                 return String.format(bundle.getString("CSW1_PULSES"),
                         readInt(tapeBuffer, 0x19, 2));
             } else { // CSW v2.0
-                if (tapeBuffer[0x21] == 0x02) { // Z-RLE encoding
+                if ((tapeBuffer[0x21] & 0xff) == 0x02) { // Z-RLE encoding
                     return String.format(bundle.getString("CSW2_ZRLE_PULSES"),
                             readInt(tapeBuffer, 0x1D, 4), readInt(tapeBuffer, 0x19, 4));
                 } else {
@@ -311,12 +309,12 @@ public class Tape {
 
         String msg;
 
-        if (!tzxTape && !cswTape) {
+        if (!tzxTape) {
             int offset = offsetBlocks[block];
             int len = readInt(tapeBuffer, offset, 2);
 
-            if (tapeBuffer[offset + 2] == 0) { // Header
-                switch (tapeBuffer[offset + 3]) {
+            if ((tapeBuffer[offset + 2] & 0xff) == 0) { // Header
+                switch (tapeBuffer[offset + 3] & 0xff) {
                     case 0: // Program
                         msg = String.format(bundle.getString("PROGRAM_HEADER"),
                                 getCleanMsg(offset + 4, 10));
@@ -341,16 +339,13 @@ public class Tape {
         }
 
         int offset = offsetBlocks[block];
-        if (isTZXHeader(offset)) {
-            return bundle.getString("TZX_HEADER");
-        }
 
         int len, num;
-        switch (tapeBuffer[offset++]) {
+        switch (tapeBuffer[offset++] & 0xff) {
             case 0x10: // Standard speed data block
                 len = readInt(tapeBuffer, offset + 2, 2);
                 if (tapeBuffer[offset + 4] == 0) { // Header
-                    switch (tapeBuffer[offset + 5]) {
+                    switch (tapeBuffer[offset + 5] & 0xff) {
                         case 0: // Program
                             msg = String.format(bundle.getString("PROGRAM_HEADER"),
                                     getCleanMsg(offset + 6, 10));
@@ -396,7 +391,7 @@ public class Tape {
                 break;
             case 0x18: // CSW Recording Block
 //                len = readInt(tapeBuffer, offset, 4);
-                if (tapeBuffer[offset + 0x09] == 0x02) { // Z-RLE encoding
+                if ((tapeBuffer[offset + 0x09] & 0xff) == 0x02) { // Z-RLE encoding
                     msg = String.format(bundle.getString("CSW2_ZRLE_PULSES"),
                             readInt(tapeBuffer, offset + 0x0A , 4),
                             readInt(tapeBuffer, offset + 0x06, 3));
@@ -473,8 +468,9 @@ public class Tape {
             case 0x35: // Custom Info Block
                 msg = getCleanMsg(offset, 10);
                 break;
-            case 0x5A: // "Glue" Block
-                msg = "";
+            case 'Z': // TZX Header or "Glue" Block
+                msg = String.format(bundle.getString("TZX_HEADER"),
+                        tapeBuffer[offset + 7] & 0xff, tapeBuffer[offset + 8] & 0xff);
                 break;
             default:
                 msg = "";
@@ -616,8 +612,6 @@ public class Tape {
         filenameLabel = null;
         nOffsetBlocks = 0;
         tapeTableModel.fireTableDataChanged();
-//        statePlay = State.STOP;
-//        tapePlaying = tapeRecording = false;
         updateTapeIcon();
         return true;
     }
@@ -706,9 +700,6 @@ public class Tape {
     }
 
     private boolean doPlay() {
-//        if (!tapeInserted) {
-//            return false;
-//        }
 
         if (cswTape) {
             return playCsw();
@@ -817,16 +808,6 @@ public class Tape {
         return true;
     }
 
-    private boolean isTZXHeader(int offset) {
-        if (tapeBuffer[offset] == 'Z' && tapeBuffer[offset + 1] == 'X'
-                && tapeBuffer[offset + 2] == 'T' && tapeBuffer[offset + 3] == 'a'
-                && tapeBuffer[offset + 4] == 'p' && tapeBuffer[offset + 5] == 'e'
-                && tapeBuffer[offset + 6] == '!') {
-            return true;
-        }
-        return false;
-    }
-
     private int findTZXOffsetBlocks() {
         nOffsetBlocks = 0;
 
@@ -835,12 +816,8 @@ public class Tape {
         Arrays.fill(offsetBlocks, 0);
         while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
             offsetBlocks[nOffsetBlocks++] = offset;
-            if (isTZXHeader(offset)) {
-                offset += 10;
-                continue;
-            }
 
-            switch (tapeBuffer[offset]) {
+            switch (tapeBuffer[offset] & 0xff) {
                 case 0x10: // Standard speed data block
                     len = readInt(tapeBuffer, offset + 3, 2);
                     offset += len + 5;
@@ -914,7 +891,7 @@ public class Tape {
                     len = readInt(tapeBuffer, offset + 17, 4);
                     offset += len + 21;
                     break;
-                case 0x5A: // "Glue" Block
+                case 'Z': // ZXTape Header or "Glue" Block
                     offset += 10;
                     break;
                 default:
@@ -1103,13 +1080,12 @@ public class Tape {
                 case CSW_RLE:
                     earBit ^= EAR_MASK;
 
-                    if (tapeBuffer[tapePos] != 0) {
-                        timeout = tapeBuffer[tapePos++];
-                        blockLen--;
-                    } else {
-                        timeout = readInt(tapeBuffer, tapePos + 1, 4);
-                        tapePos += 5;
-                        blockLen -= 5;
+                    timeout = tapeBuffer[tapePos++] & 0xff;
+                    blockLen--;
+                    if (timeout == 0) {
+                        timeout = readInt(tapeBuffer, tapePos, 4);
+                        tapePos += 4;
+                        blockLen -= 4;
                     }
 
                     timeout *= cswStatesSample;
@@ -1178,12 +1154,7 @@ public class Tape {
 //            System.out.println(String.format("Playing tzx block :%d", idxHeader + 1));
             tapePos = offsetBlocks[idxHeader];
 
-            if (isTZXHeader(tapePos)) {
-                idxHeader++;
-                continue;
-            }
-
-            switch (tapeBuffer[tapePos]) {
+            switch (tapeBuffer[tapePos] & 0xff) {
                 case 0x10: // Standard speed data block
                     leaderLenght = LEADER_LENGHT;
                     sync1Lenght = SYNC1_LENGHT;
@@ -1347,7 +1318,7 @@ public class Tape {
                 case 0x35: // Custom Info Block
                     idxHeader++;
                     break;
-                case 0x5A: // "Glue" Block
+                case 'Z': // TZX Header && "Glue" Block
                     idxHeader++;
                     break;
                 default:
@@ -1394,7 +1365,7 @@ public class Tape {
                 tapeNotify.tapeStop();
                 break;
             case START:
-                if (tapeBuffer[0x17] == 0x01) { // CSW v1.01
+                if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
                     earBit = ((tapeBuffer[0x1C] & 0x01) != 0) ? EAR_OFF : EAR_ON;
                     cswStatesSample = 3500000.0f / readInt(tapeBuffer, 0x19, 2);
                     tapePos = 0x20;
@@ -1403,7 +1374,7 @@ public class Tape {
                     earBit = ((tapeBuffer[0x22] & 0x01) != 0) ? EAR_OFF : EAR_ON;
                     cswStatesSample = 3500000.0f / readInt(tapeBuffer, 0x19, 4);
                     tapePos = 0x34 + tapeBuffer[0x23];
-                    if (tapeBuffer[0x21] == 0x02) { // Z-RLE
+                    if ((tapeBuffer[0x21] & 0xff) == 0x02) { // Z-RLE
                         bais = new ByteArrayInputStream(tapeBuffer, tapePos,
                                 tapeBuffer.length - tapePos);
                         iis = new InflaterInputStream(bais);
@@ -1418,11 +1389,10 @@ public class Tape {
             case CSW_RLE:
                 earBit ^= EAR_MASK;
 
-                if (tapeBuffer[tapePos] != 0) {
-                    timeout = tapeBuffer[tapePos++];
-                } else {
-                    timeout = readInt(tapeBuffer, tapePos + 1, 4);
-                    tapePos += 5;
+                timeout = tapeBuffer[tapePos++] & 0xff;
+                if (timeout == 0) {
+                    timeout = readInt(tapeBuffer, tapePos, 4);
+                    tapePos += 4;
                 }
 
                 timeout *= cswStatesSample;
@@ -1478,7 +1448,129 @@ public class Tape {
         return true;
     }
 
-    public void saveTapeBlock(Memory memory) {
+    public boolean flashLoad(Memory memory) {
+
+        if (!tapeInserted || cpu == null || cswTape) {
+            return false;
+        }
+
+//        System.out.println("flashload!");
+
+        if (idxHeader >= nOffsetBlocks) {
+//            cpu.setCarryFlag(false);
+            return false;
+        }
+
+        if (tzxTape) {
+            // Fastload only with Standard Speed Tape Blocks (and some
+            // identified erroneusly as Turbo Blocks
+            // (Midnight Resistance 128k as an example)
+            found:
+            {
+                while (idxHeader < nOffsetBlocks) {
+                    tapePos = offsetBlocks[idxHeader];
+                    switch ((tapeBuffer[tapePos] & 0xff)) {
+                        case 0x10: // Normal Speed Tape Block
+                        case 0x11: // Turbo Speed Tape Block
+                            break found;
+                        case 0x12:
+                        case 0x13:
+                        case 0x14:
+                        case 0x15:
+                        case 0x18:
+                        case 0x19:
+                        case 0x20:
+                        case 0x23:
+                        case 0x24:
+                        case 0x25:
+                        case 0x26:
+                        case 0x27:
+                        case 0x28:
+                        case 0x2A:
+                        case 0x2B:
+                            return false;
+                        case 0x21:
+                        case 0x22:
+                        case 0x30:
+                        case 0x31:
+                        case 0x32:
+                        case 0x33:
+                        case 0x35:
+                        case 'Z':
+                        default:
+                            idxHeader++;
+                    }
+                }
+            }
+
+            if (idxHeader >= nOffsetBlocks) {
+//                cpu.setCarryFlag(false);
+                return false;
+            }
+
+            lsm.setSelectionInterval(idxHeader, idxHeader);
+            if (tapeBuffer[tapePos] == 0x10) {
+                blockLen = readInt(tapeBuffer, tapePos + 3, 2);
+                tapePos += 5;
+            } else {
+                blockLen = readInt(tapeBuffer, tapePos + 16, 3);
+                tapePos += 19;
+            }
+        } else {
+            tapePos = offsetBlocks[idxHeader];
+            blockLen = readInt(tapeBuffer, tapePos, 2);
+//        System.out.println(String.format("tapePos: %X. blockLen: %X", tapePos, blockLen));
+            tapePos += 2;
+        }
+
+        // ¿Coincide el flag? (está en el registro A)
+        if (cpu.getRegA() != (tapeBuffer[tapePos] & 0xff)) {
+            cpu.xor(tapeBuffer[tapePos]);
+            cpu.setCarryFlag(false);
+            idxHeader++;
+            return true;
+        }
+        // La paridad incluye el byte de flag
+        cpu.setRegA(tapeBuffer[tapePos]);
+
+        int count = 0;
+        int addr = cpu.getRegIX();    // Address start
+        int nBytes = cpu.getRegDE();  // Lenght
+        while (count < nBytes && count < blockLen - 1) {
+            memory.writeByte(addr, tapeBuffer[tapePos + count + 1]);
+            cpu.xor(tapeBuffer[tapePos + count + 1]);
+            addr = (addr + 1) & 0xffff;
+            count++;
+        }
+
+        // Se cargarón los bytes pedidos en DE
+        if (count == nBytes) {
+            cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
+            cpu.cp(0x01);
+        }
+
+        // Hay menos bytes en la cinta de los indicados en DE
+        // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
+        // que se señaliza con CARRY==reset & ZERO==set
+        if (count < nBytes) {
+            cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
+        }
+        
+        cpu.setRegIX(addr);
+        cpu.setRegDE(nBytes - count);
+        idxHeader++;
+        lsm.setSelectionInterval(idxHeader, idxHeader);
+
+//        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
+//            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
+        return true;
+    }
+
+    public boolean saveTapeBlock(Memory memory) {
+        
+        if (!filename.canWrite())
+            return false;
+        
         int addr = cpu.getRegIX();   // Start Address
         int nBytes = cpu.getRegDE(); // Lenght
         BufferedOutputStream fOut = null;
@@ -1494,7 +1586,7 @@ public class Tape {
                     idTZX = "TZX created with JSpeccy v0.89".getBytes("US-ASCII");
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-                    return;
+                    return false;
                 }
 
                 record.write(hdrTZX, 0, hdrTZX.length);
@@ -1538,6 +1630,7 @@ public class Tape {
         }
         eject();
         insert(filename);
+        return true;
     }
 
     public boolean startRecording() {
@@ -1550,8 +1643,8 @@ public class Tape {
         timeLastOut = 0;
         tapeRecording = true;
         if (settings.isHighSamplingFreq()) {
-            freqSample = 45454;
-            cswStatesSample = 77.0f; // 3500000.0f / 45454 = 77.0f
+            freqSample = 48000;
+            cswStatesSample = 3500000.0f / freqSample;
             cswPulses = 0;
             dos = new DeflaterOutputStream(record);
         } else {
@@ -1654,7 +1747,7 @@ public class Tape {
 
         if (settings.isHighSamplingFreq()) { // CSW
             cswPulses++;
-            int pulses = (int) (len / cswStatesSample);
+            int pulses = (int) ((len / cswStatesSample) + 0.49f);
             
             try {
                 if (pulses > 255) {

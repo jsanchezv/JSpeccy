@@ -56,6 +56,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         enableLoadTraps.setSelected(settings.getTapeSettings().isEnableLoadTraps());
 
         acceleratedLoad.setSelected(settings.getTapeSettings().isAccelerateLoading());
+        
+        flashLoad.setSelected(settings.getTapeSettings().isFlashLoad());
+        
+        flashLoad.setEnabled(settings.getTapeSettings().isEnableLoadTraps());
 
         ULAplus.setSelected(settings.getSpectrumSettings().isULAplus());
 
@@ -170,6 +174,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         tapePanelTab = new javax.swing.JPanel();
         loadPanel = new javax.swing.JPanel();
         enableLoadTraps = new javax.swing.JCheckBox();
+        flashLoad = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
@@ -378,13 +383,21 @@ public class SettingsDialog extends javax.swing.JPanel {
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
         loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
+        enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.enableLoadTraps.text")); // NOI18N
         enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 enableLoadTrapsActionPerformed(evt);
             }
         });
         loadPanel.add(enableLoadTraps);
+
+        flashLoad.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
+        flashLoad.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                flashLoadActionPerformed(evt);
+            }
+        });
+        loadPanel.add(flashLoad);
 
         acceleratedLoad.setText(bundle.getString("SettingsDialog.tapePanel.acceleratedLoad.text")); // NOI18N
         acceleratedLoad.addActionListener(new java.awt.event.ActionListener() {
@@ -413,7 +426,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         samplingButtonGroup.add(lowSampling);
         lowSampling.setSelected(true);
-        lowSampling.setText("DRB (44100 Hz)");
+        lowSampling.setText("DRB (44.1 kHz)");
         lowSampling.setToolTipText("Direct Recording Block");
         lowSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -423,8 +436,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         samplingPanel.add(lowSampling);
 
         samplingButtonGroup.add(highSampling);
-        highSampling.setText("CSW Z-RLE (45454 Hz)");
-        highSampling.setToolTipText("Compressed Square Wave Run Lenght Encoding");
+        highSampling.setText("CSW Z-RLE (48 kHz)");
+        highSampling.setToolTipText("<html>Compressed Square Wave<br>Run Lenght Encoding</html>");
         highSampling.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 highSamplingActionPerformed(evt);
@@ -660,6 +673,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
     private void enableLoadTrapsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enableLoadTrapsActionPerformed
         settings.getTapeSettings().setEnableLoadTraps(enableLoadTraps.isSelected());
+        flashLoad.setEnabled(settings.getTapeSettings().isEnableLoadTraps());
     }//GEN-LAST:event_enableLoadTrapsActionPerformed
 
     private void acceleratedLoadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_acceleratedLoadActionPerformed
@@ -728,6 +742,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getKeyboardJoystickSettings().setMapPCKeys(mapPCKeys.isSelected());
     }//GEN-LAST:event_mapPCKeysActionPerformed
 
+    private void flashLoadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_flashLoadActionPerformed
+        settings.getTapeSettings().setFlashLoad(flashLoad.isSelected());
+    }//GEN-LAST:event_flashLoadActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -752,6 +770,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
+    private javax.swing.JCheckBox flashLoad;
     private javax.swing.JPanel hardwarePanelTab;
     private javax.swing.JCheckBox hifiSound;
     private javax.swing.JRadioButton highSampling;

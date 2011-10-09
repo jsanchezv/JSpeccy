@@ -395,11 +395,21 @@
                 <Component class="javax.swing.JCheckBox" name="enableLoadTraps">
                   <Properties>
                     <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-                      <ResourceString bundle="gui/Bundle.properties" key="SettingsDialog.tapePanel.flashload.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
+                      <ResourceString bundle="gui/Bundle.properties" key="SettingsDialog.tapePanel.enableLoadTraps.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                     </Property>
                   </Properties>
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="enableLoadTrapsActionPerformed"/>
+                  </Events>
+                </Component>
+                <Component class="javax.swing.JCheckBox" name="flashLoad">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
+                      <ResourceString bundle="gui/Bundle.properties" key="SettingsDialog.tapePanel.flashload.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
+                    </Property>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="flashLoadActionPerformed"/>
                   </Events>
                 </Component>
                 <Component class="javax.swing.JCheckBox" name="acceleratedLoad">
@@ -442,7 +452,7 @@
                   <Properties>
                     <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                       <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">
-                        <TitledBorder title="To TZX Block">
+                        <TitledBorder title="Record to TZX Block">
                           <ResourceString PropertyName="titleX" bundle="gui/Bundle.properties" key="SettingsDialog.highSamplingFreq.border.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                         </TitledBorder>
                       </Border>
@@ -459,7 +469,7 @@
                           <ComponentRef name="samplingButtonGroup"/>
                         </Property>
                         <Property name="selected" type="boolean" value="true"/>
-                        <Property name="text" type="java.lang.String" value="DRB (44100 Hz)"/>
+                        <Property name="text" type="java.lang.String" value="DRB (44.1 kHz)"/>
                         <Property name="toolTipText" type="java.lang.String" value="Direct Recording Block"/>
                       </Properties>
                       <Events>
@@ -471,8 +481,8 @@
                         <Property name="buttonGroup" type="javax.swing.ButtonGroup" editor="org.netbeans.modules.form.RADComponent$ButtonGroupPropertyEditor">
                           <ComponentRef name="samplingButtonGroup"/>
                         </Property>
-                        <Property name="text" type="java.lang.String" value="CSW Z-RLE (45454 Hz)"/>
-                        <Property name="toolTipText" type="java.lang.String" value="Compressed Square Wave Run Lenght Encoding"/>
+                        <Property name="text" type="java.lang.String" value="CSW Z-RLE (48 kHz)"/>
+                        <Property name="toolTipText" type="java.lang.String" value="&lt;html&gt;Compressed Square Wave&lt;br&gt;Run Lenght Encoding&lt;/html&gt;"/>
                       </Properties>
                       <Events>
                         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="highSamplingActionPerformed"/>

@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 2 de octubre de 2011, 22:11
+    Created on : 8 de octubre de 2011, 20:15
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -44,6 +44,7 @@
         <ns0:accelerateLoading>true</ns0:accelerateLoading>
         <ns0:enableSaveTraps>true</ns0:enableSaveTraps>
         <ns0:highSamplingFreq>false</ns0:highSamplingFreq>
+        <ns0:flashLoad>false</ns0:flashLoad>
     </ns0:TapeSettings>
     <ns0:KeyboardJoystickSettings>
         <ns0:JoystickModel>0</ns0:JoystickModel>

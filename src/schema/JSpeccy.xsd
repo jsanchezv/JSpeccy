@@ -57,6 +57,7 @@
             <xsd:element name="accelerateLoading" type="xsd:boolean" default="true"/>
             <xsd:element name="enableSaveTraps" type="xsd:boolean" default="true"/>
             <xsd:element name="highSamplingFreq" type="xsd:boolean" default="false"/>
+            <xsd:element name="flashLoad" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="KeyboardJoystickType">

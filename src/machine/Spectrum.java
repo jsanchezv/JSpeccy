@@ -65,7 +65,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
     /* Config vars */
-    private boolean ULAplusOn, issue2, multiface, mf128on48k, saveTrap, loadTrap;
+    private boolean ULAplusOn, issue2, multiface, mf128on48k,
+            saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private Interface1 if1;
 
@@ -186,6 +187,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         loadTrap = settings.getTapeSettings().isEnableLoadTraps();
+        flashload = settings.getTapeSettings().isFlashLoad();
         connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
         if1.setNumDrives(settings.getInterface1Settings().getMicrodriveUnits());
         
@@ -523,9 +525,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
 
         // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (loadTrap && address == 0x0556 &&
-                memory.isSpectrumRom() && tape.isTapeReady()) {
-            tape.play();
+        if (loadTrap && address == 0x0556
+                && memory.isSpectrumRom() && tape.isTapeReady()) {
+            if (flashload && tape.flashLoad(memory)) {
+                invalidateScreen(true); // thanks Andrew Owen
+                return 0xC9; // RET opcode
+            } else {
+                tape.play();
+            }
         }
 
         // SA_BYTES routine in Spectrum ROM at 0x04D0
@@ -533,8 +540,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         // to SA_BYTES by his start address.
         if (saveTrap && address == 0x04D0 &&
                 memory.isSpectrumRom() && tape.isTapeReady()) {
-            tape.saveTapeBlock(memory);
-            return 0xC9; // RET opcode
+            if (tape.saveTapeBlock(memory))
+                return 0xC9; // RET opcode
         }
 
         return memory.readByte(address) & 0xff;

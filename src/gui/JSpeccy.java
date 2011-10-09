@@ -696,6 +696,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserButtonRec.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player-rec.png"))); // NOI18N
         tapeBrowserButtonRec.setText(bundle.getString("JSpeccy.tapeBrowserButtonRec.text")); // NOI18N
+        tapeBrowserButtonRec.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonRec.tooltip.text")); // NOI18N
         tapeBrowserButtonRec.setEnabled(false);
         tapeBrowserButtonRec.setFocusable(false);
         tapeBrowserButtonRec.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -712,6 +713,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserButtonStop.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_stop.png"))); // NOI18N
         tapeBrowserButtonStop.setText(bundle.getString("JSpeccy.tapeBrowserButtonStop.text")); // NOI18N
+        tapeBrowserButtonStop.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonStop.tooltip.text")); // NOI18N
         tapeBrowserButtonStop.setEnabled(false);
         tapeBrowserButtonStop.setFocusable(false);
         tapeBrowserButtonStop.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -725,6 +727,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserButtonRew.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_rew.png"))); // NOI18N
         tapeBrowserButtonRew.setText(bundle.getString("JSpeccy.tapeBrowserButtonRew.text")); // NOI18N
+        tapeBrowserButtonRew.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonRew.tooltip.text")); // NOI18N
         tapeBrowserButtonRew.setEnabled(false);
         tapeBrowserButtonRew.setFocusable(false);
         tapeBrowserButtonRew.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -738,6 +741,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserButtonPlay.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_play.png"))); // NOI18N
         tapeBrowserButtonPlay.setText(bundle.getString("JSpeccy.tapeBrowserButtonPlay.text")); // NOI18N
+        tapeBrowserButtonPlay.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonPlay.tooltip.text")); // NOI18N
         tapeBrowserButtonPlay.setEnabled(false);
         tapeBrowserButtonPlay.setFocusable(false);
         tapeBrowserButtonPlay.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -754,6 +758,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserButtonEject.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_eject.png"))); // NOI18N
         tapeBrowserButtonEject.setText(bundle.getString("JSpeccy.tapeBrowserButtonEject.text")); // NOI18N
+        tapeBrowserButtonEject.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonEject.tooltip.text")); // NOI18N
         tapeBrowserButtonEject.setEnabled(false);
         tapeBrowserButtonEject.setFocusable(false);
         tapeBrowserButtonEject.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
