@@ -100,6 +100,9 @@
  *          expirar el timeout programado. Si hay un timeout, éste seguirá vigente
  *          hasta que se programe otro o se ponga a false execDone. Si el timeout
  *          se programa a cero, se llamará a execDone tras cada instrucción.
+ * 
+ *          08/10/2011 En los métodos xor, or y cp se aseguran de que valores > 0xff
+ *          pasados como parámetro no le afecten.
  *
  */
 package z80core;
@@ -1096,15 +1099,15 @@ public class Z80 {
     }
 
     // Operación XOR lógica
-    private final void xor(int oper8) {
-        regA ^= oper8;
+    public final void xor(int oper8) {
+        regA = (regA ^ oper8) & 0xff;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
 
     // Operación OR lógica
     private void or(int oper8) {
-        regA |= oper8;
+        regA = (regA | oper8) & 0xff;
         carryFlag = false;
         sz5h3pnFlags = sz53pn_addTable[regA];
     }
@@ -1113,8 +1116,8 @@ public class Z80 {
     // es como SUB, pero solo afecta a los flags
     // Los flags SIGN y ZERO se calculan a partir del resultado
     // Los flags 3 y 5 se copian desde el operando (sigh!)
-    private final void cp(int oper8) {
-        int res = regA - oper8;
+    public final void cp(int oper8) {
+        int res = regA - (oper8 & 0xff);
 
         carryFlag = res < 0;
         res &= 0xff;
