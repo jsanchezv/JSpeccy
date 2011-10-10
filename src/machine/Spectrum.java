@@ -411,12 +411,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             }
 
             if (nFrame % 50 == 0) {
-//                int avail = audio.available();
-//                if (avail >= 0) {
-//                    System.out.println(String.format("Available audio buffer: %d", avail));
-//                }
                 long now = System.currentTimeMillis();
-//                long diff = now - speedometer;
                 speed = 100000 / (now - speedometer);
                 speedometer = now;
                 if (speed != prevSpeed) {
@@ -497,6 +492,56 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         }
     }
 
+    private synchronized void acceleratedLoading() {
+
+        firstLine = lastLine = 0;
+        leftCol = 31;
+        rightCol = 0;
+        lastChgBorder = spectrumModel.firstBorderUpdate;
+
+        do {
+            // Cuando se entra desde una carga de snapshot los t-states pueden
+            // no ser 0 y el frame estar a mitad (pojemplo)
+            if (z80.tEstados < spectrumModel.lengthINT) {
+                z80.setINTLine(true);
+                z80.execute(spectrumModel.lengthINT);
+            }
+            z80.setINTLine(false);
+
+            z80.execute(spectrumModel.tstatesFrame);
+
+            z80.tEstados %= spectrumModel.tstatesFrame;
+            nFrame++;
+
+            if (nFrame % 50 == 0) {
+                updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
+
+                if (borderChanged) {
+                    updateBorder(spectrumModel.lastBorderUpdate);
+                }
+
+                drawFrame();
+                firstLine = lastLine = rightCol = 0;
+                leftCol = 31;
+                lastChgBorder = spectrumModel.firstBorderUpdate;
+                
+                long now = System.currentTimeMillis();
+                speed = 100000 / (now - speedometer);
+                speedometer = now;
+                if (speed != prevSpeed) {
+                    prevSpeed = speed;
+                    SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            speedLabel.setText(String.format("%4d%%", speed));
+                        }
+                    });
+                }
+            }
+        } while (tape.isTapePlaying());
+    }
+    
     @Override
     public int fetchOpcode(int address) {
 
@@ -2143,20 +2188,16 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     public void tapeStart() {
         if (settings.getTapeSettings().isAccelerateLoading()) {
             stopEmulation();
-            changeSpeed(25);
 
             new Thread() {
 
                 @Override
                 public void run() {
-                    while (tape.isTapePlaying()) {
-                        generateFrame();
-                        drawFrame();
-                    }
-                    changeSpeed(1);
-                    startEmulation();
+                    acceleratedLoading();
                 }
             }.start();
+            
+            startEmulation();
         }
     }
 
