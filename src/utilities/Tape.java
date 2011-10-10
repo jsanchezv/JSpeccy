@@ -488,6 +488,7 @@ public class Tape {
         doPlay();
 
         cpu.setTimeout(timeout);
+//        System.out.println(String.format("Timeout: %d, earBit: %02x", timeout, earBit));
     }
 
     private int readInt(byte buffer[], int start, int len) {
@@ -935,7 +936,11 @@ public class Tape {
                 case SYNC:
                     earBit ^= EAR_MASK;
                     timeout = sync2Lenght;
-                    statePlay = State.NEWBYTE;
+                    if (blockLen > 0) {
+                        statePlay = State.NEWBYTE;
+                    } else {
+                        statePlay = State.PAUSE;
+                    }
                     break;
                 case NEWBYTE_NOCHG:
                     // este cambio es para que se deshaga al entrar en el case
@@ -1166,7 +1171,8 @@ public class Tape {
                             * (END_BLOCK_PAUSE / 1000);
                     blockLen = readInt(tapeBuffer, tapePos + 3, 2);
                     tapePos += 5;
-                    leaderPulses = tapeBuffer[tapePos] >= 0 ? HEADER_PULSES : DATA_PULSES;
+                    leaderPulses =
+                            (tapeBuffer[tapePos] & 0xff) < 0x80 ? HEADER_PULSES : DATA_PULSES;
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
                     repeat = false;
