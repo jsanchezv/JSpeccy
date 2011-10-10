@@ -1164,9 +1164,6 @@ public class Tape {
                     bitsLastByte = 8;
                     endBlockPause = readInt(tapeBuffer, tapePos + 1, 2)
                             * (END_BLOCK_PAUSE / 1000);
-                    if (endBlockPause == 0) {
-                        endBlockPause = END_BLOCK_PAUSE;
-                    }
                     blockLen = readInt(tapeBuffer, tapePos + 3, 2);
                     tapePos += 5;
                     leaderPulses = tapeBuffer[tapePos] >= 0 ? HEADER_PULSES : DATA_PULSES;
