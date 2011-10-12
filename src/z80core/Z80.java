@@ -103,13 +103,21 @@
  * 
  *          08/10/2011 En los métodos xor, or y cp se aseguran de que valores > 0xff
  *          pasados como parámetro no le afecten.
+ * 
+ *          11/10/2011 Introducida la nueva funcionalidad que permite definir
+ *          breakpoints. Cuando se va a ejecutar el opcode que está en esa dirección
+ *          se llama al método atAddress. Se separan en dos interfaces las llamadas a
+ *          los accesos a memoria de las llamadas de notificación
  *
  */
 package z80core;
 
+import java.util.Arrays;
+
 public class Z80 {
 
     private final MemIoOps MemIoImpl;
+    private final NotifyOps NotifyImpl;
     // Código de instrucción a ejecutar
     private int opCode;
     // Número de estados T que se llevan ejecutados
@@ -251,11 +259,17 @@ public class Z80 {
         sz53pn_subTable[0] |= ZERO_MASK;
     }
 
+    // Un true en una dirección indica que se debe notificar que se va a
+    // ejecutar la instrucción que está en esa direción.
+    private boolean breakpointAt[] = new boolean[65536];
+    
     // Constructor de la clase
-    public Z80(MemIoOps memory) {
+    public Z80(MemIoOps memory, NotifyOps notify) {
         MemIoImpl = memory;
+        NotifyImpl = notify;
         tEstados = timeout = 0;
         execDone = false;
+        Arrays.fill(breakpointAt, false);
         reset();
     }
 
@@ -1517,6 +1531,19 @@ public class Z80 {
         timeout = tstates;
         counter = 0;
     }
+    
+    public final boolean isBreakpoint(int address) {
+        return breakpointAt[address & 0xffff];
+    }
+    
+    public final void setBreakpoint(int address, boolean state) {
+        breakpointAt[address & 0xffff] = state;
+    }
+    
+    public void resetBreakpoints() {
+        Arrays.fill(breakpointAt, false);
+    }
+    
 
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
@@ -1544,6 +1571,10 @@ public class Z80 {
 
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
+            
+            if (breakpointAt[regPC])
+                opCode = NotifyImpl.atAddress(regPC, opCode);
+            
             regPC = (regPC + 1) & 0xffff;
 
             decodeOpcode(opCode);
@@ -1558,7 +1589,7 @@ public class Z80 {
                 counter += (tEstados - tmp);
                 
                 if (counter >= timeout) {
-                    MemIoImpl.execDone(counter);
+                    NotifyImpl.execDone(counter);
                     counter = 0;
                 }
             }
