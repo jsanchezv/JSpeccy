@@ -33,7 +33,8 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum extends Thread implements z80core.MemIoOps, utilities.TapeNotify {
+public class Spectrum extends Thread implements z80core.MemIoOps, z80core.NotifyOps,
+        utilities.TapeNotify {
 
     private Z80 z80;
     private Memory memory;
@@ -74,7 +75,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
         super("SpectrumThread");
         settings = config;
         specSettings = settings.getSpectrumSettings();
-        z80 = new Z80(this);
+        z80 = new Z80(this, this);
         memory = new Memory(settings);
         initGFX();
         nFrame = speedometer = 0;
@@ -181,17 +182,34 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     public final void loadConfigVars() {
         ULAplusOn = settings.getSpectrumSettings().isULAplus();
+        
         issue2 = settings.getKeyboardJoystickSettings().isIssue2();
+        
         keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
+        
         multiface = settings.getSpectrumSettings().isMultifaceEnabled();
         mf128on48k = settings.getSpectrumSettings().isMf128On48K();
-        saveTrap = settings.getTapeSettings().isEnableSaveTraps();
-        loadTrap = settings.getTapeSettings().isEnableLoadTraps();
-        flashload = settings.getTapeSettings().isFlashLoad();
-        connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
-        if1.setNumDrives(settings.getInterface1Settings().getMicrodriveUnits());
+        z80.setBreakpoint(0x0066, multiface);
         
+        saveTrap = settings.getTapeSettings().isEnableSaveTraps();
+        z80.setBreakpoint(0x04D0, saveTrap);
+        
+        loadTrap = settings.getTapeSettings().isEnableLoadTraps();
+        z80.setBreakpoint(0x0556, loadTrap);
+        
+        flashload = settings.getTapeSettings().isFlashLoad();
+        
+        if1.setNumDrives(settings.getInterface1Settings().getMicrodriveUnits());
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
+        } else {
+            connectedIF1 = false;
+        }
+        z80.setBreakpoint(0x0008, connectedIF1);
+        z80.setBreakpoint(0x0700, connectedIF1);
+        z80.setBreakpoint(0x1708, connectedIF1);
     }
+    
     /*
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
      * Para los sistemas Unix debería ser una modificación inocua. La razón del
@@ -379,9 +397,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 updateScreen(spectrumModel.firstScrUpdate, z80.tEstados);
             }
 
-            //System.out.println(String.format("t-states: %d", z80.tEstados));
-            //int fromTstates;
-
             int fromTstates;
             while (z80.tEstados < spectrumModel.lastScrUpdate) {
                 fromTstates = z80.tEstados + 1;
@@ -513,7 +528,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             z80.tEstados %= spectrumModel.tstatesFrame;
             nFrame++;
 
-            if (nFrame % 50 == 0) {
+            if (nFrame % 100 == 0) {
                 updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
 
                 if (borderChanged) {
@@ -526,7 +541,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
                 lastChgBorder = spectrumModel.firstBorderUpdate;
                 
                 long now = System.currentTimeMillis();
-                speed = 100000 / (now - speedometer);
+                speed = 200000 / (now - speedometer);
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -549,45 +564,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             z80.tEstados += delayTstates[z80.tEstados];
         }
         z80.tEstados += 4;
-
-        if (connectedIF1) {
-            if (address == 0x0008 || address == 0x1708) {
-                memory.pageIF1Rom();
-                return memory.readByte(address) & 0xff;
-            }
-
-            if (address == 0x700) {
-                int opcode = memory.readByte(address) & 0xff;
-                memory.unpageIF1Rom();
-                return opcode;
-            }
-        }
-        
-        if (multiface && address == 0x0066 && !memory.isPlus3RamMode()) {
-            memory.setMultifaceLocked(false);
-            memory.pageMultiface();
-            return memory.readByte(address) & 0xff;
-        }
-
-        // LD_BYTES routine in Spectrum ROM at address 0x0556
-        if (loadTrap && address == 0x0556
-                && memory.isSpectrumRom() && tape.isTapeReady()) {
-            if (flashload && tape.flashLoad(memory)) {
-                invalidateScreen(true); // thanks Andrew Owen
-                return 0xC9; // RET opcode
-            } else {
-                tape.play();
-            }
-        }
-
-        // SA_BYTES routine in Spectrum ROM at 0x04D0
-        // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
-        // to SA_BYTES by his start address.
-        if (saveTrap && address == 0x04D0 &&
-                memory.isSpectrumRom() && tape.isTapeReady()) {
-            if (tape.saveTapeBlock(memory))
-                return 0xC9; // RET opcode
-        }
 
         return memory.readByte(address) & 0xff;
     }
@@ -1187,6 +1163,57 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     }
 
+    @Override
+    public int atAddress(int address, int opcode) {
+        
+//        System.out.println(String.format("atAddress: 0x%04X", address));
+        
+        switch (address) {
+            case 0x0008: // PAGE In Interface 1
+            case 0x1708:
+                if (connectedIF1) {
+                    memory.pageIF1Rom();
+                    return memory.readByte(address) & 0xff;
+                }
+                break;
+            case 0x0700: // Page Out Interface 1
+                if (connectedIF1) {
+                    memory.unpageIF1Rom();
+                }
+                break;
+            case 0x0066: // NMI address for Multiface One/128/+3
+                if (multiface && !memory.isPlus3RamMode()) {
+                    memory.setMultifaceLocked(false);
+                    memory.pageMultiface();
+                    return memory.readByte(address) & 0xff;
+                }
+                break;
+            case 0x04D0:
+                // SA_BYTES routine in Spectrum ROM at 0x04D0
+                // SA_BYTES starts at 0x04C2, but the +3 ROM don't enter
+                // to SA_BYTES by his start address.
+                if (saveTrap && memory.isSpectrumRom() && tape.isTapeReady()) {
+                    if (tape.saveTapeBlock(memory)) {
+                        return 0xC9; // RET opcode
+                    }
+                }
+                break;
+            case 0x0556:
+                // LD_BYTES routine in Spectrum ROM at address 0x0556
+                if (loadTrap && memory.isSpectrumRom() && tape.isTapeReady()) {
+                    if (flashload && tape.flashLoad(memory)) {
+                        invalidateScreen(true); // thanks Andrew Owen
+                        return 0xC9; // RET opcode
+                    } else {
+                        tape.play();
+                    }
+                }
+                break;
+        }
+        
+        return opcode;
+    }
+    
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
 
@@ -1692,6 +1719,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
     private final int states2scr[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
     // Tabla de traslación de t-states al pixel correspondiente del borde.
     private final int states2border[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
+    
     public static final int BORDER_WIDTH = 32;
     public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
     public static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
@@ -2043,14 +2071,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
     public void invalidateScreen(boolean invalidateBorder) {
         borderChanged = invalidateBorder;
-//        screenDirty = true;
         Arrays.fill(dirtyByte, true);
     }
 
     private void buildScreenTables48k() {
         int col, scan;
 
-//        int lateTimings = spectrumSettings.isLateTimings() ? 1 : 0;
         Arrays.fill(states2scr, -1);
 
         for (int tstates = 14336; tstates < 57344; tstates += 4) {
@@ -2062,7 +2088,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             scan = tstates / 224 - 64;
             states2scr[tstates - 8] = scrAddr[scan] + col;
         }
-
+        
         Arrays.fill(states2border, 0xf0cab0ba);
 
         for (int tstates = spectrumModel.firstBorderUpdate;
@@ -2071,12 +2097,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
             states2border[tstates + 3] = states2border[tstates];
-//            if (states2border[tstates] == imgData.length)
-//                System.out.println("Array fuera de rango!!!");
-//            System.out.println(String.format("tstates: %d, states2border[tstates]: %d",
-//                    tstates, states2border[tstates]));
-
-
         }
 
         Arrays.fill(delayTstates, (byte) 0x00);
@@ -2193,7 +2213,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, utilities.Tape
 
                 @Override
                 public void run() {
+//                    long start = System.currentTimeMillis();
                     acceleratedLoading();
+//                    long stop = System.currentTimeMillis();
+//                    System.out.println(String.format("Loading time: %d ms.", stop - start));
                 }
             }.start();
             
