@@ -107,7 +107,12 @@
  *          11/10/2011 Introducida la nueva funcionalidad que permite definir
  *          breakpoints. Cuando se va a ejecutar el opcode que está en esa dirección
  *          se llama al método atAddress. Se separan en dos interfaces las llamadas a
- *          los accesos a memoria de las llamadas de notificación
+ *          los accesos a memoria de las llamadas de notificación.
+ * 
+ *          13/10/2011 Corregido un error en la emulación de las instrucciones
+ *          DD/FD que no van seguidas de un código de instrucción adecuado a IX o IY.
+ *          Tal y como se trataban hasta ahora, se comprobaban las interrupciones entre
+ *          el/los códigos DD/FD y el código de instrucción que le seguía.
  *
  */
 package z80core;
@@ -4036,13 +4041,13 @@ public class Z80 {
      * activan IY con el primer FD, IX con el segundo DD y vuelven al
      * registro HL con el código NOP. Es decir, si detrás del código DD/FD no
      * viene una instrucción que maneje el registro HL, el código DD/FD
-     * "se olvida" y hay que reprocesar la instrucción como si nunca se
+     * "se olvida" y hay que procesar la instrucción como si nunca se
      * hubiera visto el prefijo (salvo por los 4 t-estados que ha costado).
-     * Naturalmente, en una serie repetida de DDFD hay que comprobar las
+     * Naturalmente, en una serie repetida de DDFD no hay que comprobar las
      * interrupciones entre cada prefijo.
      */
     private int decodeDDFD(int regIXY) {
-        int work8 = tEstados;
+        int work8;
 
         regR++;
         opCode = MemIoImpl.fetchOpcode(regPC);
@@ -4505,13 +4510,19 @@ public class Z80 {
                 break;
             }
             default: {
-                // Código no válido. Deshacemos la faena para reprocesar la
-                // instrucción. Sin esto, además de emular mal, falla el test
+                // Detrás de un DD/FD o varios en secuencia venía un código
+                // que no correspondía con una instrucción que involucra a 
+                // IX o IY. Se trata como si fuera un código normal.
+                // Sin esto, además de emular mal, falla el test
                 // ld <bcdexya>,<bcdexya> de ZEXALL.
-                tEstados = work8;
-                regR--;
-                regPC = (regPC - 1) & 0xffff;
-                //System.out.println("Error instrucción DD/FD" + Integer.toHexString(opCode));
+
+//                System.out.println("Error instrucción DD/FD" + Integer.toHexString(opCode));
+
+                if (breakpointAt[regPC]) {
+                    opCode = NotifyImpl.atAddress(regPC, opCode);
+                }
+
+                decodeOpcode(opCode);
                 break;
             }
         }
