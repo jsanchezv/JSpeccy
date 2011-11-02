@@ -14,6 +14,7 @@ import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.plaf.basic.BasicFileChooserUI;
@@ -33,7 +34,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
 
 /**
@@ -208,6 +212,19 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void initEmulator() {
+        
+        try {
+            // turn off bold fonts
+            UIManager.put("swing.boldMetal", Boolean.FALSE);
+            // re-install the Metal Look and Feel
+            UIManager.setLookAndFeel(new MetalLookAndFeel());
+            // Update the ComponentUIs for all Components. This
+            // needs to be invoked for all windows.
+            SwingUtilities.updateComponentTreeUI(this);
+        } catch (UnsupportedLookAndFeelException ex) {
+            Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
         readSettingsFile();
         spectrum = new Spectrum(settings);
         jscr = new JSpeccyScreen();
