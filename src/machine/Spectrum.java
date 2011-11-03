@@ -779,17 +779,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // ULA Port
         if ((port & 0x0001) == 0) {
             earBit = tape.getEarBit();
-            
-            if (tape.isTapePlaying()) {
-                if (enabledSound && specSettings.isLoadingNoise()) {
-                    int spkMic = (earBit == 0xbf) ? 0 : 4000;
-
-                    if (spkMic != speaker) {
-                        audio.updateAudio(z80.tEstados, speaker);
-                        speaker = spkMic;
-                    }
-                }
-            }
+//            
+//            if (tape.isTapePlaying()) {
+//                if (enabledSound && specSettings.isLoadingNoise()) {
+//                    int spkMic = (earBit == 0xbf) ? 0 : 4000;
+//
+//                    if (spkMic != speaker) {
+//                        audio.updateAudio(z80.tEstados, speaker);
+//                        speaker = spkMic;
+//                    }
+//                }
+//            }
             return keyboard.readKeyboardPort(port) & earBit;
         }
 
@@ -936,29 +936,30 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //                        nFrame, z80.tEstados, value & 0x07));
                 }
 
-                int spkMic = sp_volt[value >> 3 & 3];
-                if (enabledSound && spkMic != speaker) {
-                    audio.updateAudio(z80.tEstados, speaker);
-                    speaker = spkMic;
-                }
-
-                if (!tape.isTapePlaying()
-                    && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                    // and con 0x18 para emular un Issue 2
-                    // and con 0x10 para emular un Issue 3
-                    int issueMask;
-                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                        issueMask = issue2 ? 0x18 : 0x10;
-                    } else {
-                        issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
+                if (!tape.isTapePlaying()) {
+                    int spkMic = sp_volt[value >> 3 & 3];
+                    if (enabledSound && spkMic != speaker) {
+                        audio.updateAudio(z80.tEstados, speaker);
+                        speaker = spkMic;
                     }
 
-                    if ((value & issueMask) == 0) {
-                        tape.setEarBit(false);
-                    } else {
-                        tape.setEarBit(true);
-                    }
+                    if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                        // and con 0x18 para emular un Issue 2
+                        // and con 0x10 para emular un Issue 3
+                        int issueMask;
+                        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                            issueMask = issue2 ? 0x18 : 0x10;
+                        } else {
+                            issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
+                        }
+
+                        if ((value & issueMask) == 0) {
+                            tape.setEarBit(false);
+                        } else {
+                            tape.setEarBit(true);
+                        }
 //                    System.out.println(String.format("setEarBit: %b", (value & issueMask) == 0));
+                    }
                 }
 
                 if (tape.isTapeRecording() && ((portFE ^ value) & 0x08) != 0) {
@@ -1158,8 +1159,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     @Override
     public void execDone(int tstates) {
 
-        if (tape.isTapePlaying())
-                tape.notifyTimeout();
+        if (tape.isTapePlaying()) {
+            tape.notifyTimeout();
+            earBit = tape.getEarBit();
+
+            if (enabledSound && specSettings.isLoadingNoise()) {
+                int spkMic = (earBit == 0xbf) ? 4000 : 8000;
+
+                if (spkMic != speaker) {
+                    audio.updateAudio(z80.tEstados, speaker);
+                    speaker = spkMic;
+                }
+            }
+        }
 
     }
 
