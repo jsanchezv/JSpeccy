@@ -213,16 +213,18 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void initEmulator() {
         
-        try {
-            // turn off bold fonts
-            UIManager.put("swing.boldMetal", Boolean.FALSE);
-            // re-install the Metal Look and Feel
-            UIManager.setLookAndFeel(new MetalLookAndFeel());
-            // Update the ComponentUIs for all Components. This
-            // needs to be invoked for all windows.
-            SwingUtilities.updateComponentTreeUI(this);
-        } catch (UnsupportedLookAndFeelException ex) {
-            Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+        if (UIManager.getLookAndFeel().getName().equals("Metal")) {
+            try {
+                // turn off bold fonts
+                UIManager.put("swing.boldMetal", Boolean.FALSE);
+                // re-install the Metal Look and Feel
+                UIManager.setLookAndFeel(new MetalLookAndFeel());
+                // Update the ComponentUIs for all Components. This
+                // needs to be invoked for all windows.
+                SwingUtilities.updateComponentTreeUI(this);
+            } catch (UnsupportedLookAndFeelException ex) {
+                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
 
         readSettingsFile();
