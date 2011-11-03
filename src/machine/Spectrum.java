@@ -779,17 +779,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // ULA Port
         if ((port & 0x0001) == 0) {
             earBit = tape.getEarBit();
-//            
-//            if (tape.isTapePlaying()) {
-//                if (enabledSound && specSettings.isLoadingNoise()) {
-//                    int spkMic = (earBit == 0xbf) ? 0 : 4000;
-//
-//                    if (spkMic != speaker) {
-//                        audio.updateAudio(z80.tEstados, speaker);
-//                        speaker = spkMic;
-//                    }
-//                }
-//            }
             return keyboard.readKeyboardPort(port) & earBit;
         }
 
@@ -1164,7 +1153,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             earBit = tape.getEarBit();
 
             if (enabledSound && specSettings.isLoadingNoise()) {
-                int spkMic = (earBit == 0xbf) ? 4000 : 8000;
+                int spkMic = (earBit == 0xbf) ? 0 : 4000;
 
                 if (spkMic != speaker) {
                     audio.updateAudio(z80.tEstados, speaker);
