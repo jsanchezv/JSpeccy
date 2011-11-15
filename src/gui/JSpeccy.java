@@ -526,13 +526,13 @@ public class JSpeccy extends javax.swing.JFrame {
         
         if (spectrum.tape.isTapeInserted()) {
             playTapeMediaMenu.setEnabled(true);
-            tapeBrowserButtonRec.setEnabled(currentFileTape.canWrite());
+            tapeBrowserButtonRec.setEnabled(spectrum.tape.getTapeFilename().canWrite());
             tapeBrowserButtonPlay.setEnabled(true);
             tapeBrowserButtonStop.setEnabled(true);
             tapeBrowserButtonRew.setEnabled(true);
             tapeBrowserButtonEject.setEnabled(true);
             tapeFilename.setText(spectrum.tape.getTapeFilename().getName());
-            if (currentFileTape.getName().toLowerCase().endsWith(".csw")) {
+            if (spectrum.tape.getTapeFilename().getName().toLowerCase().endsWith(".csw")) {
                 clearTapeMediaMenu.setEnabled(false);
                 recordStartTapeMediaMenu.setEnabled(false);
                 tapeBrowserButtonRec.setEnabled(false);
