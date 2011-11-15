@@ -1573,7 +1573,6 @@ public class Snapshots {
         int readed, szxId, szxLen;
         ByteArrayInputStream bais;
         InflaterInputStream iis;
-        int addr = 0;
         byte chData[];
 
         joystick = Joystick.NONE;
@@ -1587,13 +1586,19 @@ public class Snapshots {
             }
 
             readed = fIn.read(dwMagic);
-            if (dwMagicToInt(dwMagic) != ZXST_HEADER) {
+            if (readed != dwMagic.length || dwMagicToInt(dwMagic) != ZXST_HEADER) {
                 error = 1;
                 fIn.close();
                 return false;
             }
 
             readed = fIn.read(dwSize);
+            if (readed != dwSize.length) {
+                error = 1;
+                fIn.close();
+                return false;
+            }
+            
             szxMajorVer = dwSize[0];
             szxMinorVer = dwSize[1];
             switch (dwSize[2]) {
@@ -1623,7 +1628,13 @@ public class Snapshots {
 
             while (fIn.available() > 0) {
                 readed = fIn.read(dwMagic);
-                readed = fIn.read(dwSize);
+                readed += fIn.read(dwSize);
+                if (readed != 8) {
+                    error = 4;
+                    fIn.close();
+                    return false;
+                }
+                
                 szxId = dwMagicToInt(dwMagic);
                 szxLen = dwMagicToInt(dwSize);
                 if (szxLen < 1) {
@@ -1645,6 +1656,11 @@ public class Snapshots {
                         if (szxLen > 0) {
                             chData = new byte[szxLen];
                             readed = fIn.read(chData);
+                            if (readed != szxLen) {
+                                error = 4;
+                                fIn.close();
+                                return false;
+                            }
 //                            System.out.println(String.format("Creator Data: %s",
 //                                new String(chData)));
                         }
@@ -1657,6 +1673,12 @@ public class Snapshots {
                         }
                         byte z80Regs[] = new byte[szxLen];
                         readed = fIn.read(z80Regs);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        
                         regAF = (z80Regs[0] & 0xff) | (z80Regs[1] << 8) & 0xffff;
                         regBC = (z80Regs[2] & 0xff) | (z80Regs[3] << 8) & 0xffff;
                         regDE = (z80Regs[4] & 0xff) | (z80Regs[5] << 8) & 0xffff;
@@ -1671,12 +1693,12 @@ public class Snapshots {
                         regPC = (z80Regs[22] & 0xff) | (z80Regs[23] << 8) & 0xffff;
                         regI = z80Regs[24] & 0xff;
                         regR = z80Regs[25] & 0xff;
-                        iff1 = (z80Regs[26] & 0xff )!= 0;
-                        iff2 = (z80Regs[27] & 0xff )!= 0;
+                        iff1 = (z80Regs[26] & 0xff) != 0;
+                        iff2 = (z80Regs[27] & 0xff) != 0;
                         modeIM = z80Regs[28] & 0xff;
-                        tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16) |
-                                ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
-                        
+                        tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
+                                | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
+
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
                             memptr = (z80Regs[35] & 0xff) | (z80Regs[36] << 8) & 0xffff;
                         }
@@ -1689,6 +1711,11 @@ public class Snapshots {
                         }
                         byte specRegs[] = new byte[szxLen];
                         readed = fIn.read(specRegs);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         border = specRegs[0] & 0x07;
                         last7ffd = specRegs[1] & 0xff;
                         last1ffd = specRegs[2] & 0xff;
@@ -1701,6 +1728,11 @@ public class Snapshots {
                         }
                         byte keyb[] = new byte[szxLen];
                         readed = fIn.read(keyb);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         issue2 = (keyb[0] & ZXSTKF_ISSUE2) != 0;
                         switch (keyb[4] & 0xff) {
                             case ZXSKJT_KEMPSTON:
@@ -1730,6 +1762,11 @@ public class Snapshots {
                         }
                         byte ayRegs[] = new byte[szxLen];
                         readed = fIn.read(ayRegs);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         enabledAY = true;
                         if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K &&
                                 ayRegs[0] != ZXSTAYF_128AY)
@@ -1742,14 +1779,26 @@ public class Snapshots {
                     case ZXSTBID_RAMPAGE:
                         byte ramPage[] = new byte[3];
                         readed = fIn.read(ramPage);
+                        if (readed != ramPage.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= 3;
                         if (szxLen > 0x4000) {
                             error = 10;
                             fIn.close();
                             return false;
                         }
+                        
                         chData = new byte[szxLen];
                         readed = fIn.read(chData);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        
                         if ((ramPage[0] & ZXSTRF_COMPRESSED) == 0) {
                             memory.loadPage(ramPage[2] & 0xff, chData);
                             break;
@@ -1776,6 +1825,11 @@ public class Snapshots {
                     case ZXSTBID_MULTIFACE:
                         byte mf[] = new byte[2];
                         readed = fIn.read(mf);
+                        if (readed != mf.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= 2;
                         if (szxLen > 0x4000) {
                             while (szxLen > 0)
@@ -1785,6 +1839,11 @@ public class Snapshots {
 
                         chData = new byte[szxLen];
                         readed = fIn.read(chData);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
 //                        System.out.println("MF RAM readed bytes: " + readed);
                         if ((mf[1] & ZXSTMF_16KRAMMODE) != 0) {
                             multiface = false;
@@ -1836,6 +1895,11 @@ public class Snapshots {
                         ULAplus = true;
                         byte ULAplusRegs[] = new byte[szxLen];
                         readed = fIn.read(ULAplusRegs);
+                        if (readed != szxLen) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
 
                         if (ULAplusRegs[0] == ZXSTPALETTE_ENABLED) {
                             ULAplusEnabled = true;
@@ -1850,16 +1914,31 @@ public class Snapshots {
                     case ZXSTBID_ZXTAPE:
                         byte tape[] = new byte[4];
                         readed = fIn.read(tape);
+                        if (readed != tape.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= tape.length;
 //                        System.out.println(String.format("Tape Block #%d",
 //                            (tape[0] & 0xff) + (tape[1] & 0xff) * 256));
 
                         byte qword[] = new byte[4];
                         readed = fIn.read(qword);
+                        if (readed != qword.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= qword.length;
                         int uSize = dwMagicToInt(qword);
 
                         readed = fIn.read(qword);
+                        if (readed != qword.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= qword.length;
                         int cSize = dwMagicToInt(qword);
 //                        System.out.println(String.format("uSize: %d, cSize: %d",
@@ -1867,6 +1946,11 @@ public class Snapshots {
 
                         byte szFileExtension[] = new byte[16];
                         readed = fIn.read(szFileExtension);
+                        if (readed != szFileExtension.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
                         szxLen -= szFileExtension.length;
 
                         if ((tape[2] & ZXSTTP_EMBEDDED) != 0) {
@@ -1874,10 +1958,11 @@ public class Snapshots {
                             // "comerse" los ceros del final, porque luego no se
                             // ven, pero están....
                             int nChars = 0;
-                            while(nChars < szFileExtension.length) {
-                                if (szFileExtension[nChars] == 0)
+                            while (nChars < szFileExtension.length) {
+                                if (szFileExtension[nChars] == 0) {
                                     break;
-                                 nChars++;
+                                }
+                                nChars++;
                             }
                             tapeExtension = new String(szFileExtension, 0, nChars);
                             tapeName = filename.getName();
@@ -1886,6 +1971,12 @@ public class Snapshots {
 
                             chData = new byte[szxLen];
                             readed = fIn.read(chData);
+                            if (readed != szxLen) {
+                                error = 4;
+                                fIn.close();
+                                return false;
+                            }
+                            
                             if ((tape[2] & ZXSTTP_COMPRESSED) != 0) {
 //                                System.out.println("Tape compressed");
                                 bais = new ByteArrayInputStream(chData);
@@ -1894,8 +1985,9 @@ public class Snapshots {
                                 readed = 0;
                                 while (readed < tapeData.length) {
                                     int count = iis.read(tapeData, readed, tapeData.length - readed);
-                                    if (count == -1)
+                                    if (count == -1) {
                                         break;
+                                    }
                                     readed += count;
                                 }
                                 iis.close();
@@ -1910,6 +2002,11 @@ public class Snapshots {
                         } else {
                             chData = new byte[szxLen];
                             readed = fIn.read(chData);
+                            if (readed != szxLen) {
+                                error = 4;
+                                fIn.close();
+                                return false;
+                            }
                             tapeName = new String(chData, 0, szxLen - 1);
 //                            System.out.println("File linked: " + tapeName);
                             tapeLinked = true;
@@ -1918,16 +2015,29 @@ public class Snapshots {
                     case ZXSTBID_IF2ROM:
                         byte dwCartSize[] = new byte[4];
                         readed = fIn.read(dwCartSize);
+                        if (readed != dwCartSize.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+
                         int romLen = dwMagicToInt(dwCartSize);
 //                        System.out.println(String.format("IF2 ROM present. Length: %d", romLen));
                         if (romLen > 0x4000) {
-                            while (romLen > 0)
-                            romLen -= fIn.skip(romLen);
+                            while (romLen > 0) {
+                                romLen -= fIn.skip(romLen);
+                            }
                             break;
                         }
 
                         chData = new byte[romLen];
                         readed = fIn.read(chData);
+                        if (readed != chData.length) {
+                            error = 4;
+                            fIn.close();
+                            return false;
+                        }
+                        
                         if (romLen == 0x4000) {
                             memory.insertIF2RomFromSZX(chData);
                             IF2RomPresent = true;
@@ -1941,8 +2051,9 @@ public class Snapshots {
                         readed = 0;
                         while (readed < IF2Rom.length) {
                             int count = iis.read(IF2Rom, readed, IF2Rom.length - readed);
-                            if (count == -1)
+                            if (count == -1) {
                                 break;
+                            }
                             readed += count;
                         }
                         iis.close();
