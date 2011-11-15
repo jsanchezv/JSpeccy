@@ -531,7 +531,7 @@ public class Tape {
         cswTape = filename.getName().toLowerCase().endsWith(".csw");
 
         if (tzxTape) {
-            if (findTZXOffsetBlocks() == -1) {
+            if (!findTZXOffsetBlocks()) {
                 nOffsetBlocks = 0;
                 return false;
             }
@@ -548,7 +548,10 @@ public class Tape {
         }
 
         if (!tzxTape && !cswTape) {
-            findTAPOffsetBlocks();
+            if (!findTAPOffsetBlocks()) {
+                nOffsetBlocks = 0;
+                return false;
+            }
 //            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
@@ -581,7 +584,7 @@ public class Tape {
         tapePlaying = tapeRecording = false;
         tzxTape = extension.startsWith("tzx");
         if (tzxTape) {
-            if (findTZXOffsetBlocks() == -1) {
+            if (!findTZXOffsetBlocks()) {
                 nOffsetBlocks = 0;
                 return false;
             }
@@ -590,12 +593,16 @@ public class Tape {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         } else {
-            findTAPOffsetBlocks();
+            if (!findTAPOffsetBlocks()) {
+                nOffsetBlocks = 0;
+                return false;
+            }
 //            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
 //            for(int blk = 0; blk < nOffsetBlocks; blk++) {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         }
+        
         tapeTableModel.fireTableDataChanged();
         lsm.setSelectionInterval(selectedBlock, selectedBlock);
         cpu.setExecDone(false);
@@ -713,18 +720,26 @@ public class Tape {
         }
     }
 
-    private int findTAPOffsetBlocks() {
+    private boolean findTAPOffsetBlocks() {
         nOffsetBlocks = 0;
 
         int offset = 0;
         Arrays.fill(offsetBlocks, 0);
+        
         while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
-            offsetBlocks[nOffsetBlocks++] = offset;
+            if ((tapeBuffer.length - offset) < 2) {
+                return false;
+            }
             int len = readInt(tapeBuffer, offset, 2);
+            
+            if (offset + len + 2 > tapeBuffer.length)
+                return false;
+            
+            offsetBlocks[nOffsetBlocks++] = offset;
             offset += len + 2;
         }
 
-        return nOffsetBlocks;
+        return true;
     }
 
     private boolean playTap() {
@@ -809,21 +824,32 @@ public class Tape {
         return true;
     }
 
-    private int findTZXOffsetBlocks() {
+    private boolean findTZXOffsetBlocks() {
         nOffsetBlocks = 0;
 
         int offset = 0; // saltamos la cabecera del TZX
         int len;
         Arrays.fill(offsetBlocks, 0);
+        
+        if (tapeBuffer.length == 0)
+            return true;
+        
+        if (tapeBuffer[0] != 'Z')
+            return false;
+        
         while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
             offsetBlocks[nOffsetBlocks++] = offset;
 
             switch (tapeBuffer[offset] & 0xff) {
                 case 0x10: // Standard speed data block
+                    if (tapeBuffer.length - offset < 5)
+                        return false;
                     len = readInt(tapeBuffer, offset + 3, 2);
                     offset += len + 5;
                     break;
                 case 0x11: // Turbo speed data block
+                    if (tapeBuffer.length - offset < 19)
+                        return false;
                     len = readInt(tapeBuffer, offset + 16, 3);
                     offset += len + 19;
                     break;
@@ -831,19 +857,27 @@ public class Tape {
                     offset += 5;
                     break;
                 case 0x13: // Pulse Sequence Block
+                    if (tapeBuffer.length - offset < 2)
+                        return false;
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len * 2 + 2;
                     break;
                 case 0x14: // Pure Data Block
+                    if (tapeBuffer.length - offset < 11)
+                        return false;
                     len = readInt(tapeBuffer, offset + 8, 3);
                     offset += len + 11;
                     break;
                 case 0x15: // Direct Data Block
+                    if (tapeBuffer.length - offset < 9)
+                        return false;
                     len = readInt(tapeBuffer, offset + 6, 3);
                     offset += len + 9;
                     break;
                 case 0x18: // CSW Recording Block
                 case 0x19: // Generalized Data Block
+                    if (tapeBuffer.length - offset < 5)
+                        return false;
                     len = readInt(tapeBuffer, offset + 1, 4);
                     offset += len + 5;
                     break;
@@ -853,6 +887,8 @@ public class Tape {
                     offset += 3;
                     break;
                 case 0x21: // Group Start
+                    if (tapeBuffer.length - offset < 2)
+                        return false;
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len + 2;
                     break;
@@ -862,11 +898,15 @@ public class Tape {
                     offset++;
                     break;
                 case 0x26: // Call Sequence
+                    if (tapeBuffer.length - offset < 3)
+                        return false;
                     len = readInt(tapeBuffer, offset + 1, 2);
                     offset += len * 2 + 3;
                     break;
                 case 0x28: // Select Block
                 case 0x32: // Archive Info
+                    if (tapeBuffer.length - offset < 3)
+                        return false;
                     len = readInt(tapeBuffer, offset + 1, 2);
                     offset += len + 3;
                     break;
@@ -877,18 +917,26 @@ public class Tape {
                     offset += 6;
                     break;
                 case 0x30: // Text Description
+                    if (tapeBuffer.length - offset < 2)
+                        return false;
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len + 2;
                     break;
                 case 0x31: // Message Block
+                    if (tapeBuffer.length - offset < 3)
+                        return false;
                     len = tapeBuffer[offset + 2] & 0xff;
                     offset += len + 3;
                     break;
                 case 0x33: // Hardware Type
+                    if (tapeBuffer.length - offset < 2)
+                        return false;
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len * 3 + 2;
                     break;
                 case 0x35: // Custom Info Block
+                    if (tapeBuffer.length - offset < 21)
+                        return false;
                     len = readInt(tapeBuffer, offset + 17, 4);
                     offset += len + 21;
                     break;
@@ -897,10 +945,14 @@ public class Tape {
                     break;
                 default:
                     System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
-                    return -1; // Error en TZX
+                    return false; // Error en TZX
             }
+            
+            if (offset > tapeBuffer.length)
+                return false;
         }
-        return nOffsetBlocks;
+        
+        return true;
     }
 
     private boolean playTzx() {
