@@ -102,9 +102,12 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         saveCartridge = new javax.swing.JMenuItem();
         saveAsCartridge = new javax.swing.JMenuItem();
         jPanel1 = new javax.swing.JPanel();
-        closeButton = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         microdrivesTable = new javax.swing.JTable();
+        messageLabelPanel = new javax.swing.JPanel();
+        messageLabel = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        closeButton = new javax.swing.JButton();
 
         driveNumber.setText("jMenuItem1");
         driveNumber.setEnabled(false);
@@ -152,14 +155,12 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         });
         popupMenu.add(saveAsCartridge);
 
+        setMaximumSize(new java.awt.Dimension(800, 205));
+        setMinimumSize(new java.awt.Dimension(473, 205));
+        setPreferredSize(new java.awt.Dimension(473, 205));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
-        closeButton.setText(bundle.getString("MicrodriveDialog.closeButton.text")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
-            }
-        });
+        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
 
         microdrivesTable.setModel(tableModel);
         microdrivesTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
@@ -167,26 +168,30 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         microdrivesTable.getTableHeader().setReorderingAllowed(false);
         jScrollPane1.setViewportView(microdrivesTable);
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 360, Short.MAX_VALUE)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(150, Short.MAX_VALUE)
-                .addComponent(closeButton)
-                .addGap(144, 144, 144))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(closeButton)
-                .addContainerGap(18, Short.MAX_VALUE))
-        );
+        jPanel1.add(jScrollPane1);
 
         add(jPanel1);
+
+        messageLabelPanel.setPreferredSize(new java.awt.Dimension(473, 50));
+        messageLabelPanel.setLayout(new javax.swing.BoxLayout(messageLabelPanel, javax.swing.BoxLayout.LINE_AXIS));
+
+        messageLabel.setForeground(new java.awt.Color(255, 0, 0));
+        messageLabel.setText(bundle.getString("MicrodriveDialog.messageLabel.text")); // NOI18N
+        messageLabelPanel.add(messageLabel);
+
+        add(messageLabelPanel);
+
+        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.LINE_AXIS));
+
+        closeButton.setText(bundle.getString("MicrodriveDialog.closeButton.text")); // NOI18N
+        closeButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                closeButtonActionPerformed(evt);
+            }
+        });
+        jPanel2.add(closeButton);
+
+        add(jPanel2);
     }// </editor-fold>//GEN-END:initComponents
 
     private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
@@ -278,8 +283,11 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private javax.swing.JMenuItem driveNumber;
     private javax.swing.JMenuItem ejectCartridge;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
+    private javax.swing.JLabel messageLabel;
+    private javax.swing.JPanel messageLabelPanel;
     private javax.swing.JTable microdrivesTable;
     private javax.swing.JMenuItem newCartridge;
     private javax.swing.JMenuItem openCartridge;
