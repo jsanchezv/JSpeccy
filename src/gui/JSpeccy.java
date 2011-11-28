@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -56,6 +57,7 @@ public class JSpeccy extends javax.swing.JFrame {
     JSpeccySettingsType settings;
     SettingsDialog settingsDialog;
     MicrodriveDialog microdriveDialog;
+    MemoryBrowserDialog memoryBrowserDialog;
     FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
             tapeExtension, imageExtension, screenExtension, romExtension;
     
@@ -370,7 +372,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
-        microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
+//        microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
         spectrum.getInterface1().setMdrvIcon(mdrvLabel);
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -585,6 +587,17 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel3 = new javax.swing.JPanel();
         saveSzxCloseButton = new javax.swing.JButton();
         saveSzxButtonGroup = new javax.swing.ButtonGroup();
+        pokeDialog = new javax.swing.JDialog();
+        jPanel5 = new javax.swing.JPanel();
+        pokeAddress = new javax.swing.JLabel();
+        addressSpinner = new javax.swing.JSpinner();
+        pokeVoidLabel = new javax.swing.JLabel();
+        pokeValue = new javax.swing.JLabel();
+        valueSpinner = new javax.swing.JSpinner();
+        pokeVoidLabel2 = new javax.swing.JLabel();
+        pokeButton = new javax.swing.JButton();
+        jPanel6 = new javax.swing.JPanel();
+        closeButton = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
@@ -634,6 +647,9 @@ public class JSpeccy extends javax.swing.JFrame {
         hardResetMachineMenu = new javax.swing.JMenuItem();
         nmiMachineMenu = new javax.swing.JMenuItem();
         jSeparator3 = new javax.swing.JPopupMenu.Separator();
+        pokeMachineMenu = new javax.swing.JMenuItem();
+        memoryBrowserMachineMenu = new javax.swing.JMenuItem();
+        jSeparator14 = new javax.swing.JPopupMenu.Separator();
         hardwareMachineMenu = new javax.swing.JMenu();
         spec16kHardware = new javax.swing.JRadioButtonMenuItem();
         spec48kHardware = new javax.swing.JRadioButtonMenuItem();
@@ -853,6 +869,61 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel3.add(saveSzxCloseButton);
 
         saveSzxTape.getContentPane().add(jPanel3, java.awt.BorderLayout.PAGE_END);
+
+        pokeDialog.setTitle(bundle.getString("JSpecy.pokeDialog.title.text")); // NOI18N
+        pokeDialog.getContentPane().setLayout(new javax.swing.BoxLayout(pokeDialog.getContentPane(), javax.swing.BoxLayout.PAGE_AXIS));
+
+        pokeAddress.setText(bundle.getString("JSpeccy.pokeAddress.text")); // NOI18N
+        jPanel5.add(pokeAddress);
+
+        addressSpinner.setModel(new javax.swing.SpinnerNumberModel(23296, 16384, 65535, 1));
+        addressSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                addressSpinnerStateChanged(evt);
+            }
+        });
+        jPanel5.add(addressSpinner);
+
+        pokeVoidLabel.setText(bundle.getString("JSpeccy.pokeVoidLabel.text")); // NOI18N
+        pokeVoidLabel.setMinimumSize(new java.awt.Dimension(20, 16));
+        pokeVoidLabel.setPreferredSize(new java.awt.Dimension(20, 16));
+        jPanel5.add(pokeVoidLabel);
+
+        pokeValue.setText(bundle.getString("JSpeccy.pokeValue.text")); // NOI18N
+        jPanel5.add(pokeValue);
+
+        valueSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
+        valueSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                valueSpinnerStateChanged(evt);
+            }
+        });
+        jPanel5.add(valueSpinner);
+
+        pokeVoidLabel2.setText(bundle.getString("JSpeccy.pokeVoidLabel2.text")); // NOI18N
+        pokeVoidLabel2.setMinimumSize(new java.awt.Dimension(20, 16));
+        pokeVoidLabel2.setPreferredSize(new java.awt.Dimension(20, 16));
+        jPanel5.add(pokeVoidLabel2);
+
+        pokeButton.setText(bundle.getString("JSpeccy.pokeButton.text")); // NOI18N
+        pokeButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pokeButtonActionPerformed(evt);
+            }
+        });
+        jPanel5.add(pokeButton);
+
+        pokeDialog.getContentPane().add(jPanel5);
+
+        closeButton.setText(bundle.getString("JSpeccy.closeButton.text")); // NOI18N
+        closeButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                closeButtonActionPerformed(evt);
+            }
+        });
+        jPanel6.add(closeButton);
+
+        pokeDialog.getContentPane().add(jPanel6);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle(bundle.getString("JSpeccy.title")); // NOI18N
@@ -1241,6 +1312,23 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     machineMenu.add(nmiMachineMenu);
     machineMenu.add(jSeparator3);
+
+    pokeMachineMenu.setText(bundle.getString("JSpeccy.pokeMachineMenu.text")); // NOI18N
+    pokeMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            pokeMachineMenuActionPerformed(evt);
+        }
+    });
+    machineMenu.add(pokeMachineMenu);
+
+    memoryBrowserMachineMenu.setText(bundle.getString("JSpeccy.memoryBrowserMachineMenu.text")); // NOI18N
+    memoryBrowserMachineMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            memoryBrowserMachineMenuActionPerformed(evt);
+        }
+    });
+    machineMenu.add(memoryBrowserMachineMenu);
+    machineMenu.add(jSeparator14);
 
     hardwareMachineMenu.setText(bundle.getString("JSpeccy.hardwareMachineMenu.text")); // NOI18N
 
@@ -2255,6 +2343,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void microdrivesIF1MediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_microdrivesIF1MediaMenuActionPerformed
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        if (microdriveDialog == null)
+            microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
+        
         microdriveDialog.showDialog(this, bundle.getString("MICRODRIVES_DIALOG_TITLE"));
     }//GEN-LAST:event_microdrivesIF1MediaMenuActionPerformed
 
@@ -2315,6 +2406,46 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.tape.insert(currentFileTape);
         }
     }//GEN-LAST:event_refreshTapeMediaMenuActionPerformed
+
+    private void memoryBrowserMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_memoryBrowserMachineMenuActionPerformed
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        if (memoryBrowserDialog == null)
+            memoryBrowserDialog = new MemoryBrowserDialog(spectrum.getMemory());
+        
+        memoryBrowserDialog.showDialog(this, bundle.getString("MEMORY_BROWSER_DIALOG_TITLE"));
+    }//GEN-LAST:event_memoryBrowserMachineMenuActionPerformed
+
+    private void pokeMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pokeMachineMenuActionPerformed
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel)addressSpinner.getModel();
+        SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
+        snmValue.setValue(spectrum.getMemory().readByte(snmAddress.getNumber().intValue()) & 0xff);
+        pokeDialog.setVisible(true);
+        pokeDialog.pack();
+    }//GEN-LAST:event_pokeMachineMenuActionPerformed
+
+    private void addressSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_addressSpinnerStateChanged
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel)addressSpinner.getModel();
+        SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
+        snmValue.setValue(spectrum.getMemory().readByte(snmAddress.getNumber().intValue()) & 0xff);
+    }//GEN-LAST:event_addressSpinnerStateChanged
+
+    private void valueSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_valueSpinnerStateChanged
+        // TODO add your handling code here:
+    }//GEN-LAST:event_valueSpinnerStateChanged
+
+    private void pokeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pokeButtonActionPerformed
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel)addressSpinner.getModel();
+        SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
+        int address = snmAddress.getNumber().intValue() & 0xffff;
+        spectrum.getMemory().writeByte(address, snmValue.getNumber().byteValue());
+        
+        if (spectrum.getMemory().isScreenByte(address))
+            spectrum.invalidateScreen(false);
+    }//GEN-LAST:event_pokeButtonActionPerformed
+
+    private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
+        pokeDialog.setVisible(false);
+    }//GEN-LAST:event_closeButtonActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2332,8 +2463,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenu IF1MediaMenu;
     private javax.swing.JMenu IF2MediaMenu;
     private javax.swing.JMenuItem aboutHelpMenu;
+    private javax.swing.JSpinner addressSpinner;
     private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JMenuItem clearTapeMediaMenu;
+    private javax.swing.JButton closeButton;
     private javax.swing.JButton closeKeyboardHelper;
     private javax.swing.JMenuItem createTapeMediaMenu;
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
@@ -2358,12 +2491,15 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator10;
     private javax.swing.JToolBar.Separator jSeparator11;
     private javax.swing.JToolBar.Separator jSeparator12;
     private javax.swing.JPopupMenu.Separator jSeparator13;
+    private javax.swing.JPopupMenu.Separator jSeparator14;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -2382,6 +2518,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenu machineMenu;
     private javax.swing.JLabel mdrvLabel;
     private javax.swing.JMenu mediaMenu;
+    private javax.swing.JMenuItem memoryBrowserMachineMenu;
     private javax.swing.JMenuItem microdrivesIF1MediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;
@@ -2393,6 +2530,13 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
     private javax.swing.JToggleButton pauseToggleButton;
     private javax.swing.JMenuItem playTapeMediaMenu;
+    private javax.swing.JLabel pokeAddress;
+    private javax.swing.JButton pokeButton;
+    private javax.swing.JDialog pokeDialog;
+    private javax.swing.JMenuItem pokeMachineMenu;
+    private javax.swing.JLabel pokeValue;
+    private javax.swing.JLabel pokeVoidLabel;
+    private javax.swing.JLabel pokeVoidLabel2;
     private javax.swing.JMenuItem recentFileMenu0;
     private javax.swing.JMenuItem recentFileMenu1;
     private javax.swing.JMenuItem recentFileMenu2;
@@ -2438,6 +2582,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JLabel tapeMessageInfo;
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     private javax.swing.JToolBar toolbarMenu;
+    private javax.swing.JSpinner valueSpinner;
     // End of variables declaration//GEN-END:variables
     
 }

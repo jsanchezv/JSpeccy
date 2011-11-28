@@ -356,6 +356,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public void setScreenComponent(JSpeccyScreen jScr) {
         this.jscr = jScr;
     }
+    
+    public Memory getMemory() {
+        return memory;
+    }
 
     public synchronized void generateFrame() {
 
