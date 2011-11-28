@@ -17,12 +17,13 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tv.porst.jhexview.IDataChangedListener;
 
 /**
  *
  * @author jsanchez
  */
-public final class Memory {
+public final class Memory implements tv.porst.jhexview.IDataProvider {
     private final int PAGE_SIZE = 0x2000;
     
     private byte[][] Rom48k = new byte[2][PAGE_SIZE];
@@ -980,5 +981,69 @@ public final class Memory {
         }
         
         return true;
+    }
+
+    // Interface implementation for JHexView
+    @Override
+    public void addListener(IDataChangedListener hexView) {
+    }
+
+    @Override
+    public byte[] getData() {
+        byte ram[] = new byte[0x10000];
+        
+        System.arraycopy(Ram[0], 0, ram, 0, Ram[0].length);
+        System.arraycopy(Ram[1], 0, ram, 0x2000, Ram[1].length);
+        System.arraycopy(Ram[2], 0, ram, 0x4000, Ram[2].length);
+        System.arraycopy(Ram[3], 0, ram, 0x6000, Ram[3].length);
+        System.arraycopy(Ram[4], 0, ram, 0x8000, Ram[4].length);
+        System.arraycopy(Ram[5], 0, ram, 0xA000, Ram[5].length);
+        System.arraycopy(Ram[6], 0, ram, 0xC000, Ram[6].length);
+        System.arraycopy(Ram[7], 0, ram, 0xD000, Ram[7].length);
+        
+        return ram;
+    }
+
+    @Override
+    public byte[] getData(long offset, int length) {
+        //throw new UnsupportedOperationException("Not supported yet.");
+        byte ram[] = new byte[length];
+        
+        for (int addr = 0; addr < length; addr++) {
+            ram[addr] = readByte((int)(addr + offset));
+        }
+        
+        return ram;
+    }
+
+    @Override
+    public int getDataLength() {
+        return 0x10000;
+    }
+
+    @Override
+    public boolean hasData(long start, int length) {
+        return true;
+    }
+
+    @Override
+    public boolean isEditable() {
+        return true;
+    }
+
+    @Override
+    public boolean keepTrying() {
+        return false;
+    }
+
+    @Override
+    public void removeListener(IDataChangedListener listener) {
+    }
+
+    @Override
+    public void setData(long offset, byte[] data) {
+        for (int addr = 0; addr < data.length; addr++) {
+            writeByte((int)(addr + offset), data[addr]);
+        }
     }
 }
