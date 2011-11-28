@@ -76,14 +76,24 @@ public class Microdrive {
         
         
         if (offset == 0 && !headerSync[sector]) {
+            if (gapSyncCounter++ == GAP_SYNC_SIZE) {
+                gapSyncCounter = 0;
+                status ^= GAP;
+            }
+            
+            if (gapSyncCounter == 0 && (status & GAP) == 0 )
+                cartridgePos += SECTOR_SIZE;
+            
             if (writeProtected)
                 status &= WRITE_PROT_MASK;
+            
             return status;
         }
         
         if (offset == 15 && !dataSync[sector]) {
             if (writeProtected)
                 status &= WRITE_PROT_MASK;
+            
             return status;
         }
         

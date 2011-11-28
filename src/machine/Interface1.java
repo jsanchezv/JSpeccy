@@ -61,7 +61,7 @@ public class Interface1 {
 //                mdrSelected));
             return microdrive[mdrSelected].readStatus();
         } else {
-            return 0xff;
+            return 0xfe; // WR-Prot active
         }
     }
     
