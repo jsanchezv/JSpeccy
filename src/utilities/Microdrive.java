@@ -81,8 +81,12 @@ public class Microdrive {
                 status ^= GAP;
             }
             
-            if (gapSyncCounter == 0 && (status & GAP) == 0 )
+            if (gapSyncCounter == 0 && (status & GAP) == 0 ) {
                 cartridgePos += SECTOR_SIZE;
+                if (cartridgePos == cartridge.length - 1) {
+                    cartridgePos = 0;
+                }
+            }
             
             if (writeProtected)
                 status &= WRITE_PROT_MASK;
