@@ -81,7 +81,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         closeButton = new javax.swing.JButton();
 
         setMinimumSize(new java.awt.Dimension(100, 200));
-        setPreferredSize(new java.awt.Dimension(505, 341));
+        setPreferredSize(new java.awt.Dimension(501, 341));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         jPanel1.setMinimumSize(new java.awt.Dimension(50, 50));
@@ -106,9 +106,9 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             .addGap(0, 560, Short.MAX_VALUE)
             .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel3Layout.createSequentialGroup()
-                    .addGap(0, 196, Short.MAX_VALUE)
+                    .addGap(0, 180, Short.MAX_VALUE)
                     .addComponent(decimalAddress)
-                    .addGap(0, 196, Short.MAX_VALUE)))
+                    .addGap(0, 179, Short.MAX_VALUE)))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -117,7 +117,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                 .addGroup(jPanel3Layout.createSequentialGroup()
                     .addGap(0, 11, Short.MAX_VALUE)
                     .addComponent(decimalAddress)
-                    .addGap(0, 10, Short.MAX_VALUE)))
+                    .addGap(0, 11, Short.MAX_VALUE)))
         );
 
         add(jPanel3);

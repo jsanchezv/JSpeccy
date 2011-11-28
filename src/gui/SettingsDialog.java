@@ -210,7 +210,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         numSectorsLabel = new javax.swing.JLabel();
         cartridgeSizeSpinner = new javax.swing.JSpinner();
 
-        setPreferredSize(new java.awt.Dimension(405, 363));
+        setMinimumSize(new java.awt.Dimension(50, 50));
+        setPreferredSize(new java.awt.Dimension(440, 363));
         setLayout(new java.awt.BorderLayout());
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
