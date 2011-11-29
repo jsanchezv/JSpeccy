@@ -120,8 +120,7 @@ public class SettingsDialog extends javax.swing.JPanel {
             owner = (Frame) SwingUtilities.getAncestorOfClass(Frame.class, parent);
         }
 
-        if (settingsDialog == null || settingsDialog.getOwner() != owner) {
-            owner = null;
+        if (settingsDialog == null) {
             settingsDialog = new JDialog(owner, true);
             settingsDialog.getContentPane().add(this);
             settingsDialog.pack();
@@ -178,6 +177,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         acceleratedLoad = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16));
         samplingPanel = new javax.swing.JPanel();
         lowSampling = new javax.swing.JRadioButton();
         highSampling = new javax.swing.JRadioButton();
@@ -206,7 +206,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         mdrPanel = new javax.swing.JPanel();
         numDrivesLabel = new javax.swing.JLabel();
         numDrivesSpinner = new javax.swing.JSpinner();
-        jLabel3 = new javax.swing.JLabel();
+        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16));
         numSectorsLabel = new javax.swing.JLabel();
         cartridgeSizeSpinner = new javax.swing.JSpinner();
 
@@ -422,6 +422,7 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         savePanel.add(enableSaveTraps);
+        savePanel.add(filler1);
 
         samplingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSamplingFreq.border.text"))); // NOI18N
         samplingPanel.setLayout(new javax.swing.BoxLayout(samplingPanel, javax.swing.BoxLayout.PAGE_AXIS));
@@ -587,9 +588,7 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         mdrPanel.add(numDrivesSpinner);
-
-        jLabel3.setPreferredSize(new java.awt.Dimension(25, 16));
-        mdrPanel.add(jLabel3);
+        mdrPanel.add(filler2);
 
         numSectorsLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numSectorsLabel.text")); // NOI18N
         mdrPanel.add(numSectorsLabel);
@@ -772,6 +771,8 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
+    private javax.swing.Box.Filler filler1;
+    private javax.swing.Box.Filler filler2;
     private javax.swing.JCheckBox flashLoad;
     private javax.swing.JPanel hardwarePanelTab;
     private javax.swing.JCheckBox hifiSound;
@@ -781,7 +782,6 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton issue3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
