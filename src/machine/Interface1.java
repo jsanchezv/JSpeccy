@@ -154,6 +154,11 @@ public class Interface1 {
         return;
     }
     
+    public void reset() {
+        mdrFlipFlop = 0;
+        updateMdrvIcon();
+    }
+    
     public boolean isCartridge(int drive) {
         if (drive < 0 || drive > 7)
             return false;

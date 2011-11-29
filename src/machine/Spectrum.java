@@ -257,6 +257,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         ay8912.reset();
         audio.reset();
         keyboard.reset();
+        if (connectedIF1)
+            if1.reset();
         nFrame = 0;
         portFE = port7ffd = port1ffd = 0;
         ULAplusMode = false;

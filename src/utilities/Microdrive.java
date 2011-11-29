@@ -54,6 +54,8 @@ public class Microdrive {
         // A microdrive cartridge can have 254 sectors of 543 bytes length
         isCartridge = false;
         preambleData[10] = preambleData[11] = 0xff;
+        status = 0xfe; // WR-Prot
+        writeProtected = true;
     }
     
     public void selected() {
@@ -80,17 +82,11 @@ public class Microdrive {
                 gapSyncCounter = 0;
                 status ^= GAP;
             }
-            
-            if (gapSyncCounter == 0 && (status & GAP) == 0 ) {
-                cartridgePos += SECTOR_SIZE;
-                if (cartridgePos == cartridge.length - 1) {
-                    cartridgePos = 0;
-                }
-            }
-            
-            if (writeProtected)
+
+            if (writeProtected) {
                 status &= WRITE_PROT_MASK;
-            
+            }
+
             return status;
         }
         
@@ -122,7 +118,7 @@ public class Microdrive {
                 if (cartridgePos == cartridge.length - 1)
                     cartridgePos = 0;
         }
-        
+                
         if (writeProtected)
             status &= WRITE_PROT_MASK;
         
@@ -177,7 +173,7 @@ public class Microdrive {
         }
         
         preamLen = 0;  
-        gapSyncCounter = GAP_SYNC_SIZE - 3;
+        gapSyncCounter = 0;
         // Si writeControl acaba con status GAP en lugar de SYNC, el formateo
         // desde el MF128 no funciona....
         status = 0xff & ~SYNC;
@@ -201,7 +197,7 @@ public class Microdrive {
             }
             return;
         }
-        
+
         if (nBytes > 0) {
             cartridge[cartridgePos++] = (byte)value;
             if (cartridgePos == cartridge.length - 1)
