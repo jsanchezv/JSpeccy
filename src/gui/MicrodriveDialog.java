@@ -72,9 +72,8 @@ public class MicrodriveDialog extends javax.swing.JPanel {
             owner = (Frame) SwingUtilities.getAncestorOfClass(Frame.class, parent);
         }
 
-        if (microdriveDialog == null || microdriveDialog.getOwner() != owner) {
-            owner = null;
-            microdriveDialog = new JDialog(owner, true);
+        if (microdriveDialog == null) {
+            microdriveDialog = new JDialog(owner, false);
             microdriveDialog.getContentPane().add(this);
             microdriveDialog.pack();
         }
@@ -155,7 +154,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         });
         popupMenu.add(saveAsCartridge);
 
-        setPreferredSize(new java.awt.Dimension(500, 201));
+        setPreferredSize(new java.awt.Dimension(500, 205));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
