@@ -10,12 +10,11 @@
  */
 package gui;
 
-import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dialog.ModalityType;
 import java.awt.Dimension;
 import java.awt.Frame;
 import javax.swing.JDialog;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import machine.Memory;
 import tv.porst.jhexview.JHexView;
@@ -38,7 +37,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         hexView.setDefinitionStatus(DefinitionStatus.DEFINED);
         hexView.setBytesPerColumn(1);
         hexView.setEnabled(true);
-        jPanel1.add(hexView);
+        hexViewPanel.add(hexView);
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -49,16 +48,12 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             owner = (Frame) SwingUtilities.getAncestorOfClass(Frame.class, parent);
         }
 
-        if (memoryBrowserDialog == null || memoryBrowserDialog.getOwner() != owner) {
-            owner = null;
-            memoryBrowserDialog = new JDialog(owner, true);
-//            memoryBrowserDialog.setModalityType(ModalityType.MODELESS);
+        if (memoryBrowserDialog == null) {
+            memoryBrowserDialog = new JDialog(owner, false);
             memoryBrowserDialog.setMinimumSize(new Dimension(30,200));
             memoryBrowserDialog.getContentPane().add(this); 
             memoryBrowserDialog.pack();
         }
-
-//        hexView.colorize(0, 0, 0x4000, Color.DARK_GRAY, Color.WHITE);
         
         memoryBrowserDialog.setTitle(title);
         memoryBrowserDialog.setVisible(true);
@@ -74,22 +69,27 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
+        hexViewPanel = new javax.swing.JPanel();
+        optionsPanel = new javax.swing.JPanel();
         decimalAddress = new javax.swing.JCheckBox();
-        jPanel2 = new javax.swing.JPanel();
+        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25));
+        gotoAddressLabel = new javax.swing.JLabel();
+        gotoAddress = new javax.swing.JSpinner();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
+        closePanel = new javax.swing.JPanel();
         closeButton = new javax.swing.JButton();
 
         setMinimumSize(new java.awt.Dimension(100, 200));
         setPreferredSize(new java.awt.Dimension(501, 341));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
-        jPanel1.setMinimumSize(new java.awt.Dimension(50, 50));
-        jPanel1.setPreferredSize(new java.awt.Dimension(495, 300));
-        jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
-        add(jPanel1);
+        hexViewPanel.setMinimumSize(new java.awt.Dimension(50, 50));
+        hexViewPanel.setPreferredSize(new java.awt.Dimension(495, 300));
+        hexViewPanel.setLayout(new javax.swing.BoxLayout(hexViewPanel, javax.swing.BoxLayout.LINE_AXIS));
+        add(hexViewPanel);
 
-        jPanel3.setPreferredSize(new java.awt.Dimension(495, 50));
+        optionsPanel.setPreferredSize(new java.awt.Dimension(495, 50));
+        optionsPanel.setLayout(new javax.swing.BoxLayout(optionsPanel, javax.swing.BoxLayout.LINE_AXIS));
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         decimalAddress.setText(bundle.getString("MemoryBrowserDialog.decimalAddress.txt")); // NOI18N
@@ -98,32 +98,26 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                 decimalAddressActionPerformed(evt);
             }
         });
+        optionsPanel.add(decimalAddress);
+        optionsPanel.add(filler2);
 
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 560, Short.MAX_VALUE)
-            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel3Layout.createSequentialGroup()
-                    .addGap(0, 180, Short.MAX_VALUE)
-                    .addComponent(decimalAddress)
-                    .addGap(0, 179, Short.MAX_VALUE)))
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 45, Short.MAX_VALUE)
-            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel3Layout.createSequentialGroup()
-                    .addGap(0, 11, Short.MAX_VALUE)
-                    .addComponent(decimalAddress)
-                    .addGap(0, 11, Short.MAX_VALUE)))
-        );
+        gotoAddressLabel.setText(bundle.getString("MemoryBrowserDialog.gotoAddress.txt")); // NOI18N
+        optionsPanel.add(gotoAddressLabel);
 
-        add(jPanel3);
+        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 1));
+        gotoAddress.setMaximumSize(new java.awt.Dimension(27, 20));
+        gotoAddress.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                gotoAddressStateChanged(evt);
+            }
+        });
+        optionsPanel.add(gotoAddress);
+        optionsPanel.add(filler1);
 
-        jPanel2.setPreferredSize(new java.awt.Dimension(495, 70));
-        jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.LINE_AXIS));
+        add(optionsPanel);
+
+        closePanel.setPreferredSize(new java.awt.Dimension(495, 70));
+        closePanel.setLayout(new javax.swing.BoxLayout(closePanel, javax.swing.BoxLayout.LINE_AXIS));
 
         closeButton.setText(bundle.getString("MemoryBrowser.closeButton.text")); // NOI18N
         closeButton.addActionListener(new java.awt.event.ActionListener() {
@@ -131,9 +125,9 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                 closeButtonActionPerformed(evt);
             }
         });
-        jPanel2.add(closeButton);
+        closePanel.add(closeButton);
 
-        add(jPanel2);
+        add(closePanel);
     }// </editor-fold>//GEN-END:initComponents
 
     private void decimalAddressActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_decimalAddressActionPerformed
@@ -145,11 +139,20 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         memoryBrowserDialog.setVisible(false);
     }//GEN-LAST:event_closeButtonActionPerformed
 
+    private void gotoAddressStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_gotoAddressStateChanged
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel)gotoAddress.getModel();
+        hexView.gotoOffset(snmAddress.getNumber().longValue() & 0xffff);
+    }//GEN-LAST:event_gotoAddressStateChanged
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton closeButton;
+    private javax.swing.JPanel closePanel;
     private javax.swing.JCheckBox decimalAddress;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
+    private javax.swing.Box.Filler filler1;
+    private javax.swing.Box.Filler filler2;
+    private javax.swing.JSpinner gotoAddress;
+    private javax.swing.JLabel gotoAddressLabel;
+    private javax.swing.JPanel hexViewPanel;
+    private javax.swing.JPanel optionsPanel;
     // End of variables declaration//GEN-END:variables
 }
