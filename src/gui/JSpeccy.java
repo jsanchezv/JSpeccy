@@ -898,6 +898,7 @@ public class JSpeccy extends javax.swing.JFrame {
         addrValuePanel.add(filler2);
 
         pokeButton.setText(bundle.getString("JSpeccy.pokeButton.text")); // NOI18N
+        pokeButton.setEnabled(false);
         pokeButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 pokeButtonActionPerformed(evt);
@@ -2415,10 +2416,15 @@ public class JSpeccy extends javax.swing.JFrame {
         SpinnerNumberModel snmAddress = (SpinnerNumberModel)addressSpinner.getModel();
         SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
         snmValue.setValue(spectrum.getMemory().readByte(snmAddress.getNumber().intValue()) & 0xff);
+        pokeButton.setEnabled(false);
     }//GEN-LAST:event_addressSpinnerStateChanged
 
     private void valueSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_valueSpinnerStateChanged
-        // TODO add your handling code here:
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel)addressSpinner.getModel();
+        SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
+        int address = snmAddress.getNumber().intValue() & 0xffff;
+        byte value = snmValue.getNumber().byteValue();
+        pokeButton.setEnabled(value != spectrum.getMemory().readByte(address));
     }//GEN-LAST:event_valueSpinnerStateChanged
 
     private void pokeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pokeButtonActionPerformed
@@ -2426,6 +2432,7 @@ public class JSpeccy extends javax.swing.JFrame {
         SpinnerNumberModel snmValue = (SpinnerNumberModel) valueSpinner.getModel();
         int address = snmAddress.getNumber().intValue() & 0xffff;
         spectrum.getMemory().writeByte(address, snmValue.getNumber().byteValue());
+        pokeButton.setEnabled(false);
         
         if (spectrum.getMemory().isScreenByte(address))
             spectrum.invalidateScreen(false);
