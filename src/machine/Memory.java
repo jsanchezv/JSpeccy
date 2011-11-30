@@ -492,6 +492,10 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         }
         return false;
     }
+    
+    public boolean isModel128k() {
+        return model128k;
+    }
 
     public void reset() {
         
@@ -987,6 +991,12 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         return true;
     }
 
+    private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
+    
+    public void setPageModeBrowser(int page) {
+        pageModeBrowser = page;
+    }
+    
     // Interface implementation for JHexView
     @Override
     public void addListener(IDataChangedListener hexView) {
@@ -1067,10 +1077,5 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 writeByte(pageModeBrowser, (int) (addr + offset), data[addr]);
             }
         }
-    }
-    
-    private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
-    public void setPageModeBrowser(int page) {
-        pageModeBrowser = page;
     }
 }
