@@ -64,6 +64,10 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         IF2RomPaged = false;
     }
 
+    public MachineTypes getSpectrumModel() {
+        return spectrumModel;
+    }
+    
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
         reset();
@@ -990,27 +994,39 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
     @Override
     public byte[] getData() {
-        byte ram[] = new byte[0x10000];
+        byte ram[];
         
-        System.arraycopy(Ram[0], 0, ram, 0, Ram[0].length);
-        System.arraycopy(Ram[1], 0, ram, 0x2000, Ram[1].length);
-        System.arraycopy(Ram[2], 0, ram, 0x4000, Ram[2].length);
-        System.arraycopy(Ram[3], 0, ram, 0x6000, Ram[3].length);
-        System.arraycopy(Ram[4], 0, ram, 0x8000, Ram[4].length);
-        System.arraycopy(Ram[5], 0, ram, 0xA000, Ram[5].length);
-        System.arraycopy(Ram[6], 0, ram, 0xC000, Ram[6].length);
-        System.arraycopy(Ram[7], 0, ram, 0xD000, Ram[7].length);
+        if (pageModeBrowser > 7) {
+            ram = new byte[0x10000];
+            System.arraycopy(readPages[0], 0, ram, 0, PAGE_SIZE);
+            System.arraycopy(readPages[1], 0, ram, 0x2000, PAGE_SIZE);
+            System.arraycopy(readPages[2], 0, ram, 0x4000, PAGE_SIZE);
+            System.arraycopy(readPages[3], 0, ram, 0x6000, PAGE_SIZE);
+            System.arraycopy(readPages[4], 0, ram, 0x8000, PAGE_SIZE);
+            System.arraycopy(readPages[5], 0, ram, 0xA000, PAGE_SIZE);
+            System.arraycopy(readPages[6], 0, ram, 0xC000, PAGE_SIZE);
+            System.arraycopy(readPages[7], 0, ram, 0xD000, PAGE_SIZE);
+        } else {
+            ram = new byte[PAGE_SIZE << 1];
+            System.arraycopy(Ram[pageModeBrowser << 1], 0, ram, 0, PAGE_SIZE);
+            System.arraycopy(Ram[(pageModeBrowser << 1) + 1], 0, ram, 0x2000, PAGE_SIZE);
+        }
         
         return ram;
     }
 
     @Override
     public byte[] getData(long offset, int length) {
-        //throw new UnsupportedOperationException("Not supported yet.");
         byte ram[] = new byte[length];
         
-        for (int addr = 0; addr < length; addr++) {
-            ram[addr] = readByte((int)(addr + offset));
+        if (pageModeBrowser > 7) {
+            for (int addr = 0; addr < length; addr++) {
+                ram[addr] = readByte((int) (addr + offset));
+            }
+        } else {
+            for (int addr = 0; addr < length; addr++) {
+                ram[addr] = readByte(pageModeBrowser, (int) (addr + offset));
+            }
         }
         
         return ram;
@@ -1018,7 +1034,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
     @Override
     public int getDataLength() {
-        return 0x10000;
+        return pageModeBrowser > 7 ? 0x10000 : 0x4000;
     }
 
     @Override
@@ -1042,8 +1058,19 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
     @Override
     public void setData(long offset, byte[] data) {
-        for (int addr = 0; addr < data.length; addr++) {
-            writeByte((int)(addr + offset), data[addr]);
+        if (pageModeBrowser > 7) {
+            for (int addr = 0; addr < data.length; addr++) {
+                writeByte((int) (addr + offset), data[addr]);
+            }
+        } else {
+            for (int addr = 0; addr < data.length; addr++) {
+                writeByte(pageModeBrowser, (int) (addr + offset), data[addr]);
+            }
         }
+    }
+    
+    private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
+    public void setPageModeBrowser(int page) {
+        pageModeBrowser = page;
     }
 }
