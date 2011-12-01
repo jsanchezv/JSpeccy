@@ -10,6 +10,7 @@
  */
 package gui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -19,6 +20,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import machine.MachineTypes;
 import machine.Memory;
+import tv.porst.jhexview.IHexViewListener;
 import tv.porst.jhexview.JHexView;
 import tv.porst.jhexview.JHexView.DefinitionStatus;
 
@@ -31,17 +33,22 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
     private JDialog memoryBrowserDialog;
     private JHexView hexView;
     private Memory memory;
-    
+    private MachineTypes spectrumModel;
+    private String formatInfo;
+
     /** Creates new form MemoryBrowser */
     public MemoryBrowserDialog(Memory memory) {
         initComponents();
         this.memory = memory;
         hexView = new JHexView();
-        hexView.setData(memory);
+        hexView.setData(memory.getMemoryDataProvider());
         hexView.setDefinitionStatus(DefinitionStatus.DEFINED);
         hexView.setBytesPerColumn(1);
         hexView.setEnabled(true);
+        hexView.addHexListener(new SelectionChangedListener());
         hexViewPanel.add(hexView);
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        formatInfo = bundle.getString("MemoryBrowserDialog.informationLabel.txt");
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -54,19 +61,35 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
         if (memoryBrowserDialog == null) {
             memoryBrowserDialog = new JDialog(owner, false);
-            memoryBrowserDialog.setMinimumSize(new Dimension(30,200));
-            memoryBrowserDialog.getContentPane().add(this); 
+            memoryBrowserDialog.setMinimumSize(new Dimension(30, 200));
+            memoryBrowserDialog.setMaximumSize(new Dimension(520, 200));
+            memoryBrowserDialog.getContentPane().add(this);
             memoryBrowserDialog.pack();
         }
+
+        if (spectrumModel != memory.getSpectrumModel()) {
+            spectrumModel = memory.getSpectrumModel();
+            memoryComboBox.setEnabled(memory.isModel128k());
+            memoryComboBox.setSelectedIndex(0);
+            memory.setPageModeBrowser(8);
+            hexView.setData(memory.getMemoryDataProvider());
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+            if (markPrintableCharacters.isSelected()) {
+                SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            markPrintableCharacters();
+                        }
+                    });
+            }
+        }
         
-        memoryComboBox.setEnabled(memory.isModel128k());
-        memory.setPageModeBrowser(8);
-        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 1));
         memoryBrowserDialog.setTitle(title);
         memoryBrowserDialog.setVisible(true);
         return true;
     }
-    
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -82,6 +105,10 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         asciiViewLabel = new javax.swing.JLabel();
         filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(16, 21), new java.awt.Dimension(16, 21), new java.awt.Dimension(16, 21));
         hexViewPanel = new javax.swing.JPanel();
+        informationPanel = new javax.swing.JPanel();
+        informationLabel = new javax.swing.JLabel();
+        filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 24), new java.awt.Dimension(25, 24), new java.awt.Dimension(25, 24));
+        markPrintableCharacters = new javax.swing.JCheckBox();
         optionsPanel = new javax.swing.JPanel();
         filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25));
         gotoAddressLabel = new javax.swing.JLabel();
@@ -94,8 +121,8 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         closeButton = new javax.swing.JButton();
 
         setMaximumSize(new java.awt.Dimension(520, 800));
-        setMinimumSize(new java.awt.Dimension(520, 200));
-        setPreferredSize(new java.awt.Dimension(520, 341));
+        setMinimumSize(new java.awt.Dimension(30, 200));
+        setPreferredSize(new java.awt.Dimension(520, 405));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         headerBrowserPanel.setLayout(new javax.swing.BoxLayout(headerBrowserPanel, javax.swing.BoxLayout.LINE_AXIS));
@@ -131,6 +158,21 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         hexViewPanel.setLayout(new javax.swing.BoxLayout(hexViewPanel, javax.swing.BoxLayout.LINE_AXIS));
         add(hexViewPanel);
 
+        informationLabel.setText(bundle.getString("MemoryBrowserDialog.informationLabel.txt")); // NOI18N
+        informationPanel.add(informationLabel);
+        informationPanel.add(filler5);
+
+        markPrintableCharacters.setText(bundle.getString("MemoryBrowserDialog.markPrintableCharacters.txt")); // NOI18N
+        markPrintableCharacters.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                markPrintableCharactersActionPerformed(evt);
+            }
+        });
+        informationPanel.add(markPrintableCharacters);
+
+        add(informationPanel);
+
+        optionsPanel.setMaximumSize(new java.awt.Dimension(32767, 25));
         optionsPanel.setPreferredSize(new java.awt.Dimension(495, 50));
         optionsPanel.setLayout(new javax.swing.BoxLayout(optionsPanel, javax.swing.BoxLayout.LINE_AXIS));
         optionsPanel.add(filler2);
@@ -138,7 +180,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         gotoAddressLabel.setText(bundle.getString("MemoryBrowserDialog.gotoAddress.txt")); // NOI18N
         optionsPanel.add(gotoAddressLabel);
 
-        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 1));
+        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
         gotoAddress.setMaximumSize(new java.awt.Dimension(100, 24));
         gotoAddress.setMinimumSize(new java.awt.Dimension(70, 24));
         gotoAddress.setPreferredSize(new java.awt.Dimension(70, 24));
@@ -187,31 +229,54 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_closeButtonActionPerformed
 
     private void gotoAddressStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_gotoAddressStateChanged
-        SpinnerNumberModel snmAddress = (SpinnerNumberModel)gotoAddress.getModel();
+        SpinnerNumberModel snmAddress = (SpinnerNumberModel) gotoAddress.getModel();
         hexView.gotoOffset(snmAddress.getNumber().longValue() & 0xffff);
     }//GEN-LAST:event_gotoAddressStateChanged
 
     private void memoryComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_memoryComboBoxActionPerformed
-        JComboBox cbx = (JComboBox)evt.getSource();
-        
+        JComboBox cbx = (JComboBox) evt.getSource();
+
         hexView.setDefinitionStatus(DefinitionStatus.UNDEFINED);
-        
+
         if (cbx.getSelectedIndex() == 0) {
             memory.setPageModeBrowser(8);
-            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 1));
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
         } else {
             memory.setPageModeBrowser(cbx.getSelectedIndex() - 1);
-            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 16383, 1));
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 16383, 256));
         }
-        
-        hexView.setData(memory);
+
+        hexView.setData(memory.getMemoryDataProvider());
         hexView.setDefinitionStatus(DefinitionStatus.DEFINED);
+        if (markPrintableCharacters.isSelected()) {
+            SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            markPrintableCharacters();
+                        }
+                    });
+        }
     }//GEN-LAST:event_memoryComboBoxActionPerformed
 
     private void addressLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_addressLabelMouseClicked
-        hexView.setAddressMode(hexView.getAddressMode() ==  JHexView.AddressMode.HEXADECIMAL ?
-                JHexView.AddressMode.DECIMAL : JHexView.AddressMode.HEXADECIMAL);
+        hexView.setAddressMode(hexView.getAddressMode() == JHexView.AddressMode.HEXADECIMAL
+            ? JHexView.AddressMode.DECIMAL : JHexView.AddressMode.HEXADECIMAL);
     }//GEN-LAST:event_addressLabelMouseClicked
+
+    private void markPrintableCharactersActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_markPrintableCharactersActionPerformed
+        if (markPrintableCharacters.isSelected()) {
+            SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            markPrintableCharacters();
+                        }
+                    });
+        } else {
+            hexView.uncolorizeAll(0);
+        }
+    }//GEN-LAST:event_markPrintableCharactersActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel addressLabel;
@@ -222,13 +287,89 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
     private javax.swing.Box.Filler filler2;
     private javax.swing.Box.Filler filler3;
     private javax.swing.Box.Filler filler4;
+    private javax.swing.Box.Filler filler5;
     private javax.swing.JSpinner gotoAddress;
     private javax.swing.JLabel gotoAddressLabel;
     private javax.swing.JPanel headerBrowserPanel;
     private javax.swing.JLabel hexViewLabel;
     private javax.swing.JPanel hexViewPanel;
+    private javax.swing.JLabel informationLabel;
+    private javax.swing.JPanel informationPanel;
+    private javax.swing.JCheckBox markPrintableCharacters;
     private javax.swing.JComboBox memoryComboBox;
     private javax.swing.JLabel memoryRangeLabel;
     private javax.swing.JPanel optionsPanel;
     // End of variables declaration//GEN-END:variables
+
+    private void markPrintableCharacters() {
+        hexView.uncolorizeAll(0);
+        
+        int end, page;
+        if (memoryComboBox.getSelectedIndex() == 0) {
+            end = 0x10000;
+            page = 8;
+        } else {
+            end = 0x4000;
+            page = memoryComboBox.getSelectedIndex() - 1;
+        }
+        
+        int value;
+        for (int address = 0, start = 0, length = 0; address < end; address++) {
+            if (page > 7) {
+                value = memory.readByte(address) & 0xff;
+            } else {
+                value = memory.readByte(page, address) & 0xff;
+            }
+            
+            if (value < ' ' || value > 0x7f) {
+                if (length > 0) {
+                    hexView.colorize(0, start, length, Color.WHITE, Color.BLACK);
+                    length = 0;
+                }
+                continue;
+            } else {
+                if (length == 0)
+                    start = address;
+                length++;
+            }
+        }
+    }
+    private class SelectionChangedListener implements IHexViewListener {
+
+        @Override
+        public void selectionChanged(long start, long length) {
+
+            if (spectrumModel != memory.getSpectrumModel()) {
+                spectrumModel = memory.getSpectrumModel();
+                memoryComboBox.setEnabled(memory.isModel128k());
+                memoryComboBox.setSelectedIndex(0);
+                memory.setPageModeBrowser(8);
+                hexView.setData(memory.getMemoryDataProvider());
+                gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+                if (markPrintableCharacters.isSelected()) {
+                    SwingUtilities.invokeLater(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            markPrintableCharacters();
+                        }
+                    });
+                }
+            }
+            
+            if (length == 1) {
+                int address = (int) (start / 2) & 0xffff;
+                int value;
+
+                if (memoryComboBox.getSelectedIndex() == 0) {
+                    value = memory.readByte(address) & 0xff;
+                } else {
+                    value = memory.readByte(memoryComboBox.getSelectedIndex() - 1, address) & 0xff;
+                }
+
+                informationLabel.setText(String.format(formatInfo, address, address, value, value));
+                gotoAddress.getModel().setValue(address);
+            }
+        }
+    }
 }
