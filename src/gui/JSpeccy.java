@@ -585,7 +585,9 @@ public class JSpeccy extends javax.swing.JFrame {
         linkedRadioButton = new javax.swing.JRadioButton();
         embeddedRadioButton = new javax.swing.JRadioButton();
         jPanel3 = new javax.swing.JPanel();
+        filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         saveSzxCloseButton = new javax.swing.JButton();
+        filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
         saveSzxButtonGroup = new javax.swing.ButtonGroup();
         pokeDialog = new javax.swing.JDialog();
         addrValuePanel = new javax.swing.JPanel();
@@ -597,7 +599,9 @@ public class JSpeccy extends javax.swing.JFrame {
         filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 16), new java.awt.Dimension(20, 16), new java.awt.Dimension(20, 16));
         pokeButton = new javax.swing.JButton();
         closePokeDialogPanel = new javax.swing.JPanel();
+        filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         closeButton = new javax.swing.JButton();
+        filler7 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
         statusPanel = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
@@ -860,6 +864,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
         saveSzxTape.getContentPane().add(jPanel4, java.awt.BorderLayout.CENTER);
 
+        jPanel3.setLayout(new javax.swing.BoxLayout(jPanel3, javax.swing.BoxLayout.LINE_AXIS));
+        jPanel3.add(filler4);
+
         saveSzxCloseButton.setText(bundle.getString("JSpeccy.saveSzxCloseButton.text")); // NOI18N
         saveSzxCloseButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -867,6 +874,7 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         jPanel3.add(saveSzxCloseButton);
+        jPanel3.add(filler5);
 
         saveSzxTape.getContentPane().add(jPanel3, java.awt.BorderLayout.PAGE_END);
 
@@ -908,6 +916,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
         pokeDialog.getContentPane().add(addrValuePanel);
 
+        closePokeDialogPanel.setLayout(new javax.swing.BoxLayout(closePokeDialogPanel, javax.swing.BoxLayout.LINE_AXIS));
+        closePokeDialogPanel.add(filler6);
+
         closeButton.setText(bundle.getString("JSpeccy.closeButton.text")); // NOI18N
         closeButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -915,6 +926,7 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         closePokeDialogPanel.add(closeButton);
+        closePokeDialogPanel.add(filler7);
 
         pokeDialog.getContentPane().add(closePokeDialogPanel);
 
@@ -2476,6 +2488,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.Box.Filler filler1;
     private javax.swing.Box.Filler filler2;
     private javax.swing.Box.Filler filler3;
+    private javax.swing.Box.Filler filler4;
+    private javax.swing.Box.Filler filler5;
+    private javax.swing.Box.Filler filler6;
+    private javax.swing.Box.Filler filler7;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
     private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;
