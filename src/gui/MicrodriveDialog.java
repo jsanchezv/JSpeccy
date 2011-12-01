@@ -106,7 +106,9 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         messageLabelPanel = new javax.swing.JPanel();
         messageLabel = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         closeButton = new javax.swing.JButton();
+        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
 
         driveNumber.setText("jMenuItem1");
         driveNumber.setEnabled(false);
@@ -179,6 +181,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         add(messageLabelPanel);
 
         jPanel2.setLayout(new javax.swing.BoxLayout(jPanel2, javax.swing.BoxLayout.LINE_AXIS));
+        jPanel2.add(filler1);
 
         closeButton.setText(bundle.getString("MicrodriveDialog.closeButton.text")); // NOI18N
         closeButton.addActionListener(new java.awt.event.ActionListener() {
@@ -187,6 +190,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
             }
         });
         jPanel2.add(closeButton);
+        jPanel2.add(filler2);
 
         add(jPanel2);
     }// </editor-fold>//GEN-END:initComponents
@@ -279,6 +283,8 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private javax.swing.JButton closeButton;
     private javax.swing.JMenuItem driveNumber;
     private javax.swing.JMenuItem ejectCartridge;
+    private javax.swing.Box.Filler filler1;
+    private javax.swing.Box.Filler filler2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
