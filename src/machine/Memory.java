@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package machine;
 
 import configuration.JSpeccySettingsType;
@@ -23,9 +22,9 @@ import tv.porst.jhexview.IDataChangedListener;
  *
  * @author jsanchez
  */
-public final class Memory implements tv.porst.jhexview.IDataProvider {
+public final class Memory {
+
     private final int PAGE_SIZE = 0x2000;
-    
     private byte[][] Rom48k = new byte[2][PAGE_SIZE];
     private byte[][] IF2Rom = new byte[2][PAGE_SIZE];
     private byte[][] Rom128k = new byte[4][PAGE_SIZE];
@@ -67,7 +66,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
     public MachineTypes getSpectrumModel() {
         return spectrumModel;
     }
-    
+
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
         reset();
@@ -90,7 +89,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         if (address < PAGE_SIZE) {
             return Ram[page][address];
         } else {
-            return Ram[page +  1][address & 0x1fff];
+            return Ram[page + 1][address & 0x1fff];
         }
     }
 
@@ -149,7 +148,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         readPages[6] = readPages[7] = Ram[4];
         writePages[4] = writePages[5] = fakeROM;
         writePages[6] = writePages[7] = fakeROM;
-        Arrays.fill(Ram[4], (byte)0xff);
+        Arrays.fill(Ram[4], (byte) 0xff);
         screenPage = 10;
         model128k = false;
     }
@@ -259,9 +258,10 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
     public void setPort7ffd(int port7ffd) {
 
 //        System.out.println(String.format("Port 0x7ffd: %02x", port7ffd));
-        if (pagingLocked)
+        if (pagingLocked) {
             return;
-        
+        }
+
         bankM = port7ffd & 0xff;
 
         // Set the page locking state
@@ -271,8 +271,9 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         screenPage = (port7ffd & 0x08) == 0 ? 10 : 14;
 
         // Si el +3 está en modo "all RAM" no se conmuta ROM ni RAM
-        if (plus3RamMode)
+        if (plus3RamMode) {
             return;
+        }
 
         // Set the high page
         highPage = port7ffd & 0x07;
@@ -280,9 +281,10 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
         // Si está funcionando el IF1, el IF2 o el MF, no tocar la ROM
-        if (IF1RomPaged || IF2RomPaged || mfPagedIn)
+        if (IF1RomPaged || IF2RomPaged || mfPagedIn) {
             return;
-        
+        }
+
         // Set the active ROM
         switch (spectrumModel) {
             case SPECTRUM128K:
@@ -323,8 +325,9 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
      */
     public void setPort1ffd(int port1ffd) {
 //        System.out.println(String.format("Port 0x1ffd: %02x", port1ffd));
-        if (pagingLocked)
+        if (pagingLocked) {
             return;
+        }
 
         bankP = port1ffd & 0x07;
 
@@ -332,12 +335,13 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
     }
 
     private void doPagingPlus3() {
-        
+
         // Normal paging mode (bit0 of 0x1ffd to 0)
         if ((bankP & 0x01) == 0) {
-            
-            if (mfPagedIn)
+
+            if (mfPagedIn) {
                 return;
+            }
 
             int rom = ((bankM & 0x10) >>> 3) | (bankP & 0x04);
 
@@ -435,11 +439,12 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
     }
 
     public boolean isSpectrumRom() {
-        if (mfPagedIn || IF1RomPaged || IF2RomPaged)
+        if (mfPagedIn || IF1RomPaged || IF2RomPaged) {
             return false;
+        }
 
         boolean res = false;
-        switch(spectrumModel.codeModel) {
+        switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
                 res = true;
                 break;
@@ -447,8 +452,9 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 res = (bankM & 0x10) != 0;
                 break;
             case SPECTRUMPLUS3:
-                if (!plus3RamMode)
+                if (!plus3RamMode) {
                     res = (((bankM & 0x10) >>> 3) | (bankP & 0x04)) == 6;
+                }
         }
         return res;
     }
@@ -472,9 +478,9 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 case 6: // Pages 4, 7, 6, 3
                     if (addr > 0x3FFF && addr < 0x5B00 && screenPage == 14) {
                         return true;
-                } else {
+                    } else {
                         return false;
-                }
+                    }
             }
         }
 
@@ -492,19 +498,19 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         }
         return false;
     }
-    
+
     public boolean isModel128k() {
         return model128k;
     }
 
     public void reset() {
-        
+
         mfPagedIn = false;
         IF1RomPaged = false;
         mfLocked = true;
         pagingLocked = plus3RamMode = false;
-        
-        switch(spectrumModel) {
+
+        switch (spectrumModel) {
             case SPECTRUM16K:
                 setMemoryMap16k();
                 break;
@@ -585,7 +591,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
      *     puerto 0x3f para activar el bloqueo y con un OUT al puerto 0xbf para desactivar
      *     el bloqueo (es así como funciona la opción de ON/OFF del menú del MF). Esta
      *     escritura funciona siempre que esté paginada la ROM del MF, el bloqueo
-     ^     desactivado y, supuestamente, pero no lo he comprobado, que el PC esté
+    ^     desactivado y, supuestamente, pero no lo he comprobado, que el PC esté
      *     en una dirección por debajo de 0x4000.
      *     El valor enviado al puerto parece que es indiferente. El amigo Woodster, del
      *     canal SPIN, me dijo el 12/09/2010:
@@ -603,17 +609,19 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
      *
      */
     public void pageMultiface() {
-        if (mfPagedIn || plus3RamMode)
+        if (mfPagedIn || plus3RamMode) {
             return;
+        }
 
         mfPagedIn = true;
 //        System.out.println("Multiface paged IN");
         switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
-                if (settings.getSpectrumSettings().isMf128On48K())
+                if (settings.getSpectrumSettings().isMf128On48K()) {
                     readPages[0] = mfROM[1];
-                else
+                } else {
                     readPages[0] = mfROM[0];
+                }
                 break;
             case SPECTRUM128K:
                 readPages[0] = mfROM[1];
@@ -632,24 +640,25 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
      * (ROM1 para el 128k/+2 y ROM3 para el +2A/+3.
      */
     public void unpageMultiface() {
-        if (!mfPagedIn)
+        if (!mfPagedIn) {
             return;
-        
+        }
+
         mfPagedIn = false;
-        
+
         writePages[0] = writePages[1] = fakeROM;
-        
+
         if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
             return;
         }
-        
+
         if (IF1RomPaged) {
             readPages[0] = readPages[1] = IF1Rom[0];
             return;
         }
-        
+
 //        System.out.println("Multiface paged OUT");
         switch (spectrumModel) {
             case SPECTRUM16K:
@@ -717,24 +726,25 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         reset();
     }
 
-    public boolean isIF2RomPaged()  {
+    public boolean isIF2RomPaged() {
         return IF2RomPaged;
     }
-    
+
     /*
      * La ROM del IF1 es de 8K y cuando es paginada replica las direcciones
      * entre 0x0000-0x1FFF en 0x2000-0x3FFF. Gracias a mcleod_ideafix por
      * investigarlo. :)
      */
     public void pageIF1Rom() {
-        if (IF1RomPaged)
+        if (IF1RomPaged) {
             return;
-        
+        }
+
         IF1RomPaged = true;
         readPages[0] = readPages[1] = IF1Rom[0];
         writePages[0] = writePages[1] = fakeROM;
     }
-    
+
     public void unpageIF1Rom() {
         if (!IF1RomPaged) {
             return;
@@ -748,7 +758,7 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
             writePages[0] = writePages[1] = fakeROM;
             return;
         }
-        
+
         if (mfPagedIn) {
             switch (spectrumModel.codeModel) {
                 case SPECTRUM48K:
@@ -795,48 +805,62 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
         }
     }
 
-    public boolean isIF1RomPaged()  {
+    public boolean isIF1RomPaged() {
         return IF1RomPaged;
     }
-    
+
     public void loadRoms() {
         MemoryType conf = settings.getMemorySettings();
         String romsDirectory = conf.getRomsDirectory();
 
-        if (!romsDirectory.isEmpty() && !romsDirectory.endsWith("/"))
+        if (!romsDirectory.isEmpty() && !romsDirectory.endsWith("/")) {
             romsDirectory += "/";
+        }
 
-        if (!loadRomAsFile(romsDirectory + conf.getRom48K(), Rom48k, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRom48K(), Rom48k, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/spectrum.rom", Rom48k, 0, PAGE_SIZE * 2);
-        
-        if (!loadRomAsFile(romsDirectory + conf.getRomIF1(), IF1Rom, 0, PAGE_SIZE))
+        }
+
+        if (!loadRomAsFile(romsDirectory + conf.getRomIF1(), IF1Rom, 0, PAGE_SIZE)) {
             loadRomAsResource("/roms/if1.rom", IF1Rom, 0, PAGE_SIZE);
+        }
 
-        if (!loadRomAsFile(romsDirectory + conf.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRom128K0(), Rom128k, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/128-0.rom", Rom128k, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + conf.getRom128K1(), Rom128k, 2,PAGE_SIZE * 2))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRom128K1(), Rom128k, 2, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/128-1.rom", Rom128k, 2, PAGE_SIZE * 2);
+        }
 
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus20(), RomPlus2, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus20(), RomPlus2, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus2-0.rom", RomPlus2, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus21(), RomPlus2, 2, PAGE_SIZE * 2))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus21(), RomPlus2, 2, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus2-1.rom", RomPlus2, 2, PAGE_SIZE * 2);
+        }
 
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2))
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-0.rom", RomPlus3, 0, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus31(), RomPlus3, 2, PAGE_SIZE * 2))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus31(), RomPlus3, 2, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-1.rom", RomPlus3, 2, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus32(), RomPlus3, 4, PAGE_SIZE * 2))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus32(), RomPlus3, 4, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-2.rom", RomPlus3, 4, PAGE_SIZE * 2);
-        if (!loadRomAsFile(romsDirectory + conf.getRomPlus33(), RomPlus3, 6, PAGE_SIZE * 2))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus33(), RomPlus3, 6, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-3.rom", RomPlus3, 6, PAGE_SIZE * 2);
+        }
 
-        if (!loadRomAsFile(romsDirectory + conf.getRomMF1(), mfROM, 0, PAGE_SIZE))
+        if (!loadRomAsFile(romsDirectory + conf.getRomMF1(), mfROM, 0, PAGE_SIZE)) {
             loadRomAsResource("/roms/mf1.rom", mfROM, 0, PAGE_SIZE);
-        if (!loadRomAsFile(romsDirectory + conf.getRomMF128(), mfROM, 1, PAGE_SIZE))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomMF128(), mfROM, 1, PAGE_SIZE)) {
             loadRomAsResource("/roms/mf128.rom", mfROM, 1, PAGE_SIZE);
-        if (!loadRomAsFile(romsDirectory + conf.getRomMFPlus3(), mfROM, 2, PAGE_SIZE))
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomMFPlus3(), mfROM, 2, PAGE_SIZE)) {
             loadRomAsResource("/roms/mfplus3.rom", mfROM, 2, PAGE_SIZE);
+        }
     }
 
     private boolean loadRomAsResource(String filename, byte[][] rom, int page, int size) {
@@ -846,8 +870,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
         if (inRom == null) {
             String msg =
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "RESOURCE_ROM_ERROR");
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "RESOURCE_ROM_ERROR");
             System.out.println(String.format("%s: %s", msg, filename));
             return false;
         }
@@ -861,8 +885,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
                 if (count != PAGE_SIZE) {
                     String msg =
-                            java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                            "ROM_SIZE_ERROR");
+                        java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                        "ROM_SIZE_ERROR");
                     System.out.println(String.format("%s: %s", msg, filename));
                 } else {
                     res = true;
@@ -884,8 +908,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
         if (res) {
             String msg =
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "ROM_RESOURCE_LOADED");
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "ROM_RESOURCE_LOADED");
             System.out.println(String.format("%s: %s", msg, filename));
         }
 
@@ -901,8 +925,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
                 String msg =
-                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                "FILE_ROM_ERROR");
+                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                    "FILE_ROM_ERROR");
                 System.out.println(String.format("%s: %s", msg, filename));
                 //Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
@@ -916,8 +940,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
                 if (count != PAGE_SIZE) {
                     String msg =
-                            java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                            "ROM_SIZE_ERROR");
+                        java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                        "ROM_SIZE_ERROR");
                     System.out.println(String.format("%s: %s", msg, filename));
                 } else {
                     res = true;
@@ -931,8 +955,9 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
             Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
-                if (fIn != null)
+                if (fIn != null) {
                     fIn.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -940,8 +965,8 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
 
         if (res) {
             String msg =
-                    java.util.ResourceBundle.getBundle("machine/Bundle").getString(
-                    "ROM_FILE_LOADED");
+                java.util.ResourceBundle.getBundle("machine/Bundle").getString(
+                "ROM_FILE_LOADED");
             System.out.println(String.format("%s: %s", msg, filename));
         }
 
@@ -958,24 +983,27 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 return false;
             }
 
-            if (fIn.available() > 0x4000)
+            if (fIn.available() > 0x4000) {
                 return false;
+            }
 
-            Arrays.fill(IF2Rom[0], (byte)0xff);
-            Arrays.fill(IF2Rom[1], (byte)0xff);
+            Arrays.fill(IF2Rom[0], (byte) 0xff);
+            Arrays.fill(IF2Rom[1], (byte) 0xff);
             int readed = fIn.read(IF2Rom[0], 0, 0x2000);
-            if (readed == -1)
+            if (readed == -1) {
                 return false;
-            
+            }
+
             if (readed < 0x2000) {
                 return true;
             }
 
-            if (fIn.available() > 0 ) {
+            if (fIn.available() > 0) {
                 readed = fIn.read(IF2Rom[1], 0, 0x2000);
 
-                if (readed == -1)
+                if (readed == -1) {
                     return false;
+                }
             }
 
         } catch (IOException ex) {
@@ -987,94 +1015,105 @@ public final class Memory implements tv.porst.jhexview.IDataProvider {
                 Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
         return true;
     }
-
-    private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
     
+    private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
     public void setPageModeBrowser(int page) {
         pageModeBrowser = page;
     }
     
-    // Interface implementation for JHexView
-    @Override
-    public void addListener(IDataChangedListener hexView) {
+    MemoryDataProvider memoryDataProvider;
+    public MemoryDataProvider getMemoryDataProvider() {
+        
+        if (memoryDataProvider == null)
+            memoryDataProvider =  new MemoryDataProvider();
+        
+        return memoryDataProvider;
     }
 
-    @Override
-    public byte[] getData() {
-        byte ram[];
-        
-        if (pageModeBrowser > 7) {
-            ram = new byte[0x10000];
-            System.arraycopy(readPages[0], 0, ram, 0, PAGE_SIZE);
-            System.arraycopy(readPages[1], 0, ram, 0x2000, PAGE_SIZE);
-            System.arraycopy(readPages[2], 0, ram, 0x4000, PAGE_SIZE);
-            System.arraycopy(readPages[3], 0, ram, 0x6000, PAGE_SIZE);
-            System.arraycopy(readPages[4], 0, ram, 0x8000, PAGE_SIZE);
-            System.arraycopy(readPages[5], 0, ram, 0xA000, PAGE_SIZE);
-            System.arraycopy(readPages[6], 0, ram, 0xC000, PAGE_SIZE);
-            System.arraycopy(readPages[7], 0, ram, 0xD000, PAGE_SIZE);
-        } else {
-            ram = new byte[PAGE_SIZE << 1];
-            System.arraycopy(Ram[pageModeBrowser << 1], 0, ram, 0, PAGE_SIZE);
-            System.arraycopy(Ram[(pageModeBrowser << 1) + 1], 0, ram, 0x2000, PAGE_SIZE);
+    private class MemoryDataProvider implements tv.porst.jhexview.IDataProvider {
+        // Interface implementation for JHexView
+
+        @Override
+        public void addListener(IDataChangedListener hexView) {
         }
-        
-        return ram;
-    }
 
-    @Override
-    public byte[] getData(long offset, int length) {
-        byte ram[] = new byte[length];
-        
-        if (pageModeBrowser > 7) {
-            for (int addr = 0; addr < length; addr++) {
-                ram[addr] = readByte((int) (addr + offset));
+        @Override
+        public byte[] getData() {
+            byte ram[];
+
+            if (pageModeBrowser > 7) {
+                ram = new byte[0x10000];
+                System.arraycopy(readPages[0], 0, ram, 0, PAGE_SIZE);
+                System.arraycopy(readPages[1], 0, ram, 0x2000, PAGE_SIZE);
+                System.arraycopy(readPages[2], 0, ram, 0x4000, PAGE_SIZE);
+                System.arraycopy(readPages[3], 0, ram, 0x6000, PAGE_SIZE);
+                System.arraycopy(readPages[4], 0, ram, 0x8000, PAGE_SIZE);
+                System.arraycopy(readPages[5], 0, ram, 0xA000, PAGE_SIZE);
+                System.arraycopy(readPages[6], 0, ram, 0xC000, PAGE_SIZE);
+                System.arraycopy(readPages[7], 0, ram, 0xD000, PAGE_SIZE);
+            } else {
+                ram = new byte[PAGE_SIZE << 1];
+                System.arraycopy(Ram[pageModeBrowser << 1], 0, ram, 0, PAGE_SIZE);
+                System.arraycopy(Ram[(pageModeBrowser << 1) + 1], 0, ram, 0x2000, PAGE_SIZE);
             }
-        } else {
-            for (int addr = 0; addr < length; addr++) {
-                ram[addr] = readByte(pageModeBrowser, (int) (addr + offset));
-            }
+
+            return ram;
         }
-        
-        return ram;
-    }
 
-    @Override
-    public int getDataLength() {
-        return pageModeBrowser > 7 ? 0x10000 : 0x4000;
-    }
+        @Override
+        public byte[] getData(long offset, int length) {
+            byte ram[] = new byte[length];
 
-    @Override
-    public boolean hasData(long start, int length) {
-        return true;
-    }
-
-    @Override
-    public boolean isEditable() {
-        return true;
-    }
-
-    @Override
-    public boolean keepTrying() {
-        return false;
-    }
-
-    @Override
-    public void removeListener(IDataChangedListener listener) {
-    }
-
-    @Override
-    public void setData(long offset, byte[] data) {
-        if (pageModeBrowser > 7) {
-            for (int addr = 0; addr < data.length; addr++) {
-                writeByte((int) (addr + offset), data[addr]);
+            if (pageModeBrowser > 7) {
+                for (int addr = 0; addr < length; addr++) {
+                    ram[addr] = readByte((int) (addr + offset));
+                }
+            } else {
+                for (int addr = 0; addr < length; addr++) {
+                    ram[addr] = readByte(pageModeBrowser, (int) (addr + offset));
+                }
             }
-        } else {
-            for (int addr = 0; addr < data.length; addr++) {
-                writeByte(pageModeBrowser, (int) (addr + offset), data[addr]);
+
+            return ram;
+        }
+
+        @Override
+        public int getDataLength() {
+            return pageModeBrowser > 7 ? 0x10000 : 0x4000;
+        }
+
+        @Override
+        public boolean hasData(long start, int length) {
+            return true;
+        }
+
+        @Override
+        public boolean isEditable() {
+            return true;
+        }
+
+        @Override
+        public boolean keepTrying() {
+            return false;
+        }
+
+        @Override
+        public void removeListener(IDataChangedListener listener) {
+        }
+
+        @Override
+        public void setData(long offset, byte[] data) {
+            if (pageModeBrowser > 7) {
+                for (int addr = 0; addr < data.length; addr++) {
+                    writeByte((int) (addr + offset), data[addr]);
+                }
+            } else {
+                for (int addr = 0; addr < data.length; addr++) {
+                    writeByte(pageModeBrowser, (int) (addr + offset), data[addr]);
+                }
             }
         }
     }
