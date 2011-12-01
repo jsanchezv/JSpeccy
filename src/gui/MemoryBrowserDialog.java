@@ -62,7 +62,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         if (memoryBrowserDialog == null) {
             memoryBrowserDialog = new JDialog(owner, false);
             memoryBrowserDialog.setMinimumSize(new Dimension(30, 200));
-            memoryBrowserDialog.setMaximumSize(new Dimension(520, 200));
+            memoryBrowserDialog.setMaximumSize(new Dimension(520, 800));
             memoryBrowserDialog.getContentPane().add(this);
             memoryBrowserDialog.pack();
         }
@@ -73,7 +73,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             memoryComboBox.setSelectedIndex(0);
             memory.setPageModeBrowser(8);
             hexView.setData(memory.getMemoryDataProvider());
-            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 16));
             if (markPrintableCharacters.isSelected()) {
                 SwingUtilities.invokeLater(new Runnable() {
 
@@ -118,13 +118,16 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         memoryComboBox = new javax.swing.JComboBox();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25), new java.awt.Dimension(16, 25));
         closePanel = new javax.swing.JPanel();
+        filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         closeButton = new javax.swing.JButton();
+        filler7 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
 
         setMaximumSize(new java.awt.Dimension(520, 800));
         setMinimumSize(new java.awt.Dimension(30, 200));
-        setPreferredSize(new java.awt.Dimension(520, 405));
+        setPreferredSize(new java.awt.Dimension(512, 430));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
+        headerBrowserPanel.setPreferredSize(new java.awt.Dimension(512, 21));
         headerBrowserPanel.setLayout(new javax.swing.BoxLayout(headerBrowserPanel, javax.swing.BoxLayout.LINE_AXIS));
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -154,9 +157,12 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         add(headerBrowserPanel);
 
         hexViewPanel.setMinimumSize(new java.awt.Dimension(50, 50));
-        hexViewPanel.setPreferredSize(new java.awt.Dimension(495, 300));
+        hexViewPanel.setPreferredSize(new java.awt.Dimension(512, 300));
         hexViewPanel.setLayout(new javax.swing.BoxLayout(hexViewPanel, javax.swing.BoxLayout.LINE_AXIS));
         add(hexViewPanel);
+
+        informationPanel.setMinimumSize(new java.awt.Dimension(513, 34));
+        informationPanel.setPreferredSize(new java.awt.Dimension(512, 34));
 
         informationLabel.setText(bundle.getString("MemoryBrowserDialog.informationLabel.txt")); // NOI18N
         informationPanel.add(informationLabel);
@@ -173,14 +179,14 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         add(informationPanel);
 
         optionsPanel.setMaximumSize(new java.awt.Dimension(32767, 25));
-        optionsPanel.setPreferredSize(new java.awt.Dimension(495, 50));
+        optionsPanel.setPreferredSize(new java.awt.Dimension(512, 50));
         optionsPanel.setLayout(new javax.swing.BoxLayout(optionsPanel, javax.swing.BoxLayout.LINE_AXIS));
         optionsPanel.add(filler2);
 
         gotoAddressLabel.setText(bundle.getString("MemoryBrowserDialog.gotoAddress.txt")); // NOI18N
         optionsPanel.add(gotoAddressLabel);
 
-        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+        gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 16));
         gotoAddress.setMaximumSize(new java.awt.Dimension(100, 24));
         gotoAddress.setMinimumSize(new java.awt.Dimension(70, 24));
         gotoAddress.setPreferredSize(new java.awt.Dimension(70, 24));
@@ -210,8 +216,9 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
         add(optionsPanel);
 
-        closePanel.setPreferredSize(new java.awt.Dimension(495, 70));
+        closePanel.setPreferredSize(new java.awt.Dimension(512, 70));
         closePanel.setLayout(new javax.swing.BoxLayout(closePanel, javax.swing.BoxLayout.LINE_AXIS));
+        closePanel.add(filler6);
 
         closeButton.setText(bundle.getString("MemoryBrowser.closeButton.text")); // NOI18N
         closeButton.addActionListener(new java.awt.event.ActionListener() {
@@ -220,6 +227,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             }
         });
         closePanel.add(closeButton);
+        closePanel.add(filler7);
 
         add(closePanel);
     }// </editor-fold>//GEN-END:initComponents
@@ -240,10 +248,10 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
         if (cbx.getSelectedIndex() == 0) {
             memory.setPageModeBrowser(8);
-            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 16));
         } else {
             memory.setPageModeBrowser(cbx.getSelectedIndex() - 1);
-            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 16383, 256));
+            gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 16383, 16));
         }
 
         hexView.setData(memory.getMemoryDataProvider());
@@ -288,6 +296,8 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
     private javax.swing.Box.Filler filler3;
     private javax.swing.Box.Filler filler4;
     private javax.swing.Box.Filler filler5;
+    private javax.swing.Box.Filler filler6;
+    private javax.swing.Box.Filler filler7;
     private javax.swing.JSpinner gotoAddress;
     private javax.swing.JLabel gotoAddressLabel;
     private javax.swing.JPanel headerBrowserPanel;
@@ -321,12 +331,11 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                 value = memory.readByte(page, address) & 0xff;
             }
             
-            if (value < ' ' || value > 0x7f) {
+            if (value < ' ' || value > '~') {
                 if (length > 0) {
-                    hexView.colorize(0, start, length, Color.WHITE, Color.BLACK);
+                    hexView.colorize(0, start, length, Color.YELLOW, Color.BLUE);
                     length = 0;
                 }
-                continue;
             } else {
                 if (length == 0)
                     start = address;
@@ -345,7 +354,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                 memoryComboBox.setSelectedIndex(0);
                 memory.setPageModeBrowser(8);
                 hexView.setData(memory.getMemoryDataProvider());
-                gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 256));
+                gotoAddress.setModel(new javax.swing.SpinnerNumberModel(0, 0, 65535, 16));
                 if (markPrintableCharacters.isSelected()) {
                     SwingUtilities.invokeLater(new Runnable() {
 
