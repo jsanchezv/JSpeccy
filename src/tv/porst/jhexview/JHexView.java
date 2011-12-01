@@ -757,7 +757,7 @@ public final class JHexView extends JComponent {
 
         final int bytesToDraw = getMaximumVisibleBytes();
 
-        final String formatString = m_addressMode == AddressMode.HEXADECIMAL ? "%04X" : "%05d";
+        final String formatString = m_addressMode == AddressMode.HEXADECIMAL ? " %04X" : "%05d";
 
         // Iterate over the data and print the offsets
         for (int i = 0; i < bytesToDraw; i += m_bytesPerRow) {
@@ -1219,7 +1219,7 @@ public final class JHexView extends JComponent {
     private boolean isPositionVisible(final long position) {
 
         final int firstVisible = getFirstVisibleByte();
-        final int lastVisible = firstVisible + getMaximumVisibleBytes();
+        final int lastVisible = firstVisible + getMaximumVisibleBytes() - 1;
 
         return position >= 2 * firstVisible && position <= 2 * lastVisible;
     }
@@ -1329,7 +1329,7 @@ public final class JHexView extends JComponent {
      * currently selected address mode.
      */
     private void updateOffsetViewWidth() {
-        final int addressBytes = m_addressMode == AddressMode.HEXADECIMAL ? 4 : 5;
+        final int addressBytes = m_addressMode == AddressMode.HEXADECIMAL ? 5 : 5;
         m_offsetViewWidth = PADDING_OFFSETVIEW + m_charWidth * addressBytes;
     }
 
