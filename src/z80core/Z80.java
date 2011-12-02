@@ -113,11 +113,16 @@
  *          DD/FD que no van seguidas de un código de instrucción adecuado a IX o IY.
  *          Tal y como se trataban hasta ahora, se comprobaban las interrupciones entre
  *          el/los códigos DD/FD y el código de instrucción que le seguía.
+ * 
+ *          02/12/2011 Creados los métodos necesarios para poder grabar y cargar el
+ *          estado de la CPU de una sola vez a través de la clase Z80State. Los modos
+ *          de interrupción pasan a estar en una enumeración.
  *
  */
 package z80core;
 
 import java.util.Arrays;
+import snapshots.Z80State;
 
 public class Z80 {
 
@@ -126,7 +131,7 @@ public class Z80 {
     // Código de instrucción a ejecutar
     private int opCode;
     // Número de estados T que se llevan ejecutados
-    public int tEstados;
+    public int tstates;
     private boolean execDone;
     private int timeout, counter;
     // Posiciones de los flags
@@ -183,12 +188,10 @@ public class Z80 {
     // En el 48 la línea INT se activa durante 32 ciclos de reloj
     // En el 128 y superiores, se activa 36 ciclos de reloj
     private boolean activeINT = false;
+    // Modos de interrupción
+    public enum IntMode { IM0, IM1, IM2 };
     // Modo de interrupción
-    private int modeINT = 0;
-    // Posibles modos de interrupción
-    public final int IM0 = 0;
-    public final int IM1 = 1;
-    public final int IM2 = 2;
+    private IntMode modeINT = IntMode.IM0;
     // halted == true cuando la CPU está ejecutando un HALT (28/03/2010)
     private boolean halted = false;
     // pinReset == true, se ha producido un reset a través de la patilla
@@ -272,7 +275,7 @@ public class Z80 {
     public Z80(MemIoOps memory, NotifyOps notify) {
         MemIoImpl = memory;
         NotifyImpl = notify;
-        tEstados = timeout = 0;
+        tstates = timeout = 0;
         execDone = false;
         Arrays.fill(breakpointAt, false);
         reset();
@@ -685,22 +688,34 @@ public class Z80 {
         ffIFF2 = state;
     }
 
+    public final boolean isNMI() {
+        return activeNMI;
+    }
+    
+    public final void setNMI(boolean nmi) {
+        activeNMI = nmi;
+    }
+
     // La línea de NMI se activa por impulso, no por nivel
     public final void triggerNMI() {
         activeNMI = true;
     }
 
     // La línea INT se activa por nivel
+    public final boolean isINTLine() {
+        return activeINT;
+    }
+    
     public final void setINTLine(boolean intLine) {
         activeINT = intLine;
     }
 
     //Acceso al modo de interrupción
-    public final int getIM() {
+    public final IntMode getIM() {
         return modeINT;
     }
 
-    public final void setIM(int mode) {
+    public final void setIM(IntMode mode) {
         modeINT = mode;
     }
 
@@ -716,6 +731,66 @@ public class Z80 {
         pinReset = true;
     }
 
+    public final boolean isPendingEI() {
+        return pendingEI;
+    }
+    
+    public final void setPendingEI(boolean state) {
+        pendingEI = state;
+    }
+    
+    public final void getZ80State(Z80State state) {
+        state.setRegAF(getRegAF());
+        state.setRegBC(getRegBC());
+        state.setRegDE(getRegDE());
+        state.setRegHL(getRegHL());
+        state.setRegAFalt(getRegAFalt());
+        state.setRegBCalt(getRegBCalt());
+        state.setRegDEalt(getRegDEalt());
+        state.setRegHLalt(getRegHLalt());
+        state.setRegIX(regIX);
+        state.setRegIY(regIY);
+        state.setRegSP(regSP);
+        state.setRegPC(regPC);
+        state.setRegI(regI);
+        state.setRegR(getRegR());
+        state.setMemPtr(memptr);
+        state.setHalted(halted);
+        state.setIFF1(ffIFF1);
+        state.setIFF2(ffIFF2);
+        state.setIM(modeINT);
+        state.setINTLine(activeINT);
+        state.setPendingEI(pendingEI);
+        state.setNMI(activeNMI);
+        state.setTstates(tstates);
+    }
+    
+    public final void setZ80State(Z80State state) {
+        setRegAF(state.getRegAF());
+        setRegBC(state.getRegBC());
+        setRegDE(state.getRegDE());
+        setRegHL(state.getRegHL());
+        setRegAFalt(state.getRegAFalt());
+        setRegBCalt(state.getRegBCalt());
+        setRegDEalt(state.getRegDEalt());
+        setRegHLalt(state.getRegHLalt());
+        regIX = state.getRegIX();
+        regIY = state.getRegIY();
+        regSP = state.getRegSP();
+        regPC = state.getRegPC();
+        regI = state.getRegI();
+        setRegR(state.getRegR());
+        memptr = state.getMemPtr();
+        halted = state.isHalted();
+        ffIFF1 = state.isIFF1();
+        ffIFF2 = state.isIFF1();
+        modeINT = state.getIM();
+        activeINT = state.isINTLine();
+        pendingEI = state.isPendingEI();
+        activeNMI = state.isNMI();
+        tstates = state.getTstates();
+    }
+    
     // Reset
     /* Según el documento de Sean Young, que se encuentra en
      * [http://www.myquest.com/z80undocumented], la mejor manera de emular el
@@ -761,9 +836,9 @@ public class Z80 {
         activeNMI = false;
         activeINT = false;
         halted = false;
-        setIM(IM0);
+        setIM(IntMode.IM0);
 
-        tEstados = 0;
+        tstates = 0;
     }
 
     // Rota a la izquierda el valor del argumento
@@ -1471,12 +1546,12 @@ public class Z80 {
             regPC = (regPC + 1) & 0xffff;
         }
 
-        tEstados += 7;
+        tstates += 7;
 
         regR++;
         ffIFF1 = ffIFF2 = false;
         push(regPC);  // el push añadirá 6 t-estados (+contended si toca)
-        if (modeINT == IM2) {
+        if (modeINT == IntMode.IM2) {
             regPC = MemIoImpl.peek16((regI << 8) | 0xff); // +6 t-estados
         } else {
             regPC = 0x0038;
@@ -1496,7 +1571,7 @@ public class Z80 {
         //      1.- La lectura del opcode del M1 que se descarta
         //      2.- Si estaba en un HALT esperando una INT, lo saca de la espera
         MemIoImpl.fetchOpcode(regPC);
-        tEstados++;
+        tstates++;
         if (halted) {
             halted = false;
             regPC = (regPC + 1) & 0xffff;
@@ -1509,17 +1584,17 @@ public class Z80 {
 
     //Devuelve el número de estados T ejecutados en el ciclo
     public final int getTEstados() {
-        return tEstados;
+        return tstates;
     }
 
     // Inicia los T-estados a un valor
     public final void setTEstados(int tstates) {
-        tEstados = tstates;
+        this.tstates = tstates;
     }
 
     // Añade los t-estados de retraso de la contended memory
     public final void addTEstados(int delay) {
-        tEstados += delay;
+        tstates += delay;
     }
 
     public final void setExecDone(boolean notify) {
@@ -1556,8 +1631,8 @@ public class Z80 {
      */
     public final int execute(int statesLimit) {
 
-        while (tEstados < statesLimit) {
-            int tmp = tEstados;
+        while (tstates < statesLimit) {
+            int tmp = tstates;
 
             // Primero se comprueba NMI
             if (activeNMI) {
@@ -1591,7 +1666,7 @@ public class Z80 {
             }
 
             if (execDone) {
-                counter += (tEstados - tmp);
+                counter += (tstates - tmp);
                 
                 if (counter >= timeout) {
                     NotifyImpl.execDone(counter);
@@ -1600,7 +1675,7 @@ public class Z80 {
             }
 
         } /* del while */
-        return tEstados;
+        return tstates;
     }
 
     private void decodeOpcode(int opCode) {
@@ -5865,7 +5940,7 @@ public class Z80 {
             case 0x4E:
             case 0x66:
             case 0x6E: {     /* IM 0 */
-                setIM(IM0);
+                setIM(IntMode.IM0);
                 break;
             }
             case 0x47: {     /* LD I,A */
@@ -5926,7 +6001,7 @@ public class Z80 {
             }
             case 0x56:
             case 0x76: {     /* IM 1 */
-                setIM(IM1);
+                setIM(IntMode.IM1);
                 break;
             }
             case 0x57: {     /* LD A,I */
@@ -5961,7 +6036,7 @@ public class Z80 {
             }
             case 0x5E:
             case 0x7E: {     /* IM 2 */
-                setIM(IM2);
+                setIM(IntMode.IM2);
                 break;
             }
             case 0x5F: {     /* LD A,R */

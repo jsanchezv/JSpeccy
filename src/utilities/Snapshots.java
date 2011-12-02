@@ -21,6 +21,8 @@ import java.util.zip.InflaterInputStream;
 import machine.MachineTypes;
 import machine.Memory;
 import machine.Spectrum.Joystick;
+import snapshots.Z80State;
+import z80core.Z80.IntMode;
 
 /**
  *
@@ -31,8 +33,9 @@ public class Snapshots {
     private int regAF, regBC, regDE, regHL;
     private int regAFalt, regBCalt, regDEalt, regHLalt;
     private int regIX, regIY, regPC, regSP;
-    private int regI, regR, modeIM, memptr;
-    private boolean iff1, iff2;
+    private int regI, regR, memptr;
+    private IntMode modeIM;
+    private boolean iff1, iff2, halted, activeINT, pendingEI, activeNMI;
     private int last7ffd;
     private int last1ffd;
     private boolean enabledAY;
@@ -58,7 +61,6 @@ public class Snapshots {
     private byte tapeData[];
     private int tapeBlock;
     private String tapeName, tapeExtension;
-
     private MachineTypes snapshotModel;
     private int border;
     private int tstates;
@@ -99,150 +101,58 @@ public class Snapshots {
         snapshotModel = model;
     }
 
-    public int getRegAF() {
-        return regAF;
-    }
-
-    public void setRegAF(int value) {
-        regAF = value;
-    }
-
-    public int getRegBC() {
-        return regBC;
-    }
-
-    public void setRegBC(int value) {
-        regBC = value;
-    }
-
-    public int getRegDE() {
-        return regDE;
-    }
-
-    public void setRegDE(int value) {
-        regDE = value;
-    }
-
-    public int getRegHL() {
-        return regHL;
-    }
-
-    public void setRegHL(int value) {
-        regHL = value;
-    }
-
-    public int getRegAFalt() {
-        return regAFalt;
-    }
-
-    public void setRegAFalt(int value) {
-        regAFalt = value;
-    }
-
-    public int getRegBCalt() {
-        return regBCalt;
-    }
-
-    public void setRegBCalt(int value) {
-        regBCalt = value;
-    }
-
-    public int getRegDEalt() {
-        return regDEalt;
-    }
-
-    public void setRegDEalt(int value) {
-        regDEalt = value;
-    }
-
-    public int getRegHLalt() {
-        return regHLalt;
-    }
-
-    public void setRegHLalt(int value) {
-        regHLalt = value;
-    }
-
-    public int getRegIX() {
-        return regIX;
-    }
-
-    public void setRegIX(int value) {
-        regIX = value;
-    }
-
-    public int getRegIY() {
-        return regIY;
-    }
-
-    public void setRegIY(int value) {
-        regIY = value;
-    }
-
-    public int getRegSP() {
-        return regSP;
-    }
-
-    public void setRegSP(int value) {
-        regSP = value;
-    }
-
-    public int getRegPC() {
-        return regPC;
-    }
-
-    public void setRegPC(int value) {
-        regPC = value;
-    }
-
-    public int getRegI() {
-        return regI;
-    }
-
-    public void setRegI(int value) {
-        regI = value;
-    }
-
-    public int getRegR() {
-        return regR;
-    }
-
-    public void setRegR(int value) {
-        regR = value;
-    }
-
-    public int getModeIM() {
-        return modeIM;
-    }
-
-    public void setModeIM(int value) {
-        modeIM = value;
+    public final void getZ80State(Z80State state) {
+        state.setRegAF(regAF);
+        state.setRegBC(regBC);
+        state.setRegDE(regDE);
+        state.setRegHL(regHL);
+        state.setRegAFalt(regAFalt);
+        state.setRegBCalt(regBCalt);
+        state.setRegDEalt(regDEalt);
+        state.setRegHLalt(regHLalt);
+        state.setRegIX(regIX);
+        state.setRegIY(regIY);
+        state.setRegSP(regSP);
+        state.setRegPC(regPC);
+        state.setRegI(regI);
+        state.setRegR(regR);
+        state.setMemPtr(memptr);
+        state.setHalted(halted);
+        state.setIFF1(iff1);
+        state.setIFF2(iff2);
+        state.setIM(modeIM);
+        state.setINTLine(activeINT);
+        state.setPendingEI(pendingEI);
+        state.setNMI(activeNMI);
+        state.setTstates(tstates);
     }
     
-    public int getMemPtr() {
-        return memptr;
+    public final void setZ80State(Z80State state) {
+        regAF = state.getRegAF();
+        regBC = state.getRegBC();
+        regDE = state.getRegDE();
+        regHL = state.getRegHL();
+        regAFalt = state.getRegAFalt();
+        regBCalt = state.getRegBCalt();
+        regDEalt = state.getRegDEalt();
+        regHLalt = state.getRegHLalt();
+        regIX = state.getRegIX();
+        regIY = state.getRegIY();
+        regSP = state.getRegSP();
+        regPC = state.getRegPC();
+        regI = state.getRegI();
+        regR = state.getRegR();
+        memptr = state.getMemPtr();
+        halted = state.isHalted();
+        iff1 = state.isIFF1();
+        iff2 = state.isIFF1();
+        modeIM = state.getIM();
+        activeINT = state.isINTLine();
+        pendingEI = state.isPendingEI();
+        activeNMI = state.isNMI();
+        tstates = state.getTstates();
     }
-
-    public void setMemPtr(int value) {
-        memptr = value;
-    }
-
-    public boolean getIFF1() {
-        return iff1;
-    }
-
-    public void setIFF1(boolean value) {
-        iff1 = value;
-    }
-
-    public boolean getIFF2() {
-        return iff2;
-    }
-
-    public void setIFF2(boolean value) {
-        iff2 = value;
-    }
-
+    
     public int getPort7ffd() {
         return last7ffd;
     }
@@ -289,14 +199,6 @@ public class Snapshots {
 
     public void setBorder(int value) {
         border = value;
-    }
-
-    public int getTstates() {
-        return tstates;
-    }
-
-    public void setTstates(int value) {
-        tstates = value;
     }
 
     public Joystick getJoystick() {
@@ -386,7 +288,7 @@ public class Snapshots {
     public void setIF1Present(boolean state) {
         IF1Enabled = state;
     }
-    
+
     public boolean isIF1RomPaged() {
         return IF1RomPaged;
     }
@@ -394,7 +296,7 @@ public class Snapshots {
     public void setIF1RomPaged(boolean state) {
         IF1RomPaged = state;
     }
-    
+
     public boolean isIF2RomPaged() {
         return IF2RomPresent;
     }
@@ -442,26 +344,26 @@ public class Snapshots {
     public String getTapeExtension() {
         return tapeExtension;
     }
-    
+
     public byte getNumDrives() {
         return numDrives;
     }
-    
+
     public void setNumDrives(byte drives) {
         numDrives = drives;
     }
-    
+
     public int getDriveRunning() {
         return driveRunning;
     }
-    
+
     public void setDriveRunning(int drive) {
         driveRunning = drive;
     }
 
     public String getErrorString() {
         return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
-            errorString[error]);
+                errorString[error]);
     }
 
     public boolean loadSnapshot(File filename, Memory memory) {
@@ -558,7 +460,17 @@ public class Snapshots {
             regR = snaHeader[20] & 0xff;
             regAF = (snaHeader[21] & 0xff) | (snaHeader[22] << 8) & 0xffff;
             regSP = (snaHeader[23] & 0xff) | (snaHeader[24] << 8) & 0xffff;
-            modeIM = snaHeader[25] & 0xff;
+            switch (snaHeader[25] & 0x03) {
+                case 0:
+                    modeIM = IntMode.IM0;
+                    break;
+                case 1:
+                    modeIM = IntMode.IM1;
+                    break;
+                case 2:
+                    modeIM = IntMode.IM2;
+                    break;
+            }
 
             border = snaHeader[26] & 0x07;
 
@@ -744,7 +656,7 @@ public class Snapshots {
 
             snaHeader[23] = (byte) regSP;
             snaHeader[24] = (byte) (regSP >>> 8);
-            snaHeader[25] = (byte) modeIM;
+            snaHeader[25] = (byte) modeIM.ordinal();
             snaHeader[26] = (byte) border;
 
             fOut.write(snaHeader, 0, snaHeader.length);
@@ -827,7 +739,7 @@ public class Snapshots {
         int count = 0;
 
         while (address < 0x4000 && count < 254
-            && value == memory.readByte(page, address++)) {
+                && value == memory.readByte(page, address++)) {
             count++;
         }
 
@@ -922,7 +834,18 @@ public class Snapshots {
             regIX = (z80Header1[25] & 0xff) | (z80Header1[26] << 8) & 0xffff;
             iff1 = z80Header1[27] != 0;
             iff2 = z80Header1[28] != 0;
-            modeIM = z80Header1[29] & 0x03;
+            switch (z80Header1[29] & 0x03) {
+                case 0:
+                    modeIM = IntMode.IM0;
+                    break;
+                case 1:
+                    modeIM = IntMode.IM1;
+                    break;
+                case 2:
+                    modeIM = IntMode.IM2;
+                    break;
+            }
+
             issue2 = (z80Header1[29] & 0x04) != 0;
             switch (z80Header1[29] >>> 6) {
                 case 0: // Cursor/AGF/Protek Joystick
@@ -1030,46 +953,53 @@ public class Snapshots {
                 if (hdrLen == 23) { // Z80 v2
                     switch (z80Header2[2]) {
                         case 0: // 48k
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM48K;
-                            
+                            }
+
                             IF1Enabled = false;
                             break;
                         case 1: // 48k + IF.1
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM48K;
-                            
+                            }
+
                             IF1Enabled = true;
-                            if (z80Header2[4] == 0xff)
+                            if (z80Header2[4] == 0xff) {
                                 IF1RomPaged = true;
+                            }
                             break;
                         case 3: // 128k
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM128K;
-                            
+                            }
+
                             IF1Enabled = false;
                             break;
                         case 4: // 128k + IF.1
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM128K;
-                            
+                            }
+
                             IF1Enabled = true;
-                            if (z80Header2[4] == 0xff)
+                            if (z80Header2[4] == 0xff) {
                                 IF1RomPaged = true;
+                            }
                             break;
                         case 7: // +3
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2A;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            }
                             break;
                         case 12: // +2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
@@ -1085,46 +1015,53 @@ public class Snapshots {
                 } else { // Z80 v3
                     switch (z80Header2[2]) {
                         case 0: // 48k
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM48K;
-                            
+                            }
+
                             IF1Enabled = false;
                             break;
                         case 1: // 48k + IF.1
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM48K;
-                            
+                            }
+
                             IF1Enabled = true;
-                            if (z80Header2[4] == 0xff)
+                            if (z80Header2[4] == 0xff) {
                                 IF1RomPaged = true;
+                            }
                             break;
                         case 4: // 128k
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM128K;
-                            
+                            }
+
                             IF1Enabled = false;
                             break;
                         case 5: // 128k + IF.1
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUM128K;
-                            
+                            }
+
                             IF1Enabled = true;
-                            if (z80Header2[4] == 0xff)
+                            if (z80Header2[4] == 0xff) {
                                 IF1RomPaged = true;
+                            }
                             break;
                         case 7: // +3
-                            if (modifiedHW)
+                            if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS2A;
-                            else
+                            } else {
                                 snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                            }
                             break;
                         case 12: // +2
                             snapshotModel = MachineTypes.SPECTRUMPLUS2;
@@ -1227,37 +1164,38 @@ public class Snapshots {
             }
 
             byte z80HeaderV3[] = new byte[87];
-            z80HeaderV3[0] = (byte)(regAF >>> 8);
+            z80HeaderV3[0] = (byte) (regAF >>> 8);
             z80HeaderV3[1] = (byte) regAF;
             z80HeaderV3[2] = (byte) regBC;
-            z80HeaderV3[3] = (byte)(regBC >>> 8);
+            z80HeaderV3[3] = (byte) (regBC >>> 8);
             z80HeaderV3[4] = (byte) regHL;
-            z80HeaderV3[5] = (byte)(regHL >>> 8);
+            z80HeaderV3[5] = (byte) (regHL >>> 8);
             // Bytes 6 y 7 se dejan a 0, si regPC==0, el Z80 es version 2 o 3
             z80HeaderV3[8] = (byte) regSP;
-            z80HeaderV3[9] = (byte)(regSP >>> 8);
+            z80HeaderV3[9] = (byte) (regSP >>> 8);
             z80HeaderV3[10] = (byte) regI;
-            z80HeaderV3[11] = (byte)(regR & 0x7f);
-            z80HeaderV3[12] = (byte)(border << 1);
-            if (regR > 0x7f)
+            z80HeaderV3[11] = (byte) (regR & 0x7f);
+            z80HeaderV3[12] = (byte) (border << 1);
+            if (regR > 0x7f) {
                 z80HeaderV3[12] |= 0x01;
+            }
             z80HeaderV3[13] = (byte) regDE;
-            z80HeaderV3[14] = (byte)(regDE >>> 8);
+            z80HeaderV3[14] = (byte) (regDE >>> 8);
             z80HeaderV3[15] = (byte) regBCalt;
-            z80HeaderV3[16] = (byte)(regBCalt >>> 8);
+            z80HeaderV3[16] = (byte) (regBCalt >>> 8);
             z80HeaderV3[17] = (byte) regDEalt;
-            z80HeaderV3[18] = (byte)(regDEalt >>> 8);
+            z80HeaderV3[18] = (byte) (regDEalt >>> 8);
             z80HeaderV3[19] = (byte) regHLalt;
-            z80HeaderV3[20] = (byte)(regHLalt >>> 8);
-            z80HeaderV3[21] = (byte)(regAF >>> 8);
+            z80HeaderV3[20] = (byte) (regHLalt >>> 8);
+            z80HeaderV3[21] = (byte) (regAF >>> 8);
             z80HeaderV3[22] = (byte) regAF;
             z80HeaderV3[23] = (byte) regIY;
-            z80HeaderV3[24] = (byte)(regIY >>> 8);
+            z80HeaderV3[24] = (byte) (regIY >>> 8);
             z80HeaderV3[25] = (byte) regIX;
-            z80HeaderV3[26] = (byte)(regIX >>> 8);
+            z80HeaderV3[26] = (byte) (regIX >>> 8);
             z80HeaderV3[27] = (byte) (iff1 ? 0x01 : 0x00);
             z80HeaderV3[28] = (byte) (iff2 ? 0x01 : 0x00);
-            z80HeaderV3[29] = (byte) modeIM;
+            z80HeaderV3[29] = (byte) modeIM.ordinal();
 
             if (!issue2) {
                 z80HeaderV3[29] |= 0x04;
@@ -1278,21 +1216,23 @@ public class Snapshots {
             // Hasta aquí la cabecera v1.0, ahora viene lo propio de la v3.x
             z80HeaderV3[30] = 55; // Cabecera adicional de 55 bytes
             z80HeaderV3[32] = (byte) regPC;
-            z80HeaderV3[33] = (byte)(regPC >>> 8);
+            z80HeaderV3[33] = (byte) (regPC >>> 8);
 
             switch (snapshotModel) {
                 case SPECTRUM16K:
                     z80HeaderV3[37] |= 0x80;
                     break;
                 case SPECTRUM48K:
-                    if (IF1Enabled)
+                    if (IF1Enabled) {
                         z80HeaderV3[34] = 1;
+                    }
                     break;
                 case SPECTRUM128K:
-                    if (IF1Enabled)
+                    if (IF1Enabled) {
                         z80HeaderV3[34] = 5;
-                    else
+                    } else {
                         z80HeaderV3[34] = 4;
+                    }
                     break;
                 case SPECTRUMPLUS2:
                     z80HeaderV3[34] = 12;
@@ -1308,20 +1248,22 @@ public class Snapshots {
                 z80HeaderV3[35] = (byte) last7ffd;
             }
 
-            if (IF1RomPaged)
+            if (IF1RomPaged) {
                 z80HeaderV3[36] = (byte) 0xff;
-            
-            if (enabledAY)
+            }
+
+            if (enabledAY) {
                 z80HeaderV3[37] |= 0x04;
-            
+            }
+
             z80HeaderV3[38] = (byte) lastfffd;
 
             for (int reg = 0; reg < 16; reg++) {
-                z80HeaderV3[39 + reg] = (byte)psgRegs[reg];
+                z80HeaderV3[39 + reg] = (byte) psgRegs[reg];
             }
-            
+
             if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                z80HeaderV3[54] = (byte)last1ffd;
+                z80HeaderV3[54] = (byte) last1ffd;
             }
 
             fOut.write(z80HeaderV3, 0, z80HeaderV3.length);
@@ -1388,7 +1330,6 @@ public class Snapshots {
 
         return true;
     }
-
     // SZX Section
     private static final int ZXST_HEADER = 0x5453585A; // ZXST
     private static final int ZXSTMID_16K = 0;
@@ -1408,28 +1349,20 @@ public class Snapshots {
     private static final int ZXSTMID_PENTAGON1024 = 14;
     private static final int ZXSTMID_NTSC48K = 15;
     private static final int ZXSTMID_128KE = 16;
-    
     private static final int ZXSTMF_ALTERNATETIMINGS = 1;
-
     private static final int ZXSTBID_ZXATASP = 0x5441585A;   // ZXAT
     private static final int ZXSTAF_UPLOADJUMPER = 1;
     private static final int ZXSTAF_WRITEPROTECT = 2;
-
     private static final int ZXSTBID_ATARAM = 0x50525441;    // ATRP
     private static final int ZXSTAF_COMPRESSED = 1;
-
     private static final int ZXSTBID_AY = 0x00005941;        // AY\0\0
     private static final int ZXSTAYF_FULLERBOX = 1;
     private static final int ZXSTAYF_128AY = 2;
-
     private static final int ZXSTBID_ZXCF = 0x4643585A;      // ZXCF
     private static final int ZXSTCF_UPLOADJUMPER = 1;
-
     private static final int ZXSTBID_CFRAM = 0x50524643;     // CFRP
     private static final int ZXSTCRF_COMPRESSED = 1;
-
     private static final int ZXSTBID_COVOX = 0x58564F43;     // COVX
-
     private static final int ZXSTBID_BETA128 = 0x38323142;   // B128
     private static final int ZXSTBETAF_CONNECTED = 1;
     private static final int ZXSTBETAF_CUSTOMROM = 2;
@@ -1437,22 +1370,15 @@ public class Snapshots {
     private static final int ZXSTBETAF_AUTOBOOT = 8;
     private static final int ZXSTBETAF_SEEKLOWER = 16;
     private static final int ZXSTBETAF_COMPRESSED = 32;
-
     private static final int ZXSTBID_BETADISK = 0x4B534442;  // BDSK
-
     private static final int ZXSTBID_CREATOR = 0x52545243;   // CRTR
-
     private static final int ZXSTBID_DOCK = 0x4B434F44;      // DOCK
-
     private static final int ZXSTBID_DSKFILE = 0x004B5344;   // DSK\0
     private static final int ZXSTDSKF_COMPRESSED = 1;
     private static final int ZXSTDSKF_EMBEDDED = 2;
     private static final int ZXSTDSKF_SIDEB = 4;
-
     private static final int ZXSTBID_GS = 0x00005347;        // GS\0\0
-
     private static final int ZXSTBID_GSRAMPAGE = 0x50525347; // GSRP
-
     private static final int ZXSTBID_KEYBOARD = 0x4259454B;  // KEYB
     private static final int ZXSTKF_ISSUE2 = 1;
     private static final int ZXSKJT_KEMPSTON = 0;
@@ -1464,14 +1390,11 @@ public class Snapshots {
     private static final int ZXSKJT_TIMEX1 = 6;
     private static final int ZXSKJT_TIMEX2 = 7;
     private static final int ZXSKJT_NONE = 8;
-
     private static final int ZXSTBID_IF1 = 0x00314649;      // IF1\0
     private static final int ZXSTIF1F_ENABLED = 1;
     private static final int ZXSTIF1F_COMPRESSED = 2;
     private static final int ZXSTIF1F_PAGED = 4;
-
     private static final int ZXSTBID_IF2ROM = 0x52324649;    // IF2R
-
     private static final int ZXSTBID_JOYSTICK = 0x00594F4A;  // JOY\0
     private static final int ZXSTJT_KEMPSTON = 0;
     private static final int ZXSTJT_FULLER = 1;
@@ -1482,13 +1405,10 @@ public class Snapshots {
     private static final int ZXSTJT_TIMEX1 = 6;
     private static final int ZXSTJT_TIMEX2 = 7;
     private static final int ZXSTJT_DISABLED = 8;
-
     private static final int ZXSTBID_MICRODRIVE = 0x5652444D; // MDRV
     private static final int ZXSTMDF_COMPRESSED = 1;
     private static final int ZXSTMDF_EMBEDDED = 2;
-
     private static final int ZXSTBID_MOUSE = 0x4D584D41;     // AMXM
-
     private static final int ZXSTBID_MULTIFACE = 0x4543464D; // MFCE
     private static final int ZXSTMFM_1 = 0;
     private static final int ZXSTMFM_128 = 1;
@@ -1498,44 +1418,29 @@ public class Snapshots {
     private static final int ZXSTMF_REDBUTTONDISABLED = 0x08;
     private static final int ZXSTMF_DISABLED = 0x10;
     private static final int ZXSTMF_16KRAMMODE = 0x20;
-
     private static final int ZXSTBID_RAMPAGE = 0x504D4152;   // RAMP
     private static final int ZXSTRF_COMPRESSED = 1;
-
     private static final int ZXSTBID_PLUS3DISK = 0x0000332B; // +3\0\0
-
     private static final int ZXSTBID_PLUSD = 0x44534C50;     // PLSD
-
     private static final int ZXSTBID_PLUSDDISK = 0x4B534450; // PDSK
-
     private static final int ZXSTBID_ROM = 0x004D4F52;       // ROM\0
-
     private static final int ZXSTBID_TIMEXREGS = 0x444C4353; // SCLD
-
     private static final int ZXSTBID_SIMPLEIDE = 0x45444953; // SIDE
-
     private static final int ZXSTBID_SPECDRUM = 0x4D555244;  // DRUM
-
     private static final int ZXSTBID_SPECREGS = 0x52435053;  // SPCR
-
     private static final int ZXSTBID_ZXTAPE = 0x45504154;    // TAPE
     private static final int ZXSTTP_EMBEDDED = 1;
     private static final int ZXSTTP_COMPRESSED = 2;
-
     private static final int ZXSTBID_USPEECH = 0x45505355;   // USPE
-
     private static final int ZXSTBID_ZXPRINTER = 0x5250585A; // ZXPR
-
     private static final int ZXSTBID_Z80REGS = 0x5230385A;   // Z80R
     private static final int ZXSTZF_EILAST = 1;
     private static final int ZXSTZF_HALTED = 2;
-
     // This definition isn't in Spectaculator documentation page.
     // http://scratchpad.wikia.com/wiki/ZX_Spectrum_64_Colour_Mode
     private static final int ZXSTBID_PALETTE = 0x54544C50;    // PLTT
     private static final int ZXSTPALETTE_DISABLED = 0;
     private static final int ZXSTPALETTE_ENABLED = 1;
-    
     // New blocks from SZX v1.4 (04/06/2011)
     private static final int ZXSTBID_OPUS = 0x5355504F;   // OPUS
     // Flags
@@ -1543,7 +1448,6 @@ public class Snapshots {
     private static final int ZXSTOPUSF_COMPRESSED = 2;
     private static final int ZXSTOPUSF_SEEKLOWER = 4;
     private static final int ZXSTOPUSF_CUSTOMROM = 8;
-    
     private static final int ZXSTBID_ODSK = 0x4B53444F;   // ODSK
     // Disk image types
     private static final int ZXSTOPDT_OPD = 0;
@@ -1554,8 +1458,6 @@ public class Snapshots {
     private static final int ZXSTOPDF_EMBEDDED = 1;
     private static final int ZXSTOPDF_COMPRESSED = 2;
     private static final int ZXSTOPDF_WRITEPROTECT = 4;
-
-
 
     private int dwMagicToInt(byte[] dwMagic) {
         int value0 = dwMagic[0] & 0xff;
@@ -1598,7 +1500,7 @@ public class Snapshots {
                 fIn.close();
                 return false;
             }
-            
+
             szxMajorVer = dwSize[0];
             szxMinorVer = dwSize[1];
             switch (dwSize[2]) {
@@ -1634,7 +1536,7 @@ public class Snapshots {
                     fIn.close();
                     return false;
                 }
-                
+
                 szxId = dwMagicToInt(dwMagic);
                 szxLen = dwMagicToInt(dwSize);
                 if (szxLen < 1) {
@@ -1678,7 +1580,7 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        
+
                         regAF = (z80Regs[0] & 0xff) | (z80Regs[1] << 8) & 0xffff;
                         regBC = (z80Regs[2] & 0xff) | (z80Regs[3] << 8) & 0xffff;
                         regDE = (z80Regs[4] & 0xff) | (z80Regs[5] << 8) & 0xffff;
@@ -1695,7 +1597,18 @@ public class Snapshots {
                         regR = z80Regs[25] & 0xff;
                         iff1 = (z80Regs[26] & 0xff) != 0;
                         iff2 = (z80Regs[27] & 0xff) != 0;
-                        modeIM = z80Regs[28] & 0xff;
+
+                        switch (z80Regs[28] & 0x03) {
+                            case 0:
+                                modeIM = IntMode.IM0;
+                                break;
+                            case 1:
+                                modeIM = IntMode.IM1;
+                                break;
+                            case 2:
+                                modeIM = IntMode.IM2;
+                                break;
+                        }
                         tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
                                 | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
 
@@ -1768,9 +1681,10 @@ public class Snapshots {
                             return false;
                         }
                         enabledAY = true;
-                        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K &&
-                                ayRegs[0] != ZXSTAYF_128AY)
+                        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
+                                && ayRegs[0] != ZXSTAYF_128AY) {
                             enabledAY = false;
+                        }
                         lastfffd = ayRegs[1] & 0xff;
                         for (int idx = 0; idx < 16; idx++) {
                             psgRegs[idx] = ayRegs[2 + idx] & 0xff;
@@ -1790,7 +1704,7 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        
+
                         chData = new byte[szxLen];
                         readed = fIn.read(chData);
                         if (readed != szxLen) {
@@ -1798,7 +1712,7 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        
+
                         if ((ramPage[0] & ZXSTRF_COMPRESSED) == 0) {
                             memory.loadPage(ramPage[2] & 0xff, chData);
                             break;
@@ -1810,8 +1724,9 @@ public class Snapshots {
                         readed = 0;
                         while (readed < pageRAM.length) {
                             int count = iis.read(pageRAM, readed, pageRAM.length - readed);
-                            if (count == -1)
+                            if (count == -1) {
                                 break;
+                            }
                             readed += count;
                         }
                         iis.close();
@@ -1832,8 +1747,9 @@ public class Snapshots {
                         }
                         szxLen -= 2;
                         if (szxLen > 0x4000) {
-                            while (szxLen > 0)
+                            while (szxLen > 0) {
                                 szxLen -= fIn.skip(szxLen);
+                            }
                             break;
                         }
 
@@ -1874,8 +1790,9 @@ public class Snapshots {
                         readed = 0;
                         while (readed < mfRAM.length) {
                             int count = iis.read(mfRAM, readed, mfRAM.length - readed);
-                            if (count == -1)
+                            if (count == -1) {
                                 break;
+                            }
                             readed += count;
                         }
                         iis.close();
@@ -1976,7 +1893,7 @@ public class Snapshots {
                                 fIn.close();
                                 return false;
                             }
-                            
+
                             if ((tape[2] & ZXSTTP_COMPRESSED) != 0) {
 //                                System.out.println("Tape compressed");
                                 bais = new ByteArrayInputStream(chData);
@@ -2037,7 +1954,7 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        
+
                         if (romLen == 0x4000) {
                             memory.insertIF2RomFromSZX(chData);
                             IF2RomPresent = true;
@@ -2070,41 +1987,46 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        
-                        while (szxLen > 0)
+
+                        while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
+                        }
                         break;
                     case ZXSTBID_IF1:
-                        if (snapshotModel.codeModel ==
-                            MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                        if (snapshotModel.codeModel
+                                == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                             System.out.println(
-                                "SZX Error: +2a/+3 snapshot with IF1 block. Skipping");
-                            while (szxLen > 0)
+                                    "SZX Error: +2a/+3 snapshot with IF1 block. Skipping");
+                            while (szxLen > 0) {
                                 szxLen -= fIn.skip(szxLen);
+                            }
                             break;
                         }
-                        
+
                         int if1Flags;
                         if1Flags = fIn.read() + fIn.read() * 256;
                         szxLen -= 2;
                         IF1Enabled = (if1Flags & ZXSTIF1F_ENABLED) != 0;
                         IF1RomPaged = (if1Flags & ZXSTIF1F_PAGED) != 0;
-                        
-                        numDrives = (byte)fIn.read();
+
+                        numDrives = (byte) fIn.read();
                         szxLen--;
-                        if (numDrives < 1 || numDrives > 8)
+                        if (numDrives < 1 || numDrives > 8) {
                             numDrives = 8;
+                        }
 //                        szxLen -= fIn.skip(35);
 //                        int if1RomLen;
 //                        if1RomLen = fIn.read() + fIn.read() * 256;
 //                        szxLen -= 2;
-                        while (szxLen > 0)
+                        while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
+                        }
                         break;
                     case ZXSTBID_MICRODRIVE:
                         // The MDRV have some design problems, so is ignored now.
-                        while (szxLen > 0)
+                        while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
+                        }
 //                        if (snapshotModel.codeModel ==
 //                            MachineTypes.CodeModel.SPECTRUMPLUS3) {
 //                            System.out.println(
@@ -2154,13 +2076,14 @@ public class Snapshots {
                     case ZXSTBID_OPUS:
                     case ZXSTBID_ODSK:
 //                        chData = new byte[szxLen];
-                        while (szxLen > 0)
+                        while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
+                        }
 
                         String blockID = new String(dwMagic);
                         System.out.println(String.format(
-                            "SZX block ID '%s' readed but not emulated. Skipping...",
-                            blockID));
+                                "SZX block ID '%s' readed but not emulated. Skipping...",
+                                blockID));
                         break;
                     default:
 //                        chData = new byte[szxLen];
@@ -2229,7 +2152,7 @@ public class Snapshots {
             blockID = "JSpeccy 0.89 (15/07/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
-                0, blockID.getBytes("US-ASCII").length);
+                    0, blockID.getBytes("US-ASCII").length);
             fOut.write(szCreator);
             fOut.write(0x00);
             fOut.write(0x00); // JSpeccy major version (0)
@@ -2271,11 +2194,13 @@ public class Snapshots {
             z80r[23] = (byte) (regPC >>> 8);
             z80r[24] = (byte) regI;
             z80r[25] = (byte) regR;
-            if (iff1)
+            if (iff1) {
                 z80r[26] = 0x01;
-            if (iff2)
+            }
+            if (iff2) {
                 z80r[27] = 0x01;
-            z80r[28] = (byte) modeIM;
+            }
+            z80r[28] = (byte) modeIM.ordinal();
             z80r[29] = (byte) tstates;
             z80r[30] = (byte) (tstates >>> 8);
             z80r[31] = (byte) (tstates >>> 16);
@@ -2285,7 +2210,7 @@ public class Snapshots {
             z80r[36] = (byte) (memptr >>> 8);
             fOut.write(z80r);
 
-             // SZX SPECREGS block
+            // SZX SPECREGS block
             blockID = "SPCR";
             fOut.write(blockID.getBytes("US-ASCII"));
             fOut.write(0x08);
@@ -2293,9 +2218,9 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);  // Z80R length block (8 bytes)
             byte[] specr = new byte[8];
-            specr[0] = (byte)border;
-            specr[1] = (byte)last7ffd;
-            specr[2] = (byte)last1ffd;
+            specr[0] = (byte) border;
+            specr[1] = (byte) last7ffd;
+            specr[2] = (byte) last1ffd;
             // ignore the chEff7 & chFe fields
             fOut.write(specr);
 
@@ -2338,7 +2263,7 @@ public class Snapshots {
                 }
             }
 
-             // SZX KEYB block
+            // SZX KEYB block
             blockID = "KEYB";
             fOut.write(blockID.getBytes("US-ASCII"));
             fOut.write(0x05);
@@ -2430,18 +2355,19 @@ public class Snapshots {
                 fOut.write(pageLen >> 16);
                 fOut.write(pageLen >> 24);
 
-                if (mf128on48k)
+                if (mf128on48k) {
                     fOut.write(ZXSTMFM_128);
-                else
+                } else {
                     fOut.write(0x00);
+                }
 
                 int mfFlags = ZXSTMF_COMPRESSED;
                 if (memory.isMultifacePaged()) {
                     mfFlags |= ZXSTMF_PAGEDIN;
                 }
                 if (memory.isMultifaceLocked()
-                    && (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K
-                    || mf128on48k)) {
+                        && (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K
+                        || mf128on48k)) {
                     mfFlags |= ZXSTMF_SOFTWARELOCKOUT;
                 }
                 fOut.write(mfFlags);
@@ -2545,21 +2471,22 @@ public class Snapshots {
                 fOut.write(szFileExtension);
                 baos.writeTo(fOut);
             }
-            
+
             // IF1 SZX Block
-            if (IF1Enabled &&
-                snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            if (IF1Enabled
+                    && snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 blockID = "IF1\0";
                 fOut.write(blockID.getBytes("US-ASCII"));
-                
+
                 fOut.write(0x28);
                 fOut.write(0x00);
                 fOut.write(0x00);
                 fOut.write(0x00);  // IF1 block length (40 bytes without ROM)
-                
+
                 byte if1Flag = ZXSTIF1F_ENABLED;
-                if (IF1RomPaged)
+                if (IF1RomPaged) {
                     if1Flag |= ZXSTIF1F_PAGED;
+                }
                 fOut.write(if1Flag);
                 fOut.write(numDrives);
                 byte reserved[] = new byte[38]; // 35 reserved + wRomSize + chRomData[1]
