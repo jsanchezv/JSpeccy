@@ -66,6 +66,9 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeExtension, imageExtension, screenExtension, romExtension;
     
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
+    Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
+    Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
+    Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
     
 
     /** Creates new form JSpeccy */
@@ -2483,8 +2486,10 @@ public class JSpeccy extends javax.swing.JFrame {
             boolean canRec = false;
             switch (state) {
                 case INSERT:
-                    tapeLabel.setEnabled(false);
+                    tapeLabel.setEnabled(true);
+                    tapeLabel.setIcon(tapeStopped);
                     tapeLabel.setToolTipText(tape.getTapeFilename().getName());
+                    tapeFilename.setText(tape.getTapeFilename().getName());
                     tapeBrowserButtonPlay.setEnabled(true);
                     tapeBrowserButtonStop.setEnabled(false);
                     tapeBrowserButtonRew.setEnabled(true);
@@ -2501,6 +2506,9 @@ public class JSpeccy extends javax.swing.JFrame {
                     tapeBrowserButtonRec.setEnabled(canRec);
                     break;
                 case EJECT:
+                    ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                    tapeFilename.setText(bundle.getString("JSpeccy.tapeFilename.text")); // NOI18N
+                    tapeLabel.setEnabled(false);
                     tapeLabel.setToolTipText(null);
                     tapeBrowserButtonRec.setEnabled(false);
                     tapeBrowserButtonPlay.setEnabled(false);
@@ -2516,7 +2524,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     createTapeMediaMenu.setEnabled(true);
                     break;
                 case STOP:
-                    tapeLabel.setEnabled(false);
+                    tapeLabel.setIcon(tapeStopped);
                     tapeBrowserButtonPlay.setEnabled(true);
                     tapeBrowserButtonStop.setEnabled(false);
                     tapeBrowserButtonRew.setEnabled(true);
@@ -2534,9 +2542,22 @@ public class JSpeccy extends javax.swing.JFrame {
                     tapeBrowserButtonRec.setEnabled(canRec);
                     break;
                 case RECORD:
+                    tapeLabel.setIcon(tapeRecording);
                     playTapeMediaMenu.setEnabled(false);
+                    tapeBrowserButtonRec.setEnabled(false);
+                    tapeBrowserButtonPlay.setEnabled(false);
+                    tapeBrowserButtonStop.setEnabled(true);
+                    tapeBrowserButtonRew.setEnabled(false);
+                    tapeBrowserButtonEject.setEnabled(false);
+                    recordStartTapeMediaMenu.setEnabled(false);
+                    recordStopTapeMediaMenu.setEnabled(true);
+                    clearTapeMediaMenu.setEnabled(false);
+                    rewindTapeMediaMenu.setEnabled(false);
+                    reloadTapeMediaMenu.setEnabled(false);
+                    createTapeMediaMenu.setEnabled(false);
+                    break;
                 case PLAY:
-                    tapeLabel.setEnabled(true);
+                    tapeLabel.setIcon(tapePlaying);
                     tapeBrowserButtonRec.setEnabled(false);
                     tapeBrowserButtonPlay.setEnabled(false);
                     tapeBrowserButtonStop.setEnabled(true);
