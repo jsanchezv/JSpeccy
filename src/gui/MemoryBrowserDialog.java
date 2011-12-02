@@ -343,6 +343,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             }
         }
     }
+    
     private class SelectionChangedListener implements IHexViewListener {
 
         @Override
