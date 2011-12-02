@@ -27,14 +27,15 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import utilities.Snapshots;
 import utilities.Tape;
+import utilities.Tape.TapeState;
+import utilities.TapeStateListener;
 import z80core.Z80;
 
 /**
  *
  * @author jsanchez
  */
-public class Spectrum extends Thread implements z80core.MemIoOps, z80core.NotifyOps,
-        utilities.TapeNotify {
+public class Spectrum extends Thread implements z80core.MemIoOps, z80core.NotifyOps {
 
     private Z80 z80;
     private Memory memory;
@@ -52,7 +53,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private Keyboard keyboard;
     private Audio audio;
     private AY8912 ay8912;
-    public Tape tape;
+    private Tape tape;
     private boolean paused;
     private boolean hardResetPending, resetPending;
     private JLabel speedLabel;
@@ -87,7 +88,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         muted = specSettings.isMutedSound();
         enabledSound = false;
         paused = true;
-        tape = new Tape(settings.getTapeSettings(), z80, this);
         if1 = new Interface1(settings.getInterface1Settings());
 
         keyboard = new Keyboard();
@@ -151,7 +151,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             memory.hardReset();
         }
         
-        tape.setSpectrumModel(spectrumModel);
+        if (tape != null)
+            tape.setSpectrumModel(spectrumModel);
 
         contendedRamPage[0] = contendedIOPage[0] = false;
         contendedRamPage[1] = contendedIOPage[1] = true;
@@ -348,6 +349,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public final void setJoystick(Joystick type) {
         joystick = type;
         keyboard.setJoystick(type);
+    }
+    
+    public final void setTape(Tape player) {
+        tape = player;
+        tape.setZ80Cpu(z80);
+        tape.setSpectrumModel(spectrumModel);
+        tape.addTapeChangedListener(new TapeChangedListener());
     }
 
     public void setSpeedLabel(JLabel speed) {
@@ -2211,30 +2219,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    @Override
-    public void tapeStart() {
-        if (settings.getTapeSettings().isAccelerateLoading()) {
-            stopEmulation();
-
-            new Thread() {
-
-                @Override
-                public void run() {
-//                    long start = System.currentTimeMillis();
-                    acceleratedLoading();
-//                    long stop = System.currentTimeMillis();
-//                    System.out.println(String.format("Loading time: %d ms.", stop - start));
-                }
-            }.start();
-            
-            startEmulation();
-        }
-    }
-
-    @Override
-    public void tapeStop() {
-    }
-
     public boolean startRecording() {
         if (!tape.isTapeReady()) {
             return false;
@@ -2282,5 +2266,29 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     
     public boolean isIF1Connected() {
         return connectedIF1;
+    }
+    
+    private class TapeChangedListener implements TapeStateListener {
+
+        @Override
+        public void stateChanged(final TapeState state) {
+            if (state == TapeState.PLAY
+                && settings.getTapeSettings().isAccelerateLoading()) {
+                stopEmulation();
+
+                new Thread() {
+
+                    @Override
+                    public void run() {
+//                    long start = System.currentTimeMillis();
+                        acceleratedLoading();
+//                    long stop = System.currentTimeMillis();
+//                    System.out.println(String.format("Loading time: %d ms.", stop - start));
+                    }
+                }.start();
+
+                startEmulation();
+            }
+        }
     }
 }
