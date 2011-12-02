@@ -30,13 +30,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 import machine.MachineTypes;
 import machine.Memory;
@@ -56,7 +56,6 @@ public class Tape {
     private InflaterInputStream iis;
 
     private File filename;
-    private String filenameLabel;
     private byte tapeBuffer[];
     private int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
     private int nOffsetBlocks;
@@ -67,6 +66,9 @@ public class Tape {
     private int bitTime;
     private byte byteTmp;
     private int cswPulses;
+    
+    public enum TapeState { EJECT, INSERT, STOP, PLAY, RECORD };
+    private final ArrayList<TapeStateListener> listeners = new ArrayList<TapeStateListener>();
     
     private enum State {
 
@@ -107,17 +109,14 @@ public class Tape {
     private int loopStart;
     private int freqSample;
     private float cswStatesSample;
-    private final TapeNotify tapeNotify;
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
     private ListSelectionModel lsm;
     private TapeType settings;
     
 
-    public Tape(TapeType tapeSettings, Z80 z80, TapeNotify notifyObject) {
+    public Tape(TapeType tapeSettings) {
         settings = tapeSettings;
-        tapeNotify = notifyObject;
-        cpu = z80;
         statePlay = State.STOP;
         tapeInserted = tapePlaying = tapeRecording = false;
         tzxTape = cswTape = false;
@@ -125,15 +124,62 @@ public class Tape {
         timeout = 0;
         earBit = EAR_ON;
         spectrumModel = MachineTypes.SPECTRUM48K;
-        filenameLabel = null;
         nOffsetBlocks = 0;
         idxHeader = 0;
         Arrays.fill(offsetBlocks, 0);
         tapeTableModel = new TapeTableModel();
     }
 
+    /**
+     * Adds a new event listener to the list of event listeners.
+     *
+     * @param listener The new event listener.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     */
+    public void addTapeChangedListener(final TapeStateListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Error: Listener can't be null");
+        }
+
+        // Avoid duplicates
+        if (!listeners.contains(listener)) {
+            listeners.add(listener);
+        }
+    }
+    
+    /**
+     * Remove a new event listener from the list of event listeners.
+     *
+     * @param listener The event listener to remove.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     * @throws IllegalArgumentException Thrown if the listener wasn't registered.
+     */
+    public void removeTapeChangedListener(final TapeStateListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Internal Error: Listener can't be null");
+        }
+
+        if (!listeners.remove(listener)) {
+            throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
+        }
+    }
+    
+    public void fireTapeStateChanged(final TapeState state) {
+        for (final TapeStateListener listener : listeners) {
+            listener.stateChanged(state);
+        }
+    }
+    
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
+    }
+    
+    public void setZ80Cpu(Z80 z80) {
+        cpu = z80;
     }
 
     public void setListSelectionModel(ListSelectionModel list) {
@@ -561,8 +607,7 @@ public class Tape {
         tapeTableModel.fireTableDataChanged();
         lsm.setSelectionInterval(0, 0);
         cpu.setExecDone(false);
-        filenameLabel = filename.getName();
-        updateTapeIcon();
+        fireTapeStateChanged(TapeState.INSERT);
         return true;
     }
 
@@ -606,8 +651,7 @@ public class Tape {
         tapeTableModel.fireTableDataChanged();
         lsm.setSelectionInterval(selectedBlock, selectedBlock);
         cpu.setExecDone(false);
-        filenameLabel = filename.getName();
-        updateTapeIcon();
+        fireTapeStateChanged(TapeState.INSERT);
         return true;
     }
 
@@ -617,10 +661,9 @@ public class Tape {
         
         tapeInserted = false;
         tapeBuffer = null;
-        filenameLabel = null;
         nOffsetBlocks = 0;
         tapeTableModel.fireTableDataChanged();
-        updateTapeIcon();
+        fireTapeStateChanged(TapeState.EJECT);
         return true;
     }
 
@@ -673,9 +716,8 @@ public class Tape {
         statePlay = State.START;
         tapePos = offsetBlocks[idxHeader];
         timeout = 0;
-        updateTapeIcon();
-        tapeNotify.tapeStart();
         cpu.setExecDone(true);
+        fireTapeStateChanged(TapeState.PLAY);
         return true;
     }
 
@@ -690,9 +732,8 @@ public class Tape {
 
         cpu.setExecDone(false);
         tapePlaying = false;
-        updateTapeIcon();
         timeout = 0;
-        tapeNotify.tapeStop();
+        fireTapeStateChanged(TapeState.STOP);
     }
 
     public boolean rewind() {
@@ -749,8 +790,7 @@ public class Tape {
                 lsm.setSelectionInterval(idxHeader, idxHeader);
                 cpu.setExecDone(false);
                 tapePlaying = false;
-                updateTapeIcon();
-                tapeNotify.tapeStop();
+                fireTapeStateChanged(TapeState.STOP);
                 break;
             case START:
                 lsm.setSelectionInterval(idxHeader, idxHeader);
@@ -965,8 +1005,7 @@ public class Tape {
                     lsm.setSelectionInterval(idxHeader, idxHeader);
                     cpu.setExecDone(false);
                     tapePlaying = false;
-                    updateTapeIcon();
-                    tapeNotify.tapeStop();
+                    fireTapeStateChanged(TapeState.STOP);
                     break;
                 case START:
                     tapePos = offsetBlocks[idxHeader];
@@ -1416,8 +1455,7 @@ public class Tape {
                 lsm.setSelectionInterval(idxHeader, idxHeader);
                 cpu.setExecDone(false);
                 tapePlaying = false;
-                updateTapeIcon();
-                tapeNotify.tapeStop();
+                fireTapeStateChanged(TapeState.STOP);
                 break;
             case START:
                 if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
@@ -1706,7 +1744,7 @@ public class Tape {
             freqSample = 79; // 44.1 Khz
         }
         
-        updateTapeIcon();
+        fireTapeStateChanged(TapeState.RECORD);
 
         return true;
     }
@@ -1786,7 +1824,6 @@ public class Tape {
         tapeRecording = false;
         eject();
         insert(filename);
-        updateTapeIcon();
 
         return true;
     }
@@ -1837,35 +1874,6 @@ public class Tape {
         
         timeLastOut = tstates;
         micBit = micState;
-    }
-    
-    private javax.swing.JLabel tapeIcon;
-    private boolean enabledIcon;
-
-    public void setTapeIcon(javax.swing.JLabel tapeLabel) {
-        tapeIcon = tapeLabel;
-        updateTapeIcon();
-    }
-
-    private void updateTapeIcon() {
-        if (tapeIcon == null) {
-            return;
-        }
-
-        if (!tapePlaying && !tapeRecording) {
-            enabledIcon = false;
-        } else {
-            enabledIcon = true;
-        }
-
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                tapeIcon.setToolTipText(filenameLabel);
-                tapeIcon.setEnabled(enabledIcon);
-            }
-        });
     }
 
     public class TapeTableModel extends AbstractTableModel {
