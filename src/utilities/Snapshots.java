@@ -21,6 +21,7 @@ import java.util.zip.InflaterInputStream;
 import machine.MachineTypes;
 import machine.Memory;
 import machine.Spectrum.Joystick;
+import snapshots.AY8912State;
 import snapshots.Z80State;
 import z80core.Z80.IntMode;
 
@@ -30,18 +31,12 @@ import z80core.Z80.IntMode;
  */
 public class Snapshots {
 
-    private int regAF, regBC, regDE, regHL;
-    private int regAFalt, regBCalt, regDEalt, regHLalt;
-    private int regIX, regIY, regPC, regSP;
-    private int regI, regR, memptr;
-    private IntMode modeIM;
-    private boolean iff1, iff2, halted, activeINT, pendingEI, activeNMI;
+    private Z80State z80state;
     private int last7ffd;
     private int last1ffd;
     private boolean enabledAY;
     // AY support
-    private int lastfffd;
-    private int psgRegs[] = new int[16];
+    private AY8912State ay8912state;
     // Multiface support
     private boolean multiface, mfPagedIn, mf128on48k, mfLockout;
     // ULAplus support
@@ -51,9 +46,9 @@ public class Snapshots {
     private boolean IF1Enabled, IF1RomPaged;
     private byte numDrives;
     private int driveRunning;
-    private int cartridgePos[] = new int[8];
-    private int preambleRem[] = new int[8];
-    private String cartridgeFile[] = new String[8];
+//    private int cartridgePos[] = new int[8];
+//    private int preambleRem[] = new int[8];
+//    private String cartridgeFile[] = new String[8];
     // IF2 ROM support
     private boolean IF2RomPresent;
     // Tape Support
@@ -63,7 +58,6 @@ public class Snapshots {
     private String tapeName, tapeExtension;
     private MachineTypes snapshotModel;
     private int border;
-    private int tstates;
     private Joystick joystick;
     private boolean issue2;
     private BufferedInputStream fIn;
@@ -101,56 +95,20 @@ public class Snapshots {
         snapshotModel = model;
     }
 
-    public final void getZ80State(Z80State state) {
-        state.setRegAF(regAF);
-        state.setRegBC(regBC);
-        state.setRegDE(regDE);
-        state.setRegHL(regHL);
-        state.setRegAFalt(regAFalt);
-        state.setRegBCalt(regBCalt);
-        state.setRegDEalt(regDEalt);
-        state.setRegHLalt(regHLalt);
-        state.setRegIX(regIX);
-        state.setRegIY(regIY);
-        state.setRegSP(regSP);
-        state.setRegPC(regPC);
-        state.setRegI(regI);
-        state.setRegR(regR);
-        state.setMemPtr(memptr);
-        state.setHalted(halted);
-        state.setIFF1(iff1);
-        state.setIFF2(iff2);
-        state.setIM(modeIM);
-        state.setINTLine(activeINT);
-        state.setPendingEI(pendingEI);
-        state.setNMI(activeNMI);
-        state.setTstates(tstates);
+    public final Z80State getZ80State() {
+        return z80state;
     }
     
     public final void setZ80State(Z80State state) {
-        regAF = state.getRegAF();
-        regBC = state.getRegBC();
-        regDE = state.getRegDE();
-        regHL = state.getRegHL();
-        regAFalt = state.getRegAFalt();
-        regBCalt = state.getRegBCalt();
-        regDEalt = state.getRegDEalt();
-        regHLalt = state.getRegHLalt();
-        regIX = state.getRegIX();
-        regIY = state.getRegIY();
-        regSP = state.getRegSP();
-        regPC = state.getRegPC();
-        regI = state.getRegI();
-        regR = state.getRegR();
-        memptr = state.getMemPtr();
-        halted = state.isHalted();
-        iff1 = state.isIFF1();
-        iff2 = state.isIFF1();
-        modeIM = state.getIM();
-        activeINT = state.isINTLine();
-        pendingEI = state.isPendingEI();
-        activeNMI = state.isNMI();
-        tstates = state.getTstates();
+        z80state = state;
+    }
+    
+    public AY8912State getAY8912State() {
+        return ay8912state;
+    }
+    
+    public void setAY8912State(AY8912State state) {
+        ay8912state = state;
     }
     
     public int getPort7ffd() {
@@ -167,22 +125,6 @@ public class Snapshots {
 
     public void setPort1ffd(int port1ffd) {
         last1ffd = port1ffd;
-    }
-
-    public int getPortfffd() {
-        return lastfffd;
-    }
-
-    public void setPortfffd(int portfffd) {
-        lastfffd = portfffd;
-    }
-
-    public int getPsgReg(int reg) {
-        return psgRegs[reg];
-    }
-
-    public void setPsgReg(int reg, int value) {
-        psgRegs[reg] = value;
     }
 
     public boolean getEnabledAY() {
@@ -437,38 +379,41 @@ public class Snapshots {
                 return false;
             }
 
-            regI = snaHeader[0] & 0xff;
-            regHLalt = (snaHeader[1] & 0xff) | (snaHeader[2] << 8) & 0xffff;
-            regDEalt = (snaHeader[3] & 0xff) | (snaHeader[4] << 8) & 0xffff;
-            regBCalt = (snaHeader[5] & 0xff) | (snaHeader[6] << 8) & 0xffff;
-            regAFalt = (snaHeader[7] & 0xff) | (snaHeader[8] << 8) & 0xffff;
-            regHL = (snaHeader[9] & 0xff) | (snaHeader[10] << 8) & 0xffff;
-            regDE = (snaHeader[11] & 0xff) | (snaHeader[12] << 8) & 0xffff;
-            regBC = (snaHeader[13] & 0xff) | (snaHeader[14] << 8) & 0xffff;
-            regIY = (snaHeader[15] & 0xff) | (snaHeader[16] << 8) & 0xffff;
-            regIX = (snaHeader[17] & 0xff) | (snaHeader[18] << 8) & 0xffff;
+            z80state = new Z80State();
+            z80state.setRegI(snaHeader[0]);
+            z80state.setRegLx(snaHeader[1]);
+            z80state.setRegHx(snaHeader[2]);
+            z80state.setRegEx(snaHeader[3]);
+            z80state.setRegDx(snaHeader[4]);
+            z80state.setRegCx(snaHeader[5]);
+            z80state.setRegBx(snaHeader[6]);
+            z80state.setRegFx(snaHeader[7]);
+            z80state.setRegAx(snaHeader[8]);
+            z80state.setRegL(snaHeader[9]);
+            z80state.setRegH(snaHeader[10]);
+            z80state.setRegE(snaHeader[11]);
+            z80state.setRegD(snaHeader[12]);
+            z80state.setRegC(snaHeader[13]);
+            z80state.setRegB(snaHeader[14]);
+            z80state.setRegIY((snaHeader[15] & 0xff) | (snaHeader[16] << 8));
+            z80state.setRegIX((snaHeader[17] & 0xff) | (snaHeader[18] << 8));
 
-            iff1 = iff2 = false;
-            if ((snaHeader[19] & 0x04) != 0) {
-                iff2 = true;
-            }
+            z80state.setIFF1((snaHeader[19] & 0x02) != 0);
+            z80state.setIFF2((snaHeader[19] & 0x04) != 0);
 
-            if ((snaHeader[19] & 0x02) != 0) {
-                iff1 = true;
-            }
-
-            regR = snaHeader[20] & 0xff;
-            regAF = (snaHeader[21] & 0xff) | (snaHeader[22] << 8) & 0xffff;
-            regSP = (snaHeader[23] & 0xff) | (snaHeader[24] << 8) & 0xffff;
+            z80state.setRegR(snaHeader[20]);
+            z80state.setRegF(snaHeader[21]);
+            z80state.setRegA(snaHeader[22]);
+            z80state.setRegSP((snaHeader[23] & 0xff) | (snaHeader[24] << 8));
             switch (snaHeader[25] & 0x03) {
                 case 0:
-                    modeIM = IntMode.IM0;
+                    z80state.setIM(IntMode.IM0);
                     break;
                 case 1:
-                    modeIM = IntMode.IM1;
+                    z80state.setIM(IntMode.IM1);
                     break;
                 case 2:
-                    modeIM = IntMode.IM2;
+                    z80state.setIM(IntMode.IM2);
                     break;
             }
 
@@ -517,7 +462,7 @@ public class Snapshots {
                 }
                 memory.loadPage(0, buffer);
 
-                regPC = 0x72; // dirección de RETN en la ROM
+                z80state.setRegPC(0x72); // dirección de RETN en la ROM
             } else {
                 boolean loaded[] = new boolean[8];
 
@@ -537,7 +482,7 @@ public class Snapshots {
 
                 // En modo 128, la página 5 está en 0x4000 y la 2 en 0x8000.
                 loaded[2] = loaded[5] = true;
-                regPC = fIn.read() | (fIn.read() << 8) & 0xffff;
+                z80state.setRegPC(fIn.read() | (fIn.read() << 8));
                 last7ffd = fIn.read() & 0xff;
                 // Si la página de memoria en 0xC000 era la 2 o la 5, ésta se
                 // habrá grabado dos veces, y esta segunda copia es redundante.
@@ -567,14 +512,13 @@ public class Snapshots {
                             return false;
                         }
                         memory.loadPage(page, buffer);
-//                        for (int addr = 0; addr < 0x4000; addr++) {
-//                            memory.writeByte(page, addr, (byte)fIn.read());
-//                        }
                     }
                     // El formato SNA no guarda los registros del AY
                     // Los ponemos a cero y que se apañe....
-                    Arrays.fill(psgRegs, 0);
-                    lastfffd = 0;
+                    int regAY[] = new int[16];
+                    ay8912state = new AY8912State();
+                    ay8912state.setAddressLatch(0);
+                    ay8912state.setRegAY(regAY);
                 }
 
             }
@@ -583,7 +527,7 @@ public class Snapshots {
 
             issue2 = false; // esto no se guarda en los SNA, algo hay que poner...
             joystick = Joystick.NONE; // idem
-            tstates = 0;
+            z80state.setTstates(0);
             mfPagedIn = mf128on48k = false;
 
         } catch (IOException ex) {
@@ -597,7 +541,7 @@ public class Snapshots {
     private boolean saveSNA(File filename, Memory memory) {
 
         // Si la pila está muy baja, no hay donde almacenar el registro SP
-        if (snapshotModel == MachineTypes.SPECTRUM48K && regSP < 0x4002) {
+        if (snapshotModel == MachineTypes.SPECTRUM48K && z80state.getRegSP() < 0x4002) {
             error = 7;
             return false;
         }
@@ -616,47 +560,48 @@ public class Snapshots {
             }
 
             byte snaHeader[] = new byte[27];
-            snaHeader[0] = (byte) regI;
-            snaHeader[1] = (byte) regHLalt;
-            snaHeader[2] = (byte) (regHLalt >>> 8);
-            snaHeader[3] = (byte) regDEalt;
-            snaHeader[4] = (byte) (regDEalt >>> 8);
-            snaHeader[5] = (byte) regBCalt;
-            snaHeader[6] = (byte) (regBCalt >>> 8);
-            snaHeader[7] = (byte) regAFalt;
-            snaHeader[8] = (byte) (regAFalt >>> 8);
-            snaHeader[9] = (byte) regHL;
-            snaHeader[10] = (byte) (regHL >>> 8);
-            snaHeader[11] = (byte) regDE;
-            snaHeader[12] = (byte) (regDE >>> 8);
-            snaHeader[13] = (byte) regBC;
-            snaHeader[14] = (byte) (regBC >>> 8);
-            snaHeader[15] = (byte) regIY;
-            snaHeader[16] = (byte) (regIY >>> 8);
-            snaHeader[17] = (byte) regIX;
-            snaHeader[18] = (byte) (regIX >>> 8);
+            snaHeader[0] = (byte) z80state.getRegI();
+            snaHeader[1] = (byte) z80state.getRegLx();
+            snaHeader[2] = (byte) z80state.getRegHx();
+            snaHeader[3] = (byte) z80state.getRegEx();
+            snaHeader[4] = (byte) z80state.getRegDx();
+            snaHeader[5] = (byte) z80state.getRegCx();
+            snaHeader[6] = (byte) z80state.getRegBx();
+            snaHeader[7] = (byte) z80state.getRegFx();
+            snaHeader[8] = (byte) z80state.getRegAx();
+            snaHeader[9] = (byte) z80state.getRegL();
+            snaHeader[10] = (byte) z80state.getRegH();
+            snaHeader[11] = (byte) z80state.getRegE();
+            snaHeader[12] = (byte) z80state.getRegD();
+            snaHeader[13] = (byte) z80state.getRegC();
+            snaHeader[14] = (byte) z80state.getRegB();
+            snaHeader[15] = (byte) z80state.getRegIY();
+            snaHeader[16] = (byte) (z80state.getRegIY() >>> 8);
+            snaHeader[17] = (byte) z80state.getRegIX();
+            snaHeader[18] = (byte) (z80state.getRegIX() >>> 8);
 
-            if (iff1) {
+            if (z80state.isIFF1()) {
                 snaHeader[19] |= 0x02;
             }
-            if (iff2) {
+            if (z80state.isIFF2()) {
                 snaHeader[19] |= 0x04;
             }
 
-            snaHeader[20] = (byte) regR;
-            snaHeader[21] = (byte) regAF;
-            snaHeader[22] = (byte) (regAF >>> 8);
+            snaHeader[20] = (byte) z80state.getRegR();
+            snaHeader[21] = (byte) z80state.getRegF();
+            snaHeader[22] = (byte) z80state.getRegA();
 
+            int regSP = z80state.getRegSP();
             if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, (byte) (regPC >>> 8));
+                memory.writeByte(regSP, (byte) (z80state.getRegPC() >>> 8));
                 regSP = (regSP - 1) & 0xffff;
-                memory.writeByte(regSP, (byte) regPC);
+                memory.writeByte(regSP, (byte) z80state.getRegPC());
             }
 
             snaHeader[23] = (byte) regSP;
             snaHeader[24] = (byte) (regSP >>> 8);
-            snaHeader[25] = (byte) modeIM.ordinal();
+            snaHeader[25] = (byte) z80state.getIM().ordinal();
             snaHeader[26] = (byte) border;
 
             fOut.write(snaHeader, 0, snaHeader.length);
@@ -682,8 +627,8 @@ public class Snapshots {
 
                 boolean saved[] = new boolean[8];
                 saved[2] = saved[5] = true;
-                fOut.write(regPC);
-                fOut.write(regPC >>> 8);
+                fOut.write(z80state.getRegPC());
+                fOut.write(z80state.getRegPC() >>> 8);
                 fOut.write(last7ffd);
                 fOut.write(0x00); // La ROM del TR-DOS no está paginada
                 saved[last7ffd & 0x07] = true;
@@ -709,7 +654,6 @@ public class Snapshots {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
         int address = 0;
         try {
-//            int endAddr = address + length;
             while (fIn.available() > 0 && address < length) {
                 int mem = fIn.read() & 0xff;
                 if (mem != 0xED) {
@@ -814,35 +758,49 @@ public class Snapshots {
                 return false;
             }
 
-            regAF = (z80Header1[1] & 0xff) | (z80Header1[0] << 8) & 0xffff;
-            regBC = (z80Header1[2] & 0xff) | (z80Header1[3] << 8) & 0xffff;
-            regHL = (z80Header1[4] & 0xff) | (z80Header1[5] << 8) & 0xffff;
-            regPC = (z80Header1[6] & 0xff) | (z80Header1[7] << 8) & 0xffff;
-            regSP = (z80Header1[8] & 0xff) | (z80Header1[9] << 8) & 0xffff;
-            regI = z80Header1[10] & 0xff;
-            regR = z80Header1[11] & 0x7f;
+            z80state = new Z80State();
+            z80state.setRegA(z80Header1[0]);
+            z80state.setRegF(z80Header1[1]);
+            z80state.setRegC(z80Header1[2]);
+            z80state.setRegB(z80Header1[3]);
+            z80state.setRegL(z80Header1[4]);
+            z80state.setRegH(z80Header1[5]);
+            z80state.setRegPC((z80Header1[6] & 0xff) | (z80Header1[7] << 8));
+            z80state.setRegSP((z80Header1[8] & 0xff) | (z80Header1[9] << 8));
+            z80state.setRegI(z80Header1[10]);
+
+            int regR = z80Header1[11] & 0x7f;
             if ((z80Header1[12] & 0x01) != 0) {
                 regR |= 0x80;
             }
+            z80state.setRegR(regR);
+
             border = (z80Header1[12] >>> 1) & 0x07;
-            regDE = (z80Header1[13] & 0xff) | (z80Header1[14] << 8) & 0xffff;
-            regBCalt = (z80Header1[15] & 0xff) | (z80Header1[16] << 8) & 0xffff;
-            regDEalt = (z80Header1[17] & 0xff) | (z80Header1[18] << 8) & 0xffff;
-            regHLalt = (z80Header1[19] & 0xff) | (z80Header1[20] << 8) & 0xffff;
-            regAFalt = (z80Header1[22] & 0xff) | (z80Header1[21] << 8) & 0xffff;
-            regIY = (z80Header1[23] & 0xff) | (z80Header1[24] << 8) & 0xffff;
-            regIX = (z80Header1[25] & 0xff) | (z80Header1[26] << 8) & 0xffff;
-            iff1 = z80Header1[27] != 0;
-            iff2 = z80Header1[28] != 0;
+
+            z80state.setRegE(z80Header1[13]);
+            z80state.setRegD(z80Header1[14]);
+            z80state.setRegCx(z80Header1[15]);
+            z80state.setRegBx(z80Header1[16]);
+            z80state.setRegEx(z80Header1[17]);
+            z80state.setRegDx(z80Header1[18]);
+            z80state.setRegLx(z80Header1[19]);
+            z80state.setRegHx(z80Header1[20]);
+            z80state.setRegAx(z80Header1[21]);
+            z80state.setRegFx(z80Header1[22]);
+            z80state.setRegIY((z80Header1[23] & 0xff) | (z80Header1[24] << 8));
+            z80state.setRegIX((z80Header1[25] & 0xff) | (z80Header1[26] << 8));
+            z80state.setIFF1(z80Header1[27] != 0);
+            z80state.setIFF2(z80Header1[28] != 0);
+
             switch (z80Header1[29] & 0x03) {
                 case 0:
-                    modeIM = IntMode.IM0;
+                    z80state.setIM(IntMode.IM0);
                     break;
                 case 1:
-                    modeIM = IntMode.IM1;
+                    z80state.setIM(IntMode.IM1);
                     break;
                 case 2:
-                    modeIM = IntMode.IM2;
+                    z80state.setIM(IntMode.IM2);
                     break;
             }
 
@@ -863,7 +821,7 @@ public class Snapshots {
             }
 
             // Si regPC != 0, es un z80 v1.0
-            if (regPC != 0) {
+            if (z80state.getRegPC() != 0) {
                 byte pageBuffer[] = new byte[0x4000];
                 snapshotModel = MachineTypes.SPECTRUM48K;
                 memory.setSpectrumModel(MachineTypes.SPECTRUM48K);
@@ -947,7 +905,7 @@ public class Snapshots {
                     return false;
                 }
 
-                regPC = (z80Header2[0] & 0xff) | (z80Header2[1] << 8) & 0xffff;
+                z80state.setRegPC((z80Header2[0] & 0xff) | (z80Header2[1] << 8));
 
                 boolean modifiedHW = (z80Header2[5] & 0x80) != 0;
                 if (hdrLen == 23) { // Z80 v2
@@ -1082,10 +1040,14 @@ public class Snapshots {
 
                 last7ffd = z80Header2[3] & 0xff;
                 enabledAY = (z80Header2[5] & 0x04) != 0;
-                lastfffd = z80Header2[6] & 0xff;
+                
+                ay8912state = new AY8912State();
+                int regAY[] = new int[16];
+                ay8912state.setAddressLatch(z80Header2[6]);
                 for (int idx = 0; idx < 16; idx++) {
-                    psgRegs[idx] = z80Header2[7 + idx] & 0xff;
+                    regAY[idx] = z80Header2[7 + idx] & 0xff;
                 }
+                ay8912state.setRegAY(regAY);
 
                 last1ffd = 0;
                 if (hdrLen == 55) {
@@ -1142,7 +1104,7 @@ public class Snapshots {
 
             fIn.close();
 
-            tstates = 0;
+            z80state.setTstates(0);
 
         } catch (IOException ex) {
             error = 4;
@@ -1164,38 +1126,38 @@ public class Snapshots {
             }
 
             byte z80HeaderV3[] = new byte[87];
-            z80HeaderV3[0] = (byte) (regAF >>> 8);
-            z80HeaderV3[1] = (byte) regAF;
-            z80HeaderV3[2] = (byte) regBC;
-            z80HeaderV3[3] = (byte) (regBC >>> 8);
-            z80HeaderV3[4] = (byte) regHL;
-            z80HeaderV3[5] = (byte) (regHL >>> 8);
+            z80HeaderV3[0] = (byte) z80state.getRegA();
+            z80HeaderV3[1] = (byte) z80state.getRegF();
+            z80HeaderV3[2] = (byte) z80state.getRegC();
+            z80HeaderV3[3] = (byte) z80state.getRegB();
+            z80HeaderV3[4] = (byte) z80state.getRegL();
+            z80HeaderV3[5] = (byte) z80state.getRegH();
             // Bytes 6 y 7 se dejan a 0, si regPC==0, el Z80 es version 2 o 3
-            z80HeaderV3[8] = (byte) regSP;
-            z80HeaderV3[9] = (byte) (regSP >>> 8);
-            z80HeaderV3[10] = (byte) regI;
-            z80HeaderV3[11] = (byte) (regR & 0x7f);
+            z80HeaderV3[8] = (byte) z80state.getRegSP();
+            z80HeaderV3[9] = (byte) (z80state.getRegSP() >>> 8);
+            z80HeaderV3[10] = (byte) z80state.getRegI();
+            z80HeaderV3[11] = (byte) (z80state.getRegR() & 0x7f);
             z80HeaderV3[12] = (byte) (border << 1);
-            if (regR > 0x7f) {
+            if (z80state.getRegR() > 0x7f) {
                 z80HeaderV3[12] |= 0x01;
             }
-            z80HeaderV3[13] = (byte) regDE;
-            z80HeaderV3[14] = (byte) (regDE >>> 8);
-            z80HeaderV3[15] = (byte) regBCalt;
-            z80HeaderV3[16] = (byte) (regBCalt >>> 8);
-            z80HeaderV3[17] = (byte) regDEalt;
-            z80HeaderV3[18] = (byte) (regDEalt >>> 8);
-            z80HeaderV3[19] = (byte) regHLalt;
-            z80HeaderV3[20] = (byte) (regHLalt >>> 8);
-            z80HeaderV3[21] = (byte) (regAF >>> 8);
-            z80HeaderV3[22] = (byte) regAF;
-            z80HeaderV3[23] = (byte) regIY;
-            z80HeaderV3[24] = (byte) (regIY >>> 8);
-            z80HeaderV3[25] = (byte) regIX;
-            z80HeaderV3[26] = (byte) (regIX >>> 8);
-            z80HeaderV3[27] = (byte) (iff1 ? 0x01 : 0x00);
-            z80HeaderV3[28] = (byte) (iff2 ? 0x01 : 0x00);
-            z80HeaderV3[29] = (byte) modeIM.ordinal();
+            z80HeaderV3[13] = (byte) z80state.getRegE();
+            z80HeaderV3[14] = (byte) z80state.getRegD();
+            z80HeaderV3[15] = (byte) z80state.getRegCx();
+            z80HeaderV3[16] = (byte) z80state.getRegBx();
+            z80HeaderV3[17] = (byte) z80state.getRegEx();
+            z80HeaderV3[18] = (byte) z80state.getRegDx();
+            z80HeaderV3[19] = (byte) z80state.getRegLx();
+            z80HeaderV3[20] = (byte) z80state.getRegHx();
+            z80HeaderV3[21] = (byte) z80state.getRegAx();
+            z80HeaderV3[22] = (byte) z80state.getRegFx();
+            z80HeaderV3[23] = (byte) z80state.getRegIY();
+            z80HeaderV3[24] = (byte) (z80state.getRegIY() >>> 8);
+            z80HeaderV3[25] = (byte) z80state.getRegIX();
+            z80HeaderV3[26] = (byte) (z80state.getRegIX() >>> 8);
+            z80HeaderV3[27] = (byte) (z80state.isIFF1() ? 0x01 : 0x00);
+            z80HeaderV3[28] = (byte) (z80state.isIFF2() ? 0x01 : 0x00);
+            z80HeaderV3[29] = (byte) z80state.getIM().ordinal();
 
             if (!issue2) {
                 z80HeaderV3[29] |= 0x04;
@@ -1215,24 +1177,18 @@ public class Snapshots {
             }
             // Hasta aquí la cabecera v1.0, ahora viene lo propio de la v3.x
             z80HeaderV3[30] = 55; // Cabecera adicional de 55 bytes
-            z80HeaderV3[32] = (byte) regPC;
-            z80HeaderV3[33] = (byte) (regPC >>> 8);
+            z80HeaderV3[32] = (byte) z80state.getRegPC();
+            z80HeaderV3[33] = (byte) (z80state.getRegPC() >>> 8);
 
             switch (snapshotModel) {
                 case SPECTRUM16K:
-                    z80HeaderV3[37] |= 0x80;
-                    break;
+                    z80HeaderV3[37] |= 0x80; // modified HW, 48k --> 16k
+//                    break;
                 case SPECTRUM48K:
-                    if (IF1Enabled) {
-                        z80HeaderV3[34] = 1;
-                    }
+                    z80HeaderV3[34] = (byte) (IF1Enabled ? 1 : 0);
                     break;
                 case SPECTRUM128K:
-                    if (IF1Enabled) {
-                        z80HeaderV3[34] = 5;
-                    } else {
-                        z80HeaderV3[34] = 4;
-                    }
+                    z80HeaderV3[34] = (byte) (IF1Enabled ? 5 : 4);
                     break;
                 case SPECTRUMPLUS2:
                     z80HeaderV3[34] = 12;
@@ -1254,16 +1210,16 @@ public class Snapshots {
 
             if (enabledAY) {
                 z80HeaderV3[37] |= 0x04;
-            }
+                z80HeaderV3[38] = (byte) ay8912state.getAddressLatch();
 
-            z80HeaderV3[38] = (byte) lastfffd;
-
-            for (int reg = 0; reg < 16; reg++) {
-                z80HeaderV3[39 + reg] = (byte) psgRegs[reg];
+                int regAY[] = ay8912state.getRegAY();
+                for (int reg = 0; reg < 16; reg++) {
+                    z80HeaderV3[39 + reg] = (byte) regAY[reg];
+                }
             }
 
             if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                z80HeaderV3[54] = (byte) last1ffd;
+                z80HeaderV3[86] = (byte) last1ffd;
             }
 
             fOut.write(z80HeaderV3, 0, z80HeaderV3.length);
@@ -1581,39 +1537,49 @@ public class Snapshots {
                             return false;
                         }
 
-                        regAF = (z80Regs[0] & 0xff) | (z80Regs[1] << 8) & 0xffff;
-                        regBC = (z80Regs[2] & 0xff) | (z80Regs[3] << 8) & 0xffff;
-                        regDE = (z80Regs[4] & 0xff) | (z80Regs[5] << 8) & 0xffff;
-                        regHL = (z80Regs[6] & 0xff) | (z80Regs[7] << 8) & 0xffff;
-                        regAFalt = (z80Regs[8] & 0xff) | (z80Regs[9] << 8) & 0xffff;
-                        regBCalt = (z80Regs[10] & 0xff) | (z80Regs[11] << 8) & 0xffff;
-                        regDEalt = (z80Regs[12] & 0xff) | (z80Regs[13] << 8) & 0xffff;
-                        regHLalt = (z80Regs[14] & 0xff) | (z80Regs[15] << 8) & 0xffff;
-                        regIX = (z80Regs[16] & 0xff) | (z80Regs[17] << 8) & 0xffff;
-                        regIY = (z80Regs[18] & 0xff) | (z80Regs[19] << 8) & 0xffff;
-                        regSP = (z80Regs[20] & 0xff) | (z80Regs[21] << 8) & 0xffff;
-                        regPC = (z80Regs[22] & 0xff) | (z80Regs[23] << 8) & 0xffff;
-                        regI = z80Regs[24] & 0xff;
-                        regR = z80Regs[25] & 0xff;
-                        iff1 = (z80Regs[26] & 0xff) != 0;
-                        iff2 = (z80Regs[27] & 0xff) != 0;
+                        z80state = new Z80State();
+                        z80state.setRegF(z80Regs[0]);
+                        z80state.setRegA(z80Regs[1]);
+                        z80state.setRegC(z80Regs[2]);
+                        z80state.setRegB(z80Regs[3]);
+                        z80state.setRegE(z80Regs[4]);
+                        z80state.setRegD(z80Regs[5]);
+                        z80state.setRegL(z80Regs[6]);
+                        z80state.setRegH(z80Regs[7]);
+                        z80state.setRegFx(z80Regs[8]);
+                        z80state.setRegAx(z80Regs[9]);
+                        z80state.setRegCx(z80Regs[10]);
+                        z80state.setRegBx(z80Regs[11]);
+                        z80state.setRegEx(z80Regs[12]);
+                        z80state.setRegDx(z80Regs[13]);
+                        z80state.setRegLx(z80Regs[14]);
+                        z80state.setRegHx(z80Regs[15]);
+                        z80state.setRegIX((z80Regs[16] & 0xff) | (z80Regs[17] << 8));
+                        z80state.setRegIY((z80Regs[18] & 0xff) | (z80Regs[19] << 8));
+                        z80state.setRegSP((z80Regs[20] & 0xff) | (z80Regs[21] << 8));
+                        z80state.setRegPC((z80Regs[22] & 0xff) | (z80Regs[23] << 8));
+                        z80state.setRegI(z80Regs[24]);
+                        z80state.setRegR(z80Regs[25]);
+                        z80state.setIFF1((z80Regs[26] & 0x01) != 0);
+                        z80state.setIFF1((z80Regs[27] & 0x01) != 0);
 
                         switch (z80Regs[28] & 0x03) {
                             case 0:
-                                modeIM = IntMode.IM0;
+                                z80state.setIM(IntMode.IM0);
                                 break;
                             case 1:
-                                modeIM = IntMode.IM1;
+                                z80state.setIM(IntMode.IM1);
                                 break;
                             case 2:
-                                modeIM = IntMode.IM2;
+                                z80state.setIM(IntMode.IM2);
                                 break;
                         }
-                        tstates = ((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
-                                | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff);
+                        
+                        z80state.setTstates((int) (((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
+                                | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff)));
 
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
-                            memptr = (z80Regs[35] & 0xff) | (z80Regs[36] << 8) & 0xffff;
+                            z80state.setMemPtr((z80Regs[35] & 0xff) | (z80Regs[36] << 8));
                         }
                         break;
                     case ZXSTBID_SPECREGS:
@@ -1673,6 +1639,7 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
+                        
                         byte ayRegs[] = new byte[szxLen];
                         readed = fIn.read(ayRegs);
                         if (readed != szxLen) {
@@ -1680,15 +1647,20 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
+                        
                         enabledAY = true;
                         if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
                                 && ayRegs[0] != ZXSTAYF_128AY) {
                             enabledAY = false;
                         }
-                        lastfffd = ayRegs[1] & 0xff;
+                        
+                        ay8912state = new AY8912State();
+                        int regAY[] = new int[16];
+                        ay8912state.setAddressLatch(ayRegs[1]);
                         for (int idx = 0; idx < 16; idx++) {
-                            psgRegs[idx] = ayRegs[2 + idx] & 0xff;
+                            regAY[idx] = ayRegs[2 + idx] & 0xff;
                         }
+                        ay8912state.setRegAY(regAY);
                         break;
                     case ZXSTBID_RAMPAGE:
                         byte ramPage[] = new byte[3];
@@ -2168,46 +2140,46 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);  // Z80R length block (37 bytes)
             byte[] z80r = new byte[37];
-            z80r[0] = (byte) regAF;
-            z80r[1] = (byte) (regAF >>> 8);
-            z80r[2] = (byte) regBC;
-            z80r[3] = (byte) (regBC >>> 8);
-            z80r[4] = (byte) regDE;
-            z80r[5] = (byte) (regDE >>> 8);
-            z80r[6] = (byte) regHL;
-            z80r[7] = (byte) (regHL >>> 8);
-            z80r[8] = (byte) regAFalt;
-            z80r[9] = (byte) (regAFalt >>> 8);
-            z80r[10] = (byte) regBCalt;
-            z80r[11] = (byte) (regBCalt >>> 8);
-            z80r[12] = (byte) regDEalt;
-            z80r[13] = (byte) (regDEalt >>> 8);
-            z80r[14] = (byte) regHLalt;
-            z80r[15] = (byte) (regHLalt >>> 8);
-            z80r[16] = (byte) regIX;
-            z80r[17] = (byte) (regIX >>> 8);
-            z80r[18] = (byte) regIY;
-            z80r[19] = (byte) (regIY >>> 8);
-            z80r[20] = (byte) regSP;
-            z80r[21] = (byte) (regSP >>> 8);
-            z80r[22] = (byte) regPC;
-            z80r[23] = (byte) (regPC >>> 8);
-            z80r[24] = (byte) regI;
-            z80r[25] = (byte) regR;
-            if (iff1) {
+            z80r[0] = (byte) z80state.getRegF();
+            z80r[1] = (byte) z80state.getRegA();
+            z80r[2] = (byte) z80state.getRegC();
+            z80r[3] = (byte) z80state.getRegB();
+            z80r[4] = (byte) z80state.getRegE();
+            z80r[5] = (byte) z80state.getRegD();
+            z80r[6] = (byte) z80state.getRegL();
+            z80r[7] = (byte) z80state.getRegH();
+            z80r[8] = (byte) z80state.getRegFx();
+            z80r[9] = (byte) z80state.getRegAx();
+            z80r[10] = (byte) z80state.getRegCx();
+            z80r[11] = (byte) z80state.getRegBx();
+            z80r[12] = (byte) z80state.getRegEx();
+            z80r[13] = (byte) z80state.getRegDx();
+            z80r[14] = (byte) z80state.getRegLx();
+            z80r[15] = (byte) z80state.getRegHx();
+            z80r[16] = (byte) z80state.getRegIX();
+            z80r[17] = (byte) (z80state.getRegIX() >>> 8);
+            z80r[18] = (byte) z80state.getRegIY();
+            z80r[19] = (byte) (z80state.getRegIY() >>> 8);
+            z80r[20] = (byte) z80state.getRegSP();
+            z80r[21] = (byte) (z80state.getRegSP() >>> 8);
+            z80r[22] = (byte) z80state.getRegPC();
+            z80r[23] = (byte) (z80state.getRegPC() >>> 8);
+            z80r[24] = (byte) z80state.getRegI();
+            z80r[25] = (byte) z80state.getRegR();
+            if (z80state.isIFF1()) {
                 z80r[26] = 0x01;
             }
-            if (iff2) {
+            if (z80state.isIFF2()) {
                 z80r[27] = 0x01;
             }
-            z80r[28] = (byte) modeIM.ordinal();
-            z80r[29] = (byte) tstates;
-            z80r[30] = (byte) (tstates >>> 8);
-            z80r[31] = (byte) (tstates >>> 16);
-            z80r[32] = (byte) (tstates >>> 24);
+            z80r[28] = (byte) z80state.getIM().ordinal();
+            z80r[29] = (byte) z80state.getTstates();
+            z80r[30] = (byte) (z80state.getTstates() >>> 8);
+            z80r[31] = (byte) (z80state.getTstates() >>> 16);
+            z80r[32] = (byte) (z80state.getTstates() >>> 24);
             // ignore the chHoldIntReqCycles & chFlags fields
-            z80r[35] = (byte) memptr;
-            z80r[36] = (byte) (memptr >>> 8);
+            z80r[35] = (byte) z80state.getMemPtr();
+            z80r[36] = (byte) (z80state.getMemPtr() >>> 8);
             fOut.write(z80r);
 
             // SZX SPECREGS block
@@ -2312,9 +2284,10 @@ public class Snapshots {
                 } else {
                     fOut.write(0x00);
                 }
-                fOut.write(lastfffd);
+                fOut.write(ay8912state.getAddressLatch());
+                int regAY[] = ay8912state.getRegAY();
                 for (int reg = 0; reg < 16; reg++) {
-                    fOut.write(psgRegs[reg]);
+                    fOut.write(regAY[reg]);
                 }
             }
 

@@ -25,7 +25,6 @@ import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import snapshots.Z80State;
 import utilities.Snapshots;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -1257,9 +1256,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             doReset();
             
-            Z80State z80State = new Z80State();
-            snap.getZ80State(z80State);
-            z80.setZ80State(z80State);
+            z80.setZ80State(snap.getZ80State());
 
             int border = snap.getBorder();
             portFE &= 0xf8;
@@ -1319,11 +1316,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
                 enabledAY = true;
 
-                for (int reg = 0; reg < 16; reg++) {
-                    ay8912.setAddressLatch(reg);
-                    ay8912.writeRegister(snap.getPsgReg(reg));
-                }
-                ay8912.setAddressLatch(snap.getPortfffd());
+                ay8912.setAY8912State(snap.getAY8912State());
             }
 
             if (snap.isULAplus()) {
@@ -1413,9 +1406,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         snap.setSnapshotModel(spectrumModel);
         
-        Z80State z80State = new Z80State();
-        z80.getZ80State(z80State);
-        snap.setZ80State(z80State);
+        snap.setZ80State(z80.getZ80State());
 
         snap.setBorder(portFE & 0x07);
 
@@ -1443,14 +1434,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         if (enabledAY) {
             snap.setEnabledAY(true);
 
-            int ayLatch = ay8912.getAddressLatch();
-            snap.setPortfffd(ayLatch);
-
-            for (int reg = 0; reg < 16; reg++) {
-                ay8912.setAddressLatch(reg);
-                snap.setPsgReg(reg, ay8912.readRegister());
-            }
-            ay8912.setAddressLatch(ayLatch);
+            snap.setAY8912State(ay8912.getAY8912State());
         }
 
         if (ULAplusOn) {

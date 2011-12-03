@@ -5,6 +5,7 @@
 package machine;
 
 import java.util.Arrays;
+import snapshots.AY8912State;
 
 /**
  *
@@ -118,6 +119,20 @@ public final class AY8912 {
         }
     }
 
+    public AY8912State getAY8912State() {
+        AY8912State state = new AY8912State();
+        state.setAddressLatch(addressLatch);
+        int regs[] = new int[16];
+        System.arraycopy(regAY, 0, regs, 0, regAY.length);
+        state.setRegAY(regs);
+        return state;
+    }
+    
+    public void setAY8912State(AY8912State state) {
+        addressLatch = state.getAddressLatch();
+        System.arraycopy(state.getRegAY(), 0, regAY, 0, regAY.length);
+    }
+    
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
         if (samplesPerFrame != 0)
