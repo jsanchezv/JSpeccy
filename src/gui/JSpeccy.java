@@ -42,6 +42,7 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
 import utilities.Tape;
 import utilities.Tape.TapeState;
+import utilities.TapeBlockListener;
 import utilities.TapeStateListener;
 
 /**
@@ -244,7 +245,6 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
         spectrum.setSpeedLabel(speedLabel);
-        tape.addTapeChangedListener(new TapeChangedListener());
         tapeCatalog.setModel(tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
@@ -259,7 +259,15 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         
-        tape.setListSelectionModel(lsm);
+        tape.addTapeChangedListener(new TapeChangedListener());
+        tape.addTapeBlockListener(new TapeBlockListener() {
+            
+            @Override
+            public void blockChanged(int block) {
+                lsm.setSelectionInterval(block, block);
+            }
+        });
+
         getContentPane().add(jscr, BorderLayout.CENTER);
         pack();
         addKeyListener(spectrum.getKeyboard());
@@ -2504,6 +2512,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     clearTapeMediaMenu.setEnabled(canRec);
                     recordStartTapeMediaMenu.setEnabled(canRec);
                     tapeBrowserButtonRec.setEnabled(canRec);
+                    tapeCatalog.scrollRectToVisible(tapeCatalog.getCellRect(0, 0, true));
                     break;
                 case EJECT:
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N

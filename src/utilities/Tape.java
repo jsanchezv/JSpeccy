@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import javax.swing.ListSelectionModel;
 import javax.swing.table.AbstractTableModel;
 import machine.MachineTypes;
 import machine.Memory;
@@ -68,7 +67,8 @@ public class Tape {
     private int cswPulses;
     
     public enum TapeState { EJECT, INSERT, STOP, PLAY, RECORD };
-    private final ArrayList<TapeStateListener> listeners = new ArrayList<TapeStateListener>();
+    private final ArrayList<TapeStateListener> stateListeners = new ArrayList<TapeStateListener>();
+    private final ArrayList<TapeBlockListener> blockListeners = new ArrayList<TapeBlockListener>();
     
     private enum State {
 
@@ -111,7 +111,6 @@ public class Tape {
     private float cswStatesSample;
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
-    private ListSelectionModel lsm;
     private TapeType settings;
     
 
@@ -144,8 +143,8 @@ public class Tape {
         }
 
         // Avoid duplicates
-        if (!listeners.contains(listener)) {
-            listeners.add(listener);
+        if (!stateListeners.contains(listener)) {
+            stateListeners.add(listener);
         }
     }
     
@@ -163,14 +162,58 @@ public class Tape {
             throw new NullPointerException("Internal Error: Listener can't be null");
         }
 
-        if (!listeners.remove(listener)) {
+        if (!stateListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
     }
     
     public void fireTapeStateChanged(final TapeState state) {
-        for (final TapeStateListener listener : listeners) {
+        for (final TapeStateListener listener : stateListeners) {
             listener.stateChanged(state);
+        }
+    }
+    
+    /**
+     * Adds a new event listener to the list of event listeners.
+     *
+     * @param listener The new event listener.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     */
+    public void addTapeBlockListener(final TapeBlockListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Error: Listener can't be null");
+        }
+
+        // Avoid duplicates
+        if (!blockListeners.contains(listener)) {
+            blockListeners.add(listener);
+        }
+    }
+    
+    /**
+     * Remove a new event listener from the list of event listeners.
+     *
+     * @param listener The event listener to remove.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     * @throws IllegalArgumentException Thrown if the listener wasn't registered.
+     */
+    public void removeTapeBlockListener(final TapeBlockListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Internal Error: Listener can't be null");
+        }
+
+        if (!blockListeners.remove(listener)) {
+            throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
+        }
+    }
+    
+    public void fireTapeBlockChanged(final int block) {
+        for (final TapeBlockListener listener : blockListeners) {
+            listener.blockChanged(block);
         }
     }
     
@@ -180,10 +223,6 @@ public class Tape {
     
     public void setZ80Cpu(Z80 z80) {
         cpu = z80;
-    }
-
-    public void setListSelectionModel(ListSelectionModel list) {
-        lsm = list;
     }
 
     private int getNumBlocks() {
@@ -605,9 +644,9 @@ public class Tape {
         }
 
         tapeTableModel.fireTableDataChanged();
-        lsm.setSelectionInterval(0, 0);
         cpu.setExecDone(false);
         fireTapeStateChanged(TapeState.INSERT);
+        fireTapeBlockChanged(0);
         return true;
     }
 
@@ -649,9 +688,9 @@ public class Tape {
         }
         
         tapeTableModel.fireTableDataChanged();
-        lsm.setSelectionInterval(selectedBlock, selectedBlock);
         cpu.setExecDone(false);
         fireTapeStateChanged(TapeState.INSERT);
+        fireTapeBlockChanged(selectedBlock);
         return true;
     }
 
@@ -726,14 +765,13 @@ public class Tape {
             return;
         }
 
-        statePlay = State.STOP;
-
-        lsm.setSelectionInterval(idxHeader, idxHeader);
+        statePlay = State.STOP;        
 
         cpu.setExecDone(false);
         tapePlaying = false;
         timeout = 0;
         fireTapeStateChanged(TapeState.STOP);
+        fireTapeBlockChanged(idxHeader);
     }
 
     public boolean rewind() {
@@ -742,8 +780,8 @@ public class Tape {
         }
 
         idxHeader = 0;
-        tapePos = offsetBlocks[idxHeader];
-        lsm.setSelectionInterval(idxHeader, idxHeader);
+        tapePos = offsetBlocks[0];
+        fireTapeBlockChanged(0);
 
         return true;
     }
@@ -787,13 +825,13 @@ public class Tape {
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
-                lsm.setSelectionInterval(idxHeader, idxHeader);
                 cpu.setExecDone(false);
                 tapePlaying = false;
                 fireTapeStateChanged(TapeState.STOP);
+                fireTapeBlockChanged(idxHeader);
                 break;
             case START:
-                lsm.setSelectionInterval(idxHeader, idxHeader);
+                fireTapeBlockChanged(idxHeader);
 //                System.out.println(String.format("Playing tap block :%d", idxHeader));
                 tapePos = offsetBlocks[idxHeader];
                 blockLen = readInt(tapeBuffer, tapePos, 2);
@@ -1002,10 +1040,10 @@ public class Tape {
             repeat = false;
             switch (statePlay) {
                 case STOP:
-                    lsm.setSelectionInterval(idxHeader, idxHeader);
                     cpu.setExecDone(false);
                     tapePlaying = false;
                     fireTapeStateChanged(TapeState.STOP);
+                    fireTapeBlockChanged(idxHeader);
                     break;
                 case START:
                     tapePos = offsetBlocks[idxHeader];
@@ -1246,7 +1284,7 @@ public class Tape {
                 return;
             }
 
-            lsm.setSelectionInterval(idxHeader, idxHeader);
+            fireTapeBlockChanged(idxHeader);
 //            System.out.println(String.format("Playing tzx block :%d", idxHeader + 1));
             tapePos = offsetBlocks[idxHeader];
 
@@ -1452,10 +1490,10 @@ public class Tape {
         switch (statePlay) {
             case STOP:
                 idxHeader++;
-                lsm.setSelectionInterval(idxHeader, idxHeader);
                 cpu.setExecDone(false);
                 tapePlaying = false;
                 fireTapeStateChanged(TapeState.STOP);
+                fireTapeBlockChanged(idxHeader);
                 break;
             case START:
                 if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
@@ -1601,7 +1639,7 @@ public class Tape {
                 return false;
             }
 
-            lsm.setSelectionInterval(idxHeader, idxHeader);
+            fireTapeBlockChanged(idxHeader);
             if (tapeBuffer[tapePos] == 0x10) {
                 blockLen = readInt(tapeBuffer, tapePos + 3, 2);
                 tapePos += 5;
@@ -1652,7 +1690,7 @@ public class Tape {
         cpu.setRegIX(addr);
         cpu.setRegDE(nBytes - count);
         idxHeader++;
-        lsm.setSelectionInterval(idxHeader, idxHeader);
+        fireTapeBlockChanged(idxHeader);
 
 //        System.out.println(String.format("Salida -> IX: %04X DE: %04X AF: %04X",
 //            cpu.getRegIX(), cpu.getRegDE(), cpu.getRegAF()));
