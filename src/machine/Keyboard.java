@@ -7,7 +7,6 @@ package machine;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Arrays;
-import machine.Spectrum.Joystick;
 
 /**
  *
@@ -15,6 +14,11 @@ import machine.Spectrum.Joystick;
  */
 public class Keyboard implements KeyListener {
 
+    public static enum Joystick {
+
+        NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR, FULLER
+    };
+    
     private int rowKey[] = new int[8];
     private boolean shiftPressed, mapPCKeys;
     private KeyEvent keyEventPending[] = new KeyEvent[8];
@@ -55,8 +59,10 @@ public class Keyboard implements KeyListener {
     private static final int KEY_RELEASED_BIT3 = 0x08;
     private static final int KEY_RELEASED_BIT4 = 0x10;
 
-    public Keyboard() {
+    public Keyboard(configuration.KeyboardJoystickType config) {
         reset();
+        setJoystick(config.getJoystickModel());
+        mapPCKeys = config.isMapPCKeys();
     }
 
     public final void reset() {
@@ -67,10 +73,36 @@ public class Keyboard implements KeyListener {
         Arrays.fill(keyEventPending, null);
     }
 
-    public void setJoystick(Joystick model) {
+    public final Joystick getJoystick() {
+        return joystick;
+    }
+    
+    public final void setJoystick(Joystick model) {
         joystick = model;
         kempston = 0;
         fuller = 0xff;
+    }
+    
+    public final void setJoystick(int model) {
+        switch (model) {
+            case 1:
+                joystick = Joystick.KEMPSTON;
+                break;
+            case 2:
+                joystick = Joystick.SINCLAIR1;
+                break;
+            case 3:
+                joystick = Joystick.SINCLAIR2;
+                break;
+            case 4:
+                joystick = Joystick.CURSOR;
+                break;
+            case 5:
+                joystick = Joystick.FULLER;
+                break;
+            default:
+                joystick = Joystick.NONE;
+        }
     }
 
     public int readKempstonPort() {

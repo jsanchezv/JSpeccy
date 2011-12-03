@@ -25,6 +25,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import machine.Keyboard.Joystick;
 import utilities.Snapshots;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -58,10 +59,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private boolean hardResetPending, resetPending;
     private JLabel speedLabel;
 
-    public static enum Joystick {
-
-        NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR, FULLER
-    };
     private Joystick joystick;
     
     private JSpeccySettingsType settings;
@@ -90,28 +87,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         paused = true;
         if1 = new Interface1(settings.getInterface1Settings());
 
-        keyboard = new Keyboard();
-        keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
-        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
-            case 1:
-                joystick = Joystick.KEMPSTON;
-                break;
-            case 2:
-                joystick = Joystick.SINCLAIR1;
-                break;
-            case 3:
-                joystick = Joystick.SINCLAIR2;
-                break;
-            case 4:
-                joystick = Joystick.CURSOR;
-                break;
-            case 5:
-                joystick = Joystick.FULLER;
-                break;
-            default:
-                joystick = Joystick.NONE;
-        }
-        setJoystick(joystick);
+        keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
+        joystick = keyboard.getJoystick();
 
         switch (specSettings.getDefaultModel()) {
             case 0:
@@ -293,28 +270,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             default:
                 selectHardwareModel(MachineTypes.SPECTRUM48K, true);
         }
-
-        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
-            case 1:
-                joystick = Joystick.KEMPSTON;
-                break;
-            case 2:
-                joystick = Joystick.SINCLAIR1;
-                break;
-            case 3:
-                joystick = Joystick.SINCLAIR2;
-                break;
-            case 4:
-                joystick = Joystick.CURSOR;
-                break;
-            case 5:
-                joystick = Joystick.FULLER;
-                break;
-            default:
-                joystick = Joystick.NONE;
-        }
         
-        setJoystick(joystick);
+        keyboard.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
+        joystick = keyboard.getJoystick();
         memory.hardReset();
     }
 
@@ -1274,11 +1232,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 }
             }
 
-            Joystick snapJoystick = snap.getJoystick();
-
-            if (snapJoystick != Joystick.NONE) {
-                joystick = snapJoystick;
-                setJoystick(joystick);
+            if (snap.getJoystick() != Joystick.NONE) {
+                setJoystick(snap.getJoystick());
             }
 
             if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {

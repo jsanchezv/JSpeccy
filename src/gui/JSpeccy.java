@@ -40,6 +40,7 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
+import machine.Keyboard.Joystick;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeBlockListener;
@@ -1738,35 +1739,35 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void noneJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noneJoystickActionPerformed
 
-        spectrum.setJoystick(Spectrum.Joystick.NONE);
+        spectrum.setJoystick(Joystick.NONE);
         noneJoystick.setSelected(true);
 
 }//GEN-LAST:event_noneJoystickActionPerformed
 
     private void kempstonJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kempstonJoystickActionPerformed
 
-        spectrum.setJoystick(Spectrum.Joystick.KEMPSTON);
+        spectrum.setJoystick(Joystick.KEMPSTON);
         kempstonJoystick.setSelected(true);
 
     }//GEN-LAST:event_kempstonJoystickActionPerformed
 
     private void sinclair1JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair1JoystickActionPerformed
 
-        spectrum.setJoystick(Spectrum.Joystick.SINCLAIR1);
+        spectrum.setJoystick(Joystick.SINCLAIR1);
         sinclair1Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair1JoystickActionPerformed
 
     private void sinclair2JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair2JoystickActionPerformed
 
-        spectrum.setJoystick(Spectrum.Joystick.SINCLAIR2);
+        spectrum.setJoystick(Joystick.SINCLAIR2);
         sinclair2Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair2JoystickActionPerformed
 
     private void cursorJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cursorJoystickActionPerformed
 
-        spectrum.setJoystick(Spectrum.Joystick.CURSOR);
+        spectrum.setJoystick(Joystick.CURSOR);
         cursorJoystick.setSelected(true);
         
     }//GEN-LAST:event_cursorJoystickActionPerformed
@@ -2206,7 +2207,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_extractIF2RomMediaMenuActionPerformed
 
     private void fullerJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullerJoystickActionPerformed
-        spectrum.setJoystick(Spectrum.Joystick.FULLER);
+        spectrum.setJoystick(Joystick.FULLER);
         fullerJoystick.setSelected(true);
     }//GEN-LAST:event_fullerJoystickActionPerformed
 
