@@ -116,7 +116,8 @@
  * 
  *          02/12/2011 Creados los métodos necesarios para poder grabar y cargar el
  *          estado de la CPU de una sola vez a través de la clase Z80State. Los modos
- *          de interrupción pasan a estar en una enumeración.
+ *          de interrupción pasan a estar en una enumeración. Se proporcionan métodos de
+ *          acceso a los registros alternativos de 8 bits.
  *
  */
 package z80core;
@@ -157,10 +158,10 @@ public class Z80 {
     // El flag Carry es el único que se trata aparte
     private boolean carryFlag;
     // Acumulador alternativo y flags -- 8 bits
-    private int regAalt;
-    private int flagFalt;
+    private int regAx;
+    private int regFx;
     // Registros alternativos
-    private int regBalt, regCalt, regDalt, regEalt, regHalt, regLalt;
+    private int regBx, regCx, regDx, regEx, regHx, regLx;
     // Registros de propósito específico
     // *PC -- Program Counter -- 16 bits*
     private int regPC;
@@ -337,6 +338,71 @@ public class Z80 {
     public final void setRegL(int value) {
         regL = value & 0xff;
     }
+    
+    // Acceso a registros alternativos de 8 bits
+    public final int getRegAx() {
+        return regAx;
+    }
+
+    public final void setRegAx(int value) {
+        regAx = value & 0xff;
+    }
+    
+    public final int getRegFx() {
+        return regFx;
+    }
+
+    public final void setRegFx(int value) {
+        regFx = value & 0xff;
+    }
+
+    public final int getRegBx() {
+        return regBx;
+    }
+
+    public final void setRegBx(int value) {
+        regBx = value & 0xff;
+    }
+
+    public final int getRegCx() {
+        return regCx;
+    }
+
+    public final void setRegCx(int value) {
+        regCx = value & 0xff;
+    }
+
+    public final int getRegDx() {
+        return regDx;
+    }
+
+    public final void setRegDx(int value) {
+        regDx = value & 0xff;
+    }
+
+    public final int getRegEx() {
+        return regEx;
+    }
+
+    public final void setRegEx(int value) {
+        regEx = value & 0xff;
+    }
+
+    public final int getRegHx() {
+        return regHx;
+    }
+
+    public final void setRegHx(int value) {
+        regHx = value & 0xff;
+    }
+
+    public final int getRegLx() {
+        return regLx;
+    }
+
+    public final void setRegLx(int value) {
+        regLx = value & 0xff;
+    }
 
     // Acceso a registros de 16 bits
     public final int getRegAF() {
@@ -350,13 +416,13 @@ public class Z80 {
         carryFlag = (word & CARRY_MASK) != 0;
     }
 
-    public final int getRegAFalt() {
-        return (regAalt << 8) | flagFalt;
+    public final int getRegAFx() {
+        return (regAx << 8) | regFx;
     }
 
-    public final void setRegAFalt(int word) {
-        regAalt = (word >>> 8) & 0xff;
-        flagFalt = word & 0xff;
+    public final void setRegAFx(int word) {
+        regAx = (word >>> 8) & 0xff;
+        regFx = word & 0xff;
     }
 
     public final int getRegBC() {
@@ -396,13 +462,13 @@ public class Z80 {
         regB = 0xff;
     }
 
-    public final int getRegBCalt() {
-        return (regBalt << 8) | regCalt;
+    public final int getRegBCx() {
+        return (regBx << 8) | regCx;
     }
 
-    public final void setRegBCalt(int word) {
-        regBalt = (word >>> 8) & 0xff;
-        regCalt = word & 0xff;
+    public final void setRegBCx(int word) {
+        regBx = (word >>> 8) & 0xff;
+        regCx = word & 0xff;
     }
 
     public final int getRegDE() {
@@ -442,13 +508,13 @@ public class Z80 {
         regD = 0xff;
     }
 
-    public final int getRegDEalt() {
-        return (regDalt << 8) | regEalt;
+    public final int getRegDEx() {
+        return (regDx << 8) | regEx;
     }
 
-    public final void setRegDEalt(int word) {
-        regDalt = (word >>> 8) & 0xff;
-        regEalt = word & 0xff;
+    public final void setRegDEx(int word) {
+        regDx = (word >>> 8) & 0xff;
+        regEx = word & 0xff;
     }
 
     public final int getRegHL() {
@@ -492,13 +558,13 @@ public class Z80 {
         regH = 0xff;
     }
 
-    public final int getRegHLalt() {
-        return (regHalt << 8) | regLalt;
+    public final int getRegHLx() {
+        return (regHx << 8) | regLx;
     }
 
-    public final void setRegHLalt(int word) {
-        regHalt = (word >>> 8) & 0xff;
-        regLalt = word & 0xff;
+    public final void setRegHLx(int word) {
+        regHx = (word >>> 8) & 0xff;
+        regLx = word & 0xff;
     }
 
     // Acceso a registros de propósito específico
@@ -739,15 +805,24 @@ public class Z80 {
         pendingEI = state;
     }
     
-    public final void getZ80State(Z80State state) {
-        state.setRegAF(getRegAF());
-        state.setRegBC(getRegBC());
-        state.setRegDE(getRegDE());
-        state.setRegHL(getRegHL());
-        state.setRegAFalt(getRegAFalt());
-        state.setRegBCalt(getRegBCalt());
-        state.setRegDEalt(getRegDEalt());
-        state.setRegHLalt(getRegHLalt());
+    public final Z80State getZ80State() {
+        Z80State state = new Z80State();
+        state.setRegA(regA);
+        state.setRegF(getFlags());
+        state.setRegB(regB);
+        state.setRegC(regC);
+        state.setRegD(regD);
+        state.setRegE(regE);
+        state.setRegH(regH);
+        state.setRegL(regL);
+        state.setRegAx(regAx);
+        state.setRegFx(regFx);
+        state.setRegBx(regBx);
+        state.setRegCx(regCx);
+        state.setRegDx(regDx);
+        state.setRegEx(regEx);
+        state.setRegHx(regHx);
+        state.setRegLx(regLx);
         state.setRegIX(regIX);
         state.setRegIY(regIY);
         state.setRegSP(regSP);
@@ -763,17 +838,26 @@ public class Z80 {
         state.setPendingEI(pendingEI);
         state.setNMI(activeNMI);
         state.setTstates(tstates);
+        return state;
     }
     
     public final void setZ80State(Z80State state) {
-        setRegAF(state.getRegAF());
-        setRegBC(state.getRegBC());
-        setRegDE(state.getRegDE());
-        setRegHL(state.getRegHL());
-        setRegAFalt(state.getRegAFalt());
-        setRegBCalt(state.getRegBCalt());
-        setRegDEalt(state.getRegDEalt());
-        setRegHLalt(state.getRegHLalt());
+        regA = state.getRegA();
+        setFlags(state.getRegF());
+        regB = state.getRegB();
+        regC = state.getRegC();
+        regD = state.getRegD();
+        regE = state.getRegE();
+        regH = state.getRegH();
+        regL = state.getRegL();
+        regAx = state.getRegAx();
+        regFx = state.getRegFx();
+        regBx = state.getRegBx();
+        regCx = state.getRegCx();
+        regDx = state.getRegDx();
+        regEx = state.getRegEx();
+        regHx = state.getRegHx();
+        regLx = state.getRegLx();
         regIX = state.getRegIX();
         regIY = state.getRegIY();
         regSP = state.getRegSP();
@@ -810,15 +894,15 @@ public class Z80 {
         if (pinReset) {
             pinReset = false;
         } else {
-            regA = regAalt = 0xff;
+            regA = regAx = 0xff;
             setFlags(0xff);
-            flagFalt = 0xff;
-            regB = regBalt = 0xff;
-            regC = regCalt = 0xff;
-            regD = regDalt = 0xff;
-            regE = regEalt = 0xff;
-            regH = regHalt = 0xff;
-            regL = regLalt = 0xff;
+            regFx = 0xff;
+            regB = regBx = 0xff;
+            regC = regCx = 0xff;
+            regD = regDx = 0xff;
+            regE = regEx = 0xff;
+            regH = regHx = 0xff;
+            regL = regLx = 0xff;
 
             regIX = regIY = 0xffff;
 
@@ -1717,12 +1801,12 @@ public class Z80 {
                 break;
             case 0x08:       /* EX AF,AF' */
                 work8 = regA;
-                regA = regAalt;
-                regAalt = work8;
+                regA = regAx;
+                regAx = work8;
 
                 work8 = getFlags();
-                setFlags(flagFalt);
-                flagFalt = work8;
+                setFlags(regFx);
+                regFx = work8;
                 break;
             case 0x09:       /* ADD HL,BC */
                 MemIoImpl.contendedStates(getPairIR(), 7);
@@ -2708,28 +2792,28 @@ public class Z80 {
             }
             case 0xD9: {     /* EXX */
                 work8 = regB;
-                regB = regBalt;
-                regBalt = work8;
+                regB = regBx;
+                regBx = work8;
 
                 work8 = regC;
-                regC = regCalt;
-                regCalt = work8;
+                regC = regCx;
+                regCx = work8;
 
                 work8 = regD;
-                regD = regDalt;
-                regDalt = work8;
+                regD = regDx;
+                regDx = work8;
 
                 work8 = regE;
-                regE = regEalt;
-                regEalt = work8;
+                regE = regEx;
+                regEx = work8;
 
                 work8 = regH;
-                regH = regHalt;
-                regHalt = work8;
+                regH = regHx;
+                regHx = work8;
 
                 work8 = regL;
-                regL = regLalt;
-                regLalt = work8;
+                regL = regLx;
+                regLx = work8;
                 break;
             }
             case 0xDA: {     /* JP C,nn */

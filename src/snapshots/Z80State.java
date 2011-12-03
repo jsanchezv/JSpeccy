@@ -14,12 +14,12 @@ public class Z80State {
     // Acumulador y resto de registros de 8 bits
     private int regA, regB, regC, regD, regE, regH, regL;
     // Flags sIGN, zERO, 5, hALFCARRY, 3, pARITY y ADDSUB (n), carryFlag
-    private int sz5h3pnFlags;
+    private int regF;
     // Acumulador alternativo y flags -- 8 bits
-    private int regAalt;
-    private int flagFalt;
+    private int regAx;
+    private int regFx;
     // Registros alternativos
-    private int regBalt, regCalt, regDalt, regEalt, regHalt, regLalt;
+    private int regBx, regCx, regDx, regEx, regHx, regLx;
     // Registros de propósito específico
     // *PC -- Program Counter -- 16 bits*
     private int regPC;
@@ -85,6 +85,14 @@ public class Z80State {
     public final void setRegA(int value) {
         regA = value & 0xff;
     }
+    
+    public final int getRegF() {
+        return regF;
+    }
+
+    public final void setRegF(int value) {
+        regF = value & 0xff;
+    }
 
     public final int getRegB() {
         return regB;
@@ -134,24 +142,89 @@ public class Z80State {
         regL = value & 0xff;
     }
 
+    // Acceso a registros alternativos de 8 bits
+    public final int getRegAx() {
+        return regAx;
+    }
+
+    public final void setRegAx(int value) {
+        regAx = value & 0xff;
+    }
+    
+    public final int getRegFx() {
+        return regFx;
+    }
+
+    public final void setRegFx(int value) {
+        regFx = value & 0xff;
+    }
+
+    public final int getRegBx() {
+        return regBx;
+    }
+
+    public final void setRegBx(int value) {
+        regBx = value & 0xff;
+    }
+
+    public final int getRegCx() {
+        return regCx;
+    }
+
+    public final void setRegCx(int value) {
+        regCx = value & 0xff;
+    }
+
+    public final int getRegDx() {
+        return regDx;
+    }
+
+    public final void setRegDx(int value) {
+        regDx = value & 0xff;
+    }
+
+    public final int getRegEx() {
+        return regEx;
+    }
+
+    public final void setRegEx(int value) {
+        regEx = value & 0xff;
+    }
+
+    public final int getRegHx() {
+        return regHx;
+    }
+
+    public final void setRegHx(int value) {
+        regHx = value & 0xff;
+    }
+
+    public final int getRegLx() {
+        return regLx;
+    }
+
+    public final void setRegLx(int value) {
+        regLx = value & 0xff;
+    }
+
     // Acceso a registros de 16 bits
     public final int getRegAF() {
-        return (regA << 8) | sz5h3pnFlags;
+        return (regA << 8) | regF;
     }
 
     public final void setRegAF(int word) {
         regA = (word >>> 8) & 0xff;
 
-        sz5h3pnFlags = word & 0xff;
+        regF = word & 0xff;
     }
 
-    public final int getRegAFalt() {
-        return (regAalt << 8) | flagFalt;
+    public final int getRegAFx() {
+        return (regAx << 8) | regFx;
     }
 
-    public final void setRegAFalt(int word) {
-        regAalt = (word >>> 8) & 0xff;
-        flagFalt = word & 0xff;
+    public final void setRegAFx(int word) {
+        regAx = (word >>> 8) & 0xff;
+        regFx = word & 0xff;
     }
 
     public final int getRegBC() {
@@ -163,13 +236,13 @@ public class Z80State {
         regC = word & 0xff;
     }
 
-    public final int getRegBCalt() {
-        return (regBalt << 8) | regCalt;
+    public final int getRegBCx() {
+        return (regBx << 8) | regCx;
     }
 
-    public final void setRegBCalt(int word) {
-        regBalt = (word >>> 8) & 0xff;
-        regCalt = word & 0xff;
+    public final void setRegBCx(int word) {
+        regBx = (word >>> 8) & 0xff;
+        regCx = word & 0xff;
     }
 
     public final int getRegDE() {
@@ -181,13 +254,13 @@ public class Z80State {
         regE = word & 0xff;
     }
 
-    public final int getRegDEalt() {
-        return (regDalt << 8) | regEalt;
+    public final int getRegDEx() {
+        return (regDx << 8) | regEx;
     }
 
-    public final void setRegDEalt(int word) {
-        regDalt = (word >>> 8) & 0xff;
-        regEalt = word & 0xff;
+    public final void setRegDEx(int word) {
+        regDx = (word >>> 8) & 0xff;
+        regEx = word & 0xff;
     }
 
     public final int getRegHL() {
@@ -199,13 +272,13 @@ public class Z80State {
         regL = word & 0xff;
     }
 
-    public final int getRegHLalt() {
-        return (regHalt << 8) | regLalt;
+    public final int getRegHLx() {
+        return (regHx << 8) | regLx;
     }
 
-    public final void setRegHLalt(int word) {
-        regHalt = (word >>> 8) & 0xff;
-        regLalt = word & 0xff;
+    public final void setRegHLx(int word) {
+        regHx = (word >>> 8) & 0xff;
+        regLx = word & 0xff;
     }
 
     // Acceso a registros de propósito específico
