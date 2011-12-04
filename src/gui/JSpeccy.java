@@ -1774,7 +1774,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void spec48kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec48kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUM48K)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
         modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
         
@@ -1793,7 +1796,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void spec128kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec128kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUM128K)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
         modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
         
@@ -1825,7 +1831,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUMPLUS2)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
         modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
         
@@ -1845,7 +1854,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUMPLUS2A)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
         modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
         
@@ -2059,7 +2071,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void spec16kHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spec16kHardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUM16K)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
         modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
         
@@ -2078,7 +2093,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void specPlus3HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus3HardwareActionPerformed
 
-        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3, true);
+        if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUMPLUS3)
+            return;
+        
+        spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
         modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
         modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
         

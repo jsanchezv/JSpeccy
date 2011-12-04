@@ -92,22 +92,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         switch (specSettings.getDefaultModel()) {
             case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K, false);
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
                 break;
             case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K, false);
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
                 break;
             case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2, false);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
                 break;
             case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, false);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
                 break;
             case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3, false);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                 break;
             default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K, false);
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
         }
 
         resetPending = hardResetPending = false;
@@ -117,16 +117,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         timerFrame = new Timer("SpectrumClock", true);
     }
 
-    public final void selectHardwareModel(MachineTypes hardwareModel, boolean ramReset) {
+    public final void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
         spectrumModel = hardwareModel;
-        memory.setSpectrumModel(spectrumModel);
-        
-        if (ramReset) {
-            memory.extractIF2Rom();
-            memory.hardReset();
-        }
+        memory.reset(spectrumModel);
         
         if (tape != null)
             tape.setSpectrumModel(spectrumModel);
@@ -231,7 +226,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public void doReset() {
         tape.stop();
         z80.reset();
-        memory.reset();
+        memory.reset(spectrumModel);
         ay8912.reset();
         audio.reset();
         keyboard.reset();
@@ -253,27 +248,26 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         switch (specSettings.getDefaultModel()) {
             case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K, true);
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
                 break;
             case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K, true);
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
                 break;
             case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2, true);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
                 break;
             case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, true);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
                 break;
             case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3, true);
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                 break;
             default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K, true);
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
         }
         
         keyboard.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
         joystick = keyboard.getJoystick();
-        memory.hardReset();
     }
 
     public boolean isPaused() {
@@ -1190,31 +1184,31 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public void loadSnapshot(File filename) {
         Snapshots snap = new Snapshots();
 
-        if (snap.loadSnapshot(filename, memory)) {
+        if (snap.loadSnapshot(filename)) {
+            doReset();
             switch (snap.getSnapshotModel()) {
                 case SPECTRUM16K:
-                    selectHardwareModel(MachineTypes.SPECTRUM16K, false);
+                    selectHardwareModel(MachineTypes.SPECTRUM16K);
                     break;
                 case SPECTRUM48K:
-                    selectHardwareModel(MachineTypes.SPECTRUM48K, false);
+                    selectHardwareModel(MachineTypes.SPECTRUM48K);
                     break;
                 case SPECTRUM128K:
-                    selectHardwareModel(MachineTypes.SPECTRUM128K, false);
+                    selectHardwareModel(MachineTypes.SPECTRUM128K);
                     break;
                 case SPECTRUMPLUS2:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2, false);
+                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
                     break;
                 case SPECTRUMPLUS2A:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A, false);
+                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
                     break;
                 case SPECTRUMPLUS3:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3, false);
+                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                     break;
             }
 
-            doReset();
-            
             z80.setZ80State(snap.getZ80State());
+            memory.setMemoryState(snap.getMemoryState());
 
             int border = snap.getBorder();
             portFE &= 0xf8;
@@ -1226,10 +1220,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 issue2 = snap.isIssue2();
-
-                if (!snap.isIF2RomPaged()) {
-                    memory.extractIF2Rom();
-                }
             }
 
             if (snap.getJoystick() != Joystick.NONE) {
@@ -1300,16 +1290,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 }
             }
 
-            if (snap.isMultiface()) {
-                multiface = true;
-                mf128on48k = snap.isMF128on48k();
-                settings.getSpectrumSettings().setMf128On48K(mf128on48k);
-
-                if (snap.isMFPagedIn()) {
-                    memory.pageMultiface();
-                }
-                memory.setMultifaceLocked(snap.isMFLockout());
-            }
+            multiface = snap.isMultiface();
 
             if (snap.isTapeEmbedded()) {
                 tape.eject();
@@ -1337,9 +1318,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 settings.getInterface1Settings().setConnectedIF1(true);
                 if1.setNumDrives(snap.getNumDrives());
                 settings.getInterface1Settings().setMicrodriveUnits(snap.getNumDrives());
-                if (snap.isIF1RomPaged()) {
-                    memory.pageIF1Rom();
-                }
             } else {
                 connectedIF1 = false;
                 settings.getInterface1Settings().setConnectedIF1(false);
@@ -1362,6 +1340,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         snap.setSnapshotModel(spectrumModel);
         
         snap.setZ80State(z80.getZ80State());
+        snap.setMemoryState(memory.getMemoryState());
 
         snap.setBorder(portFE & 0x07);
 
@@ -1370,13 +1349,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         if (connectedIF1) {
             snap.setIF1Present(true);
-            if (memory.isIF1RomPaged())
-                snap.setIF1RomPaged(true);
             snap.setNumDrives(if1.getNumDrives());
         }
-        
-        if (memory.isIF2RomPaged())
-            snap.setIF2RomPaged(true);
         
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             snap.setPort7ffd(port7ffd);
@@ -1403,10 +1377,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
         }
 
-        if (multiface) {
-            snap.setMultiface(true);
-            snap.setMF128on48k(mf128on48k);
-        }
+        snap.setMultiface(multiface);
 
         if (szxTapeMode != 0) {
             snap.setTapeName(tape.getTapeFilename().getAbsolutePath());
@@ -1419,7 +1390,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
         }
 
-        if (snap.saveSnapshot(filename, memory)) {
+        if (snap.saveSnapshot(filename)) {
             System.out.println(
                 ResourceBundle.getBundle("machine/Bundle").getString("SNAPSHOT_SAVED"));
         } else {

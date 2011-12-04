@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import snapshots.MemoryState;
 import tv.porst.jhexview.IDataChangedListener;
 
 /**
@@ -49,29 +50,95 @@ public final class Memory {
     private int screenPage;
     private int highPage, bankM, bankP;
     private boolean IF1RomPaged, IF2RomPaged;
-    private boolean model128k, pagingLocked, plus3RamMode, mfPagedIn, mfLocked;
+    private boolean model128k, pagingLocked, plus3RamMode;
+    private boolean multifacePaged, multifaceLocked;
     private MachineTypes spectrumModel;
     private JSpeccySettingsType settings;
     private Random random;
 
     public Memory(JSpeccySettingsType memSettings) {
-        spectrumModel = MachineTypes.SPECTRUM48K;
+        spectrumModel = null;
         settings = memSettings;
         random = new Random();
-        hardReset();
         loadRoms();
         IF2RomPaged = false;
+        reset(MachineTypes.SPECTRUM48K);
     }
 
     public MachineTypes getSpectrumModel() {
         return spectrumModel;
     }
 
-    public void setSpectrumModel(MachineTypes model) {
-        spectrumModel = model;
-        reset();
-    }
+    public MemoryState getMemoryState() {
+        MemoryState state = new MemoryState();
 
+        switch (spectrumModel) {
+            case SPECTRUM16K:
+                state.setPageRam(5, savePage(5));
+                break;
+            case SPECTRUM48K:
+                state.setPageRam(5, savePage(5));
+                state.setPageRam(2, savePage(2));
+                state.setPageRam(0, savePage(0));
+                break;
+            default:
+                for (int page = 0; page < 8; page++) {
+                    state.setPageRam(page, savePage(page));
+                }
+        }
+        
+        state.setIF2RomPaged(IF2RomPaged);
+        if (IF2RomPaged) {
+            state.setIF2Rom(saveIF2Rom());
+        }
+        
+        state.setMf128on48k(settings.getSpectrumSettings().isMf128On48K());
+        state.setMfRam(saveMFRam());
+        state.setMultifacePaged(multifacePaged);
+        state.setMultifaceLocked(multifaceLocked);
+        
+        state.setIF1RomPaged(IF1RomPaged);
+            
+        
+        return state;
+    }
+    
+    public void setMemoryState(MemoryState state) {
+
+        switch (spectrumModel) {
+            case SPECTRUM16K:
+                loadPage(5, state.getPageRam(5));
+                break;
+            case SPECTRUM48K:
+                loadPage(5, state.getPageRam(5));
+                loadPage(2, state.getPageRam(2));
+                loadPage(0, state.getPageRam(0));
+                break;
+            default:
+                for (int page = 0; page < 8; page++) {
+                    loadPage(page, state.getPageRam(page));
+                }
+        }
+        
+        if (state.isIF2RomPaged()) {
+            loadIF2Rom(state.getIF2Rom());
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        }
+        
+        settings.getSpectrumSettings().setMf128On48K(state.isMf128on48k());
+        if (state.getMfRam() != null)
+            loadMFRam(state.getMfRam());
+        
+        if (state.isMultifacePaged())
+            pageMultiface();
+        
+        multifaceLocked = state.isMultifaceLocked();
+        
+        if (state.isIF1RomPaged())
+            pageIF1Rom();
+    }
+    
     public byte readScreenByte(int address) {
         return Ram[screenPage][address & 0x1fff];
     }
@@ -104,31 +171,39 @@ public final class Memory {
 
     public void loadPage(int page, byte[] buffer) {
         page <<= 1;
-        byte target[] = Ram[page];
-        System.arraycopy(buffer, 0, target, 0, PAGE_SIZE);
-        target = Ram[page + 1];
-        System.arraycopy(buffer, PAGE_SIZE, target, 0, PAGE_SIZE);
+        System.arraycopy(buffer, 0, Ram[page], 0, PAGE_SIZE);
+        System.arraycopy(buffer, PAGE_SIZE, Ram[page + 1], 0, PAGE_SIZE);
     }
 
-    public void savePage(int page, byte[] buffer) {
+    public byte[] savePage(int page) {
+        byte[] buffer = new byte[PAGE_SIZE * 2];
         page <<= 1;
-        byte source[] = Ram[page];
-        System.arraycopy(source, 0, buffer, 0, PAGE_SIZE);
-        source = Ram[page + 1];
-        System.arraycopy(source, 0, buffer, PAGE_SIZE, PAGE_SIZE);
+        System.arraycopy(Ram[page], 0, buffer, 0, PAGE_SIZE);
+        System.arraycopy(Ram[page + 1], 0, buffer, PAGE_SIZE, PAGE_SIZE);
+        return buffer;
     }
 
     public void loadMFRam(byte[] buffer) {
         System.arraycopy(buffer, 0, mfRAM, 0, mfRAM.length);
     }
 
-    public void saveMFRam(byte[] buffer) {
+    public byte[] saveMFRam() {
+        byte[] buffer = new byte[PAGE_SIZE];
         System.arraycopy(mfRAM, 0, buffer, 0, buffer.length);
+        return buffer;
     }
 
-    public void saveIF2Rom(byte[] buffer) {
+    public void loadIF2Rom(byte[] rom) {
+        System.arraycopy(rom, 0, IF2Rom[0], 0, IF2Rom[0].length);
+        System.arraycopy(rom, PAGE_SIZE, IF2Rom[1], 0, IF2Rom[1].length);
+        IF2RomPaged = true;
+    }
+    
+    public byte[] saveIF2Rom() {
+        byte[] buffer = new byte[PAGE_SIZE * 2];
         System.arraycopy(IF2Rom[0], 0, buffer, 0, IF2Rom[0].length);
         System.arraycopy(IF2Rom[1], 0, buffer, PAGE_SIZE, IF2Rom[1].length);
+        return buffer;
     }
 
     private void setMemoryMap16k() {
@@ -281,7 +356,7 @@ public final class Memory {
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
         // Si está funcionando el IF1, el IF2 o el MF, no tocar la ROM
-        if (IF1RomPaged || IF2RomPaged || mfPagedIn) {
+        if (IF1RomPaged || IF2RomPaged || multifacePaged) {
             return;
         }
 
@@ -339,7 +414,7 @@ public final class Memory {
         // Normal paging mode (bit0 of 0x1ffd to 0)
         if ((bankP & 0x01) == 0) {
 
-            if (mfPagedIn) {
+            if (multifacePaged) {
                 return;
             }
 
@@ -439,7 +514,7 @@ public final class Memory {
     }
 
     public boolean isSpectrumRom() {
-        if (mfPagedIn || IF1RomPaged || IF2RomPaged) {
+        if (multifacePaged || IF1RomPaged || IF2RomPaged) {
             return false;
         }
 
@@ -503,13 +578,22 @@ public final class Memory {
         return model128k;
     }
 
-    public void reset() {
+    public void reset(MachineTypes model) {
 
-        mfPagedIn = false;
+        multifacePaged = false;
         IF1RomPaged = false;
-        mfLocked = true;
+        multifaceLocked = true;
         pagingLocked = plus3RamMode = false;
 
+        if (spectrumModel != model) {
+            spectrumModel = model;
+            
+            for (int page = 0; page < Ram.length; page++) {
+                random.nextBytes(Ram[page]);
+            }
+            random.nextBytes(mfRAM);
+        }
+        
         switch (spectrumModel) {
             case SPECTRUM16K:
                 setMemoryMap16k();
@@ -527,13 +611,6 @@ public final class Memory {
             case SPECTRUMPLUS3:
                 setMemoryMapPlus3();
         }
-    }
-
-    public void hardReset() {
-        for (int page = 0; page < Ram.length; page++) {
-            random.nextBytes(Ram[page]);
-        }
-        random.nextBytes(mfRAM);
     }
 
     /*
@@ -609,11 +686,11 @@ public final class Memory {
      *
      */
     public void pageMultiface() {
-        if (mfPagedIn || plus3RamMode) {
+        if (multifacePaged || plus3RamMode) {
             return;
         }
 
-        mfPagedIn = true;
+        multifacePaged = true;
 //        System.out.println("Multiface paged IN");
         switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
@@ -640,11 +717,11 @@ public final class Memory {
      * (ROM1 para el 128k/+2 y ROM3 para el +2A/+3.
      */
     public void unpageMultiface() {
-        if (!mfPagedIn) {
+        if (!multifacePaged) {
             return;
         }
 
-        mfPagedIn = false;
+        multifacePaged = false;
 
         writePages[0] = writePages[1] = fakeROM;
 
@@ -695,15 +772,15 @@ public final class Memory {
     }
 
     public boolean isMultifacePaged() {
-        return mfPagedIn;
+        return multifacePaged;
     }
 
     public void setMultifaceLocked(boolean state) {
-        mfLocked = state;
+        multifaceLocked = state;
     }
 
     public boolean isMultifaceLocked() {
-        return mfLocked;
+        return multifaceLocked;
     }
 
     public boolean insertIF2Rom(File filename) {
@@ -715,15 +792,9 @@ public final class Memory {
         return true;
     }
 
-    public void insertIF2RomFromSZX(byte[] rom) {
-        System.arraycopy(rom, 0, IF2Rom[0], 0, IF2Rom[0].length);
-        System.arraycopy(rom, 0x2000, IF2Rom[1], 0, IF2Rom[1].length);
-        IF2RomPaged = true;
-    }
-
     public void extractIF2Rom() {
         IF2RomPaged = false;
-        reset();
+        reset(spectrumModel);
     }
 
     public boolean isIF2RomPaged() {
@@ -759,7 +830,7 @@ public final class Memory {
             return;
         }
 
-        if (mfPagedIn) {
+        if (multifacePaged) {
             switch (spectrumModel.codeModel) {
                 case SPECTRUM48K:
                     if (settings.getSpectrumSettings().isMf128On48K()) {
@@ -1024,7 +1095,7 @@ public final class Memory {
         pageModeBrowser = page;
     }
     
-    MemoryDataProvider memoryDataProvider;
+    private MemoryDataProvider memoryDataProvider;
     public MemoryDataProvider getMemoryDataProvider() {
         
         if (memoryDataProvider == null)
