@@ -93,7 +93,7 @@ public final class Memory {
         }
         
         state.setMf128on48k(settings.getSpectrumSettings().isMf128On48K());
-        state.setMfRam(saveMFRam());
+        state.setMultifaceRam(saveMFRam());
         state.setMultifacePaged(multifacePaged);
         state.setMultifaceLocked(multifaceLocked);
         
@@ -127,8 +127,8 @@ public final class Memory {
         }
         
         settings.getSpectrumSettings().setMf128On48K(state.isMf128on48k());
-        if (state.getMfRam() != null)
-            loadMFRam(state.getMfRam());
+        if (state.getMultifaceRam() != null)
+            loadMFRam(state.getMultifaceRam());
         
         if (state.isMultifacePaged())
             pageMultiface();

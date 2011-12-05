@@ -22,6 +22,7 @@ import machine.Keyboard.Joystick;
 import machine.MachineTypes;
 import snapshots.AY8912State;
 import snapshots.MemoryState;
+import snapshots.SpectrumState;
 import snapshots.Z80State;
 import z80core.Z80.IntMode;
 
@@ -31,31 +32,32 @@ import z80core.Z80.IntMode;
  */
 public class Snapshots {
 
+    private SpectrumState spectrum;
     private Z80State z80;
     private MemoryState memory;
-    private int last7ffd;
-    private int last1ffd;
-    private boolean enabledAY;
+//    private int last7ffd;
+//    private int last1ffd;
+//    private boolean enabledAY;
     // AY support
     private AY8912State ay8912;
     // Multiface support
-    private boolean multiface;
+//    private boolean multiface;
     // ULAplus support
-    private boolean ULAplus, ULAplusEnabled;
-    private int ULAplusRegister, ULAplusPalette[] = new int[64];
+//    private boolean ULAplus, ULAplusEnabled;
+//    private int ULAplusRegister, ULAplusPalette[] = new int[64];
     // IF1 support;
-    private boolean IF1Enabled;
-    private byte numDrives;
-    private int driveRunning;
+//    private boolean IF1Enabled;
+//    private byte numDrives;
+//    private int driveRunning;
     // Tape Support
     private boolean tapeEmbedded, tapeLinked;
     private byte tapeData[];
     private int tapeBlock;
     private String tapeName, tapeExtension;
-    private MachineTypes snapshotModel;
-    private int border;
-    private Joystick joystick;
-    private boolean issue2;
+//    private MachineTypes snapshotModel;
+//    private int border;
+//    private Joystick joystick;
+//    private boolean issue2;
     private BufferedInputStream fIn;
     private BufferedOutputStream fOut;
     private boolean snapLoaded;
@@ -83,139 +85,150 @@ public class Snapshots {
         return snapLoaded;
     }
 
-    public MachineTypes getSnapshotModel() {
-        return snapshotModel;
-    }
-
-    public void setSnapshotModel(MachineTypes model) {
-        snapshotModel = model;
-    }
-
-    public final Z80State getZ80State() {
-        return z80;
+    public SpectrumState getSpectrumState() {
+        return spectrum;
     }
     
-    public final void setZ80State(Z80State state) {
-        z80 = state;
+    public void setSpectrumState(SpectrumState state) {
+        spectrum = state;
+        
+        z80 = spectrum.getZ80State();
+        memory = spectrum.getMemoryState();
+        ay8912 = spectrum.getAy8912State();
     }
+//    public MachineTypes getSnapshotModel() {
+//        return snapshotModel;
+//    }
+//
+//    public void setSnapshotModel(MachineTypes model) {
+//        snapshotModel = model;
+//    }
+//
+//    public final Z80State getZ80State() {
+//        return z80;
+//    }
+//    
+//    public final void setZ80State(Z80State state) {
+//        z80 = state;
+//    }
+//    
+//    /**
+//     * @return the memory
+//     */
+//    public MemoryState getMemoryState() {
+//        return memory;
+//    }
+//
+//    /**
+//     * @param memory the memory to set
+//     */
+//    public void setMemoryState(MemoryState state) {
+//        memory = state;
+//    }
+//    
+//    public AY8912State getAY8912State() {
+//        return ay8912;
+//    }
+//    
+//    public void setAY8912State(AY8912State state) {
+//        ay8912 = state;
+//    }
     
-    /**
-     * @return the memory
-     */
-    public MemoryState getMemoryState() {
-        return memory;
-    }
-
-    /**
-     * @param memory the memory to set
-     */
-    public void setMemoryState(MemoryState state) {
-        memory = state;
-    }
-    
-    public AY8912State getAY8912State() {
-        return ay8912;
-    }
-    
-    public void setAY8912State(AY8912State state) {
-        ay8912 = state;
-    }
-    
-    public int getPort7ffd() {
-        return last7ffd;
-    }
-
-    public void setPort7ffd(int port7ffd) {
-        last7ffd = port7ffd;
-    }
-
-    public int getPort1ffd() {
-        return last1ffd;
-    }
-
-    public void setPort1ffd(int port1ffd) {
-        last1ffd = port1ffd;
-    }
-
-    public boolean getEnabledAY() {
-        return enabledAY;
-    }
-
-    public void setEnabledAY(boolean ayEnabled) {
-        enabledAY = ayEnabled;
-    }
-
-    public int getBorder() {
-        return border;
-    }
-
-    public void setBorder(int value) {
-        border = value;
-    }
-
-    public Joystick getJoystick() {
-        return joystick;
-    }
-
-    public void setJoystick(Joystick model) {
-        joystick = model;
-    }
-
-    public boolean isIssue2() {
-        return issue2;
-    }
-
-    public void setIssue2(boolean version) {
-        issue2 = version;
-    }
-
-    public boolean isMultiface() {
-        return multiface;
-    }
-
-    public void setMultiface(boolean haveMF) {
-        multiface = haveMF;
-    }
-
-    public boolean isULAplus() {
-        return ULAplus;
-    }
-
-    public void setULAplus(boolean ulaplus) {
-        ULAplus = ulaplus;
-    }
-
-    public boolean isULAplusEnabled() {
-        return ULAplusEnabled;
-    }
-
-    public void setULAplusEnabled(boolean state) {
-        ULAplusEnabled = state;
-    }
-
-    public int getULAplusRegister() {
-        return ULAplusRegister;
-    }
-
-    public void setULAplusRegister(int register) {
-        ULAplusRegister = register;
-    }
-
-    public int getULAplusColor(int register) {
-        return ULAplusPalette[register];
-    }
-
-    public void setULAplusColor(int register, int color) {
-        ULAplusPalette[register] = color;
-    }
-
-    public boolean isIF1Enabled() {
-        return IF1Enabled;
-    }
-
-    public void setIF1Present(boolean state) {
-        IF1Enabled = state;
-    }
+//    public int getPort7ffd() {
+//        return last7ffd;
+//    }
+//
+//    public void setPort7ffd(int port7ffd) {
+//        last7ffd = port7ffd;
+//    }
+//
+//    public int getPort1ffd() {
+//        return last1ffd;
+//    }
+//
+//    public void setPort1ffd(int port1ffd) {
+//        last1ffd = port1ffd;
+//    }
+//
+//    public boolean getEnabledAY() {
+//        return enabledAY;
+//    }
+//
+//    public void setEnabledAY(boolean ayEnabled) {
+//        enabledAY = ayEnabled;
+//    }
+//
+//    public int getBorder() {
+//        return border;
+//    }
+//
+//    public void setBorder(int value) {
+//        border = value;
+//    }
+//
+//    public Joystick getJoystick() {
+//        return joystick;
+//    }
+//
+//    public void setJoystick(Joystick model) {
+//        joystick = model;
+//    }
+//
+//    public boolean isIssue2() {
+//        return issue2;
+//    }
+//
+//    public void setIssue2(boolean version) {
+//        issue2 = version;
+//    }
+//
+//    public boolean isMultiface() {
+//        return multiface;
+//    }
+//
+//    public void setMultiface(boolean haveMF) {
+//        multiface = haveMF;
+//    }
+//
+//    public boolean isULAplus() {
+//        return ULAplus;
+//    }
+//
+//    public void setULAplus(boolean ulaplus) {
+//        ULAplus = ulaplus;
+//    }
+//
+//    public boolean isULAplusEnabled() {
+//        return ULAplusEnabled;
+//    }
+//
+//    public void setULAplusEnabled(boolean state) {
+//        ULAplusEnabled = state;
+//    }
+//
+//    public int getULAplusRegister() {
+//        return ULAplusRegister;
+//    }
+//
+//    public void setULAplusRegister(int register) {
+//        ULAplusRegister = register;
+//    }
+//
+//    public int getULAplusColor(int register) {
+//        return ULAplusPalette[register];
+//    }
+//
+//    public void setULAplusColor(int register, int color) {
+//        ULAplusPalette[register] = color;
+//    }
+//
+//    public boolean isIF1Enabled() {
+//        return IF1Enabled;
+//    }
+//
+//    public void setIF1Present(boolean state) {
+//        IF1Enabled = state;
+//    }
 
     public boolean isTapeEmbedded() {
         return tapeEmbedded;
@@ -257,21 +270,21 @@ public class Snapshots {
         return tapeExtension;
     }
 
-    public byte getNumDrives() {
-        return numDrives;
-    }
-
-    public void setNumDrives(byte drives) {
-        numDrives = drives;
-    }
-
-    public int getDriveRunning() {
-        return driveRunning;
-    }
-
-    public void setDriveRunning(int drive) {
-        driveRunning = drive;
-    }
+//    public byte getNumDrives() {
+//        return numDrives;
+//    }
+//
+//    public void setNumDrives(byte drives) {
+//        numDrives = drives;
+//    }
+//
+//    public int getDriveRunning() {
+//        return driveRunning;
+//    }
+//
+//    public void setDriveRunning(int drive) {
+//        driveRunning = drive;
+//    }
 
     public String getErrorString() {
         return java.util.ResourceBundle.getBundle("utilities/Bundle").getString(
@@ -310,6 +323,8 @@ public class Snapshots {
     }
 
     private boolean loadSNA(File filename) {
+        spectrum = new SpectrumState();
+        
         try {
             try {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
@@ -321,11 +336,11 @@ public class Snapshots {
             int snaLen = fIn.available();
             switch (snaLen) {
                 case 49179: // 48K
-                    snapshotModel = MachineTypes.SPECTRUM48K;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                     break;
                 case 131103: // 128k
                 case 147487: // snapshot de 128k con una página repetida
-                    snapshotModel = MachineTypes.SPECTRUM128K;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                     break;
                 default:
                     error = 3;
@@ -333,7 +348,7 @@ public class Snapshots {
                     return false;
             }
 
-            byte snaHeader[] = new byte[27];
+            byte[] snaHeader = new byte[27];
             int count = 0;
             while (count != -1 && count < snaHeader.length) {
                 count += fIn.read(snaHeader, count, snaHeader.length - count);
@@ -346,6 +361,8 @@ public class Snapshots {
             }
 
             z80 = new Z80State();
+            spectrum.setZ80State(z80);
+            
             z80.setRegI(snaHeader[0]);
             z80.setRegLx(snaHeader[1]);
             z80.setRegHx(snaHeader[2]);
@@ -382,10 +399,12 @@ public class Snapshots {
                     z80.setIM(IntMode.IM2);
                     break;
             }
-
-            border = snaHeader[26] & 0x07;
+            
+            spectrum.setBorder(snaHeader[26]);
 
             memory = new MemoryState();
+            spectrum.setMemoryState(memory);
+            
             byte[] buffer = new byte[0x4000];
 
             // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
@@ -432,6 +451,7 @@ public class Snapshots {
                 memory.setPageRam(0, buffer);
 
                 z80.setRegPC(0x72); // dirección de RETN en la ROM
+                spectrum.setEnabledAY(false);
             } else {
                 boolean loaded[] = new boolean[8];
 
@@ -453,10 +473,10 @@ public class Snapshots {
                 // En modo 128, la página 5 está en 0x4000 y la 2 en 0x8000.
                 loaded[2] = loaded[5] = true;
                 z80.setRegPC(fIn.read() | (fIn.read() << 8));
-                last7ffd = fIn.read() & 0xff;
+                spectrum.setPort7ffd(fIn.read());
                 // Si la página de memoria en 0xC000 era la 2 o la 5, ésta se
                 // habrá grabado dos veces, y esta segunda copia es redundante.
-                int page = last7ffd & 0x07;
+                int page = spectrum.getPort7ffd() & 0x07;
                 if (page != 2 && page != 5) {
                     memory.setPageRam(page, buffer);
                     loaded[page] = true;
@@ -486,8 +506,10 @@ public class Snapshots {
                     }
                     // El formato SNA no guarda los registros del AY
                     // Los ponemos a cero y que se apañe....
+                    spectrum.setEnabledAY(true);
                     int regAY[] = new int[16];
                     ay8912 = new AY8912State();
+                    spectrum.setAY8912State(ay8912);
                     ay8912.setAddressLatch(0);
                     ay8912.setRegAY(regAY);
                 }
@@ -496,8 +518,8 @@ public class Snapshots {
 
             fIn.close();
 
-            issue2 = false; // esto no se guarda en los SNA, algo hay que poner...
-            joystick = Joystick.NONE; // idem
+            spectrum.setIssue2(false); // esto no se guarda en los SNA, algo hay que poner...
+            spectrum.setJoystick(Joystick.NONE); // idem
             z80.setTstates(0);
         } catch (IOException ex) {
             error = 4;
@@ -510,15 +532,15 @@ public class Snapshots {
     private boolean saveSNA(File filename) {
 
         // Si la pila está muy baja, no hay donde almacenar el registro SP
-        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
+        if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K
                 && z80.getRegSP() < 0x4002) {
             error = 7;
             return false;
         }
 
         // The SNA format can handle Spectrum 16/48k and 128k (not +2)
-        if (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K &&
-                snapshotModel != MachineTypes.SPECTRUM128K) {
+        if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K &&
+                spectrum.getSpectrumModel() != MachineTypes.SPECTRUM128K) {
             error = 9;
             return false;
         }
@@ -564,19 +586,19 @@ public class Snapshots {
             snaHeader[22] = (byte) z80.getRegA();
 
             int regSP = z80.getRegSP();
-            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 regSP = (regSP - 2) & 0xffff;
             }
 
             snaHeader[23] = (byte) regSP;
             snaHeader[24] = (byte) (regSP >>> 8);
             snaHeader[25] = (byte) z80.getIM().ordinal();
-            snaHeader[26] = (byte) border;
+            snaHeader[26] = (byte) spectrum.getBorder();
 
             fOut.write(snaHeader, 0, snaHeader.length);
 
             byte[] buffer;
-            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 buffer = new byte[0xC000];
                 System.arraycopy(memory.getPageRam(5), 0, buffer, 0, 0x4000);
                 System.arraycopy(memory.getPageRam(2), 0, buffer, 0x4000, 0x4000);
@@ -589,7 +611,7 @@ public class Snapshots {
                 fOut.write(buffer, 0, buffer.length);
             }
 
-            if (snapshotModel == MachineTypes.SPECTRUM128K) {
+            if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUM128K) {
                 // Salvamos la página de la pantalla 0x4000-0x7FFF (5)
                 buffer = memory.getPageRam(5);
                 fOut.write(buffer, 0, buffer.length);
@@ -597,16 +619,16 @@ public class Snapshots {
                 buffer = memory.getPageRam(2);
                 fOut.write(buffer, 0, buffer.length);
                 // Salvamos la página en 0xC000-0xFFFF
-                buffer = memory.getPageRam((last7ffd & 0x07));
+                buffer = memory.getPageRam((spectrum.getPort7ffd() & 0x07));
                 fOut.write(buffer, 0, buffer.length);
 
                 boolean saved[] = new boolean[8];
                 saved[2] = saved[5] = true;
                 fOut.write(z80.getRegPC());
                 fOut.write(z80.getRegPC() >>> 8);
-                fOut.write(last7ffd);
+                fOut.write(spectrum.getPort7ffd());
                 fOut.write(0x00); // La ROM del TR-DOS no está paginada
-                saved[last7ffd & 0x07] = true;
+                saved[spectrum.getPort7ffd() & 0x07] = true;
                 for (int page = 0; page < 8; page++) {
                     if (!saved[page]) {
                         buffer = memory.getPageRam(page);
@@ -707,6 +729,8 @@ public class Snapshots {
     }
 
     private boolean loadZ80(File filename) {
+        spectrum = new SpectrumState();
+        
         try {
             try {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
@@ -734,6 +758,8 @@ public class Snapshots {
             }
 
             z80 = new Z80State();
+            spectrum.setMemoryState(memory);
+            
             z80.setRegA(z80Header1[0]);
             z80.setRegF(z80Header1[1]);
             z80.setRegC(z80Header1[2]);
@@ -750,7 +776,7 @@ public class Snapshots {
             }
             z80.setRegR(regR);
 
-            border = (z80Header1[12] >>> 1) & 0x07;
+            spectrum.setBorder((z80Header1[12] >>> 1) & 0x07);
 
             z80.setRegE(z80Header1[13]);
             z80.setRegD(z80Header1[14]);
@@ -779,30 +805,32 @@ public class Snapshots {
                     break;
             }
 
-            issue2 = (z80Header1[29] & 0x04) != 0;
+            spectrum.setIssue2((z80Header1[29] & 0x04) != 0);
             
             switch ((z80Header1[29] & 0xC0)) {
                 case 0: // Cursor/AGF/Protek Joystick
-                    joystick = Joystick.CURSOR;
+                    spectrum.setJoystick(Joystick.CURSOR);
                     break;
                 case 0x40: // Kempston joystick
-                    joystick = Joystick.KEMPSTON;
+                    spectrum.setJoystick(Joystick.KEMPSTON);
                     break;
                 case 0x80:
-                    joystick = Joystick.SINCLAIR1;
+                    spectrum.setJoystick(Joystick.SINCLAIR1);
                     break;
                 case 0xC0:
-                    joystick = Joystick.SINCLAIR2;
+                    spectrum.setJoystick(Joystick.SINCLAIR2);
                     break;
                 default:
-                    joystick = Joystick.NONE;
+                    spectrum.setJoystick(Joystick.NONE);
             }
 
             memory = new MemoryState();
+            spectrum.setMemoryState(memory);
+            
             // Si regPC != 0, es un z80 v1.0
             if (z80.getRegPC() != 0) {
                 byte[] pageBuffer = new byte[0x4000];
-                snapshotModel = MachineTypes.SPECTRUM48K;
+                spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                 if ((z80Header1[12] & 0x20) == 0) { // el bloque no está comprimido
 
                     // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
@@ -888,58 +916,58 @@ public class Snapshots {
                     switch (z80Header2[2] & 0xff) {
                         case 0: // 48k
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUM16K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM48K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             }
 
-                            IF1Enabled = false;
+                            spectrum.setConnectedIF1(false);
                             break;
                         case 1: // 48k + IF.1
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUM16K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM48K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             }
 
-                            IF1Enabled = true;
+                            spectrum.setConnectedIF1(true);
                             if (z80Header2[4] == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
                         case 3: // 128k
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM128K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             }
 
-                            IF1Enabled = false;
+                            spectrum.setConnectedIF1(false);
                             break;
                         case 4: // 128k + IF.1
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM128K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             }
 
-                            IF1Enabled = true;
+                            spectrum.setConnectedIF1(true);
                             if (z80Header2[4] == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
                         case 7: // +3
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2A);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
                             }
                             break;
                         case 12: // +2
-                            snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             break;
                         case 13: // +2A
-                            snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                            spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2A);
                             break;
                         default:
                             error = 5;
@@ -950,58 +978,58 @@ public class Snapshots {
                     switch (z80Header2[2]& 0xff) {
                         case 0: // 48k
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUM16K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM48K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             }
 
-                            IF1Enabled = false;
+                            spectrum.setConnectedIF1(false);
                             break;
                         case 1: // 48k + IF.1
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUM16K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM48K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                             }
 
-                            IF1Enabled = true;
+                            spectrum.setConnectedIF1(true);
                             if (z80Header2[4] == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
                         case 4: // 128k
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM128K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             }
 
-                            IF1Enabled = false;
+                            spectrum.setConnectedIF1(false);
                             break;
                         case 5: // 128k + IF.1
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUM128K;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                             }
 
-                            IF1Enabled = true;
+                            spectrum.setConnectedIF1(true);
                             if (z80Header2[4] == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
                         case 7: // +3
                             if (modifiedHW) {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2A);
                             } else {
-                                snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                                spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
                             }
                             break;
                         case 12: // +2
-                            snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                            spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                             break;
                         case 13: // +2A
-                            snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                            spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2A);
                             break;
                         default:
 //                            System.out.println(String.format("SnapshotV3 model: %d",
@@ -1012,8 +1040,8 @@ public class Snapshots {
                     }
                 }
 
-                last7ffd = z80Header2[3] & 0xff;
-                enabledAY = (z80Header2[5] & 0x04) != 0;
+                spectrum.setPort7ffd(z80Header2[3]);
+                spectrum.setEnabledAY((z80Header2[5] & 0x04) != 0);
                 
                 ay8912 = new AY8912State();
                 int regAY[] = new int[16];
@@ -1023,17 +1051,14 @@ public class Snapshots {
                 }
                 ay8912.setRegAY(regAY);
 
-                last1ffd = 0;
-                if (hdrLen == 55) {
-                    last1ffd = z80Header2[54] & 0xff;
-                }
+                spectrum.setPort1ffd(hdrLen == 55 ? 0 : z80Header2[54]);
 
                 byte[] buffer;
                 while (fIn.available() > 0) {
                     buffer = new byte[0x4000];
                     int blockLen = fIn.read() | (fIn.read() << 8) & 0xffff;
                     int ramPage = fIn.read() & 0xff;
-                    if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                    if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                         switch (ramPage) {
                             case 4:  // 0x8000-0xbfff
                                 ramPage = 2;
@@ -1112,7 +1137,7 @@ public class Snapshots {
             z80HeaderV3[9] = (byte) (z80.getRegSP() >>> 8);
             z80HeaderV3[10] = (byte) z80.getRegI();
             z80HeaderV3[11] = (byte) (z80.getRegR() & 0x7f);
-            z80HeaderV3[12] = (byte) (border << 1);
+            z80HeaderV3[12] = (byte) (spectrum.getBorder() << 1);
             if (z80.getRegR() > 0x7f) {
                 z80HeaderV3[12] |= 0x01;
             }
@@ -1134,10 +1159,11 @@ public class Snapshots {
             z80HeaderV3[28] = (byte) (z80.isIFF2() ? 0x01 : 0x00);
             z80HeaderV3[29] = (byte) z80.getIM().ordinal();
 
-            if (!issue2) {
+            if (spectrum.isIssue2()) {
                 z80HeaderV3[29] |= 0x04;
             }
-            switch (joystick) {
+            
+            switch (spectrum.getJoystick()) {
                 case NONE:
                 case CURSOR:
                     break;
@@ -1155,15 +1181,15 @@ public class Snapshots {
             z80HeaderV3[32] = (byte) z80.getRegPC();
             z80HeaderV3[33] = (byte) (z80.getRegPC() >>> 8);
 
-            switch (snapshotModel) {
+            switch (spectrum.getSpectrumModel()) {
                 case SPECTRUM16K:
                     z80HeaderV3[37] |= 0x80; // modified HW, 48k --> 16k
 //                    break;
                 case SPECTRUM48K:
-                    z80HeaderV3[34] = (byte) (IF1Enabled ? 1 : 0);
+                    z80HeaderV3[34] = (byte) (spectrum.isConnectedIF1() ? 1 : 0);
                     break;
                 case SPECTRUM128K:
-                    z80HeaderV3[34] = (byte) (IF1Enabled ? 5 : 4);
+                    z80HeaderV3[34] = (byte) (spectrum.isConnectedIF1() ? 5 : 4);
                     break;
                 case SPECTRUMPLUS2:
                     z80HeaderV3[34] = 12;
@@ -1175,15 +1201,15 @@ public class Snapshots {
                     z80HeaderV3[34] = 7;
             }
 
-            if (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-                z80HeaderV3[35] = (byte) last7ffd;
+            if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+                z80HeaderV3[35] = (byte) spectrum.getPort7ffd();
             }
 
             if (memory.isIF1RomPaged()) {
                 z80HeaderV3[36] = (byte) 0xff;
             }
 
-            if (enabledAY) {
+            if (spectrum.isEnabledAY()) {
                 z80HeaderV3[37] |= 0x04;
                 z80HeaderV3[38] = (byte) ay8912.getAddressLatch();
 
@@ -1193,15 +1219,15 @@ public class Snapshots {
                 }
             }
 
-            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                z80HeaderV3[86] = (byte) last1ffd;
+            if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                z80HeaderV3[86] = (byte) spectrum.getPort1ffd();
             }
 
             fOut.write(z80HeaderV3, 0, z80HeaderV3.length);
 
             byte buffer[] = new byte[0x4000];
             int bufLen;
-            if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 // Página 5, que corresponde a 0x4000-0x7FFF
                 bufLen = compressPageZ80(buffer, 5);
                 if (bufLen == 0x4000) {
@@ -1408,7 +1434,9 @@ public class Snapshots {
         InflaterInputStream iis;
         byte chData[];
 
-        joystick = Joystick.NONE;
+        spectrum = new SpectrumState();
+        
+        spectrum.setJoystick(Joystick.NONE);
 
         try {
             try {
@@ -1436,22 +1464,22 @@ public class Snapshots {
             szxMinorVer = dwSize[1];
             switch (dwSize[2] & 0xff) {
                 case ZXSTMID_16K:
-                    snapshotModel = MachineTypes.SPECTRUM16K;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
                     break;
                 case ZXSTMID_48K:
-                    snapshotModel = MachineTypes.SPECTRUM48K;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                     break;
                 case ZXSTMID_128K:
-                    snapshotModel = MachineTypes.SPECTRUM128K;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                     break;
                 case ZXSTMID_PLUS2:
-                    snapshotModel = MachineTypes.SPECTRUMPLUS2;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2);
                     break;
                 case ZXSTMID_PLUS2A:
-                    snapshotModel = MachineTypes.SPECTRUMPLUS2A;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS2A);
                     break;
                 case ZXSTMID_PLUS3:
-                    snapshotModel = MachineTypes.SPECTRUMPLUS3;
+                    spectrum.setSpectrumModel(MachineTypes.SPECTRUMPLUS3);
                     break;
                 default:
                     error = 5;
@@ -1513,6 +1541,8 @@ public class Snapshots {
                         }
 
                         z80 = new Z80State();
+                        spectrum.setZ80State(z80);
+                        
                         z80.setRegF(z80Regs[0]);
                         z80.setRegA(z80Regs[1]);
                         z80.setRegC(z80Regs[2]);
@@ -1570,9 +1600,10 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        border = specRegs[0] & 0x07;
-                        last7ffd = specRegs[1] & 0xff;
-                        last1ffd = specRegs[2] & 0xff;
+                        
+                        spectrum.setBorder(specRegs[0]);
+                        spectrum.setPort7ffd(specRegs[1]);
+                        spectrum.setPort1ffd(specRegs[2]);
                         break;
                     case ZXSTBID_KEYBOARD:
                         if (szxLen != 5) {
@@ -1587,25 +1618,26 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        issue2 = (keyb[0] & ZXSTKF_ISSUE2) != 0;
+                        
+                        spectrum.setIssue2((keyb[0] & ZXSTKF_ISSUE2) != 0);
                         switch (keyb[4] & 0xff) {
                             case ZXSKJT_KEMPSTON:
-                                joystick = Joystick.KEMPSTON;
+                                spectrum.setJoystick(Joystick.KEMPSTON);
                                 break;
                             case ZXSKJT_FULLER:
-                                joystick = Joystick.FULLER;
+                                spectrum.setJoystick(Joystick.FULLER);
                                 break;
                             case ZXSKJT_CURSOR:
-                                joystick = Joystick.CURSOR;
+                                spectrum.setJoystick(Joystick.CURSOR);
                                 break;
                             case ZXSKJT_SINCLAIR1:
-                                joystick = Joystick.SINCLAIR1;
+                                spectrum.setJoystick(Joystick.SINCLAIR1);
                                 break;
                             case ZXSKJT_SINCLAIR2:
-                                joystick = Joystick.SINCLAIR2;
+                                spectrum.setJoystick(Joystick.SINCLAIR2);
                                 break;
                             default:
-                                joystick = Joystick.NONE;
+                                spectrum.setJoystick(Joystick.NONE);
                         }
                         break;
                     case ZXSTBID_AY:
@@ -1623,13 +1655,15 @@ public class Snapshots {
                             return false;
                         }
                         
-                        enabledAY = true;
-                        if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
+                        spectrum.setEnabledAY(true);
+                        if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K
                                 && (ayRegs[0] & ZXSTAYF_128AY) == 0) {
-                            enabledAY = false;
+                            spectrum.setEnabledAY(false);
                         }
                         
                         ay8912 = new AY8912State();
+                        spectrum.setAY8912State(ay8912);
+                        
                         int regAY[] = new int[16];
                         ay8912.setAddressLatch(ayRegs[1]);
                         for (int idx = 0; idx < 16; idx++) {
@@ -1638,8 +1672,10 @@ public class Snapshots {
                         ay8912.setRegAY(regAY);
                         break;
                     case ZXSTBID_RAMPAGE:
-                        if (memory == null)
+                        if (memory == null) {
                             memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
                         
                         byte ramPage[] = new byte[3];
                         readed = fIn.read(ramPage);
@@ -1688,6 +1724,11 @@ public class Snapshots {
                         memory.setPageRam(ramPage[2] & 0x07, pageRAM);
                         break;
                     case ZXSTBID_MULTIFACE:
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
+                        
                         byte mf[] = new byte[2];
                         readed = fIn.read(mf);
                         if (readed != mf.length) {
@@ -1712,11 +1753,11 @@ public class Snapshots {
                         }
 //                        System.out.println("MF RAM readed bytes: " + readed);
                         if ((mf[1] & ZXSTMF_16KRAMMODE) != 0) {
-                            multiface = false;
+                            spectrum.setMultiface(false);
                             break;  // Config. no soportada
                         }
 
-                        multiface = true;
+                        spectrum.setMultiface(false);
                         if ((mf[0] & ZXSTMFM_128) != 0) {
                             memory.setMf128on48k(true);
                         }
@@ -1730,7 +1771,7 @@ public class Snapshots {
                         }
 
                         if ((mf[1] & ZXSTMF_COMPRESSED) == 0) {
-                            memory.setMfRam(chData);
+                            memory.setMultifaceRam(chData);
                             break;
                         }
                         
@@ -1749,10 +1790,10 @@ public class Snapshots {
                         iis.close();
                         if (readed != mfRAM.length) {
                             System.out.println("Multiface RAM uncompress error!: " + readed);
-                            multiface = false;
+                            spectrum.setMultiface(false);
                             break;
                         }
-                        memory.setMfRam(mfRAM);
+                        memory.setMultifaceRam(mfRAM);
                         break;
                     case ZXSTBID_PALETTE:
                         if (szxLen != 66) {
@@ -1760,7 +1801,8 @@ public class Snapshots {
                             fIn.close();
                             return false;
                         }
-                        ULAplus = true;
+                        
+                        spectrum.setULAPlusEnabled(true);
                         byte ULAplusRegs[] = new byte[szxLen];
                         readed = fIn.read(ULAplusRegs);
                         if (readed != szxLen) {
@@ -1770,14 +1812,17 @@ public class Snapshots {
                         }
 
                         if (ULAplusRegs[0] == ZXSTPALETTE_ENABLED) {
-                            ULAplusEnabled = true;
+                            spectrum.setULAPlusActive(true);
                         }
 
-                        ULAplusRegister = ULAplusRegs[1] & 0xff;
+                        spectrum.setPaletteGroup(ULAplusRegs[1]);
 
+                        int[] palette = new int[64];
                         for (int reg = 0; reg < 64; reg++) {
-                            ULAplusPalette[reg] = ULAplusRegs[2 + reg] & 0xff;
+                            palette[reg] = ULAplusRegs[2 + reg] & 0xff;
                         }
+                        
+                        spectrum.setULAPlusPalette(palette);
                         break;
                     case ZXSTBID_ZXTAPE:
                         byte tape[] = new byte[4];
@@ -1881,6 +1926,11 @@ public class Snapshots {
                         }
                         break;
                     case ZXSTBID_IF2ROM:
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
+                        
                         byte dwCartSize[] = new byte[4];
                         readed = fIn.read(dwCartSize);
                         if (readed != dwCartSize.length) {
@@ -1945,8 +1995,12 @@ public class Snapshots {
                         }
                         break;
                     case ZXSTBID_IF1:
-                        if (snapshotModel.codeModel
-                                == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
+                        
+                        if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                             System.out.println(
                                     "SZX Error: +2a/+3 snapshot with IF1 block. Skipping");
                             while (szxLen > 0) {
@@ -1958,14 +2012,11 @@ public class Snapshots {
                         int if1Flags;
                         if1Flags = fIn.read() + fIn.read() * 256;
                         szxLen -= 2;
-                        IF1Enabled = (if1Flags & ZXSTIF1F_ENABLED) != 0;
+                        spectrum.setConnectedIF1((if1Flags & ZXSTIF1F_ENABLED) != 0);
                         memory.setIF1RomPaged((if1Flags & ZXSTIF1F_PAGED) != 0);
 
-                        numDrives = (byte) fIn.read();
+                        spectrum.setNumMicrodrives((byte)fIn.read());
                         szxLen--;
-                        if (numDrives < 1 || numDrives > 8) {
-                            numDrives = 8;
-                        }
 
                         while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
@@ -2066,7 +2117,7 @@ public class Snapshots {
             fOut.write(blockID.getBytes("US-ASCII"));
             fOut.write(0x01); // SZX major version
             fOut.write(0x04); // SZX minor version
-            switch (snapshotModel) {
+            switch (spectrum.getSpectrumModel()) {
                 case SPECTRUM16K:
                     fOut.write(ZXSTMID_16K);
                     break;
@@ -2164,14 +2215,14 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);  // Z80R length block (8 bytes)
             byte[] specr = new byte[8];
-            specr[0] = (byte) border;
-            specr[1] = (byte) last7ffd;
-            specr[2] = (byte) last1ffd;
+            specr[0] = (byte) spectrum.getBorder();
+            specr[1] = (byte) spectrum.getPort7ffd();
+            specr[2] = (byte) spectrum.getPort1ffd();
             // ignore the chEff7 & chFe fields
             fOut.write(specr);
 
             boolean[] save = new boolean[8];
-            switch (snapshotModel) {
+            switch (spectrum.getSpectrumModel()) {
                 case SPECTRUM16K:
                     save[5] = true;
                     break;
@@ -2216,7 +2267,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // KEYB length block (5 bytes)
-            if (issue2) {
+            if (spectrum.isIssue2()) {
                 fOut.write(ZXSTKF_ISSUE2);
             } else {
                 fOut.write(0x00);
@@ -2224,7 +2275,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);
-            switch (joystick) {
+            switch (spectrum.getJoystick()) {
                 case NONE:
                     fOut.write(ZXSKJT_NONE);
                     break;
@@ -2246,14 +2297,14 @@ public class Snapshots {
             }
 
             // SZX AY block
-            if (enabledAY) {
+            if (spectrum.isEnabledAY()) {
                 blockID = "AY\0\0";
                 fOut.write(blockID.getBytes("US-ASCII"));
                 fOut.write(0x12);
                 fOut.write(0x00);
                 fOut.write(0x00);
                 fOut.write(0x00);  // AY length block (18 bytes)
-                if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                     fOut.write(ZXSTAYF_128AY);
                 } else {
                     fOut.write(0x00);
@@ -2266,30 +2317,33 @@ public class Snapshots {
             }
 
             // SZX ULAplus block
-            if (ULAplus) {
+            if (spectrum.isULAPlusEnabled()) {
                 blockID = "PLTT";
                 fOut.write(blockID.getBytes("US-ASCII"));
                 fOut.write(0x42);
                 fOut.write(0x00);
                 fOut.write(0x00);
                 fOut.write(0x00);  // PLTT length block (66 bytes)
-                if (ULAplusEnabled) {
+                if (spectrum.isULAPlusActive()) {
                     fOut.write(ZXSTPALETTE_ENABLED);
                 } else {
                     fOut.write(ZXSTPALETTE_DISABLED);
                 }
-                fOut.write(ULAplusRegister);
+                
+                fOut.write(spectrum.getPaletteGroup());
+                
+                int[] palette = spectrum.getULAPlusPalette();
                 for (int color = 0; color < 64; color++) {
-                    fOut.write(ULAplusPalette[color]);
+                    fOut.write(palette[color]);
                 }
             }
 
             // SZX Multiface block
-            if (multiface) {
+            if (spectrum.isMultiface()) {
                 blockID = "MFCE";
                 fOut.write(blockID.getBytes("US-ASCII"));
 
-                byte[] mfRam = memory.getMfRam();
+                byte[] mfRam = memory.getMultifaceRam();
                 baos = new ByteArrayOutputStream();
                 dos = new DeflaterOutputStream(baos);
                 dos.write(mfRam, 0, mfRam.length);
@@ -2312,7 +2366,7 @@ public class Snapshots {
                     mfFlags |= ZXSTMF_PAGEDIN;
                 }
                 if (memory.isMultifaceLocked()
-                        && (snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K
+                        && (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K
                         || memory.isMultifacePaged())) {
                     mfFlags |= ZXSTMF_SOFTWARELOCKOUT;
                 }
@@ -2321,7 +2375,7 @@ public class Snapshots {
             }
 
             // SZX IF2 ROM Block
-            if (getMemoryState().isIF2RomPaged()) {
+            if (memory.isIF2RomPaged()) {
                 blockID = "IF2R";
                 fOut.write(blockID.getBytes("US-ASCII"));
 
@@ -2418,8 +2472,8 @@ public class Snapshots {
             }
 
             // IF1 SZX Block
-            if (IF1Enabled
-                    && snapshotModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            if (spectrum.isConnectedIF1()
+                    && spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 blockID = "IF1\0";
                 fOut.write(blockID.getBytes("US-ASCII"));
 
@@ -2433,7 +2487,7 @@ public class Snapshots {
                     if1Flag |= ZXSTIF1F_PAGED;
                 }
                 fOut.write(if1Flag);
-                fOut.write(numDrives);
+                fOut.write(spectrum.getNumMicrodrives());
                 byte reserved[] = new byte[38]; // 35 reserved + wRomSize + chRomData[1]
                 fOut.write(reserved);
             }

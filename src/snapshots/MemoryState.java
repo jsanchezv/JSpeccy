@@ -34,11 +34,11 @@ public class MemoryState {
         IF2Rom = memory;
     }
     
-    public byte[] getMfRam() {
+    public byte[] getMultifaceRam() {
         return mfRam;
     }
     
-    public void setMfRam(byte[] memory) {
+    public void setMultifaceRam(byte[] memory) {
         mfRam = memory;
     }
 

@@ -26,6 +26,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import machine.Keyboard.Joystick;
+import snapshots.SpectrumState;
 import utilities.Snapshots;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -42,7 +43,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private Memory memory;
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
-    private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode;
+    private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode, issueMask;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
@@ -64,7 +65,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
     /* Config vars */
-    private boolean ULAplusOn, issue2, multiface, mf128on48k,
+    private boolean ULAPlusEnabled, issue2, multiface, mf128on48k,
             saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private Interface1 if1;
@@ -117,6 +118,142 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         timerFrame = new Timer("SpectrumClock", true);
     }
 
+    public final SpectrumState getSpectrumState() {
+        SpectrumState state = new SpectrumState();
+        
+        state.setSpectrumModel(spectrumModel);
+        state.setZ80State(z80.getZ80State());
+        state.setMemoryState(memory.getMemoryState());
+        
+        state.setEarBit(earBit);
+        state.setPortFE(portFE);
+        state.setJoystick(joystick);
+        
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+            state.setPort7ffd(port7ffd);
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                state.setPort1ffd(port1ffd);
+            }
+        } else {
+            state.setIssue2(issue2);
+        }
+        
+
+        state.setEnabledAY(enabledAY);
+        if (enabledAY)
+            state.setAY8912State(ay8912.getAY8912State());
+
+        state.setConnectedIF1(connectedIF1);
+        if (connectedIF1)
+            state.setNumMicrodrives(settings.getInterface1Settings().getMicrodriveUnits());
+
+        state.setMultiface(multiface);
+
+        state.setULAPlusEnabled(ULAPlusEnabled);
+        if (ULAPlusEnabled) {
+            state.setULAPlusActive(ULAPlusActive);
+            state.setPaletteGroup(paletteGroup);
+            int[] palette = new int[64];
+            System.arraycopy(ULAPlusPalette[0], 0, palette, 0, 16);
+            System.arraycopy(ULAPlusPalette[1], 0, palette, 16, 16);
+            System.arraycopy(ULAPlusPalette[2], 0, palette, 32, 16);
+            System.arraycopy(ULAPlusPalette[3], 0, palette, 48, 16);
+            state.setULAPlusPalette(palette);
+        }
+
+        return state;
+    }
+    
+    public final void setSpectrumState(SpectrumState state) {
+        
+        selectHardwareModel(state.getSpectrumModel());
+        z80.setZ80State(state.getZ80State());
+        state.setMemoryState(memory.getMemoryState());
+        
+        earBit = state.getEarBit();
+        portFE = state.getPortFE();
+        setJoystick(joystick);
+        
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+            
+            port7ffd = state.getPort7ffd();
+            memory.setPort7ffd(port7ffd);
+
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                port1ffd = state.getPort1ffd();
+                memory.setPort1ffd(port1ffd);
+
+                if (memory.isPlus3RamMode()) {
+                    switch (port1ffd & 0x06) {
+                        case 0:
+                            Arrays.fill(contendedRamPage, false);
+                            break;
+                        case 2:
+                            Arrays.fill(contendedRamPage, true);
+                            break;
+                        case 4:
+                        case 6:
+                            Arrays.fill(contendedRamPage, true);
+                            contendedRamPage[3] = false;
+                    }
+                } else {
+                    contendedRamPage[0] = contendedRamPage[2] = false;
+                    contendedRamPage[1] = true;
+                    contendedRamPage[3] = memory.getPlus3HighPage() > 3;
+                }
+            } else {
+                contendedRamPage[3] = contendedIOPage[3] =
+                    (port7ffd & 0x01) != 0;
+            }
+        }
+        
+        settings.getKeyboardJoystickSettings().setIssue2(state.isIssue2());
+
+        enabledAY = state.isEnabledAY();
+        if (enabledAY) {
+            state.setAY8912State(ay8912.getAY8912State());
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                settings.getSpectrumSettings().setAYEnabled48K(true);
+            }
+        }
+
+        settings.getInterface1Settings().setConnectedIF1(state.isConnectedIF1());
+        if (state.isConnectedIF1()) {
+            settings.getInterface1Settings().setMicrodriveUnits(state.getNumMicrodrives());
+        }
+        
+        settings.getSpectrumSettings().setMultifaceEnabled(state.isMultiface());
+        
+        settings.getSpectrumSettings().setULAplus(state.isULAPlusEnabled());
+        if (state.isULAPlusEnabled()) {
+            ULAPlusActive = state.isULAPlusActive();
+            paletteGroup = state.getPaletteGroup();
+
+            int[] palette = state.getULAPlusPalette();
+            for (int register = 0; register < 64; register++) {
+                int color = palette[register];
+                ULAPlusPalette[register >>> 4][register & 0x0f] = color;
+
+                int blue = (color & 0x03) << 1;
+                if ((color & 0x01) == 0x01) {
+                    blue |= 0x01;
+                }
+                blue = (blue << 5) | (blue << 2) | (blue & 0x03);
+
+                int red = (color & 0x1C) >> 2;
+                red = (red << 5) | (red << 2) | (red & 0x03);
+
+                int green = (color & 0xE0) >> 5;
+                green = (green << 5) | (green << 2) | (green & 0x03);
+
+                ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
+                    (red << 16) | (green << 8) | blue;
+            }
+        }
+
+        loadConfigVars();
+    }
+    
     public final void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
@@ -154,9 +291,16 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     public final void loadConfigVars() {
-        ULAplusOn = settings.getSpectrumSettings().isULAplus();
+        ULAPlusEnabled = settings.getSpectrumSettings().isULAplus();
         
         issue2 = settings.getKeyboardJoystickSettings().isIssue2();
+        // AND con 0x18 para emular un Issue 2
+        // AND con 0x10 para emular un Issue 3
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+            issueMask = issue2 ? 0x18 : 0x10;
+        } else {
+            issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
+        }
         
         keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
         
@@ -234,7 +378,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             if1.reset();
         nFrame = 0;
         portFE = port7ffd = port1ffd = 0;
-        ULAplusMode = false;
+        ULAPlusActive = false;
         paletteGroup = 0;
         invalidateScreen(true);
         hardResetPending = resetPending = false;
@@ -387,7 +531,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             z80.tstates %= spectrumModel.tstatesFrame;
             nFrame++;
             
-            if (!ULAplusMode && nFrame % 16 == 0) {
+            if (!ULAPlusActive && nFrame % 16 == 0) {
                 toggleFlash();
             }
 
@@ -768,11 +912,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
 
         // ULAplus Data Port (read/write)
-        if ((port & 0x4004) == 0x4000 && ULAplusOn) {
+        if ((port & 0x4004) == 0x4000 && ULAPlusEnabled) {
             if (paletteGroup == 0x40) {
-                return ULAplusMode ? 0x01 : 0x00;
+                return ULAPlusActive ? 0x01 : 0x00;
             } else {
-                return ULAplus[paletteGroup >>> 4][paletteGroup & 0x0f];
+                return ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f];
             }
         }
 
@@ -899,15 +1043,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     }
 
                     if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                        // and con 0x18 para emular un Issue 2
-                        // and con 0x10 para emular un Issue 3
-                        int issueMask;
-                        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                            issueMask = issue2 ? 0x18 : 0x10;
-                        } else {
-                            issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
-                        }
-
                         if ((value & issueMask) == 0) {
                             tape.setEarBit(false);
                         } else {
@@ -1028,7 +1163,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             // ULAplus ports
-            if (ULAplusOn && (port & 0x0004) == 0) {
+            if (ULAPlusEnabled && (port & 0x0004) == 0) {
                 // Control port (write only)
                 if ((port & 0x4000) == 0) {
                     if ((value & 0x40) != 0) {
@@ -1039,10 +1174,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 } else {
                     // Data port (read/write)
                     if (paletteGroup == 0x40) {
-                        ULAplusMode = (value & 0x01) != 0;
+                        ULAPlusActive = (value & 0x01) != 0;
                         invalidateScreen(true);
                     } else {
-                        ULAplus[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
+                        ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
                         int blue = (value & 0x03) << 1;
                         if ((value & 0x01) == 0x01) {
                             blue |= 0x01;
@@ -1052,7 +1187,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         red = (red << 5) | (red << 2) | (red & 0x03);
                         int green = (value & 0xE0) >> 5;
                         green = (green << 5) | (green << 2) | (green & 0x03);
-                        ULAplusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
+                        ULAPlusPrecompPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
                             (red << 16) | (green << 8) | blue;
                         // Solo es necesario redibujar el borde si se modificó uno
                         // de los colores de paper de la paleta 0. (8-15)
@@ -1186,145 +1321,144 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         if (snap.loadSnapshot(filename)) {
             doReset();
-            switch (snap.getSnapshotModel()) {
-                case SPECTRUM16K:
-                    selectHardwareModel(MachineTypes.SPECTRUM16K);
-                    break;
-                case SPECTRUM48K:
-                    selectHardwareModel(MachineTypes.SPECTRUM48K);
-                    break;
-                case SPECTRUM128K:
-                    selectHardwareModel(MachineTypes.SPECTRUM128K);
-                    break;
-                case SPECTRUMPLUS2:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                    break;
-                case SPECTRUMPLUS2A:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                    break;
-                case SPECTRUMPLUS3:
-                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                    break;
-            }
-
-            z80.setZ80State(snap.getZ80State());
-            memory.setMemoryState(snap.getMemoryState());
-
-            int border = snap.getBorder();
-            portFE &= 0xf8;
-            portFE |= border;
-
-            // Solo los 16k/48k pueden ser Issue2. El resto son todos Issue3.
-            issue2 = false;
-
-
-            if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                issue2 = snap.isIssue2();
-                settings.getKeyboardJoystickSettings().setIssue2(issue2);
-            }
-
-            if (snap.getJoystick() != Joystick.NONE) {
-                setJoystick(snap.getJoystick());
-            }
-
-            if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-                port7ffd = snap.getPort7ffd();
-                memory.setPort7ffd(port7ffd);
-
-                if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                    port1ffd = snap.getPort1ffd();
-                    memory.setPort1ffd(port1ffd);
-
-                    if (memory.isPlus3RamMode()) {
-                        switch (port1ffd & 0x06) {
-                            case 0:
-                                Arrays.fill(contendedRamPage, false);
-                                break;
-                            case 2:
-                                Arrays.fill(contendedRamPage, true);
-                                break;
-                            case 4:
-                            case 6:
-                                Arrays.fill(contendedRamPage, true);
-                                contendedRamPage[3] = false;
-                        }
-                    } else {
-                        contendedRamPage[0] = contendedRamPage[2] = false;
-                        contendedRamPage[1] = true;
-                        contendedRamPage[3] = memory.getPlus3HighPage() > 3;
-                    }
-                } else {
-                    contendedRamPage[3] = contendedIOPage[3] =
-                        (port7ffd & 0x01) != 0;
-                }
-            }
-
-            if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
-                enabledAY = true;
-                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
-                    settings.getSpectrumSettings().setAYEnabled48K(true);
-
-                // The machine can have an AY, but the AY block isn't present
-                // in SZX snapshot.
-                if (snap.getEnabledAY())
-                    ay8912.setAY8912State(snap.getAY8912State());
-            }
-
-            settings.getSpectrumSettings().setULAplus(snap.isULAplus());
-            if (snap.isULAplus()) {
-                ULAplusOn = true;
-                ULAplusMode = snap.isULAplusEnabled();
-                paletteGroup = snap.getULAplusRegister();
-
-                for (int register = 0; register < 64; register++) {
-                    int color = snap.getULAplusColor(register);
-                    ULAplus[register >>> 4][register & 0x0f] = color;
-
-                    int blue = (color & 0x03) << 1;
-                    if ((color & 0x01) == 0x01) {
-                        blue |= 0x01;
-                    }
-                    blue = (blue << 5) | (blue << 2) | (blue & 0x03);
-
-                    int red = (color & 0x1C) >> 2;
-                    red = (red << 5) | (red << 2) | (red & 0x03);
-
-                    int green = (color & 0xE0) >> 5;
-                    green = (green << 5) | (green << 2) | (green & 0x03);
-
-                    ULAplusPalette[register >>> 4][register & 0x0f] =
-                        (red << 16) | (green << 8) | blue;
-                }
-            }
-
-            multiface = snap.isMultiface();
-            settings.getSpectrumSettings().setMultifaceEnabled(multiface);
-
-            if (snap.isTapeEmbedded()) {
-                tape.eject();
-                tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
-                    snap.getTapeData(), snap.getTapeBlock());
-            }
-
-            if (snap.isTapeLinked()) {
-                File tapeLink = new File(snap.getTapeName());
-
-                if (tapeLink.exists()) {
-                    tape.eject();
-                    tape.insert(tapeLink);
-                    tape.setSelectedBlock(snap.getTapeBlock());
-                }
-            }
-
-            if (snap.isIF1Enabled()) {
-                connectedIF1 = true;
-                settings.getInterface1Settings().setConnectedIF1(true);
-                if1.setNumDrives(snap.getNumDrives());
-                settings.getInterface1Settings().setMicrodriveUnits(snap.getNumDrives());
-            } else {
-                connectedIF1 = false;
-                settings.getInterface1Settings().setConnectedIF1(false);
-            }
+            setSpectrumState(snap.getSpectrumState());
+//            switch (snap.getSnapshotModel()) {
+//                case SPECTRUM16K:
+//                    selectHardwareModel(MachineTypes.SPECTRUM16K);
+//                    break;
+//                case SPECTRUM48K:
+//                    selectHardwareModel(MachineTypes.SPECTRUM48K);
+//                    break;
+//                case SPECTRUM128K:
+//                    selectHardwareModel(MachineTypes.SPECTRUM128K);
+//                    break;
+//                case SPECTRUMPLUS2:
+//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+//                    break;
+//                case SPECTRUMPLUS2A:
+//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+//                    break;
+//                case SPECTRUMPLUS3:
+//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+//                    break;
+//            }
+//
+//            z80.setZ80State(snap.getZ80State());
+//            memory.setMemoryState(snap.getMemoryState());
+//
+//            int border = snap.getBorder();
+//            portFE &= 0xf8;
+//            portFE |= border;
+//
+//            if (snap.getJoystick() != Joystick.NONE) {
+//                setJoystick(snap.getJoystick());
+//            }
+//
+//            if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+//                // Solo los 16k/48k pueden ser Issue2. El resto son todos Issue3.
+//                issue2 = false;
+//                
+//                port7ffd = snap.getPort7ffd();
+//                memory.setPort7ffd(port7ffd);
+//
+//                if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+//                    port1ffd = snap.getPort1ffd();
+//                    memory.setPort1ffd(port1ffd);
+//
+//                    if (memory.isPlus3RamMode()) {
+//                        switch (port1ffd & 0x06) {
+//                            case 0:
+//                                Arrays.fill(contendedRamPage, false);
+//                                break;
+//                            case 2:
+//                                Arrays.fill(contendedRamPage, true);
+//                                break;
+//                            case 4:
+//                            case 6:
+//                                Arrays.fill(contendedRamPage, true);
+//                                contendedRamPage[3] = false;
+//                        }
+//                    } else {
+//                        contendedRamPage[0] = contendedRamPage[2] = false;
+//                        contendedRamPage[1] = true;
+//                        contendedRamPage[3] = memory.getPlus3HighPage() > 3;
+//                    }
+//                } else {
+//                    contendedRamPage[3] = contendedIOPage[3] =
+//                        (port7ffd & 0x01) != 0;
+//                }
+//            } else {
+//                issue2 = snap.isIssue2();
+//            }
+//            
+//            settings.getKeyboardJoystickSettings().setIssue2(issue2);
+//
+//            if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
+//                enabledAY = true;
+//                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
+//                    settings.getSpectrumSettings().setAYEnabled48K(true);
+//
+//                // The machine can have an AY, but the AY block isn't present
+//                // in SZX snapshot.
+//                if (snap.getEnabledAY())
+//                    ay8912.setAY8912State(snap.getAY8912State());
+//            }
+//
+//            settings.getSpectrumSettings().setULAplus(snap.isULAplus());
+//            if (snap.isULAplus()) {
+//                ULAPlusEnabled = true;
+//                ULAPlusActive = snap.isULAplusEnabled();
+//                paletteGroup = snap.getULAplusRegister();
+//
+//                for (int register = 0; register < 64; register++) {
+//                    int color = snap.getULAplusColor(register);
+//                    ULAPlusPalette[register >>> 4][register & 0x0f] = color;
+//
+//                    int blue = (color & 0x03) << 1;
+//                    if ((color & 0x01) == 0x01) {
+//                        blue |= 0x01;
+//                    }
+//                    blue = (blue << 5) | (blue << 2) | (blue & 0x03);
+//
+//                    int red = (color & 0x1C) >> 2;
+//                    red = (red << 5) | (red << 2) | (red & 0x03);
+//
+//                    int green = (color & 0xE0) >> 5;
+//                    green = (green << 5) | (green << 2) | (green & 0x03);
+//
+//                    ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
+//                        (red << 16) | (green << 8) | blue;
+//                }
+//            }
+//
+//            multiface = snap.isMultiface();
+//            settings.getSpectrumSettings().setMultifaceEnabled(multiface);
+//
+//            if (snap.isTapeEmbedded()) {
+//                tape.eject();
+//                tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
+//                    snap.getTapeData(), snap.getTapeBlock());
+//            }
+//
+//            if (snap.isTapeLinked()) {
+//                File tapeLink = new File(snap.getTapeName());
+//
+//                if (tapeLink.exists()) {
+//                    tape.eject();
+//                    tape.insert(tapeLink);
+//                    tape.setSelectedBlock(snap.getTapeBlock());
+//                }
+//            }
+//
+//            if (snap.isIF1Enabled()) {
+//                connectedIF1 = true;
+//                settings.getInterface1Settings().setConnectedIF1(true);
+//                if1.setNumDrives(snap.getNumDrives());
+//                settings.getInterface1Settings().setMicrodriveUnits(snap.getNumDrives());
+//            } else {
+//                connectedIF1 = false;
+//                settings.getInterface1Settings().setConnectedIF1(false);
+//            }
             
 //            System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
 //                    "SNAPSHOT_LOADED"));
@@ -1338,59 +1472,61 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
     public void saveSnapshot(File filename) {
         Snapshots snap = new Snapshots();
-
-        snap.setSnapshotModel(spectrumModel);
         
-        snap.setZ80State(z80.getZ80State());
-        snap.setMemoryState(memory.getMemoryState());
+        snap.setSpectrumState(getSpectrumState());
 
-        snap.setBorder(portFE & 0x07);
-
-        snap.setJoystick(joystick);
-        snap.setIssue2(issue2);
-
-        if (connectedIF1) {
-            snap.setIF1Present(true);
-            snap.setNumDrives(if1.getNumDrives());
-        }
-        
-        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-            snap.setPort7ffd(port7ffd);
-
-            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                snap.setPort1ffd(port1ffd);
-            }
-        }
-
-        if (enabledAY) {
-            snap.setEnabledAY(true);
-
-            snap.setAY8912State(ay8912.getAY8912State());
-        }
-
-        if (ULAplusOn) {
-            snap.setULAplus(true);
-            snap.setULAplusEnabled(ULAplusMode);
-            snap.setULAplusRegister(paletteGroup);
-
-
-            for (int color = 0; color < 64; color++) {
-                snap.setULAplusColor(color, ULAplus[color >>> 4][color & 0x0f]);
-            }
-        }
-
-        snap.setMultiface(multiface);
-
-        if (szxTapeMode != 0) {
-            snap.setTapeName(tape.getTapeFilename().getAbsolutePath());
-            snap.setTapeBlock(tape.getSelectedBlock());
-
-            if (szxTapeMode == 1) {
-                snap.setTapeLinked(true);
-            } else {
-                snap.setTapeEmbedded(true);
-            }
-        }
+//        snap.setSnapshotModel(spectrumModel);
+//        
+//        snap.setZ80State(z80.getZ80State());
+//        snap.setMemoryState(memory.getMemoryState());
+//
+//        snap.setBorder(portFE & 0x07);
+//
+//        snap.setJoystick(joystick);
+//        snap.setIssue2(issue2);
+//
+//        if (connectedIF1) {
+//            snap.setIF1Present(true);
+//            snap.setNumDrives(if1.getNumDrives());
+//        }
+//        
+//        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
+//            snap.setPort7ffd(port7ffd);
+//
+//            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+//                snap.setPort1ffd(port1ffd);
+//            }
+//        }
+//
+//        if (enabledAY) {
+//            snap.setEnabledAY(true);
+//
+//            snap.setAY8912State(ay8912.getAY8912State());
+//        }
+//
+//        if (ULAPlusEnabled) {
+//            snap.setULAplus(true);
+//            snap.setULAplusEnabled(ULAPlusActive);
+//            snap.setULAplusRegister(paletteGroup);
+//
+//
+//            for (int color = 0; color < 64; color++) {
+//                snap.setULAplusColor(color, ULAPlusPalette[color >>> 4][color & 0x0f]);
+//            }
+//        }
+//
+//        snap.setMultiface(multiface);
+//
+//        if (szxTapeMode != 0) {
+//            snap.setTapeName(tape.getTapeFilename().getAbsolutePath());
+//            snap.setTapeBlock(tape.getSelectedBlock());
+//
+//            if (szxTapeMode == 1) {
+//                snap.setTapeLinked(true);
+//            } else {
+//                snap.setTapeEmbedded(true);
+//            }
+//        }
 
         if (snap.saveSnapshot(filename)) {
             System.out.println(
@@ -1413,10 +1549,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     fOut.write(memory.readScreenByte(addr));
                 }
 
-                if (ULAplusMode) {
+                if (ULAPlusActive) {
                     for (int palette = 0; palette < 4; palette++) {
                         for (int color = 0; color < 16; color++) {
-                            fOut.write(ULAplus[palette][color]);
+                            fOut.write(ULAPlusPalette[palette][color]);
                         }
                     }
                 }
@@ -1457,13 +1593,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     memory.writeByte(addr, (byte)(fIn.read() & 0xff));
                 }
 
-                ULAplusMode = ULAplusOn = false;
+                ULAPlusActive = ULAPlusEnabled = false;
                 if (fIn.available() == 64) {
-                    ULAplusMode = ULAplusOn = true;
+                    ULAPlusActive = ULAPlusEnabled = true;
                     for (int palette = 0; palette < 4; palette++) {
                         for (int color = 0; color < 16; color++) {
                             int value = fIn.read() & 0xff;
-                            ULAplus[palette][color] = value;
+                            ULAPlusPalette[palette][color] = value;
                             int blue = (value & 0x03) << 1;
                             if ((value & 0x01) == 0x01) {
                                 blue |= 0x01;
@@ -1473,7 +1609,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                             red = (red << 5) | (red << 2) | (red & 0x03);
                             int green = (value & 0xE0) >> 5;
                             green = (green << 5) | (green << 2) | (green & 0x03);
-                            ULAplusPalette[palette][color] = (red << 16) | (green << 8) | blue;
+                            ULAPlusPrecompPalette[palette][color] = (red << 16) | (green << 8) | blue;
                         }
                     }
                 }
@@ -1651,13 +1787,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private int leftCol, rightCol;
     // ULAplus support (30/08/2010)
     // Color palette
-    private int ULAplus[][];
+    private int ULAPlusPalette[][];
     // Palette group
     private int paletteGroup;
     // Is ULAplus mode active?
-    private boolean ULAplusMode;
+    private boolean ULAPlusActive;
     // ULAplus precomputed color palette
-    private int ULAplusPalette[][];
+    private int ULAPlusPrecompPalette[][];
 
     private void initGFX() {
         tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
@@ -1675,9 +1811,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         borderChanged = true;
 
         // Paletas para el soporte de ULAplus
-        ULAplus = new int[4][16];
-        ULAplusPalette = new int[4][16];
-        ULAplusMode = false;
+        ULAPlusPalette = new int[4][16];
+        ULAPlusPrecompPalette = new int[4][16];
+        ULAPlusActive = false;
         paletteGroup = 0;
 
         //Inicialización de la tabla de direcciones de pantalla
@@ -1831,8 +1967,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public void updateBorder(int tstates) {
         int nowColor;
 
-        if (ULAplusMode) {
-            nowColor = ULAplusPalette[0][(portFE & 0x07) | 0x08];
+        if (ULAPlusActive) {
+            nowColor = ULAPlusPrecompPalette[0][(portFE & 0x07) | 0x08];
         } else {
             nowColor = Paleta[portFE & 0x07];
         }
@@ -1906,9 +2042,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             addrBuf = bufAddr[fromAddr];
 
-            if (ULAplusMode) {
-                ink = ULAplusPalette[attr >>> 6][attr & 0x07];
-                paper = ULAplusPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
+            if (ULAPlusActive) {
+                ink = ULAPlusPrecompPalette[attr >>> 6][attr & 0x07];
+                paper = ULAPlusPrecompPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
             } else {
                 if (attr > 0x7f) {
                     attr &= flash;
