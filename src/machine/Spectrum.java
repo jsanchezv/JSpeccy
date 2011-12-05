@@ -204,12 +204,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     public void startEmulation() {
+        paused = false;
         audio.reset();
         enableSound();
         invalidateScreen(true);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
-        paused = false;
         nFrame = 0;
     }
 
@@ -1264,9 +1264,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
                     settings.getSpectrumSettings().setAYEnabled48K(true);
 
-                ay8912.setAY8912State(snap.getAY8912State());
+                // The machine can have an AY, but the AY block isn't present
+                // in SZX snapshot.
+                if (snap.getEnabledAY())
+                    ay8912.setAY8912State(snap.getAY8912State());
             }
 
+            settings.getSpectrumSettings().setULAplus(snap.isULAplus());
             if (snap.isULAplus()) {
                 ULAplusOn = true;
                 ULAplusMode = snap.isULAplusEnabled();

@@ -1625,7 +1625,7 @@ public class Snapshots {
                         
                         enabledAY = true;
                         if (snapshotModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
-                                && ayRegs[0] != ZXSTAYF_128AY) {
+                                && (ayRegs[0] & ZXSTAYF_128AY) == 0) {
                             enabledAY = false;
                         }
                         
@@ -2095,7 +2095,7 @@ public class Snapshots {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR length block
-            blockID = "JSpeccy 0.89 (15/07/2011)";
+            blockID = "JSpeccy 0.89 (05/12/2011)";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                     0, blockID.getBytes("US-ASCII").length);
