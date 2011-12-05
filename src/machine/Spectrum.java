@@ -1220,6 +1220,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                 issue2 = snap.isIssue2();
+                settings.getKeyboardJoystickSettings().setIssue2(issue2);
             }
 
             if (snap.getJoystick() != Joystick.NONE) {
@@ -1260,6 +1261,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
                 enabledAY = true;
+                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
+                    settings.getSpectrumSettings().setAYEnabled48K(true);
 
                 ay8912.setAY8912State(snap.getAY8912State());
             }
@@ -1291,14 +1294,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             multiface = snap.isMultiface();
+            settings.getSpectrumSettings().setMultifaceEnabled(multiface);
 
             if (snap.isTapeEmbedded()) {
                 tape.eject();
                 tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
                     snap.getTapeData(), snap.getTapeBlock());
-//                guiComponents.playTapeMenu.setEnabled(true);
-//                guiComponents.tapeFilename.setText(snap.getTapeName() + "." +
-//                    snap.getTapeExtension());
             }
 
             if (snap.isTapeLinked()) {
@@ -1308,8 +1309,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     tape.eject();
                     tape.insert(tapeLink);
                     tape.setSelectedBlock(snap.getTapeBlock());
-//                    guiComponents.playTapeMenu.setEnabled(true);
-//                    guiComponents.tapeFilename.setText(tapeLink.getName());
                 }
             }
 
@@ -1323,7 +1322,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 settings.getInterface1Settings().setConnectedIF1(false);
             }
             
-            invalidateScreen(true);
 //            System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
 //                    "SNAPSHOT_LOADED"));
 
@@ -1506,7 +1504,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     private void enableSound() {
-        if (muted || enabledSound) {
+        if (paused || muted || enabledSound) {
             return;
         }
 
@@ -1521,6 +1519,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         if (!enabledSound) {
             return;
         }
+
         enabledSound = false;
         audio.endFrame();
         audio.close();

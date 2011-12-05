@@ -780,19 +780,22 @@ public class Snapshots {
             }
 
             issue2 = (z80Header1[29] & 0x04) != 0;
-            switch (z80Header1[29] >>> 6) {
+            
+            switch ((z80Header1[29] & 0xC0)) {
                 case 0: // Cursor/AGF/Protek Joystick
-                    // No es lo que dice la especificación, pero lo prefiero...
-                    joystick = Joystick.NONE;
+                    joystick = Joystick.CURSOR;
                     break;
-                case 1: // Kempston joystick
+                case 0x40: // Kempston joystick
                     joystick = Joystick.KEMPSTON;
                     break;
-                case 2:
+                case 0x80:
                     joystick = Joystick.SINCLAIR1;
                     break;
-                case 3:
+                case 0xC0:
                     joystick = Joystick.SINCLAIR2;
+                    break;
+                default:
+                    joystick = Joystick.NONE;
             }
 
             memory = new MemoryState();
@@ -882,7 +885,7 @@ public class Snapshots {
 
                 boolean modifiedHW = (z80Header2[5] & 0x80) != 0;
                 if (hdrLen == 23) { // Z80 v2
-                    switch (z80Header2[2]) {
+                    switch (z80Header2[2] & 0xff) {
                         case 0: // 48k
                             if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
@@ -944,7 +947,7 @@ public class Snapshots {
                             return false;
                     }
                 } else { // Z80 v3
-                    switch (z80Header2[2]) {
+                    switch (z80Header2[2]& 0xff) {
                         case 0: // 48k
                             if (modifiedHW) {
                                 snapshotModel = MachineTypes.SPECTRUM16K;
@@ -1431,7 +1434,7 @@ public class Snapshots {
 
             szxMajorVer = dwSize[0];
             szxMinorVer = dwSize[1];
-            switch (dwSize[2]) {
+            switch (dwSize[2] & 0xff) {
                 case ZXSTMID_16K:
                     snapshotModel = MachineTypes.SPECTRUM16K;
                     break;
@@ -1805,7 +1808,7 @@ public class Snapshots {
                             return false;
                         }
                         szxLen -= qword.length;
-                        int cSize = dwMagicToInt(qword);
+//                        int cSize = dwMagicToInt(qword);
 //                        System.out.println(String.format("uSize: %d, cSize: %d",
 //                                uSize, cSize));
 

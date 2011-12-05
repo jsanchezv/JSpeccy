@@ -495,6 +495,7 @@ public class JSpeccy extends javax.swing.JFrame {
         } else {
             mdrvLabel.setDisabledIcon(null);
         }
+        
         IF2MediaMenu.setEnabled(true);
         insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
         extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
@@ -526,9 +527,6 @@ public class JSpeccy extends javax.swing.JFrame {
         modelLabel.setText(spectrum.getSpectrumModel().getShortModelName());
 
         switch (spectrum.getJoystick()) {
-            case NONE:
-                noneJoystick.setSelected(true);
-                break;
             case KEMPSTON:
                 kempstonJoystick.setSelected(true);
                 break;
@@ -543,6 +541,9 @@ public class JSpeccy extends javax.swing.JFrame {
                 break;
             case FULLER:
                 fullerJoystick.setSelected(true);
+                break;
+            default:
+                noneJoystick.setSelected(true);
         }
     }
     
