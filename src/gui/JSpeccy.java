@@ -421,11 +421,12 @@ public class JSpeccy extends javax.swing.JFrame {
                 snapSZX = new SnapshotSZX();
                 try {
                     spectrum.setSpectrumState(snapSZX.load(autoload));
+                    updateGuiSelections();
                 } catch (SnapshotException ex) {
                     JOptionPane.showMessageDialog(this,
-                            ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
-                            ResourceBundle.getBundle("gui/Bundle").getString(
-                            "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                        ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString(
+                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -461,9 +462,9 @@ public class JSpeccy extends javax.swing.JFrame {
                     snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
                 } catch (SnapshotException ex) {
                     JOptionPane.showMessageDialog(this,
-                    ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
-                    ResourceBundle.getBundle("gui/Bundle").getString(
-                    "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
+                        ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString(
+                        "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
             }
             
@@ -2315,7 +2316,6 @@ public class JSpeccy extends javax.swing.JFrame {
                         }
                     }
                     spectrum.setSpectrumState(snapState);
-//                spectrum.loadSnapshot(currentFileSnapshot);
                     updateGuiSelections();
                 } catch (SnapshotException excpt) {
                     JOptionPane.showMessageDialog(this,

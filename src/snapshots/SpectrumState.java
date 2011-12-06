@@ -16,7 +16,7 @@ public class SpectrumState {
     private Z80State z80;
     private MemoryState memory;
     private AY8912State ay8912;
-    private int portFE, earBit, port7ffd, port1ffd;
+    private int tstates, portFE, earBit, port7ffd, port1ffd;
     private byte numMicrodrives = 1;
     private boolean ULAPlusEnabled, ULAPlusActive, issue2, multiface;
     private boolean connectedIF1, enabledAY, enabledAYon48k;
@@ -83,6 +83,20 @@ public class SpectrumState {
      */
     public void setAY8912State(AY8912State ay8912) {
         this.ay8912 = ay8912;
+    }
+
+    /**
+     * @return the tstates
+     */
+    public int getTstates() {
+        return tstates;
+    }
+
+    /**
+     * @param tstates the tstates to set
+     */
+    public void setTstates(int tstates) {
+        this.tstates = tstates;
     }
 
     /**

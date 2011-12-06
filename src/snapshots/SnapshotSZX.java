@@ -401,7 +401,7 @@ public class SnapshotSZX {
                                 break;
                         }
                         
-                        z80.setTstates((int) (((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
+                        spectrum.setTstates((int) (((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
                                 | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff)));
 
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
@@ -983,10 +983,10 @@ public class SnapshotSZX {
                 z80r[27] = 0x01;
             }
             z80r[28] = (byte) z80.getIM().ordinal();
-            z80r[29] = (byte) z80.getTstates();
-            z80r[30] = (byte) (z80.getTstates() >>> 8);
-            z80r[31] = (byte) (z80.getTstates() >>> 16);
-            z80r[32] = (byte) (z80.getTstates() >>> 24);
+            z80r[29] = (byte) spectrum.getTstates();
+            z80r[30] = (byte) (spectrum.getTstates() >>> 8);
+            z80r[31] = (byte) (spectrum.getTstates() >>> 16);
+            z80r[32] = (byte) (spectrum.getTstates() >>> 24);
             // ignore the chHoldIntReqCycles & chFlags fields
             z80r[35] = (byte) z80.getMemPtr();
             z80r[36] = (byte) (z80.getMemPtr() >>> 8);

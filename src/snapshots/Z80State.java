@@ -71,9 +71,6 @@ public class Z80State {
      */
     private int memptr;
     
-    // CPU tstates
-    private int tstates;
-    
     public Z80State() {
     }
     
@@ -401,13 +398,5 @@ public class Z80State {
     
     public final void setPendingEI(boolean state) {
         pendingEI = state;
-    }
-    
-    public int getTstates() {
-        return tstates;
-    }
-
-    public void setTstates(int value) {
-        tstates = value;
     }
 }

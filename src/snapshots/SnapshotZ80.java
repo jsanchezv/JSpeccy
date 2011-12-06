@@ -470,7 +470,7 @@ public class SnapshotZ80 {
                 }
             }
 
-            z80.setTstates(0);
+            spectrum.setTstates(0);
 
         } catch (IOException ex) {
             throw new SnapshotException("FILE_READ_ERROR", ex);

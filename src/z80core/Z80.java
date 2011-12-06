@@ -123,16 +123,17 @@
 package z80core;
 
 import java.util.Arrays;
+import machine.TimeCounters;
 import snapshots.Z80State;
 
 public class Z80 {
 
+    private final TimeCounters clock;
     private final MemIoOps MemIoImpl;
     private final NotifyOps NotifyImpl;
     // Código de instrucción a ejecutar
     private int opCode;
-    // Número de estados T que se llevan ejecutados
-    public int tstates;
+    // Subsistema de notificaciones
     private boolean execDone;
     private int timeout, counter;
     // Posiciones de los flags
@@ -273,10 +274,11 @@ public class Z80 {
     private boolean breakpointAt[] = new boolean[65536];
     
     // Constructor de la clase
-    public Z80(MemIoOps memory, NotifyOps notify) {
+    public Z80(TimeCounters clock, MemIoOps memory, NotifyOps notify) {
+        this.clock = clock;
         MemIoImpl = memory;
         NotifyImpl = notify;
-        tstates = timeout = 0;
+        timeout = 0;
         execDone = false;
         Arrays.fill(breakpointAt, false);
         reset();
@@ -837,7 +839,6 @@ public class Z80 {
         state.setINTLine(activeINT);
         state.setPendingEI(pendingEI);
         state.setNMI(activeNMI);
-        state.setTstates(tstates);
         return state;
     }
     
@@ -872,7 +873,6 @@ public class Z80 {
         activeINT = state.isINTLine();
         pendingEI = state.isPendingEI();
         activeNMI = state.isNMI();
-        tstates = state.getTstates();
     }
     
     // Reset
@@ -921,8 +921,6 @@ public class Z80 {
         activeINT = false;
         halted = false;
         setIM(IntMode.IM0);
-
-        tstates = 0;
     }
 
     // Rota a la izquierda el valor del argumento
@@ -1630,7 +1628,7 @@ public class Z80 {
             regPC = (regPC + 1) & 0xffff;
         }
 
-        tstates += 7;
+        clock.tstates += 7;
 
         regR++;
         ffIFF1 = ffIFF2 = false;
@@ -1655,7 +1653,7 @@ public class Z80 {
         //      1.- La lectura del opcode del M1 que se descarta
         //      2.- Si estaba en un HALT esperando una INT, lo saca de la espera
         MemIoImpl.fetchOpcode(regPC);
-        tstates++;
+        clock.tstates++;
         if (halted) {
             halted = false;
             regPC = (regPC + 1) & 0xffff;
@@ -1664,21 +1662,6 @@ public class Z80 {
         ffIFF1 = false;
         push(regPC);  // 3+3 t-estados + contended si procede
         regPC = memptr = 0x0066;
-    }
-
-    //Devuelve el número de estados T ejecutados en el ciclo
-    public final int getTEstados() {
-        return tstates;
-    }
-
-    // Inicia los T-estados a un valor
-    public final void setTEstados(int tstates) {
-        this.tstates = tstates;
-    }
-
-    // Añade los t-estados de retraso de la contended memory
-    public final void addTEstados(int delay) {
-        tstates += delay;
     }
 
     public final void setExecDone(boolean notify) {
@@ -1715,8 +1698,8 @@ public class Z80 {
      */
     public final int execute(int statesLimit) {
 
-        while (tstates < statesLimit) {
-            int tmp = tstates;
+        while (clock.tstates < statesLimit) {
+            int tmp = clock.tstates;
 
             // Primero se comprueba NMI
             if (activeNMI) {
@@ -1750,7 +1733,7 @@ public class Z80 {
             }
 
             if (execDone) {
-                counter += (tstates - tmp);
+                counter += (clock.tstates - tmp);
                 
                 if (counter >= timeout) {
                     NotifyImpl.execDone(counter);
@@ -1759,7 +1742,8 @@ public class Z80 {
             }
 
         } /* del while */
-        return tstates;
+        
+        return clock.tstates;
     }
 
     private void decodeOpcode(int opCode) {
