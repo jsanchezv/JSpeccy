@@ -41,6 +41,11 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
 import machine.Keyboard.Joystick;
+import snapshots.SnapshotException;
+import snapshots.SnapshotSNA;
+import snapshots.SnapshotSZX;
+import snapshots.SnapshotZ80;
+import snapshots.SpectrumState;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeBlockListener;
@@ -66,6 +71,8 @@ public class JSpeccy extends javax.swing.JFrame {
     MemoryBrowserDialog memoryBrowserDialog;
     FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
             tapeExtension, imageExtension, screenExtension, romExtension;
+    SnapshotSZX snapSZX; // for SZX snapshots
+    SpectrumState memorySnapshot;
     
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
     Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
@@ -620,6 +627,9 @@ public class JSpeccy extends javax.swing.JFrame {
         openSnapshot = new javax.swing.JMenuItem();
         saveSnapshot = new javax.swing.JMenuItem();
         jSeparator4 = new javax.swing.JPopupMenu.Separator();
+        loadMemorySnapshot = new javax.swing.JMenuItem();
+        saveMemorySnapshot = new javax.swing.JMenuItem();
+        jSeparator15 = new javax.swing.JPopupMenu.Separator();
         loadScreenShot = new javax.swing.JMenuItem();
         saveScreenShot = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JSeparator();
@@ -664,6 +674,7 @@ public class JSpeccy extends javax.swing.JFrame {
         playTapeMediaMenu = new javax.swing.JMenuItem();
         browserTapeMediaMenu = new javax.swing.JMenuItem();
         rewindTapeMediaMenu = new javax.swing.JMenuItem();
+        ejectTapeMediaMenu = new javax.swing.JMenuItem();
         jSeparator5 = new javax.swing.JPopupMenu.Separator();
         createTapeMediaMenu = new javax.swing.JMenuItem();
         clearTapeMediaMenu = new javax.swing.JMenuItem();
@@ -1103,6 +1114,26 @@ public class JSpeccy extends javax.swing.JFrame {
     fileMenu.add(saveSnapshot);
     fileMenu.add(jSeparator4);
 
+    loadMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, java.awt.event.InputEvent.CTRL_MASK));
+    loadMemorySnapshot.setText(bundle.getString("JSpeccy.loadMemorySnapshot.text")); // NOI18N
+    loadMemorySnapshot.setEnabled(false);
+    loadMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            loadMemorySnapshotActionPerformed(evt);
+        }
+    });
+    fileMenu.add(loadMemorySnapshot);
+
+    saveMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0));
+    saveMemorySnapshot.setText(bundle.getString("JSpeccy.saveMemorySnapshot.text")); // NOI18N
+    saveMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            saveMemorySnapshotActionPerformed(evt);
+        }
+    });
+    fileMenu.add(saveMemorySnapshot);
+    fileMenu.add(jSeparator15);
+
     loadScreenShot.setText(bundle.getString("JSpeccy.loadScreenShot.text")); // NOI18N
     loadScreenShot.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1428,6 +1459,15 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     tapeMediaMenu.add(rewindTapeMediaMenu);
+
+    ejectTapeMediaMenu.setText(bundle.getString("JSpeccy.ejectTapeMediaMenu.text")); // NOI18N
+    ejectTapeMediaMenu.setEnabled(false);
+    ejectTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            tapeBrowserButtonEjectActionPerformed(evt);
+        }
+    });
+    tapeMediaMenu.add(ejectTapeMediaMenu);
     tapeMediaMenu.add(jSeparator5);
 
     createTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
@@ -1564,11 +1604,51 @@ public class JSpeccy extends javax.swing.JFrame {
             currentFileSnapshot = openSnapshotDlg.getSelectedFile();
             settings.getRecentFilesSettings().setLastSnapshotDir(
                     currentFileSnapshot.getParent());
-            
+
             if (snapshotExtension.accept(currentFileSnapshot)) {
                 rotateRecentFile(currentFileSnapshot);
-                spectrum.loadSnapshot(currentFileSnapshot);
-                updateGuiSelections();
+                try {
+                    SpectrumState snapState = new SpectrumState();
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
+                        SnapshotSNA snapSNA = new SnapshotSNA();
+                        snapState = snapSNA.load(currentFileSnapshot);
+                    }
+
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
+                        SnapshotZ80 snapZ80 = new SnapshotZ80();
+                        snapState = snapZ80.load(currentFileSnapshot);
+                    }
+
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
+                        snapSZX = new SnapshotSZX();
+                        snapState = snapSZX.load(currentFileSnapshot);
+                        
+                        if (snapSZX.isTapeEmbedded()) {
+                            tape.eject();
+                            tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
+                                    snapSZX.getTapeData(), snapSZX.getTapeBlock());
+                        }
+
+                        if (snapSZX.isTapeLinked()) {
+                            File tapeLink = new File(snapSZX.getTapeName());
+
+                            if (tapeLink.exists()) {
+                                tape.eject();
+                                tape.insert(tapeLink);
+                                tape.setSelectedBlock(snapSZX.getTapeBlock());
+                            }
+                        }
+                    }
+                    
+                    spectrum.setSpectrumState(snapState);
+                    
+                    updateGuiSelections();
+                } catch (SnapshotException excpt) {
+                    JOptionPane.showMessageDialog(this,
+                        ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString(
+                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                }
             } else {
                 currentFileTape = openSnapshotDlg.getSelectedFile();
                 settings.getRecentFilesSettings().setLastTapeDir(
@@ -1579,7 +1659,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
-                        bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                            bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -1728,12 +1808,36 @@ public class JSpeccy extends javax.swing.JFrame {
                     saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith("szx")) {
                 tapeFilenameLabel.setText(tape.getTapeFilename().getName());
                 ignoreRadioButton.setSelected(true);
-                spectrum.setSzxTapeMode(0); // ignore by default
+                snapSZX = new SnapshotSZX();
+                snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
+                snapSZX.setTapeBlock(tape.getSelectedBlock());
                 saveSzxTape.pack();
                 saveSzxTape.setVisible(true);
             }
-            spectrum.saveSnapshot(saveSnapshotDlg.getSelectedFile());
+            
+            try {
+                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".sna")) {
+                    SnapshotSNA snapSNA = new SnapshotSNA();
+                    snapSNA.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
+
+                }
+                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".z80")) {
+                    SnapshotZ80 snapZ80 = new SnapshotZ80();
+                    snapZ80.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
+                }
+
+                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".szx")) {
+                    snapSZX.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
+                }
+                
+            } catch (SnapshotException excpt) {
+                JOptionPane.showMessageDialog(this,
+                        ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString(
+                        "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
+            }
         }
+        
         if (!paused)
             spectrum.startEmulation();
     }//GEN-LAST:event_saveSnapshotActionPerformed
@@ -2147,8 +2251,47 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
 
                 currentFileSnapshot = recentFile[idx];
-                spectrum.loadSnapshot(currentFileSnapshot);
-                updateGuiSelections();
+                try {
+                    SpectrumState snapState = new SpectrumState();
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
+                        SnapshotSNA snapSNA = new SnapshotSNA();
+                        snapState = snapSNA.load(currentFileSnapshot);
+                    }
+
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
+                        SnapshotZ80 snapZ80 = new SnapshotZ80();
+                        snapState = snapZ80.load(currentFileSnapshot);
+                    }
+
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
+                        snapSZX = new SnapshotSZX();
+                        snapState = snapSZX.load(currentFileSnapshot);
+                        
+                        if (snapSZX.isTapeEmbedded()) {
+                            tape.eject();
+                            tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
+                                    snapSZX.getTapeData(), snapSZX.getTapeBlock());
+                        }
+
+                        if (snapSZX.isTapeLinked()) {
+                            File tapeLink = new File(snapSZX.getTapeName());
+
+                            if (tapeLink.exists()) {
+                                tape.eject();
+                                tape.insert(tapeLink);
+                                tape.setSelectedBlock(snapSZX.getTapeBlock());
+                            }
+                        }
+                    }
+                    spectrum.setSpectrumState(snapState);
+//                spectrum.loadSnapshot(currentFileSnapshot);
+                    updateGuiSelections();
+                } catch (SnapshotException excpt) {
+                    JOptionPane.showMessageDialog(this,
+                        ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString(
+                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                }
 
                 if (!paused) {
                     spectrum.startEmulation();
@@ -2235,15 +2378,18 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_saveSzxCloseButtonActionPerformed
 
     private void linkedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_linkedRadioButtonActionPerformed
-        spectrum.setSzxTapeMode(1); // linked tape
+        snapSZX.setTapeLinked(true);
+        snapSZX.setTapeEmbedded(false);
     }//GEN-LAST:event_linkedRadioButtonActionPerformed
 
     private void embeddedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_embeddedRadioButtonActionPerformed
-        spectrum.setSzxTapeMode(2); // embedded tape
+        snapSZX.setTapeLinked(false);
+        snapSZX.setTapeEmbedded(true);
     }//GEN-LAST:event_embeddedRadioButtonActionPerformed
 
     private void ignoreRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ignoreRadioButtonActionPerformed
-        spectrum.setSzxTapeMode(0); // ignore tape
+        snapSZX.setTapeLinked(false);
+        snapSZX.setTapeEmbedded(false);
     }//GEN-LAST:event_ignoreRadioButtonActionPerformed
 
     private void loadScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadScreenShotActionPerformed
@@ -2364,6 +2510,19 @@ public class JSpeccy extends javax.swing.JFrame {
     private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
         pokeDialog.setVisible(false);
     }//GEN-LAST:event_closeButtonActionPerformed
+
+    private void loadMemorySnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadMemorySnapshotActionPerformed
+        if (memorySnapshot == null)
+            return;
+        
+        spectrum.setSpectrumState(memorySnapshot);
+        spectrum.invalidateScreen(true);
+    }//GEN-LAST:event_loadMemorySnapshotActionPerformed
+
+    private void saveMemorySnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveMemorySnapshotActionPerformed
+        memorySnapshot = spectrum.getSpectrumState();
+        loadMemorySnapshot.setEnabled(true);
+    }//GEN-LAST:event_saveMemorySnapshotActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2392,6 +2551,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem cursorJoystick;
     private javax.swing.JCheckBoxMenuItem doubleSizeOption;
     private javax.swing.JToggleButton doubleSizeToggleButton;
+    private javax.swing.JMenuItem ejectTapeMediaMenu;
     private javax.swing.JRadioButton embeddedRadioButton;
     private javax.swing.JMenuItem extractIF2RomMediaMenu;
     private javax.swing.JToggleButton fastEmulationToggleButton;
@@ -2423,6 +2583,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JToolBar.Separator jSeparator12;
     private javax.swing.JPopupMenu.Separator jSeparator13;
     private javax.swing.JPopupMenu.Separator jSeparator14;
+    private javax.swing.JPopupMenu.Separator jSeparator15;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -2437,6 +2598,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
     private javax.swing.JRadioButton linkedRadioButton;
+    private javax.swing.JMenuItem loadMemorySnapshot;
     private javax.swing.JMenuItem loadScreenShot;
     private javax.swing.JMenu machineMenu;
     private javax.swing.JLabel mdrvLabel;
@@ -2470,6 +2632,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JMenuItem rewindTapeMediaMenu;
+    private javax.swing.JMenuItem saveMemorySnapshot;
     private javax.swing.JMenuItem saveScreenShot;
     private javax.swing.JMenuItem saveSnapshot;
     private javax.swing.ButtonGroup saveSzxButtonGroup;
@@ -2525,6 +2688,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     playTapeMediaMenu.setEnabled(true);
                     recordStopTapeMediaMenu.setEnabled(false);
                     rewindTapeMediaMenu.setEnabled(true);
+                    ejectTapeMediaMenu.setEnabled(true);
                     reloadTapeMediaMenu.setEnabled(true);
                     if (tape.getTapeFilename().canWrite() &&
                         !tape.getTapeFilename().getName().toLowerCase().endsWith(".csw"))
@@ -2549,6 +2713,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     recordStopTapeMediaMenu.setEnabled(false);
                     clearTapeMediaMenu.setEnabled(false);
                     rewindTapeMediaMenu.setEnabled(false);
+                    ejectTapeMediaMenu.setEnabled(false);
                     reloadTapeMediaMenu.setEnabled(false);
                     createTapeMediaMenu.setEnabled(true);
                     break;
@@ -2561,6 +2726,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     playTapeMediaMenu.setEnabled(true);
                     recordStopTapeMediaMenu.setEnabled(false);
                     rewindTapeMediaMenu.setEnabled(true);
+                    ejectTapeMediaMenu.setEnabled(true);
                     reloadTapeMediaMenu.setEnabled(true);
                     createTapeMediaMenu.setEnabled(true);
                     if (tape.getTapeFilename().canWrite() &&
@@ -2582,6 +2748,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     recordStopTapeMediaMenu.setEnabled(true);
                     clearTapeMediaMenu.setEnabled(false);
                     rewindTapeMediaMenu.setEnabled(false);
+                    ejectTapeMediaMenu.setEnabled(false);
                     reloadTapeMediaMenu.setEnabled(false);
                     createTapeMediaMenu.setEnabled(false);
                     break;
@@ -2596,6 +2763,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     recordStopTapeMediaMenu.setEnabled(false);
                     clearTapeMediaMenu.setEnabled(false);
                     rewindTapeMediaMenu.setEnabled(false);
+                    ejectTapeMediaMenu.setEnabled(false);
                     reloadTapeMediaMenu.setEnabled(false);
                     createTapeMediaMenu.setEnabled(false);
                     break;

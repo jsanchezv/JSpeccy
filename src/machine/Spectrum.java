@@ -17,17 +17,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import machine.Keyboard.Joystick;
 import snapshots.SpectrumState;
-import utilities.Snapshots;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeStateListener;
@@ -43,7 +40,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private Memory memory;
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
-    private int portFE, earBit = 0xbf, port7ffd, port1ffd, szxTapeMode, issueMask;
+    private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
     private long nFrame, framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
@@ -168,11 +165,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         
         selectHardwareModel(state.getSpectrumModel());
         z80.setZ80State(state.getZ80State());
-        state.setMemoryState(memory.getMemoryState());
+        memory.setMemoryState(state.getMemoryState());
         
         earBit = state.getEarBit();
         portFE = state.getPortFE();
-        setJoystick(joystick);
         
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             
@@ -207,14 +203,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
         }
         
+        keyboard.reset();
+        setJoystick(state.getJoystick());
         settings.getKeyboardJoystickSettings().setIssue2(state.isIssue2());
 
         enabledAY = state.isEnabledAY();
         if (enabledAY) {
-            state.setAY8912State(ay8912.getAY8912State());
-            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                settings.getSpectrumSettings().setAYEnabled48K(true);
-            }
+            ay8912.setSpectrumModel(spectrumModel);
+            ay8912.setAY8912State(state.getAY8912State());
+            settings.getSpectrumSettings().setAYEnabled48K(state.isEnabledAYon48k());
         }
 
         settings.getInterface1Settings().setConnectedIF1(state.isConnectedIF1());
@@ -1315,228 +1312,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         
         return opcode;
     }
-    
-    public void loadSnapshot(File filename) {
-        Snapshots snap = new Snapshots();
-
-        if (snap.loadSnapshot(filename)) {
-            doReset();
-            setSpectrumState(snap.getSpectrumState());
-//            switch (snap.getSnapshotModel()) {
-//                case SPECTRUM16K:
-//                    selectHardwareModel(MachineTypes.SPECTRUM16K);
-//                    break;
-//                case SPECTRUM48K:
-//                    selectHardwareModel(MachineTypes.SPECTRUM48K);
-//                    break;
-//                case SPECTRUM128K:
-//                    selectHardwareModel(MachineTypes.SPECTRUM128K);
-//                    break;
-//                case SPECTRUMPLUS2:
-//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-//                    break;
-//                case SPECTRUMPLUS2A:
-//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-//                    break;
-//                case SPECTRUMPLUS3:
-//                    selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-//                    break;
-//            }
-//
-//            z80.setZ80State(snap.getZ80State());
-//            memory.setMemoryState(snap.getMemoryState());
-//
-//            int border = snap.getBorder();
-//            portFE &= 0xf8;
-//            portFE |= border;
-//
-//            if (snap.getJoystick() != Joystick.NONE) {
-//                setJoystick(snap.getJoystick());
-//            }
-//
-//            if (snap.getSnapshotModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-//                // Solo los 16k/48k pueden ser Issue2. El resto son todos Issue3.
-//                issue2 = false;
-//                
-//                port7ffd = snap.getPort7ffd();
-//                memory.setPort7ffd(port7ffd);
-//
-//                if (snap.getSnapshotModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-//                    port1ffd = snap.getPort1ffd();
-//                    memory.setPort1ffd(port1ffd);
-//
-//                    if (memory.isPlus3RamMode()) {
-//                        switch (port1ffd & 0x06) {
-//                            case 0:
-//                                Arrays.fill(contendedRamPage, false);
-//                                break;
-//                            case 2:
-//                                Arrays.fill(contendedRamPage, true);
-//                                break;
-//                            case 4:
-//                            case 6:
-//                                Arrays.fill(contendedRamPage, true);
-//                                contendedRamPage[3] = false;
-//                        }
-//                    } else {
-//                        contendedRamPage[0] = contendedRamPage[2] = false;
-//                        contendedRamPage[1] = true;
-//                        contendedRamPage[3] = memory.getPlus3HighPage() > 3;
-//                    }
-//                } else {
-//                    contendedRamPage[3] = contendedIOPage[3] =
-//                        (port7ffd & 0x01) != 0;
-//                }
-//            } else {
-//                issue2 = snap.isIssue2();
-//            }
-//            
-//            settings.getKeyboardJoystickSettings().setIssue2(issue2);
-//
-//            if (snap.getEnabledAY() || snap.getSnapshotModel().hasAY8912()) {
-//                enabledAY = true;
-//                if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K)
-//                    settings.getSpectrumSettings().setAYEnabled48K(true);
-//
-//                // The machine can have an AY, but the AY block isn't present
-//                // in SZX snapshot.
-//                if (snap.getEnabledAY())
-//                    ay8912.setAY8912State(snap.getAY8912State());
-//            }
-//
-//            settings.getSpectrumSettings().setULAplus(snap.isULAplus());
-//            if (snap.isULAplus()) {
-//                ULAPlusEnabled = true;
-//                ULAPlusActive = snap.isULAplusEnabled();
-//                paletteGroup = snap.getULAplusRegister();
-//
-//                for (int register = 0; register < 64; register++) {
-//                    int color = snap.getULAplusColor(register);
-//                    ULAPlusPalette[register >>> 4][register & 0x0f] = color;
-//
-//                    int blue = (color & 0x03) << 1;
-//                    if ((color & 0x01) == 0x01) {
-//                        blue |= 0x01;
-//                    }
-//                    blue = (blue << 5) | (blue << 2) | (blue & 0x03);
-//
-//                    int red = (color & 0x1C) >> 2;
-//                    red = (red << 5) | (red << 2) | (red & 0x03);
-//
-//                    int green = (color & 0xE0) >> 5;
-//                    green = (green << 5) | (green << 2) | (green & 0x03);
-//
-//                    ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
-//                        (red << 16) | (green << 8) | blue;
-//                }
-//            }
-//
-//            multiface = snap.isMultiface();
-//            settings.getSpectrumSettings().setMultifaceEnabled(multiface);
-//
-//            if (snap.isTapeEmbedded()) {
-//                tape.eject();
-//                tape.insertEmbeddedTape(snap.getTapeName(), snap.getTapeExtension(),
-//                    snap.getTapeData(), snap.getTapeBlock());
-//            }
-//
-//            if (snap.isTapeLinked()) {
-//                File tapeLink = new File(snap.getTapeName());
-//
-//                if (tapeLink.exists()) {
-//                    tape.eject();
-//                    tape.insert(tapeLink);
-//                    tape.setSelectedBlock(snap.getTapeBlock());
-//                }
-//            }
-//
-//            if (snap.isIF1Enabled()) {
-//                connectedIF1 = true;
-//                settings.getInterface1Settings().setConnectedIF1(true);
-//                if1.setNumDrives(snap.getNumDrives());
-//                settings.getInterface1Settings().setMicrodriveUnits(snap.getNumDrives());
-//            } else {
-//                connectedIF1 = false;
-//                settings.getInterface1Settings().setConnectedIF1(false);
-//            }
-            
-//            System.out.println(ResourceBundle.getBundle("machine/Bundle").getString(
-//                    "SNAPSHOT_LOADED"));
-
-        } else {
-            JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
-                ResourceBundle.getBundle("machine/Bundle").getString(
-                "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    public void saveSnapshot(File filename) {
-        Snapshots snap = new Snapshots();
-        
-        snap.setSpectrumState(getSpectrumState());
-
-//        snap.setSnapshotModel(spectrumModel);
-//        
-//        snap.setZ80State(z80.getZ80State());
-//        snap.setMemoryState(memory.getMemoryState());
-//
-//        snap.setBorder(portFE & 0x07);
-//
-//        snap.setJoystick(joystick);
-//        snap.setIssue2(issue2);
-//
-//        if (connectedIF1) {
-//            snap.setIF1Present(true);
-//            snap.setNumDrives(if1.getNumDrives());
-//        }
-//        
-//        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-//            snap.setPort7ffd(port7ffd);
-//
-//            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-//                snap.setPort1ffd(port1ffd);
-//            }
-//        }
-//
-//        if (enabledAY) {
-//            snap.setEnabledAY(true);
-//
-//            snap.setAY8912State(ay8912.getAY8912State());
-//        }
-//
-//        if (ULAPlusEnabled) {
-//            snap.setULAplus(true);
-//            snap.setULAplusEnabled(ULAPlusActive);
-//            snap.setULAplusRegister(paletteGroup);
-//
-//
-//            for (int color = 0; color < 64; color++) {
-//                snap.setULAplusColor(color, ULAPlusPalette[color >>> 4][color & 0x0f]);
-//            }
-//        }
-//
-//        snap.setMultiface(multiface);
-//
-//        if (szxTapeMode != 0) {
-//            snap.setTapeName(tape.getTapeFilename().getAbsolutePath());
-//            snap.setTapeBlock(tape.getSelectedBlock());
-//
-//            if (szxTapeMode == 1) {
-//                snap.setTapeLinked(true);
-//            } else {
-//                snap.setTapeEmbedded(true);
-//            }
-//        }
-
-        if (snap.saveSnapshot(filename)) {
-            System.out.println(
-                ResourceBundle.getBundle("machine/Bundle").getString("SNAPSHOT_SAVED"));
-        } else {
-            JOptionPane.showMessageDialog(jscr.getParent(), snap.getErrorString(),
-                ResourceBundle.getBundle("machine/Bundle").getString(
-                "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
     public void saveImage(File filename) {
         BufferedOutputStream fOut;
@@ -2060,6 +1835,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     dataInProgress[addrBuf++] = paper;
                 }
             }
+            
             dirtyByte[fromAddr] = false;
             screenDirty = true;
             fromTstates += 4;
@@ -2256,9 +2032,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         memory.extractIF2Rom();
     }
 
-    public void setSzxTapeMode(int mode) {
-        szxTapeMode = mode;
-    }
+//    public void setSzxTapeMode(int mode) {
+//        szxTapeMode = mode;
+//    }
     
     // Accessors for IF1 methods
     
@@ -2288,7 +2064,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //                    System.out.println(String.format("Loading time: %d ms.", stop - start));
                     }
                 }.start();
-
+            }
+            
+            if (state == TapeState.STOP && paused
+                    && settings.getTapeSettings().isAccelerateLoading()) {
                 startEmulation();
             }
         }

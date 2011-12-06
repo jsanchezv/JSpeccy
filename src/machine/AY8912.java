@@ -129,15 +129,25 @@ public final class AY8912 {
     }
     
     public void setAY8912State(AY8912State state) {
+        
+        int[] ay = state.getRegAY();
+        for (int reg = 0; reg < 16; reg++) {
+            addressLatch = reg;
+            writeRegister(ay[reg]);
+        }
+        
         addressLatch = state.getAddressLatch();
-        System.arraycopy(state.getRegAY(), 0, regAY, 0, regAY.length);
     }
     
     public void setSpectrumModel(MachineTypes model) {
-        spectrumModel = model;
-        if (samplesPerFrame != 0)
-            step = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
-        reset();
+        if (spectrumModel != model) {
+            spectrumModel = model;
+            reset();
+        }
+
+        if (samplesPerFrame != 0) {
+            step = (double) spectrumModel.tstatesFrame / (double) samplesPerFrame;
+        }
     }
 
     public void setMaxAmplitude(int amplitude) {

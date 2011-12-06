@@ -104,7 +104,11 @@ public final class Memory {
     }
     
     public void setMemoryState(MemoryState state) {
-
+        
+        if (IF2RomPaged) {
+            extractIF2Rom();
+        }
+        
         switch (spectrumModel) {
             case SPECTRUM16K:
                 loadPage(5, state.getPageRam(5));
