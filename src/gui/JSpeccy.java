@@ -398,7 +398,6 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
-//        microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
         spectrum.getInterface1().setMdrvIcon(mdrvLabel);
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -415,6 +414,22 @@ public class JSpeccy extends javax.swing.JFrame {
                 bundle.getString("SCR_TYPE"), "scr");
         romExtension  = new FileNameExtensionFilter(
                 bundle.getString("ROM_TYPE"), "rom");
+        
+        if (settings.getSpectrumSettings().isAutoSnapshot()) {
+            File autoload = new File("JSpeccy.szx");
+            if (autoload.exists()) {
+                snapSZX = new SnapshotSZX();
+                try {
+                    spectrum.setSpectrumState(snapSZX.load(autoload));
+                } catch (SnapshotException ex) {
+                    JOptionPane.showMessageDialog(this,
+                            ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                            ResourceBundle.getBundle("gui/Bundle").getString(
+                            "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+        
         spectrum.start();
     }
     
@@ -438,7 +453,21 @@ public class JSpeccy extends javax.swing.JFrame {
         
         if( ret == JOptionPane.YES_OPTION ) {
             spectrum.stopEmulation();
-            saveRecentFiles();
+            if (settings.getSpectrumSettings().isAutoSnapshot()) {
+                snapSZX = new SnapshotSZX();
+                snapSZX.setTapeEmbedded(false);
+                snapSZX.setTapeLinked(false);
+                try {
+                    snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
+                } catch (SnapshotException ex) {
+                    JOptionPane.showMessageDialog(this,
+                    ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                    ResourceBundle.getBundle("gui/Bundle").getString(
+                    "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            
+            saveRecentFiles(); // debe ser lo último que se hace antes de salir!!!
             dispose();
             System.exit(0);
         }
@@ -604,7 +633,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pokeButton = new javax.swing.JButton();
         closePokeDialogPanel = new javax.swing.JPanel();
         filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
-        closeButton = new javax.swing.JButton();
+        closePokeDialogButton = new javax.swing.JButton();
         filler7 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
         statusPanel = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
@@ -927,13 +956,13 @@ public class JSpeccy extends javax.swing.JFrame {
         closePokeDialogPanel.setLayout(new javax.swing.BoxLayout(closePokeDialogPanel, javax.swing.BoxLayout.LINE_AXIS));
         closePokeDialogPanel.add(filler6);
 
-        closeButton.setText(bundle.getString("JSpeccy.closeButton.text")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
+        closePokeDialogButton.setText(bundle.getString("JSpeccy.closePokeDialogButton.text")); // NOI18N
+        closePokeDialogButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
+                closePokeDialogButtonActionPerformed(evt);
             }
         });
-        closePokeDialogPanel.add(closeButton);
+        closePokeDialogPanel.add(closePokeDialogButton);
         closePokeDialogPanel.add(filler7);
 
         pokeDialog.getContentPane().add(closePokeDialogPanel);
@@ -1980,8 +2009,10 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean hifiSound = settings.getSpectrumSettings().isHifiSound();
         boolean muted = settings.getSpectrumSettings().isMutedSound();
         boolean doubleSize = settings.getSpectrumSettings().isDoubleSize();
+        
         settingsDialog.showDialog(this, bundle.getString("SETTINGS_DIALOG_TITLE"));
         spectrum.loadConfigVars();
+        
         if (muted != settings.getSpectrumSettings().isMutedSound()) {
             spectrum.muteSound(!muted);
             silenceMachineMenu.setSelected(!muted);
@@ -2507,9 +2538,9 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.invalidateScreen(false);
     }//GEN-LAST:event_pokeButtonActionPerformed
 
-    private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
+    private void closePokeDialogButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closePokeDialogButtonActionPerformed
         pokeDialog.setVisible(false);
-    }//GEN-LAST:event_closeButtonActionPerformed
+    }//GEN-LAST:event_closePokeDialogButtonActionPerformed
 
     private void loadMemorySnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadMemorySnapshotActionPerformed
         if (memorySnapshot == null)
@@ -2544,8 +2575,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSpinner addressSpinner;
     private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JMenuItem clearTapeMediaMenu;
-    private javax.swing.JButton closeButton;
     private javax.swing.JButton closeKeyboardHelper;
+    private javax.swing.JButton closePokeDialogButton;
     private javax.swing.JPanel closePokeDialogPanel;
     private javax.swing.JMenuItem createTapeMediaMenu;
     private javax.swing.JRadioButtonMenuItem cursorJoystick;

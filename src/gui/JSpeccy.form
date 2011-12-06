@@ -521,14 +521,14 @@
                 <AuxValue name="classDetails" type="java.lang.String" value="Box.Filler.HorizontalGlue"/>
               </AuxValues>
             </Component>
-            <Component class="javax.swing.JButton" name="closeButton">
+            <Component class="javax.swing.JButton" name="closePokeDialogButton">
               <Properties>
                 <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-                  <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.closeButton.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
+                  <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.closePokeDialogButton.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                 </Property>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="closeButtonActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="closePokeDialogButtonActionPerformed"/>
               </Events>
             </Component>
             <Component class="javax.swing.Box$Filler" name="filler7">

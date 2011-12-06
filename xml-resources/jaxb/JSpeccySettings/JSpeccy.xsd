@@ -31,6 +31,7 @@
             <xsd:element name="multifaceEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="mf128on48K" default="false" type="xsd:boolean"/>
             <xsd:element name="hifiSound" type="xsd:boolean" default="false"/>
+            <xsd:element name="autoSnapshot" default="false" type="xsd:boolean"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">

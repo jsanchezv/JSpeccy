@@ -110,6 +110,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         connectedIF1.setSelected(settings.getInterface1Settings().isConnectedIF1());
         numDrivesSpinner.setValue(settings.getInterface1Settings().getMicrodriveUnits());
         cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());
+        autoSaveOnExit.setSelected(settings.getSpectrumSettings().isAutoSnapshot());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -157,6 +158,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         doubleSize = new javax.swing.JCheckBox();
         highSpeedPanel = new javax.swing.JPanel();
         speed = new javax.swing.JSlider();
+        autoSavePanel = new javax.swing.JPanel();
+        autoSaveOnExit = new javax.swing.JCheckBox();
         soundPanelTab = new javax.swing.JPanel();
         audioPanel = new javax.swing.JPanel();
         soundMuted = new javax.swing.JCheckBox();
@@ -285,6 +288,18 @@ public class SettingsDialog extends javax.swing.JPanel {
         highSpeedPanel.add(speed);
 
         hardwarePanelTab.add(highSpeedPanel);
+
+        autoSavePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.autoSavePanel.border.text"))); // NOI18N
+
+        autoSaveOnExit.setText(bundle.getString("SettingsDialog.autoSaveOnExit.text")); // NOI18N
+        autoSaveOnExit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autoSaveOnExitActionPerformed(evt);
+            }
+        });
+        autoSavePanel.add(autoSaveOnExit);
+
+        hardwarePanelTab.add(autoSavePanel);
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.hardwarePanel.TabTitle"), hardwarePanelTab); // NOI18N
 
@@ -747,6 +762,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getTapeSettings().setFlashLoad(flashLoad.isSelected());
     }//GEN-LAST:event_flashLoadActionPerformed
 
+    private void autoSaveOnExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoSaveOnExitActionPerformed
+        settings.getSpectrumSettings().setAutoSnapshot(autoSaveOnExit.isSelected());
+    }//GEN-LAST:event_autoSaveOnExitActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -761,6 +780,8 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
     private javax.swing.JPanel audioPanel;
+    private javax.swing.JCheckBox autoSaveOnExit;
+    private javax.swing.JPanel autoSavePanel;
     private javax.swing.JPanel buttonPanel;
     private javax.swing.JSpinner cartridgeSizeSpinner;
     private javax.swing.JButton closeButton;
