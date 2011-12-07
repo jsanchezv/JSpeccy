@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import machine.TimeCounters;
 
 /**
  *
@@ -27,17 +28,20 @@ public class Microdrive {
     private static final int PREAMBLE_SIZE = 12;
     private static final int HEADER_SIZE = 15;
     private static final int DATA_SIZE = 528; // 15 + 512 + 1 
-    private static final int SECTOR_SIZE = HEADER_SIZE + DATA_SIZE; // 543
+    private static final int SECTOR_SIZE = 892; // HEADER_SIZE + DATA_SIZE; // 543
     
     private int cartridgePos;
     private byte cartridge[];
+    private byte gapSync[];
     private int status;
+    private int position;
     private int gapSyncCounter;
     private int nBytes;
     private int lastValue;
     private boolean isCartridge;
     private boolean modified;
     private boolean writeProtected;
+    private boolean wrGapPending;
     
     private int preamLen;
     private int preambleData[] = new int[12];
@@ -49,18 +53,24 @@ public class Microdrive {
     private FileInputStream mdrFileIn;
     private FileOutputStream mdrFileOut;
     private File filename;
+    private TimeCounters clock;
+    private long timeStart, startGap;
     
-    public Microdrive() {
+    public Microdrive(TimeCounters clock) {
+        this.clock = clock;
         // A microdrive cartridge can have 254 sectors of 543 bytes length
         isCartridge = false;
         preambleData[10] = preambleData[11] = 0xff;
         status = 0xfe; // WR-Prot
         writeProtected = true;
+        position = 0;
     }
     
     public void selected() {
+        timeStart = clock.getAbsTstates();
+        System.out.println("Drive selected at " + timeStart);
         cartridgePos = 0;
-        status = 0xff & ~GAP;
+//        status = 0xff & gapSync[position];
         nBytes = HEADER_SIZE;
         preamLen = 0;
         gapSyncCounter = 0;
@@ -69,56 +79,61 @@ public class Microdrive {
     
     public int readStatus() {
         
-        int sector = cartridgePos / SECTOR_SIZE;
-        int offset = cartridgePos % SECTOR_SIZE;
-        
-//        System.out.println(String.format(
-//            "readStatus: pos (sec/off): %d (%d/%d), status: %02x, gapSync: %d, nBytes: %d",
-//            cartridgePos, sector, offset, status, gapSyncCounter, nBytes));
-        
-        
-        if (offset == 0 && !headerSync[sector]) {
-            if (gapSyncCounter++ == GAP_SYNC_SIZE) {
-                gapSyncCounter = 0;
-                status ^= GAP;
-            }
+//        int sector = cartridgePos / SECTOR_SIZE;
+//        int offset = cartridgePos % SECTOR_SIZE;
+//        
+////        System.out.println(String.format(
+////            "readStatus: pos (sec/off): %d (%d/%d), status: %02x, gapSync: %d, nBytes: %d",
+////            cartridgePos, sector, offset, status, gapSyncCounter, nBytes));
+//        
+//        
+//        if (offset == 0 && !headerSync[sector]) {
+//            if (gapSyncCounter++ == GAP_SYNC_SIZE) {
+//                gapSyncCounter = 0;
+//                status ^= GAP;
+//            }
+//
+//            if (writeProtected) {
+//                status &= WRITE_PROT_MASK;
+//            }
+//
+//            return status;
+//        }
+//        
+//        if (offset == 15 && !dataSync[sector]) {
+//            if (writeProtected)
+//                status &= WRITE_PROT_MASK;
+//            
+//            return status;
+//        }
+//        
+//        if (gapSyncCounter++ == GAP_SYNC_SIZE) {
+//            gapSyncCounter = 0;
+//            status ^= GAP_SYNC_MASK;
+//        }
+//        
+//        switch (offset) {
+//            case 0: // Sector start
+//                nBytes = HEADER_SIZE;
+//                preamble = headerSync;
+//                break;
+//            case 15: // DATA start
+//                nBytes = DATA_SIZE;
+//                preamble = dataSync;
+//                break;
+//            default:
+//                status = 0xff & ~GAP;
+//                gapSyncCounter = 0;
+//                cartridgePos += nBytes;
+//                if (cartridgePos == cartridge.length - 1)
+//                    cartridgePos = 0;
+//        }
 
-            if (writeProtected) {
-                status &= WRITE_PROT_MASK;
-            }
-
-            return status;
-        }
+//        clock.tstates += 168;
+        status = gapSync[position++] & 0xff;
+        if (position > gapSync.length - 1)
+            position = 0;
         
-        if (offset == 15 && !dataSync[sector]) {
-            if (writeProtected)
-                status &= WRITE_PROT_MASK;
-            
-            return status;
-        }
-        
-        if (gapSyncCounter++ == GAP_SYNC_SIZE) {
-            gapSyncCounter = 0;
-            status ^= GAP_SYNC_MASK;
-        }
-        
-        switch (offset) {
-            case 0: // Sector start
-                nBytes = HEADER_SIZE;
-                preamble = headerSync;
-                break;
-            case 15: // DATA start
-                nBytes = DATA_SIZE;
-                preamble = dataSync;
-                break;
-            default:
-                status = 0xff & ~GAP;
-                gapSyncCounter = 0;
-                cartridgePos += nBytes;
-                if (cartridgePos == cartridge.length - 1)
-                    cartridgePos = 0;
-        }
-                
         if (writeProtected)
             status &= WRITE_PROT_MASK;
         
@@ -132,81 +147,117 @@ public class Microdrive {
 //            cartridgePos, cartridgePos / SECTOR_SIZE, cartridgePos % SECTOR_SIZE,
 //            status, nBytes));
         
-        int out = 0xff;
+//        int out = 0xff;
+//        
+//        if (nBytes > 0) {
+//            out &= cartridge[cartridgePos++];
+//            if (cartridgePos == cartridge.length - 1)
+//                cartridgePos = 0;
+//        
+//            nBytes--;
+//        } else {
+//            out &= lastValue;
+//        }
         
-        if (nBytes > 0) {
-            out &= cartridge[cartridgePos++];
-            if (cartridgePos == cartridge.length - 1)
-                cartridgePos = 0;
+        int out = cartridge[position++] & 0xff;
+        if (position > gapSync.length - 1)
+            position = 0;
         
-            nBytes--;
-        } else {
-            out &= lastValue;
-        }
-        
+        clock.tstates += 168;
         return out;
     }
     
     public void writeControl(int value) {
         
-//        int sector = cartridgePos / SECTOR_SIZE;
-        int offset = cartridgePos % SECTOR_SIZE;
-        
-//        System.out.println(String.format(
-//            "writeControl: pos (sec/off): %d (%d/%d), nBytes: %d, value: %02x, erase: %b, r/w: %b",
-//            cartridgePos, sector, offset, nBytes, value, (value & 0x08) != 0,
-//                (value & 0x04) != 0));
-        
-        switch (offset) {
-            case 0: // Sector start
-                nBytes = HEADER_SIZE;
-                preamble = headerSync;
-                break;
-            case 15: // DATA start
-                nBytes = DATA_SIZE;
-                preamble = dataSync;
-                break;
-            default:
-                cartridgePos += nBytes;
-                if (cartridgePos == cartridge.length - 1)
-                    cartridgePos = 0;
+        if ((value & 0x0C) == 0x04) { // ERASE: OFF, WRITE: ON
+            startGap = clock.getAbsTstates();
+            wrGapPending = true;
+            return;
         }
         
-        preamLen = 0;  
-        gapSyncCounter = 0;
-        // Si writeControl acaba con status GAP en lugar de SYNC, el formateo
-        // desde el MF128 no funciona....
-        status = 0xff & ~SYNC;
+        // ERASE: OFF, WRITE: OFF or ERASE: ON, WRITE: ON
+        if (((value & 0x0C) == 0 || (value & 0x0C) == 0x0C) && wrGapPending) {
+            long gapLen = (clock.getAbsTstates() - startGap) / 168L;
+            while (gapLen-- > 0) {
+                cartridge[position] = 0x00;
+                gapSync[position++] = (byte)0xFB;
+                if (position > gapSync.length - 1)
+                    position = 0;
+            }
+            wrGapPending = false;
+        }
+        
+//        clock.tstates += 168;
+//        int sector = cartridgePos / SECTOR_SIZE;
+//        int offset = cartridgePos % SECTOR_SIZE;
+//        
+////        System.out.println(String.format(
+////            "writeControl: time: %d, pos (sec/off): %d (%d/%d), nBytes: %d, value: %02x, erase: %b, r/w: %b",
+////            clock.getAbsTstates() - lastStatus, cartridgePos, sector, offset, nBytes, value, (value & 0x08) != 0,
+////                (value & 0x04) != 0));
+////        lastStatus = clock.getAbsTstates();
+//        
+//        switch (offset) {
+//            case 0: // Sector start
+//                nBytes = HEADER_SIZE;
+//                preamble = headerSync;
+//                break;
+//            case 15: // DATA start
+//                nBytes = DATA_SIZE;
+//                preamble = dataSync;
+//                break;
+//            default:
+//                cartridgePos += nBytes;
+//                if (cartridgePos == cartridge.length - 1)
+//                    cartridgePos = 0;
+//        }
+//        
+//        preamLen = 0;  
+//        gapSyncCounter = 0;
+//        // Si writeControl acaba con status GAP en lugar de SYNC, el formateo
+//        // desde el MF128 no funciona....
+//        status = 0xff & ~SYNC;
     }
     
     public void writeData(int value) {
         
-        int sector = cartridgePos / SECTOR_SIZE;
+        if ((value & 0xff) == 0xff)
+            gapSync[position] = (byte)0xFD; // ~SYNC
+        else
+            gapSync[position] = (byte)0xFF;
         
-//        System.out.println(String.format(
-//            "writeData: pos (sec/off): %d (%d/%d), nBytes: %d, pream: %d, value: %02x",
-//            cartridgePos, sector, cartridgePos % SECTOR_SIZE, nBytes, preamLen, value));
-
-        if (preamLen < PREAMBLE_SIZE) {
-            if (preambleData[preamLen++] != value) {
-                preamble[sector] = false;
-                System.out.println(String.format(
-                    "writeData: ERROR en preámbulo. preamLen: %d", preamLen));
-            } else {
-                preamble[sector] = true;
-            }
-            return;
-        }
-
-        if (nBytes > 0) {
-            cartridge[cartridgePos++] = (byte)value;
-            if (cartridgePos == cartridge.length - 1)
-                cartridgePos = 0;
-            
-            nBytes--;
-            modified = true;
-        }
-        lastValue = value;
+        cartridge[position++] = (byte) value;
+        if (position > gapSync.length - 1)
+            position = 0;
+        
+        
+//        int sector = cartridgePos / SECTOR_SIZE;
+//        
+////        System.out.println(String.format(
+////            "writeData: pos (sec/off): %d (%d/%d), nBytes: %d, pream: %d, value: %02x",
+////            cartridgePos, sector, cartridgePos % SECTOR_SIZE, nBytes, preamLen, value));
+//
+        clock.tstates += 168;
+//        if (preamLen < PREAMBLE_SIZE) {
+//            if (preambleData[preamLen++] != value) {
+//                preamble[sector] = false;
+//                System.out.println(String.format(
+//                    "writeData: ERROR en preámbulo. preamLen: %d", preamLen));
+//            } else {
+//                preamble[sector] = true;
+//            }
+//            return;
+//        }
+//
+//        if (nBytes > 0) {
+//            cartridge[cartridgePos++] = (byte)value;
+//            if (cartridgePos == cartridge.length - 1)
+//                cartridgePos = 0;
+//            
+//            nBytes--;
+//            modified = true;
+//        }
+//        lastValue = value;
     }
     
     public boolean isWriteProtected() {
@@ -240,10 +291,12 @@ public class Microdrive {
         if (isCartridge)
             return false;
         
-        cartridge = new byte[numSectors * SECTOR_SIZE + 1];
+        cartridge = new byte[numSectors * SECTOR_SIZE ];
+        gapSync = new byte[numSectors * SECTOR_SIZE];
         
-        Arrays.fill(cartridge, (byte)0xff);
-        cartridge[cartridge.length - 1] = 0x00; // No WR protected
+        Arrays.fill(cartridge, (byte)0x00);
+        Arrays.fill(gapSync, (byte) 0xFB); // GAP / ~SYNC
+//        cartridge[cartridge.length - 1] = 0x00; // No WR protected
         
         Arrays.fill(headerSync, false);
         Arrays.fill(dataSync, false);

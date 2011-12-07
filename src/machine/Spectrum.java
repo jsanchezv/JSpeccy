@@ -85,7 +85,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         muted = specSettings.isMutedSound();
         enabledSound = false;
         paused = true;
-        if1 = new Interface1(settings.getInterface1Settings());
+        if1 = new Interface1(clock, settings.getInterface1Settings());
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
         joystick = keyboard.getJoystick();

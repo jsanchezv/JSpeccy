@@ -39,17 +39,20 @@ public class Interface1 {
     private byte numMicrodrives;
     private Microdrive microdrive[];
     private boolean commsClk;
+    private TimeCounters clock;
     private Interface1Type settings;
     private int lan;
     
-    public Interface1(Interface1Type if1settings) {
+    public Interface1(TimeCounters clock, Interface1Type if1settings) {
+        this.clock = clock;
         settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
         numMicrodrives = settings.getMicrodriveUnits();
+        
         microdrive = new Microdrive[8];
         for (int mdr = 0; mdr < 8; mdr++)
-            microdrive[mdr] = new Microdrive();
+            microdrive[mdr] = new Microdrive(clock);
         
         commsClk = false;
         lan = 0;
