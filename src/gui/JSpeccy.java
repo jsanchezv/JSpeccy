@@ -430,7 +430,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
             }
         }
-        
+
         spectrum.start();
     }
     
@@ -2705,6 +2705,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         @Override
         public void stateChanged(final TapeState state) {
+//            System.out.println("JSpeccy::TapeChangedListener: state = " + state);
             boolean canRec = false;
             switch (state) {
                 case INSERT:

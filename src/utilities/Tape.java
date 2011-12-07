@@ -751,12 +751,13 @@ public class Tape {
             return false;
         }
 
-        tapePlaying = true;
         statePlay = State.START;
+        
         tapePos = offsetBlocks[idxHeader];
         timeout = 0;
         cpu.setExecDone(true);
         fireTapeStateChanged(TapeState.PLAY);
+        tapePlaying = true;
         return true;
     }
 
@@ -765,13 +766,13 @@ public class Tape {
             return;
         }
 
-        statePlay = State.STOP;        
+        statePlay = State.STOP;
 
         cpu.setExecDone(false);
-        tapePlaying = false;
         timeout = 0;
         fireTapeStateChanged(TapeState.STOP);
         fireTapeBlockChanged(idxHeader);
+        tapePlaying = false;
     }
 
     public boolean rewind() {
@@ -825,10 +826,7 @@ public class Tape {
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
-                cpu.setExecDone(false);
-                tapePlaying = false;
-                fireTapeStateChanged(TapeState.STOP);
-                fireTapeBlockChanged(idxHeader);
+                stop();
                 break;
             case START:
                 fireTapeBlockChanged(idxHeader);
@@ -1040,10 +1038,7 @@ public class Tape {
             repeat = false;
             switch (statePlay) {
                 case STOP:
-                    cpu.setExecDone(false);
-                    tapePlaying = false;
-                    fireTapeStateChanged(TapeState.STOP);
-                    fireTapeBlockChanged(idxHeader);
+                    stop();
                     break;
                 case START:
                     tapePos = offsetBlocks[idxHeader];
@@ -1490,10 +1485,7 @@ public class Tape {
         switch (statePlay) {
             case STOP:
                 idxHeader++;
-                cpu.setExecDone(false);
-                tapePlaying = false;
-                fireTapeStateChanged(TapeState.STOP);
-                fireTapeBlockChanged(idxHeader);
+                stop();
                 break;
             case START:
                 if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01

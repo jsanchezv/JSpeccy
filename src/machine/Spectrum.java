@@ -350,7 +350,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    public void startEmulation() {
+    public synchronized void startEmulation() {
+        if (!paused)
+            return;
+        
         paused = false;
         audio.reset();
         enableSound();
@@ -360,6 +363,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     public synchronized void stopEmulation() {
+        if (paused)
+            return;
+        
         taskFrame.cancel();
         paused = true;
         disableSound();
@@ -620,6 +626,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
     private synchronized void acceleratedLoading() {
 
+        stopEmulation();
+
         firstLine = lastLine = 0;
         leftCol = 31;
         rightCol = 0;
@@ -665,6 +673,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 }
             }
         } while (tape.isTapePlaying());
+        
+        updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
+        updateBorder(spectrumModel.lastBorderUpdate);
+        drawFrame();
+        
+        startEmulation();
     }
     
     @Override
@@ -1250,6 +1264,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         if (tape.isTapePlaying()) {
             tape.notifyTimeout();
+
             earBit = tape.getEarBit();
 
             if (enabledSound && specSettings.isLoadingNoise()) {
@@ -1261,7 +1276,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 }
             }
         }
-
     }
 
     @Override
@@ -1999,7 +2013,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    public boolean startRecording() {
+    public synchronized boolean startRecording() {
         if (!tape.isTapeReady()) {
             return false;
         }
@@ -2011,7 +2025,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         return true;
     }
 
-    public boolean stopRecording() {
+    public synchronized boolean stopRecording() {
         if (!tape.isTapeRecording())
             return false;
         
@@ -2032,10 +2046,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     public void ejectIF2Rom() {
         memory.extractIF2Rom();
     }
-
-//    public void setSzxTapeMode(int mode) {
-//        szxTapeMode = mode;
-//    }
     
     // Accessors for IF1 methods
     
@@ -2051,25 +2061,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         @Override
         public void stateChanged(final TapeState state) {
-            if (state == TapeState.PLAY
-                && settings.getTapeSettings().isAccelerateLoading()) {
-                stopEmulation();
-
-                new Thread() {
-
-                    @Override
-                    public void run() {
-//                    long start = System.currentTimeMillis();
-                        acceleratedLoading();
-//                    long stop = System.currentTimeMillis();
-//                    System.out.println(String.format("Loading time: %d ms.", stop - start));
-                    }
-                }.start();
-            }
+//            System.out.println("Spectrum::TapeChangedListener: state = " + state + "");
             
-            if (state == TapeState.STOP && paused
-                    && settings.getTapeSettings().isAccelerateLoading()) {
-                startEmulation();
+            switch (state) {
+                case PLAY:
+                    if (!paused && settings.getTapeSettings().isAccelerateLoading()) {
+
+                        new Thread() {
+
+                            @Override
+                            public void run() {
+                                acceleratedLoading();
+                            }
+                        }.start();
+                    }
+                    break;
             }
         }
     }
