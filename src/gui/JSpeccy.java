@@ -421,6 +421,15 @@ public class JSpeccy extends javax.swing.JFrame {
                 snapSZX = new SnapshotSZX();
                 try {
                     spectrum.setSpectrumState(snapSZX.load(autoload));
+                    if (snapSZX.isTapeLinked()) {
+                        File tapeLink = new File(snapSZX.getTapeName());
+
+                        if (tapeLink.exists()) {
+                            tape.eject();
+                            tape.insert(tapeLink);
+                            tape.setSelectedBlock(snapSZX.getTapeBlock());
+                        }
+                    }
                     updateGuiSelections();
                 } catch (SnapshotException ex) {
                     JOptionPane.showMessageDialog(this,
@@ -456,8 +465,12 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.stopEmulation();
             if (settings.getSpectrumSettings().isAutoSnapshot()) {
                 snapSZX = new SnapshotSZX();
-                snapSZX.setTapeEmbedded(false);
-                snapSZX.setTapeLinked(false);
+                if (tape.getTapeFilename() != null) {
+                    snapSZX.setTapeLinked(true);
+                    snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
+                    snapSZX.setTapeBlock(tape.getSelectedBlock());
+                }
+
                 try {
                     snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
                 } catch (SnapshotException ex) {
@@ -633,9 +646,7 @@ public class JSpeccy extends javax.swing.JFrame {
         filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 16), new java.awt.Dimension(20, 16), new java.awt.Dimension(20, 16));
         pokeButton = new javax.swing.JButton();
         closePokeDialogPanel = new javax.swing.JPanel();
-        filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         closePokeDialogButton = new javax.swing.JButton();
-        filler7 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25), new java.awt.Dimension(25, 25));
         statusPanel = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
@@ -954,9 +965,6 @@ public class JSpeccy extends javax.swing.JFrame {
 
         pokeDialog.getContentPane().add(addrValuePanel);
 
-        closePokeDialogPanel.setLayout(new javax.swing.BoxLayout(closePokeDialogPanel, javax.swing.BoxLayout.LINE_AXIS));
-        closePokeDialogPanel.add(filler6);
-
         closePokeDialogButton.setText(bundle.getString("JSpeccy.closePokeDialogButton.text")); // NOI18N
         closePokeDialogButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -964,7 +972,6 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         });
         closePokeDialogPanel.add(closePokeDialogButton);
-        closePokeDialogPanel.add(filler7);
 
         pokeDialog.getContentPane().add(closePokeDialogPanel);
 
@@ -2592,8 +2599,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.Box.Filler filler3;
     private javax.swing.Box.Filler filler4;
     private javax.swing.Box.Filler filler5;
-    private javax.swing.Box.Filler filler6;
-    private javax.swing.Box.Filler filler7;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
     private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;

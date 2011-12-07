@@ -243,6 +243,7 @@ public class Tape {
         }
 
         idxHeader = block;
+        fireTapeBlockChanged(block);
     }
 
     private String getCleanMsg(int offset, int len) {
@@ -700,6 +701,7 @@ public class Tape {
         
         tapeInserted = false;
         tapeBuffer = null;
+        filename = null;
         nOffsetBlocks = 0;
         tapeTableModel.fireTableDataChanged();
         fireTapeStateChanged(TapeState.EJECT);

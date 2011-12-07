@@ -292,6 +292,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         autoSavePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.autoSavePanel.border.text"))); // NOI18N
 
         autoSaveOnExit.setText(bundle.getString("SettingsDialog.autoSaveOnExit.text")); // NOI18N
+        autoSaveOnExit.setToolTipText(bundle.getString("SettingsDialog.autoSaveOnExit.tooltip.text")); // NOI18N
         autoSaveOnExit.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 autoSaveOnExitActionPerformed(evt);
@@ -597,6 +598,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         mdrPanel.add(numDrivesLabel);
 
         numDrivesSpinner.setModel(new javax.swing.SpinnerNumberModel(Byte.valueOf((byte)8), Byte.valueOf((byte)1), Byte.valueOf((byte)8), Byte.valueOf((byte)1)));
+        numDrivesSpinner.setPreferredSize(new java.awt.Dimension(40, 20));
         numDrivesSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 numDrivesSpinnerStateChanged(evt);

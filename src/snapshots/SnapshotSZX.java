@@ -222,7 +222,7 @@ public class SnapshotSZX {
      * @param tapeBlock the tapeBlock to set
      */
     public void setTapeBlock(int tapeBlock) {
-        this.tapeBlock = tapeBlock;
+        this.tapeBlock = tapeBlock & 0xffff;
     }
 
     /**
@@ -628,8 +628,7 @@ public class SnapshotSZX {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
                         szxLen -= tape.length;
-//                        System.out.println(String.format("Tape Block #%d",
-//                            (tape[0] & 0xff) + (tape[1] & 0xff) * 256));
+                        tapeBlock = ((tape[1] << 8) & 0xff00) | (tape[0] & 0xff);
 
                         byte qword[] = new byte[4];
                         readed = fIn.read(qword);
@@ -1192,7 +1191,6 @@ public class SnapshotSZX {
                 fOut.write(blockLen >>> 8);
                 fOut.write(blockLen >>> 16);
                 fOut.write(blockLen >>> 24);
-
                 fOut.write(tapeBlock);
                 fOut.write(tapeBlock >>> 8); // wCurrentBlockNo
                 fOut.write(0x00);
