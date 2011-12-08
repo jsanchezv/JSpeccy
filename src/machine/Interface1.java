@@ -43,8 +43,8 @@ public class Interface1 {
     private Interface1Type settings;
     private int lan;
     
-    public Interface1(TimeCounters clock, Interface1Type if1settings) {
-        this.clock = clock;
+    public Interface1(TimeCounters clk, Interface1Type if1settings) {
+        clock = clk;
         settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
@@ -64,7 +64,7 @@ public class Interface1 {
 //                mdrSelected));
             return microdrive[mdrSelected].readStatus();
         } else {
-            return 0xfe; // WR-Prot active
+            return 0xf4; // WR-Prot active
         }
     }
     
@@ -124,7 +124,7 @@ public class Interface1 {
 //                System.out.println("All MDR are stopped");
             }
             
-            if (mdrFlipFlop != 0) {
+            if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
                 microdrive[mdrSelected].selected();
 //                System.out.println(String.format("MDR %d [%d] selected",
 //                    mdrFlipFlop, mdrSelected));
@@ -136,7 +136,7 @@ public class Interface1 {
                 updateMdrvIcon();
         }
         
-        if (mdrFlipFlop != 0)
+        if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge())
             microdrive[mdrSelected].writeControl(value);
         
         commsClk = (value & CTRL_OUT_COMMSCLK) != 0;
@@ -146,8 +146,6 @@ public class Interface1 {
     
     public void writeDataPort(int value) {
         if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
-//            System.out.println(String.format("readDataPort: Unit %d selected",
-//                mdrSelected));
             microdrive[mdrSelected].writeData(value);
         }
     }
@@ -305,14 +303,16 @@ public class Interface1 {
         if (drive <  0 || drive > 7)
             return -1;
         
-        return microdrive[drive].getPreambleRem();
+//        return microdrive[drive].getPreambleRem();
+        return -1;
     }
     
     public void setPreambleRem(int drive, int offset) {
         if (drive <  0 || drive > 7)
             return;
         
-        microdrive[drive].setPreambleRem(offset);
+        return;
+//        microdrive[drive].setPreambleRem(offset);
     }
     
     private javax.swing.JLabel mdrvIcon;
