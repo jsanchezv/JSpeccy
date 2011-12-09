@@ -45,7 +45,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private long framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
     private static final byte delayTstates[] =
-        new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
+        new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
     private Timer timerFrame;
     private SpectrumTimer taskFrame;

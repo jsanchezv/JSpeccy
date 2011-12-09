@@ -892,7 +892,7 @@
                 <Component class="javax.swing.JSpinner" name="cartridgeSizeSpinner">
                   <Properties>
                     <Property name="model" type="javax.swing.SpinnerModel" editor="org.netbeans.modules.form.editors2.SpinnerModelEditor">
-                      <SpinnerModel initial="180" maximum="254" minimum="10" numberType="java.lang.Integer" stepSize="1" type="number"/>
+                      <SpinnerModel initial="180" maximum="253" minimum="10" numberType="java.lang.Integer" stepSize="1" type="number"/>
                     </Property>
                   </Properties>
                   <Events>

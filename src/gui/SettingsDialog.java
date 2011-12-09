@@ -610,7 +610,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         numSectorsLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numSectorsLabel.text")); // NOI18N
         mdrPanel.add(numSectorsLabel);
 
-        cartridgeSizeSpinner.setModel(new javax.swing.SpinnerNumberModel(180, 10, 254, 1));
+        cartridgeSizeSpinner.setModel(new javax.swing.SpinnerNumberModel(180, 10, 253, 1));
         cartridgeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 cartridgeSizeSpinnerStateChanged(evt);

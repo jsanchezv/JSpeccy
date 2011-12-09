@@ -90,53 +90,45 @@ public class Interface1 {
             }
             
             mdrFlipFlop &= 0xff;
+            switch (mdrFlipFlop) {
+                case 1:
+                    mdrSelected = 0;
+                    break;
+                case 2:
+                    mdrSelected = 1;
+                    break;
+                case 4:
+                    mdrSelected = 2;
+                    break;
+                case 8:
+                    mdrSelected = 3;
+                    break;
+                case 16:
+                    mdrSelected = 4;
+                    break;
+                case 32:
+                    mdrSelected = 5;
+                    break;
+                case 64:
+                    mdrSelected = 6;
+                    break;
+                case 128:
+                    mdrSelected = 7;
+            }
+            
             if (mdrFlipFlop != 0) {
-                switch (mdrFlipFlop) {
-                    case 1:
-                        mdrSelected = 0;
-                        break;
-                    case 2:
-                        mdrSelected = 1;
-                        break;
-                    case 4:
-                        mdrSelected = 2;
-                        break;
-                    case 8:
-                        mdrSelected = 3;
-                        break;
-                    case 16:
-                        mdrSelected = 4;
-                        break;
-                    case 32:
-                        mdrSelected = 5;
-                        break;
-                    case 64:
-                        mdrSelected = 6;
-                        break;
-                    case 128:
-                        mdrSelected = 7;
-                        break;
-                }
-            }
-            
-            if (mdrFlipFlop != 0 && mdrSelected > numMicrodrives - 1) {
-                mdrFlipFlop = 0;
-//                System.out.println("All MDR are stopped");
-            }
-            
-            if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
                 microdrive[mdrSelected].selected();
 //                System.out.println(String.format("MDR %d [%d] selected",
 //                    mdrFlipFlop, mdrSelected));
+//            } else {
+//                System.out.println("All MDR are stopped");
             }
             
-            boolean motorOn = mdrFlipFlop != 0;
-            
-            if (mdrvIcon.isEnabled() != motorOn)
+            if (mdrvIcon.isEnabled() != (mdrFlipFlop != 0))
                 updateMdrvIcon();
-        }
+        }   
         
-        if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge())
+        if (mdrFlipFlop != 0)
             microdrive[mdrSelected].writeControl(value);
         
         commsClk = (value & CTRL_OUT_COMMSCLK) != 0;
