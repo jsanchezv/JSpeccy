@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 6 de diciembre de 2011, 20:41
+    Created on : 9 de diciembre de 2011, 8:16
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -22,7 +22,7 @@
         <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
         <ns0:mf128on48K>false</ns0:mf128on48K>
         <ns0:hifiSound>false</ns0:hifiSound>
-        <ns0:autoSnapshot>false</ns0:autoSnapshot>
+        <ns0:hibernateMode>false</ns0:hibernateMode>
     </ns0:SpectrumSettings>
     <ns0:MemorySettings>
         <ns0:RomsDirectory></ns0:RomsDirectory>

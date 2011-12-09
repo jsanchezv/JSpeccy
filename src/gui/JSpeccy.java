@@ -280,71 +280,6 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         addKeyListener(spectrum.getKeyboard());
 
-        // Synchronize the file user settings with GUI settings
-        IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
-        }
-        
-        IF2MediaMenu.setEnabled(true);
-        insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
-        extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
-        
-        switch (settings.getSpectrumSettings().getDefaultModel()) {
-            case 0:
-                spec16kHardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
-                break;
-            case 2:
-                spec128kHardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
-                break;
-            case 3:
-                specPlus2Hardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
-                break;
-            case 4:
-                specPlus2AHardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
-                IF1MediaMenu.setEnabled(false);
-                mdrvLabel.setDisabledIcon(null);
-                IF2MediaMenu.setEnabled(false);
-                break;
-            case 5:
-                specPlus3Hardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
-                IF1MediaMenu.setEnabled(false);
-                mdrvLabel.setDisabledIcon(null);
-                IF2MediaMenu.setEnabled(false);
-                break;
-            default:
-                spec48kHardware.setSelected(true);
-                modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
-                modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
-        }
-
-        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
-            case 1:
-                kempstonJoystick.setSelected(true);
-                break;
-            case 2:
-                sinclair1Joystick.setSelected(true);
-                break;
-            case 3:
-                sinclair2Joystick.setSelected(true);
-                break;
-            case 4:
-                cursorJoystick.setSelected(true);
-                break;
-            default:
-                noneJoystick.setSelected(true);
-        }
-
         if (settings.getSpectrumSettings().isMutedSound()) {
             silenceMachineMenu.setSelected(true);
             silenceSoundToggleButton.setSelected(true);
@@ -415,7 +350,7 @@ public class JSpeccy extends javax.swing.JFrame {
         romExtension  = new FileNameExtensionFilter(
                 bundle.getString("ROM_TYPE"), "rom");
         
-        if (settings.getSpectrumSettings().isAutoSnapshot()) {
+        if (settings.getSpectrumSettings().isHibernateMode()) {
             File autoload = new File("JSpeccy.szx");
             if (autoload.exists()) {
                 snapSZX = new SnapshotSZX();
@@ -430,16 +365,17 @@ public class JSpeccy extends javax.swing.JFrame {
                             tape.setSelectedBlock(snapSZX.getTapeBlock());
                         }
                     }
-                    updateGuiSelections();
                 } catch (SnapshotException ex) {
                     JOptionPane.showMessageDialog(this,
-                        ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString("HIBERNATE_IMAGE_ERROR"),
                         ResourceBundle.getBundle("gui/Bundle").getString(
-                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                        "HIBERNATE_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
 
+        updateGuiSelections();
+        
         spectrum.start();
     }
     
@@ -463,7 +399,7 @@ public class JSpeccy extends javax.swing.JFrame {
         
         if( ret == JOptionPane.YES_OPTION ) {
             spectrum.stopEmulation();
-            if (settings.getSpectrumSettings().isAutoSnapshot()) {
+            if (settings.getSpectrumSettings().isHibernateMode()) {
                 snapSZX = new SnapshotSZX();
                 if (tape.getTapeFilename() != null) {
                     snapSZX.setTapeLinked(true);
@@ -475,7 +411,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
                 } catch (SnapshotException ex) {
                     JOptionPane.showMessageDialog(this,
-                        ResourceBundle.getBundle("gui/Bundle").getString(ex.getMessage()),
+                        ResourceBundle.getBundle("gui/Bundle").getString("HIBERNATE_SAVE_ERROR"),
                         ResourceBundle.getBundle("gui/Bundle").getString(
                         "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }

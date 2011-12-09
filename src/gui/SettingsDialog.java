@@ -110,7 +110,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         connectedIF1.setSelected(settings.getInterface1Settings().isConnectedIF1());
         numDrivesSpinner.setValue(settings.getInterface1Settings().getMicrodriveUnits());
         cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());
-        autoSaveOnExit.setSelected(settings.getSpectrumSettings().isAutoSnapshot());
+        autoSaveOnExit.setSelected(settings.getSpectrumSettings().isHibernateMode());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -765,7 +765,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_flashLoadActionPerformed
 
     private void autoSaveOnExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoSaveOnExitActionPerformed
-        settings.getSpectrumSettings().setAutoSnapshot(autoSaveOnExit.isSelected());
+        settings.getSpectrumSettings().setHibernateMode(autoSaveOnExit.isSelected());
     }//GEN-LAST:event_autoSaveOnExitActionPerformed
 
 
