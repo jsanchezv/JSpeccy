@@ -20,17 +20,19 @@ import machine.TimeCounters;
  */
 public class Microdrive {
     
-    private static final int GAP = 0x04;
-    private static final int SYNC = 0x02;
-    private static final int WRITE_PROT_MASK = 0xfe;
-    private static final int SECTOR_SIZE = 792;  //empirically calculated (sigh!)
-    private static final int timeTransfer = 168; // 12 usec/bit * 8  at 3.5 Mhz
+    private static final byte GAP = 0x04;
+    private static final byte SYNC = 0x02;
+    private static final byte WRITE_PROT_MASK = (byte)0xfe;
+    private static final int SECTOR_SIZE = 792;  // empirically calculated (sigh!)
+    private static final int timeTransfer = 168; // 12 usec/bit * 8 at 3.5 Mhz
     private static final byte CLOCK_GAP = 0x01;
     private static final byte CLOCK_DATA = 0x00;
-    private static final byte DATA_FILLER = 0x55;
+    private static final byte DATA_FILLER = 0x5A;
     
     private byte cartridge[];
     private byte clockGap[];
+    private byte lastData;
+    private byte lastGap;
     private int status;
     private int cartridgePos;
     private boolean isCartridge;
@@ -43,10 +45,7 @@ public class Microdrive {
     private File filename;
     private TimeCounters clock;
     private long startGap;
-    
-    private enum CartridgeState { GAP, PREAMBLE, SYNC, DATA };
-    private CartridgeState tapeState;
-    
+
     public Microdrive(TimeCounters clock) {
         
         this.clock = clock;
@@ -59,15 +58,23 @@ public class Microdrive {
 
         if (!isCartridge)
             return;
-        
+
         wrGapPending = false;
-        tapeState = CartridgeState.GAP;
-        while(clockGap[cartridgePos] != CLOCK_GAP) {
+
+        // Find a GAP to start from a known position
+        int pos = cartridgePos - 1;
+        if (pos < 0)
+            pos = clockGap.length - 1;
+
+        while(clockGap[cartridgePos] != CLOCK_GAP && cartridgePos != pos) {
             if (++cartridgePos >= clockGap.length)
                 cartridgePos = 0;
         }
-        
-        status = 0xf5;
+
+        lastGap = clockGap[cartridgePos];
+        if (++cartridgePos >= clockGap.length)
+            cartridgePos = 0;
+
         if (writeProtected)
             status &= WRITE_PROT_MASK;
     }
@@ -76,84 +83,72 @@ public class Microdrive {
 
         if (!isCartridge)
             return 0xf5;
-        
+
         if (wrGapPending)
             return 0xfb;
 
+        status = 0xfd; // GAP, NO SYNC
+
+        // Is a GAP?
+        if ((lastGap | clockGap[cartridgePos]) == 0) {
+            status &= ~GAP;
+        }
+
+        // When isn't a GAP, can be needed to assert SYNC
+        if ((status & GAP) == 0 && (lastData & cartridge[cartridgePos]) == 0)
+            status |= SYNC;
+
+        lastData = cartridge[cartridgePos];
+        lastGap = clockGap[cartridgePos];
+
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
-
-        if (clockGap[cartridgePos] != CLOCK_DATA) {
-            status &= ~SYNC;
-            status |= GAP;
-            tapeState = CartridgeState.GAP;
-        }
-        
-        switch (tapeState) {
-            case GAP:
-                if (clockGap[cartridgePos] == CLOCK_DATA) {
-                    status &= ~GAP;
-                    status |= SYNC;
-                    tapeState = CartridgeState.PREAMBLE;
-                }
-                break;
-            case PREAMBLE:
-                if ((cartridge[cartridgePos] & 0xff) == 0xff) {
-                    tapeState = CartridgeState.SYNC;
-                }
-                break;
-            case SYNC:
-                if ((cartridge[cartridgePos] & 0xff) != 0xff) {
-                    status &= ~SYNC;
-                    tapeState = CartridgeState.DATA;
-                }
-                break;
-            case DATA:
-                status |= SYNC;
-        }
-        
 
         if (writeProtected)
             status &= WRITE_PROT_MASK;
 
-//        System.out.println(String.format("readStatus at pos: %d, status: %02x, cartridge: %02x, clockGAP: %02x, tapeState: %s",
-//                cartridgePos, status, cartridge[cartridgePos] & 0xff, clockGap[cartridgePos]& 0xff, tapeState.toString()));
-        
-        return status;
+//        System.out.println(String.format("readStatus at pos: %d, status: %02x, cartridge: %02x, clockGAP: %02x",
+//                cartridgePos, status, cartridge[cartridgePos] & 0xff, clockGap[cartridgePos]& 0xff));
+
+        return status & 0xff;
     }
     
     public int readData() {
 
-//        System.out.println(String.format("readData at pos: %d, status: %02x, cartridge: %02x, clockGAP: %02x, tapeState: %s",
-//                cartridgePos, status, cartridge[cartridgePos] & 0xff, clockGap[position]& 0xff, tapeState.toString()));
+//        System.out.println(String.format("readData at pos: %d, status: %02x, cartridge: %02x, clockGAP: %02x",
+//                cartridgePos, status, cartridge[cartridgePos] & 0xff, clockGap[cartridgePos]& 0xff));
 
         if (!isCartridge)
             return 0xff;
-        
+
+        lastData = cartridge[cartridgePos];
+        lastGap = clockGap[cartridgePos];
+
         int out = cartridge[cartridgePos] & 0xff;
-        
+
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
-        
+
         clock.addTstates(timeTransfer);
+
         return out;
     }
     
     public void writeControl(int value) {
-        
+
         if (!isCartridge)
             return;
-        
+
 //        System.out.println(String.format("writeControl (%02x) at : pos: %d, status: %02x, cartridge: %02x, wrGapPending: %b",
 //                value & 0xff, cartridgePos, clockGap[cartridgePos]  & 0xff, cartridge[cartridgePos] & 0xff, wrGapPending));
-        
+
         int op = value & 0x0C;
         if (op == 0x04 && !wrGapPending) { // ERASE: OFF, WRITE: ON
             startGap = clock.getAbsTstates();
             wrGapPending = true;
             return;
         }
-        
+
         // ERASE: OFF, WRITE: OFF or ERASE: ON, WRITE: ON
         if ((op == 0x00 || op == 0x0C) && wrGapPending) {
             long gapLen = (clock.getAbsTstates() - startGap) / timeTransfer;
@@ -173,7 +168,7 @@ public class Microdrive {
             return;
 //        System.out.println(String.format("writeData (%02x) at: pos: %d, status: %02x, cartridge: %02x, wrGapPending: %b",
 //                value & 0xff, cartridgePos, clockGap[cartridgePos] & 0xff, cartridge[cartridgePos] & 0xff, wrGapPending));
-        
+
         clockGap[cartridgePos] = CLOCK_DATA;
         cartridge[cartridgePos] = (byte) value;
         if (++cartridgePos >= clockGap.length)
@@ -183,18 +178,18 @@ public class Microdrive {
     }
     
     public boolean isWriteProtected() {
-        
+
         if (!isCartridge)
             return true;
-        
+
         return writeProtected;
     }
     
     public void setWriteProtected(boolean flag) {
-        
+
         if (!isCartridge)
             return;
-        
+
         writeProtected = flag;
         modified = true;
     }
@@ -208,27 +203,26 @@ public class Microdrive {
     }
     
     public final boolean insertNew(int numSectors) {
-        
+
         if (isCartridge)
             return false;
-        
+
         cartridge = new byte[numSectors * SECTOR_SIZE];
         clockGap = new byte[numSectors * SECTOR_SIZE];
-        
+
         Arrays.fill(cartridge, DATA_FILLER);
         Arrays.fill(clockGap, CLOCK_GAP);
-        
-        tapeState = CartridgeState.GAP;
+
         isCartridge = true;
         writeProtected = false;
         modified = true;
         filename = null;
-        
+
         return true;
     }
     
     public final boolean insertFromFile(File fileName) {
-        
+
         if (isCartridge)
             return false;
         
