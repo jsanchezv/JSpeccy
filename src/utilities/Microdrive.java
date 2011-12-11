@@ -19,15 +19,19 @@ import machine.TimeCounters;
  * @author jsanchez
  */
 public class Microdrive {
-    
+
+    private static final int SECTOR_SIZE = 792;  // empirically calculated (sigh!)
+    private static final int timeTransfer = 168; // 12 usec/bit * 8 at 3.5 Mhz
+
     private static final byte GAP = 0x04;
     private static final byte SYNC = 0x02;
     private static final byte WRITE_PROT_MASK = (byte)0xfe;
-    private static final int SECTOR_SIZE = 792;  // empirically calculated (sigh!)
-    private static final int timeTransfer = 168; // 12 usec/bit * 8 at 3.5 Mhz
     private static final byte CLOCK_GAP = 0x01;
     private static final byte CLOCK_DATA = 0x00;
     private static final byte DATA_FILLER = 0x5A;
+    private static final byte preamble[] = { 0x00, 0x00, 0x00, 0x00, 0x00,
+                                             0x00, 0x00, 0x00, 0x00, 0x00,
+                                             (byte)0xFF, (byte)0xFF };
     
     private byte cartridge[];
     private byte clockGap[];
@@ -143,13 +147,14 @@ public class Microdrive {
 //                value & 0xff, cartridgePos, clockGap[cartridgePos]  & 0xff, cartridge[cartridgePos] & 0xff, wrGapPending));
 
         int op = value & 0x0C;
-        if (op == 0x04 && !wrGapPending) { // ERASE: OFF, WRITE: ON
+        // ERASE: ON, WRITE: OFF
+        if (op == 0x04 && !wrGapPending) {
             startGap = clock.getAbsTstates();
             wrGapPending = true;
             return;
         }
 
-        // ERASE: OFF, WRITE: OFF or ERASE: ON, WRITE: ON
+        // ERASE: ON, WRITE: ON or ERASE: OFF, WRITE: OFF
         if ((op == 0x00 || op == 0x0C) && wrGapPending) {
             long gapLen = (clock.getAbsTstates() - startGap) / timeTransfer;
             while (gapLen-- > 0) {
@@ -243,39 +248,31 @@ public class Microdrive {
                         cartridge[pos] = DATA_FILLER;
                         clockGap[pos++] = CLOCK_GAP;
                     }
-                    
+
                     // Create header preamble (10 * 0x00 + 2 * 0xFF)
-                    for(int gap = 0; gap < 10; gap++) {
-                        cartridge[pos] = 0x00;
+                    for(int pream = 0; pream < preamble.length; pream++) {
+                        cartridge[pos] = preamble[pream];
                         clockGap[pos++] = CLOCK_DATA;
                     }
-                    cartridge[pos] = (byte)0xFF;
-                    clockGap[pos++] = CLOCK_DATA;
-                    cartridge[pos] = (byte)0xFF;
-                    clockGap[pos++] = CLOCK_DATA;
-                    
+
                     // Read header
                     for(int header = 0; header < 15; header++) {
                         cartridge[pos] = (byte)mdrFileIn.read();
                         clockGap[pos++] = CLOCK_DATA;
                     }
-                    
+
                     // Create data GAP
                     for(int gap = 0; gap < 10; gap++) {
                         cartridge[pos] = DATA_FILLER;
                         clockGap[pos++] = CLOCK_GAP;
                     }
-                    
+
                     // Create data preamble (10 * 0x00 + 2 * 0xFF)
-                    for(int gap = 0; gap < 10; gap++) {
-                        cartridge[pos] = 0x00;
+                    for(int pream = 0; pream < preamble.length; pream++) {
+                        cartridge[pos] = preamble[pream];
                         clockGap[pos++] = CLOCK_DATA;
                     }
-                    cartridge[pos] = (byte)0xFF;
-                    clockGap[pos++] = CLOCK_DATA;
-                    cartridge[pos] = (byte)0xFF;
-                    clockGap[pos++] = CLOCK_DATA;
-                    
+
                     // Read data
                     for(int data = 0; data < 528; data++) {
                         cartridge[pos] = (byte)mdrFileIn.read();
@@ -287,9 +284,6 @@ public class Microdrive {
             } else {
                 return false;
             }
-
-//            cartridge = new byte[mdrFileIn.available()];
-//            mdrFileIn.read(cartridge);
         } catch (IOException ex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
             return false;
@@ -304,7 +298,6 @@ public class Microdrive {
         
         isCartridge = true;
         modified = false;
-//        writeProtected = cartridge[cartridge.length - 1] != 0;
         filename = fileName;
         return true;
     }
