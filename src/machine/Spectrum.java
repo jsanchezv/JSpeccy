@@ -1000,6 +1000,34 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //        System.out.println(String.format("OutPort: %04X [%02X]", port, value));
 
         try {
+            // LEC have preference over any other device
+            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
+                    && (port & 0x02) == 0) {
+                if ((value & 0x80) != 0) {
+                    memory.pageLEC(value);
+                    contendedRamPage[1] = contendedIOPage[1] = false;
+                    z80.setBreakpoint(0x0066, false); // multiface
+                    z80.setBreakpoint(0x04D0, false); // saveTrap
+                    z80.setBreakpoint(0x0556, false); // loadTrap
+                    z80.setBreakpoint(0x0008, false); // IF1 Trap
+                    z80.setBreakpoint(0x0700, false); // IF1 Trap
+                    z80.setBreakpoint(0x1708, false); // IF1 Trap
+                    loadTrap = saveTrap = false;
+                } else {
+                    memory.unpageLEC();
+                    contendedRamPage[1] = contendedIOPage[1] = true;
+                    z80.setBreakpoint(0x0066, multiface);
+                    saveTrap = settings.getTapeSettings().isEnableSaveTraps();
+                    z80.setBreakpoint(0x04D0, saveTrap);
+                    loadTrap = settings.getTapeSettings().isEnableLoadTraps();
+                    z80.setBreakpoint(0x0556, loadTrap);
+                    z80.setBreakpoint(0x0008, connectedIF1);
+                    z80.setBreakpoint(0x0700, connectedIF1);
+                    z80.setBreakpoint(0x1708, connectedIF1);
+                }
+                return;
+            }
+
             // Interface I
             if (connectedIF1) {
                 // Port 0xE7 (Microdrive Data Port)

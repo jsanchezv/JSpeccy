@@ -46,12 +46,15 @@ public final class Memory {
     private byte[][] mfROM = new byte[3][PAGE_SIZE];
     // Ram del Multiface 8K para todos
     private byte[] mfRAM = new byte[PAGE_SIZE];
+    // Ram del la expansión de memoria LEC
+    private byte[][] ramLEC;
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage;
-    private int highPage, bankM, bankP;
+    private int highPage, bankM, bankP, pageLEC;
     private boolean IF1RomPaged, IF2RomPaged;
     private boolean model128k, pagingLocked, plus3RamMode;
     private boolean multifacePaged, multifaceLocked;
+    private boolean lecPaged;
     private MachineTypes spectrumModel;
     private JSpeccySettingsType settings;
     private Random random;
@@ -588,6 +591,7 @@ public final class Memory {
         IF1RomPaged = false;
         multifaceLocked = true;
         pagingLocked = plus3RamMode = false;
+        lecPaged = false;
 
         if (spectrumModel != model) {
             spectrumModel = model;
@@ -882,6 +886,66 @@ public final class Memory {
 
     public boolean isIF1RomPaged() {
         return IF1RomPaged;
+    }
+    
+    public void pageLEC(int page) {
+        if (ramLEC == null) {
+            ramLEC = new byte[60][PAGE_SIZE];
+        }
+
+        page &= 0x78;
+        
+        // The page is in b3b6b5b4
+        pageLEC = (((page & 0x70) >>> 4) | (page & 0x08)) & 0x0f;
+//        System.out.println("LEC page " + pageLEC);
+        pageLEC <<= 2;
+        if ( pageLEC < 60) {
+            readPages[0] = writePages[0] = ramLEC[pageLEC];
+            readPages[1] = writePages[1] = ramLEC[pageLEC + 1];
+            readPages[2] = writePages[2] = ramLEC[pageLEC + 2];
+            readPages[3] = writePages[3] = ramLEC[pageLEC + 3];
+        } else {
+            // Page 
+            readPages[0] = writePages[0] = Ram[4];  // Página 2
+            readPages[1] = writePages[1] = Ram[5];
+            readPages[2] = writePages[2] = Ram[0];  // Página 0
+            readPages[3] = writePages[3] = Ram[1];
+        }
+
+        if (spectrumModel == MachineTypes.SPECTRUM16K) {
+            readPages[4] = writePages[4] = Ram[4];  // Página 2
+            readPages[5] = writePages[5] = Ram[5];
+
+            readPages[6] = writePages[6] = Ram[0];  // Página 0
+            readPages[7] = writePages[7] = Ram[1];
+        }
+
+        lecPaged = true;
+    }
+    
+    // LEC have preference over any other device
+    public void unpageLEC() {
+        if (!lecPaged) {
+            return;
+        }
+
+        if (spectrumModel == MachineTypes.SPECTRUM16K) {
+            setMemoryMap16k();
+        } else {
+            setMemoryMap48k();
+        }
+
+        if (IF1RomPaged) {
+            IF1RomPaged = false;
+            pageIF1Rom();
+        }
+
+        if (multifacePaged) {
+            multifacePaged = false;
+            pageMultiface();
+        }
+
+        lecPaged = false;
     }
 
     public void loadRoms() {
