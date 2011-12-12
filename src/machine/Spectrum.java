@@ -64,7 +64,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private SpectrumType specSettings;
     /* Config vars */
     private boolean ULAPlusEnabled, issue2, multiface, mf128on48k,
-            saveTrap, loadTrap, flashload;
+            saveTrap, loadTrap, flashload, connectedLEC;
     private boolean connectedIF1;
     private Interface1 if1;
 
@@ -328,6 +328,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         z80.setBreakpoint(0x0008, connectedIF1);
         z80.setBreakpoint(0x0700, connectedIF1);
         z80.setBreakpoint(0x1708, connectedIF1);
+        
+        connectedLEC = settings.getSpectrumSettings().isLecEnabled();
     }
     
     /*
@@ -1001,18 +1003,21 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         try {
             // LEC have preference over any other device
-            if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K
-                    && (port & 0x02) == 0) {
+            if (connectedLEC && (port & 0x02) == 0 && spectrumModel == MachineTypes.SPECTRUM48K) {
                 if ((value & 0x80) != 0) {
+                    if (!memory.isLecPaged()) {
+                        contendedRamPage[1] = contendedIOPage[1] = false;
+                        z80.setBreakpoint(0x0066, false); // multiface
+                        z80.setBreakpoint(0x04D0, false); // saveTrap
+                        z80.setBreakpoint(0x0556, false); // loadTrap
+                        if (connectedIF1) {
+                            z80.setBreakpoint(0x0008, false); // IF1 Trap
+                            z80.setBreakpoint(0x0700, false); // IF1 Trap
+                            z80.setBreakpoint(0x1708, false); // IF1 Trap
+                        }
+                        loadTrap = saveTrap = false;
+                    }
                     memory.pageLEC(value);
-                    contendedRamPage[1] = contendedIOPage[1] = false;
-                    z80.setBreakpoint(0x0066, false); // multiface
-                    z80.setBreakpoint(0x04D0, false); // saveTrap
-                    z80.setBreakpoint(0x0556, false); // loadTrap
-                    z80.setBreakpoint(0x0008, false); // IF1 Trap
-                    z80.setBreakpoint(0x0700, false); // IF1 Trap
-                    z80.setBreakpoint(0x1708, false); // IF1 Trap
-                    loadTrap = saveTrap = false;
                 } else {
                     memory.unpageLEC();
                     contendedRamPage[1] = contendedIOPage[1] = true;
@@ -1021,9 +1026,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     z80.setBreakpoint(0x04D0, saveTrap);
                     loadTrap = settings.getTapeSettings().isEnableLoadTraps();
                     z80.setBreakpoint(0x0556, loadTrap);
-                    z80.setBreakpoint(0x0008, connectedIF1);
-                    z80.setBreakpoint(0x0700, connectedIF1);
-                    z80.setBreakpoint(0x1708, connectedIF1);
+                    if (connectedIF1) {
+                        z80.setBreakpoint(0x0008, connectedIF1);
+                        z80.setBreakpoint(0x0700, connectedIF1);
+                        z80.setBreakpoint(0x1708, connectedIF1);
+                    }
                 }
                 return;
             }

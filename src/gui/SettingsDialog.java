@@ -111,6 +111,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         numDrivesSpinner.setValue(settings.getInterface1Settings().getMicrodriveUnits());
         cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());
         autoSaveOnExit.setSelected(settings.getSpectrumSettings().isHibernateMode());
+        lecEnabled.setSelected(settings.getSpectrumSettings().isLecEnabled());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -212,6 +213,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16));
         numSectorsLabel = new javax.swing.JLabel();
         cartridgeSizeSpinner = new javax.swing.JSpinner();
+        lecPanelTab = new javax.swing.JPanel();
+        lecInfoPanel = new javax.swing.JPanel();
+        lecInfoLabel = new javax.swing.JLabel();
+        lecEnabledPanel = new javax.swing.JPanel();
+        lecEnabled = new javax.swing.JCheckBox();
 
         setMinimumSize(new java.awt.Dimension(50, 50));
         setPreferredSize(new java.awt.Dimension(440, 363));
@@ -622,6 +628,32 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("Interface I", IF1PanelTab);
 
+        lecPanelTab.setLayout(new javax.swing.BoxLayout(lecPanelTab, javax.swing.BoxLayout.PAGE_AXIS));
+
+        lecInfoPanel.setMaximumSize(new java.awt.Dimension(400, 640));
+        lecInfoPanel.setPreferredSize(new java.awt.Dimension(400, 100));
+        lecInfoPanel.setLayout(new javax.swing.BoxLayout(lecInfoPanel, javax.swing.BoxLayout.LINE_AXIS));
+
+        lecInfoLabel.setText(bundle.getString("SettingsDialog.lecPanelTab.lecInfoLabel.text")); // NOI18N
+        lecInfoLabel.setMaximumSize(new java.awt.Dimension(2147483647, 640));
+        lecInfoPanel.add(lecInfoLabel);
+
+        lecPanelTab.add(lecInfoPanel);
+
+        lecEnabledPanel.setMaximumSize(new java.awt.Dimension(32767, 160));
+
+        lecEnabled.setText(bundle.getString("SettingsDialog.lecPanelTab.lecEnabledLabel.text")); // NOI18N
+        lecEnabled.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                lecEnabledActionPerformed(evt);
+            }
+        });
+        lecEnabledPanel.add(lecEnabled);
+
+        lecPanelTab.add(lecEnabledPanel);
+
+        jTabbedPane1.addTab("LEC", lecPanelTab);
+
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -768,6 +800,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setHibernateMode(autoSaveOnExit.isSelected());
     }//GEN-LAST:event_autoSaveOnExitActionPerformed
 
+    private void lecEnabledActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lecEnabledActionPerformed
+        settings.getSpectrumSettings().setLecEnabled(lecEnabled.isSelected());
+    }//GEN-LAST:event_lecEnabledActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -814,6 +850,11 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel keyboard48kPanel;
     private javax.swing.ButtonGroup keyboardButtonGroup;
     private javax.swing.JPanel keyboardPanelTab;
+    private javax.swing.JCheckBox lecEnabled;
+    private javax.swing.JPanel lecEnabledPanel;
+    private javax.swing.JLabel lecInfoLabel;
+    private javax.swing.JPanel lecInfoPanel;
+    private javax.swing.JPanel lecPanelTab;
     private javax.swing.JPanel loadPanel;
     private javax.swing.JCheckBox loadingNoise;
     private javax.swing.JRadioButton lowSampling;

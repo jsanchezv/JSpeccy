@@ -12,7 +12,9 @@ public class MemoryState {
     private byte ram[][] = new byte[8][];
     private byte IF2Rom[];
     private byte mfRam[];
-    private boolean IF1RomPaged, IF2RomPaged;
+    private byte lecRam[][] = new byte[60][];
+    private int pageLEC;
+    private boolean IF1RomPaged, IF2RomPaged, lecPaged;
     private boolean multifacePaged, multifaceLocked, mf128on48k;
     
     public MemoryState () {
@@ -115,5 +117,44 @@ public class MemoryState {
     // método de conveniencia para los snapshots Z80
     public byte readByte(int page, int address) {
             return ram[page][address];
+    }
+
+    /**
+     * @return the pageLEC
+     */
+    public int getPageLEC() {
+        return pageLEC;
+    }
+
+    /**
+     * @param pageLEC the pageLEC to set
+     */
+    public void setPageLEC(int pageLEC) {
+        this.pageLEC = pageLEC;
+    }
+
+    /**
+     * @return the lecPaged
+     */
+    public boolean isLecPaged() {
+        return lecPaged;
+    }
+
+    /**
+     * @param lecPaged the lecPaged to set
+     */
+    public void setLecPaged(boolean lecPaged) {
+        this.lecPaged = lecPaged;
+    }
+    
+    public byte[] getLecPageRam(int page) {
+        if (lecRam[page] == null)
+            return null;
+        
+        return lecRam[page];
+    }
+    
+    public void setLecPageRam(int page, byte[] ram) {
+        lecRam[page] = ram;
     }
 }

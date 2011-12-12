@@ -47,7 +47,7 @@ public final class Memory {
     // Ram del Multiface 8K para todos
     private byte[] mfRAM = new byte[PAGE_SIZE];
     // Ram del la expansión de memoria LEC
-    private byte[][] ramLEC;
+    private byte[][] lecRam;
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage;
     private int highPage, bankM, bankP, pageLEC;
@@ -83,6 +83,13 @@ public final class Memory {
                 state.setPageRam(5, savePage(5));
                 state.setPageRam(2, savePage(2));
                 state.setPageRam(0, savePage(0));
+                if (lecRam != null) {
+                    state.setLecPaged(lecPaged);
+                    state.setPageLEC(pageLEC);
+                    for (int page = 0; page < 14; page++) {
+                        state.setLecPageRam(page, savePageLec(page));
+                    }
+                }
                 break;
             default:
                 for (int page = 0; page < 8; page++) {
@@ -101,8 +108,7 @@ public final class Memory {
         state.setMultifaceLocked(multifaceLocked);
         
         state.setIF1RomPaged(IF1RomPaged);
-            
-        
+
         return state;
     }
     
@@ -120,6 +126,15 @@ public final class Memory {
                 loadPage(5, state.getPageRam(5));
                 loadPage(2, state.getPageRam(2));
                 loadPage(0, state.getPageRam(0));
+                if (state.getLecPageRam(0) != null) {
+                    for (int page = 0; page < 14; page++) {
+                        loadPageLec(page, state.getLecPageRam(page));
+                    }
+                    
+                    if (state.isLecPaged()) {
+                        pageLEC(state.getPageLEC());
+                    }
+                }
                 break;
             default:
                 for (int page = 0; page < 8; page++) {
@@ -205,12 +220,54 @@ public final class Memory {
         System.arraycopy(rom, PAGE_SIZE, IF2Rom[1], 0, IF2Rom[1].length);
         IF2RomPaged = true;
     }
-    
+
     public byte[] saveIF2Rom() {
         byte[] buffer = new byte[PAGE_SIZE * 2];
         System.arraycopy(IF2Rom[0], 0, buffer, 0, IF2Rom[0].length);
         System.arraycopy(IF2Rom[1], 0, buffer, PAGE_SIZE, IF2Rom[1].length);
         return buffer;
+    }
+
+    public void loadPageLec(int page, byte[] ram) {
+        if (lecRam == null) {
+            lecRam = new byte[60][PAGE_SIZE];
+        }
+        
+        if (pageLEC != 15) {
+            page <<= 2;
+            System.arraycopy(ram, 0, lecRam[page], 0, lecRam[0].length);
+            System.arraycopy(ram, 0x2000, lecRam[page + 1], 0, lecRam[0].length);
+            System.arraycopy(ram, 0x4000, lecRam[page + 2], 0, lecRam[0].length);
+            System.arraycopy(ram, 0x6000, lecRam[page + 3], 0, lecRam[0].length);
+        } else {
+            System.arraycopy(ram, 0, Ram[4], 0, Ram[4].length);
+            System.arraycopy(ram, 0x2000, Ram[5], 0, Ram[5].length);
+            System.arraycopy(ram, 0x4000, Ram[0], 0, Ram[0].length);
+            System.arraycopy(ram, 0x6000, Ram[1], 0, Ram[1].length);
+        }
+    }
+    
+    public byte[] savePageLec(int page) {
+        if (lecRam == null) {
+            lecRam = new byte[60][PAGE_SIZE];
+        }
+        
+        byte[] ram = new byte[0x8000];
+        
+        if (pageLEC != 15) {
+            page <<= 2;
+            System.arraycopy(lecRam[page], 0, ram, 0, lecRam[0].length);
+            System.arraycopy(lecRam[page + 1], 0, ram, 0x2000, lecRam[0].length);
+            System.arraycopy(lecRam[page + 2], 0, ram, 0x4000, lecRam[0].length);
+            System.arraycopy(lecRam[page + 3], 0, ram, 0x6000, lecRam[0].length);
+        } else {
+            System.arraycopy(Ram[4], 0, ram, 0, lecRam[0].length);
+            System.arraycopy(Ram[5], 0, ram, 0x2000, lecRam[0].length);
+            System.arraycopy(Ram[0], 0, ram, 0x4000, lecRam[0].length);
+            System.arraycopy(Ram[1], 0, ram, 0x6000, lecRam[0].length);
+        }
+        
+        return ram;
     }
 
     private void setMemoryMap16k() {
@@ -889,35 +946,29 @@ public final class Memory {
     }
     
     public void pageLEC(int page) {
-        if (ramLEC == null) {
-            ramLEC = new byte[60][PAGE_SIZE];
+        if (lecRam == null) {
+            lecRam = new byte[60][PAGE_SIZE];
         }
 
         page &= 0x78;
         
         // The page is in b3b6b5b4
-        pageLEC = (((page & 0x70) >>> 4) | (page & 0x08)) & 0x0f;
+        page = (((page & 0x70) >>> 4) | (page & 0x08)) & 0x0f;
+        pageLEC = page;
 //        System.out.println("LEC page " + pageLEC);
-        pageLEC <<= 2;
-        if ( pageLEC < 60) {
-            readPages[0] = writePages[0] = ramLEC[pageLEC];
-            readPages[1] = writePages[1] = ramLEC[pageLEC + 1];
-            readPages[2] = writePages[2] = ramLEC[pageLEC + 2];
-            readPages[3] = writePages[3] = ramLEC[pageLEC + 3];
+        
+        
+        if (pageLEC < 15) {
+            pageLEC <<= 2;
+            readPages[0] = writePages[0] = lecRam[pageLEC];
+            readPages[1] = writePages[1] = lecRam[pageLEC + 1];
+            readPages[2] = writePages[2] = lecRam[pageLEC + 2];
+            readPages[3] = writePages[3] = lecRam[pageLEC + 3];
         } else {
-            // Page 
             readPages[0] = writePages[0] = Ram[4];  // Página 2
             readPages[1] = writePages[1] = Ram[5];
             readPages[2] = writePages[2] = Ram[0];  // Página 0
             readPages[3] = writePages[3] = Ram[1];
-        }
-
-        if (spectrumModel == MachineTypes.SPECTRUM16K) {
-            readPages[4] = writePages[4] = Ram[4];  // Página 2
-            readPages[5] = writePages[5] = Ram[5];
-
-            readPages[6] = writePages[6] = Ram[0];  // Página 0
-            readPages[7] = writePages[7] = Ram[1];
         }
 
         lecPaged = true;
@@ -929,11 +980,7 @@ public final class Memory {
             return;
         }
 
-        if (spectrumModel == MachineTypes.SPECTRUM16K) {
-            setMemoryMap16k();
-        } else {
-            setMemoryMap48k();
-        }
+        setMemoryMap48k();
 
         if (IF1RomPaged) {
             IF1RomPaged = false;
@@ -946,6 +993,20 @@ public final class Memory {
         }
 
         lecPaged = false;
+    }
+
+    /**
+     * @return the lecPaged
+     */
+    public boolean isLecPaged() {
+        return lecPaged;
+    }
+
+    /**
+     * @return the pageLEC selected
+     */
+    public int getPageLEC() {
+        return pageLEC;
     }
 
     public void loadRoms() {
