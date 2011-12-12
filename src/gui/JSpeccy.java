@@ -2491,6 +2491,7 @@ public class JSpeccy extends javax.swing.JFrame {
         
         spectrum.setSpectrumState(memorySnapshot);
         spectrum.invalidateScreen(true);
+        updateGuiSelections();
     }//GEN-LAST:event_loadMemorySnapshotActionPerformed
 
     private void saveMemorySnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveMemorySnapshotActionPerformed
