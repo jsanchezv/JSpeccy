@@ -85,7 +85,7 @@ public final class Memory {
                 state.setPageRam(0, savePage(0));
                 if (lecRam != null) {
                     state.setLecPaged(lecPaged);
-                    state.setPageLEC(pageLEC);
+                    state.setPageLec(pageLEC);
                     for (int page = 0; page < 14; page++) {
                         state.setLecPageRam(page, savePageLec(page));
                     }
@@ -129,10 +129,6 @@ public final class Memory {
                 if (state.getLecPageRam(0) != null) {
                     for (int page = 0; page < 14; page++) {
                         loadPageLec(page, state.getLecPageRam(page));
-                    }
-                    
-                    if (state.isLecPaged()) {
-                        pageLEC(state.getPageLEC());
                     }
                 }
                 break;
@@ -733,7 +729,7 @@ public final class Memory {
      *     puerto 0x3f para activar el bloqueo y con un OUT al puerto 0xbf para desactivar
      *     el bloqueo (es así como funciona la opción de ON/OFF del menú del MF). Esta
      *     escritura funciona siempre que esté paginada la ROM del MF, el bloqueo
-    ^     desactivado y, supuestamente, pero no lo he comprobado, que el PC esté
+     *     desactivado y, supuestamente, pero no lo he comprobado, que el PC esté
      *     en una dirección por debajo de 0x4000.
      *     El valor enviado al puerto parece que es indiferente. El amigo Woodster, del
      *     canal SPIN, me dijo el 12/09/2010:
@@ -859,7 +855,6 @@ public final class Memory {
 
     public void extractIF2Rom() {
         IF2RomPaged = false;
-        reset(spectrumModel);
     }
 
     public boolean isIF2RomPaged() {
@@ -945,7 +940,7 @@ public final class Memory {
         return IF1RomPaged;
     }
     
-    public void pageLEC(int page) {
+    public void pageLec(int page) {
         if (lecRam == null) {
             lecRam = new byte[60][PAGE_SIZE];
         }
@@ -956,7 +951,6 @@ public final class Memory {
         page = (((page & 0x70) >>> 4) | (page & 0x08)) & 0x0f;
         pageLEC = page;
 //        System.out.println("LEC page " + pageLEC);
-        
         
         if (pageLEC < 15) {
             pageLEC <<= 2;
@@ -975,7 +969,7 @@ public final class Memory {
     }
     
     // LEC have preference over any other device
-    public void unpageLEC() {
+    public void unpageLec() {
         if (!lecPaged) {
             return;
         }
@@ -1005,7 +999,7 @@ public final class Memory {
     /**
      * @return the pageLEC selected
      */
-    public int getPageLEC() {
+    public int getPageLec() {
         return pageLEC;
     }
 

@@ -18,7 +18,7 @@ public class SpectrumState {
     private AY8912State ay8912;
     private int tstates, portFE, earBit, port7ffd, port1ffd;
     private byte numMicrodrives = 1;
-    private boolean ULAPlusEnabled, ULAPlusActive, issue2, multiface;
+    private boolean ULAPlusEnabled, ULAPlusActive, issue2, multiface, connectedLec;
     private boolean connectedIF1, enabledAY, enabledAYon48k;
     private Joystick joystick;
     // Color palette
@@ -325,5 +325,19 @@ public class SpectrumState {
      */
     public void setEnabledAYon48k(boolean enabledAYon48k) {
         this.enabledAYon48k = enabledAYon48k;
+    }
+
+    /**
+     * @return the connectedLec
+     */
+    public boolean isConnectedLec() {
+        return connectedLec;
+    }
+
+    /**
+     * @param connectedLec the connectedLec to set
+     */
+    public void setConnectedLec(boolean connectedLec) {
+        this.connectedLec = connectedLec;
     }
 }

@@ -13,7 +13,7 @@ public class MemoryState {
     private byte IF2Rom[];
     private byte mfRam[];
     private byte lecRam[][] = new byte[60][];
-    private int pageLEC;
+    private int pageLec;
     private boolean IF1RomPaged, IF2RomPaged, lecPaged;
     private boolean multifacePaged, multifaceLocked, mf128on48k;
     
@@ -122,15 +122,15 @@ public class MemoryState {
     /**
      * @return the pageLEC
      */
-    public int getPageLEC() {
-        return pageLEC;
+    public int getPageLec() {
+        return pageLec;
     }
 
     /**
      * @param pageLEC the pageLEC to set
      */
-    public void setPageLEC(int pageLEC) {
-        this.pageLEC = pageLEC;
+    public void setPageLec(int pageLEC) {
+        this.pageLec = pageLEC;
     }
 
     /**
