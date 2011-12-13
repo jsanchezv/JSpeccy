@@ -235,22 +235,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             for (int register = 0; register < 64; register++) {
                 int color = palette[register];
                 ULAPlusPalette[register >>> 4][register & 0x0f] = color;
-
-                int blue = (color & 0x03) << 1;
-                if ((color & 0x01) == 0x01) {
-                    blue |= 0x01;
-                }
-                blue = (blue << 5) | (blue << 2) | (blue & 0x03);
-
-                int red = (color & 0x1C) >> 2;
-                red = (red << 5) | (red << 2) | (red & 0x03);
-
-                int green = (color & 0xE0) >> 5;
-                green = (green << 5) | (green << 2) | (green & 0x03);
-
-                ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
-                    (red << 16) | (green << 8) | blue;
+                precompULAplusColor(register, color);
             }
+        } else {
+            ULAPlusActive = false;
         }
 
         clock.setTstates(state.getTstates());
@@ -1217,24 +1205,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         ULAPlusActive = (value & 0x01) != 0;
                         invalidateScreen(true);
                     } else {
-                        ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
-                        int blue = (value & 0x03) << 1;
-                        if ((value & 0x01) == 0x01) {
-                            blue |= 0x01;
-                        }
-                        blue = (blue << 5) | (blue << 2) | (blue & 0x03);
-                        int red = (value & 0x1C) >> 2;
-                        red = (red << 5) | (red << 2) | (red & 0x03);
-                        int green = (value & 0xE0) >> 5;
-                        green = (green << 5) | (green << 2) | (green & 0x03);
-                        ULAPlusPrecompPalette[paletteGroup >>> 4][paletteGroup & 0x0f] =
-                            (red << 16) | (green << 8) | blue;
                         // Solo es necesario redibujar el borde si se modificó uno
                         // de los colores de paper de la paleta 0. (8-15)
+                        // Pero hay que hacerlo *antes* de modificar la paleta.
                         if (paletteGroup > 7 && paletteGroup < 16) {
                             invalidateScreen(true);
                             updateBorder(clock.tstates);
                         }
+                        ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
+                        precompULAplusColor(paletteGroup, value);
                     }
                 }
                 return;
@@ -2043,6 +2022,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
+    private void precompULAplusColor(int register, int color) {
+        int blue = (color & 0x03) << 1;
+        if ((color & 0x01) == 0x01) {
+            blue |= 0x01;
+        }
+        blue = (blue << 5) | (blue << 2) | (blue & 0x03);
+
+        int red = (color & 0x1C) >> 2;
+        red = (red << 5) | (red << 2) | (red & 0x03);
+
+        int green = (color & 0xE0) >> 5;
+        green = (green << 5) | (green << 2) | (green & 0x03);
+
+        ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
+            (red << 16) | (green << 8) | blue;
+        return;
+    }
+    
     public synchronized boolean startRecording() {
         if (!tape.isTapeReady()) {
             return false;
