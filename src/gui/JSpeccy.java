@@ -2133,12 +2133,13 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if (ret == JOptionPane.YES_OPTION && tape.isTapeReady()) {
             try {
-                if (currentFileTape.delete()) {
+                File tmp = tape.getTapeFilename();
+                if (tmp.delete()) {
                     tape.eject();
                 }
 
-                if (currentFileTape.createNewFile()) {
-                    if (!tape.insert(currentFileTape)) {
+                if (tmp.createNewFile()) {
+                    if (!tape.insert(tmp)) {
                         JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                             bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                     }
