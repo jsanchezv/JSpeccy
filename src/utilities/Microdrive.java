@@ -3,13 +3,14 @@
  * and open the template in the editor.
  * 
  * MDVT file format
- * MDVT (4 bytes)
+ *
+ * 'MDVT' (4 bytes)
  * HEADER LENGTH (4 bytes) [from VERSION to #GAP ENTRIES, first 8 bytes not included]
-
+ *
  * VERSION (2 bytes) [Major.Minor]
  * FLAGS (2 bytes) [COMPRESSED, CONVERTED, WR-PROT]
  * RAW SECTOR SIZE [2 bytes]
- * NUM SECTORS [4 byte]
+ * NUM SECTORS [2 byte]
  * GAP SIZE USED (1 byte) [in converted mdr files]
  * FIRST GAP STATE (1 byte)
  * # GAP ENTRIES (2 bytes) [CSW coded]
@@ -34,6 +35,7 @@ package utilities;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -42,6 +44,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.DeflaterOutputStream;
 import machine.TimeCounters;
 
 /**
@@ -365,26 +368,6 @@ public class Microdrive {
             return true;
         }
 
-        System.out.println(String.format("First clockGap: %02X", clockGap[0]));
-        byte value = clockGap[0];
-        int counter = 0;
-        int tot = 0;
-        for (int pos = 0; pos < clockGap.length; pos++) {
-            if (clockGap[pos] == value) {
-                counter++;
-            } else {
-                System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
-                value = clockGap[pos];
-                tot += counter;
-                counter = 1;
-            }
-        }
-        
-        System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
-        tot += counter;
-        
-        System.out.println(String.format("Length: %d, Total # bytes: %d",
-            clockGap.length, tot));
         try {
             fOut = new BufferedOutputStream(new FileOutputStream(filename));
         } catch (FileNotFoundException fex) {
@@ -415,9 +398,42 @@ public class Microdrive {
             // Num sectors (QWORD)
             fOut.write(numSectors);
             fOut.write(numSectors >>> 8);
-            fOut.write(numSectors >>> 16);
-            fOut.write(numSectors >>> 24);
-            fOut.write(cartridge);
+            
+            // GAP size used (in converted mdr files)
+            fOut.write(0x00);
+            
+            // First GAP value
+            fOut.write(clockGap[0]);
+            
+            // GAP array length (WORD)
+            ByteArrayOutputStream buffer = createCswBuffer();
+            int buflen = buffer.size();
+            fOut.write(buflen >>> 1);
+            fOut.write(buflen >>> 9);
+            
+            // Creator ID
+            String creatorID = "JSpeccy 0.89 (14/12/2011)";
+            // Creator Length
+            fOut.write(creatorID.length());
+            // Creator message
+            fOut.write(creatorID.getBytes("US-ASCII"));
+            
+            // Comments length
+            fOut.write(0x00);
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DeflaterOutputStream dos = new DeflaterOutputStream(baos);
+            // Data Tape
+            dos.write(cartridge);
+            
+            // Data GAP
+            dos.write(buffer.toByteArray());
+//            dos.write(clockGap);
+            
+            dos.close();
+            
+            baos.writeTo(fOut);
+            
             fOut.close();
         } catch (IOException ex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
@@ -443,5 +459,39 @@ public class Microdrive {
             offset = 0;
         
         cartridgePos = offset;
+    }
+    
+    private ByteArrayOutputStream createCswBuffer() {
+
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        System.out.println(String.format("First clockGap: %02X", clockGap[0]));
+        byte value = clockGap[0];
+        int counter = 0;
+        int tot = 0;
+        
+        for (int pos = 0; pos < clockGap.length; pos++) {
+            if (clockGap[pos] == value) {
+                counter++;
+            } else {
+                System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+                value = clockGap[pos];
+                buffer.write(counter);
+                buffer.write(counter >>> 8);
+                tot += counter;
+                counter = 1;
+            }
+        }
+        
+        System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+        buffer.write(counter);
+        buffer.write(counter >>> 8);
+        
+        tot += counter;
+        
+        System.out.println(String.format("Length: %d, Total # bytes: %d",
+            clockGap.length, tot));
+        
+        return buffer;
     }
 }
