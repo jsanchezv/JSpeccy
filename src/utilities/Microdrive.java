@@ -1,9 +1,39 @@
 /*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
+ * 
+ * MDVT file format
+ * MDVT (4 bytes)
+ * HEADER LENGTH (4 bytes) [from VERSION to #GAP ENTRIES, first 8 bytes not included]
+
+ * VERSION (2 bytes) [Major.Minor]
+ * FLAGS (2 bytes) [COMPRESSED, CONVERTED, WR-PROT]
+ * RAW SECTOR SIZE [2 bytes]
+ * NUM SECTORS [4 byte]
+ * GAP SIZE USED (1 byte) [in converted mdr files]
+ * FIRST GAP STATE (1 byte)
+ * # GAP ENTRIES (2 bytes) [CSW coded]
+ *
+ * CREATOR LENGTH (1 bytes)
+ * CREATOR FIELD (CREATOR LENGTH bytes)
+ *
+ * COMMENTS LENGTH (1 bytes)
+ * COMMENTS FIELD (COMMENTS LENGTH bytes)
+ *
+ * DATA (RAW SECTOR SIZE * NUM SECTORS bytes)
+ * GAP DATA (# GAP ENTRIES  * 2 bytes)
+ *
+ * FLAGS
+ * -------------
+ * WR_PROT 0x01
+ * COMPRESSED 0x02
+ * CONVERTED 0x04
+ * 
  */
 package utilities;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,13 +50,17 @@ import machine.TimeCounters;
  */
 public class Microdrive {
 
-    private static final int SECTOR_SIZE = 792;  // empirically calculated (sigh!)
-    private static final int timeTransfer = 168; // 12 usec/bit * 8 at 3.5 Mhz
+    private static final int RAW_SECTOR_SIZE = 792;  // empirically calculated (sigh!)
+    private static final int timeTransfer = 168;     // 12 usec/bit * 8 at 3.5 Mhz
+
+    private static final int MDVT_WR_PROT = 0x01;       // Cartridge protected flag
+    private static final int MDVT_MDR_CONVERTED = 0x02; // Cartridge converted from MDR
+    private static final int MDVT_COMPRESSED = 0x04;    // Cartridge data is compressed
 
     private static final byte GAP = 0x04;
     private static final byte SYNC = 0x02;
     private static final byte WRITE_PROT_MASK = (byte)0xfe;
-    private static final byte CLOCK_GAP = 0x01;
+    private static final byte CLOCK_GAP = 0x04;
     private static final byte CLOCK_DATA = 0x00;
     private static final byte DATA_FILLER = 0x5A;
     private static final byte preamble[] = { 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -36,16 +70,16 @@ public class Microdrive {
     private byte cartridge[];
     private byte clockGap[];
     private byte lastData;
-    private byte lastGap;
     private int status;
     private int cartridgePos;
+    private int numSectors;
     private boolean isCartridge;
     private boolean modified;
     private boolean writeProtected;
     private boolean wrGapPending;
     
-    private FileInputStream mdrFileIn;
-    private FileOutputStream mdrFileOut;
+    private BufferedInputStream fIn;
+    private BufferedOutputStream fOut;
     private File filename;
     private TimeCounters clock;
     private long startGap;
@@ -70,12 +104,11 @@ public class Microdrive {
         if (pos < 0)
             pos = clockGap.length - 1;
 
-        while(clockGap[cartridgePos] != CLOCK_GAP && cartridgePos != pos) {
+        while(clockGap[cartridgePos] == CLOCK_DATA && cartridgePos != pos) {
             if (++cartridgePos >= clockGap.length)
                 cartridgePos = 0;
         }
 
-        lastGap = clockGap[cartridgePos];
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
 
@@ -91,19 +124,18 @@ public class Microdrive {
         if (wrGapPending)
             return 0xfb;
 
-        status = 0xfd; // GAP, NO SYNC
+        status = 0xf9; // NO GAP, NO SYNC
 
         // Is a GAP?
-        if ((lastGap | clockGap[cartridgePos]) == 0) {
-            status &= ~GAP;
+        if (clockGap[cartridgePos] != CLOCK_DATA) {
+            status |= GAP;
         }
 
         // When isn't a GAP, can be needed to assert SYNC
-        if ((status & GAP) == 0 && (lastData & cartridge[cartridgePos]) == 0)
+        if (clockGap[cartridgePos] == CLOCK_DATA && (lastData & cartridge[cartridgePos]) == 0)
             status |= SYNC;
 
         lastData = cartridge[cartridgePos];
-        lastGap = clockGap[cartridgePos];
 
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
@@ -126,16 +158,13 @@ public class Microdrive {
             return 0xff;
 
         lastData = cartridge[cartridgePos];
-        lastGap = clockGap[cartridgePos];
-
-        int out = cartridge[cartridgePos] & 0xff;
 
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
 
         clock.addTstates(timeTransfer);
 
-        return out;
+        return lastData & 0xff;
     }
     
     public void writeControl(int value) {
@@ -176,6 +205,7 @@ public class Microdrive {
 
         clockGap[cartridgePos] = CLOCK_DATA;
         cartridge[cartridgePos] = (byte) value;
+        
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
 
@@ -212,8 +242,8 @@ public class Microdrive {
         if (isCartridge)
             return false;
 
-        cartridge = new byte[numSectors * SECTOR_SIZE];
-        clockGap = new byte[numSectors * SECTOR_SIZE];
+        cartridge = new byte[numSectors * RAW_SECTOR_SIZE];
+        clockGap = new byte[numSectors * RAW_SECTOR_SIZE];
 
         Arrays.fill(cartridge, DATA_FILLER);
         Arrays.fill(clockGap, CLOCK_GAP);
@@ -222,6 +252,7 @@ public class Microdrive {
         writeProtected = false;
         modified = true;
         filename = null;
+        this.numSectors = numSectors;
 
         return true;
     }
@@ -232,17 +263,17 @@ public class Microdrive {
             return false;
         
         try {
-            mdrFileIn = new FileInputStream(fileName);
+            fIn = new BufferedInputStream(new FileInputStream(fileName));
 
             if (fileName.getName().toLowerCase().endsWith(".mdr")) {
-                int mdrLen = mdrFileIn.available();
+                int mdrLen = fIn.available();
                 int nsectors = (mdrLen - 1) / 543;
                 int pos = 0;
                 
                 // 587 = 543 + 2 * 10 (GAP) + 2 * 12 (PREAMBLE)
                 clockGap = new byte[nsectors * 587];
                 cartridge = new byte[nsectors * 587];
-                while (--nsectors > 0) {
+                while (nsectors-- > 0) {
                     // Create header GAP
                     for(int gap = 0; gap < 10; gap++) {
                         cartridge[pos] = DATA_FILLER;
@@ -257,7 +288,7 @@ public class Microdrive {
 
                     // Read header
                     for(int header = 0; header < 15; header++) {
-                        cartridge[pos] = (byte)mdrFileIn.read();
+                        cartridge[pos] = (byte)fIn.read();
                         clockGap[pos++] = CLOCK_DATA;
                     }
 
@@ -275,12 +306,12 @@ public class Microdrive {
 
                     // Read data
                     for(int data = 0; data < 528; data++) {
-                        cartridge[pos] = (byte)mdrFileIn.read();
+                        cartridge[pos] = (byte)fIn.read();
                         clockGap[pos++] = CLOCK_DATA;
                     }
                 }
                 
-                writeProtected = mdrFileIn.read() != 0;
+                writeProtected = fIn.read() != 0;
             } else {
                 return false;
             }
@@ -289,7 +320,7 @@ public class Microdrive {
             return false;
         } finally {
             try {
-                mdrFileIn.close();
+                fIn.close();
             } catch (IOException ex) {
                 Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
@@ -334,16 +365,60 @@ public class Microdrive {
             return true;
         }
 
+        System.out.println(String.format("First clockGap: %02X", clockGap[0]));
+        byte value = clockGap[0];
+        int counter = 0;
+        int tot = 0;
+        for (int pos = 0; pos < clockGap.length; pos++) {
+            if (clockGap[pos] == value) {
+                counter++;
+            } else {
+                System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+                value = clockGap[pos];
+                tot += counter;
+                counter = 1;
+            }
+        }
+        
+        System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+        tot += counter;
+        
+        System.out.println(String.format("Length: %d, Total # bytes: %d",
+            clockGap.length, tot));
         try {
-            mdrFileOut = new FileOutputStream(filename);
+            fOut = new BufferedOutputStream(new FileOutputStream(filename));
         } catch (FileNotFoundException fex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, fex);
             return false;
         }
 
         try {
-            mdrFileOut.write(cartridge);
-            mdrFileOut.close();
+        // SZX Header
+            String blockID = "MDVT";
+            fOut.write(blockID.getBytes("US-ASCII"));
+            fOut.write(14);   // MDVT 1.0 header length
+            fOut.write(0x00);
+            fOut.write(0x00);
+            fOut.write(0x00);
+
+            fOut.write(0x01); // MDV major version
+            fOut.write(0x00); // MDV minor version
+            // Flags (WORD)
+            int flags = MDVT_COMPRESSED;
+            if (writeProtected)
+                flags |= MDVT_WR_PROT;
+            fOut.write(flags);
+            fOut.write(flags >>> 8);
+            // Raw sector size (WORD)
+            fOut.write(RAW_SECTOR_SIZE);
+            fOut.write(RAW_SECTOR_SIZE >>> 8);
+            // Num sectors (QWORD)
+            fOut.write(numSectors);
+            fOut.write(numSectors >>> 8);
+            fOut.write(numSectors >>> 16);
+            fOut.write(numSectors >>> 24);
+            fOut.write(cartridge);
+            fOut.close();
         } catch (IOException ex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
             return false;
