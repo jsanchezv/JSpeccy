@@ -230,7 +230,11 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         if (status == JFileChooser.APPROVE_OPTION) {
             currentDir = cartridgeDlg.getCurrentDirectory();
 //            File filename = new File(cartridgeDlg.getSelectedFile().getAbsolutePath());
-                if1.insertFile(row, cartridgeDlg.getSelectedFile());
+                if (!if1.insertFile(row, cartridgeDlg.getSelectedFile())) {
+                    ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                    JOptionPane.showMessageDialog(this, bundle.getString("LOAD_CARTRIDGE_ERROR"),
+                            bundle.getString("LOAD_CARTRIDGE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                }
                 tableModel.fireTableRowsUpdated(row, row);
         }
     }//GEN-LAST:event_openCartridgeActionPerformed
@@ -331,7 +335,8 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                         newCartridge.setEnabled(false);
                         openCartridge.setEnabled(false);
                         ejectCartridge.setEnabled(true);
-                        saveCartridge.setEnabled(if1.getFilename(row) != null);
+                        saveCartridge.setEnabled(if1.getFilename(row) != null &&
+                                !if1.getFilename(row).toLowerCase().endsWith(".mdr"));
                         saveAsCartridge.setEnabled(true);
                     } else {
                         newCartridge.setEnabled(true);
