@@ -37,7 +37,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private MicrodriveTableModel tableModel;
     private JFileChooser cartridgeDlg;
     private File currentDir;
-    FileNameExtensionFilter mdrExtension;
+    FileNameExtensionFilter mdrExtension, mdvExtension;
 
     /** Creates new form MicrodriveDialog */
     public MicrodriveDialog(Interface1 handler) {
@@ -61,7 +61,9 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         mdrExtension = new FileNameExtensionFilter(
-                bundle.getString("CARTRIDGE_TYPE"), "mdr");
+                bundle.getString("CARTRIDGE_MDRV_TYPE"), "mdr", "mdv");
+        mdvExtension = new FileNameExtensionFilter(
+                bundle.getString("CARTRIDGE_MDV_TYPE"), "mdv");
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -216,13 +218,14 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            cartridgeDlg.addChoosableFileFilter(mdrExtension);
-            cartridgeDlg.setFileFilter(mdrExtension);
             currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
         }
         
+        cartridgeDlg.resetChoosableFileFilters();
+        cartridgeDlg.addChoosableFileFilter(mdrExtension);
+        cartridgeDlg.setFileFilter(mdrExtension);
         int status = cartridgeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
             currentDir = cartridgeDlg.getCurrentDirectory();
@@ -263,13 +266,14 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            cartridgeDlg.addChoosableFileFilter(mdrExtension);
-            cartridgeDlg.setFileFilter(mdrExtension);
             currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
         }
         
+        cartridgeDlg.resetChoosableFileFilters();
+        cartridgeDlg.addChoosableFileFilter(mdvExtension);
+        cartridgeDlg.setFileFilter(mdvExtension);
         int status = cartridgeDlg.showSaveDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
             currentDir = cartridgeDlg.getCurrentDirectory();
