@@ -35,6 +35,7 @@ package utilities;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,6 +46,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 import machine.TimeCounters;
 
 /**
@@ -54,11 +56,17 @@ import machine.TimeCounters;
 public class Microdrive {
 
     private static final int RAW_SECTOR_SIZE = 792;  // empirically calculated (sigh!)
+    private static final int MDR_SECTOR_SIZE = 587;  // 543 + 2 * PREAMBLE + 2 * 10 (GAPs)
+    private static final int MDR_HEADER_SIZE = 15;
+    private static final int MDR_RECORD_SIZE = 528;
+    private static final int MDR_GAP_LENGTH = 10;
+    private static final String mdvtID = "MDVT";
+
     private static final int timeTransfer = 168;     // 12 usec/bit * 8 at 3.5 Mhz
 
     private static final int MDVT_WR_PROT = 0x01;       // Cartridge protected flag
-    private static final int MDVT_MDR_CONVERTED = 0x02; // Cartridge converted from MDR
-    private static final int MDVT_COMPRESSED = 0x04;    // Cartridge data is compressed
+    private static final int MDVT_COMPRESSED = 0x02;    // Cartridge data is compressed
+    private static final int MDVT_MDR_CONVERTED = 0x04; // Cartridge converted from MDR
 
     private static final byte GAP = 0x04;
     private static final byte SYNC = 0x02;
@@ -76,10 +84,13 @@ public class Microdrive {
     private int status;
     private int cartridgePos;
     private int numSectors;
+    private int sectorSize;
     private boolean isCartridge;
     private boolean modified;
     private boolean writeProtected;
     private boolean wrGapPending;
+    private boolean mdrFile;
+    private int mdrSectors;
     
     private BufferedInputStream fIn;
     private BufferedOutputStream fOut;
@@ -90,7 +101,7 @@ public class Microdrive {
     public Microdrive(TimeCounters clock) {
         
         this.clock = clock;
-        isCartridge = false;
+        isCartridge = mdrFile = false;
         writeProtected = true;
         cartridgePos = 0;
     }
@@ -252,7 +263,7 @@ public class Microdrive {
         Arrays.fill(clockGap, CLOCK_GAP);
 
         isCartridge = true;
-        writeProtected = false;
+        writeProtected = mdrFile = false;
         modified = true;
         filename = null;
         this.numSectors = numSectors;
@@ -265,12 +276,16 @@ public class Microdrive {
         if (isCartridge)
             return false;
         
+        isCartridge = false;
+        
         try {
             fIn = new BufferedInputStream(new FileInputStream(fileName));
 
             if (fileName.getName().toLowerCase().endsWith(".mdr")) {
+                mdrFile = true;
+                
                 int mdrLen = fIn.available();
-                int nsectors = (mdrLen - 1) / 543;
+                int nsectors = mdrSectors = (mdrLen - 1) / (MDR_HEADER_SIZE + MDR_RECORD_SIZE);
                 int pos = 0;
                 
                 // 587 = 543 + 2 * 10 (GAP) + 2 * 12 (PREAMBLE)
@@ -278,7 +293,7 @@ public class Microdrive {
                 cartridge = new byte[nsectors * 587];
                 while (nsectors-- > 0) {
                     // Create header GAP
-                    for(int gap = 0; gap < 10; gap++) {
+                    for(int gap = 0; gap < MDR_GAP_LENGTH; gap++) {
                         cartridge[pos] = DATA_FILLER;
                         clockGap[pos++] = CLOCK_GAP;
                     }
@@ -290,13 +305,13 @@ public class Microdrive {
                     }
 
                     // Read header
-                    for(int header = 0; header < 15; header++) {
+                    for(int header = 0; header < MDR_HEADER_SIZE; header++) {
                         cartridge[pos] = (byte)fIn.read();
                         clockGap[pos++] = CLOCK_DATA;
                     }
 
                     // Create data GAP
-                    for(int gap = 0; gap < 10; gap++) {
+                    for(int gap = 0; gap < MDR_GAP_LENGTH; gap++) {
                         cartridge[pos] = DATA_FILLER;
                         clockGap[pos++] = CLOCK_GAP;
                     }
@@ -308,14 +323,88 @@ public class Microdrive {
                     }
 
                     // Read data
-                    for(int data = 0; data < 528; data++) {
+                    for(int data = 0; data < MDR_RECORD_SIZE; data++) {
                         cartridge[pos] = (byte)fIn.read();
                         clockGap[pos++] = CLOCK_DATA;
                     }
                 }
                 
-                writeProtected = fIn.read() != 0;
+                writeProtected = isCartridge = true;
             } else {
+                // Read and check the file signature
+                byte[] blockID = new byte[4];
+                int readed = fIn.read(blockID);
+                if (readed != blockID.length)
+                    return false;
+                
+                String readedID = new String(blockID, "US-ASCII");
+                if (!mdvtID.equals(readedID))
+                    return false;
+                
+                // Read header length
+                readed = fIn.read(blockID); // reuse blockID variable
+                if (readed != blockID.length)
+                    return false;
+                
+                int headerSize = (blockID[0] & 0xff) | ((blockID[1] << 8) & 0xff)
+                    | ((blockID[2] << 16) & 0xff) | ((blockID[3] << 24) & 0xff);
+                byte[] header = new byte[headerSize];
+                readed = fIn.read(header);
+                if (readed != header.length)
+                    return false;
+                
+                mdrFile = (header[0] & MDVT_MDR_CONVERTED) != 0;
+                writeProtected = (header[0] & MDVT_WR_PROT) != 0;
+                sectorSize = (header[4] & 0xff) | ((header[5] << 8) & 0xff);
+                numSectors = (header[6] & 0xff) | ((header[7] << 8) & 0xff);
+                int gapEntries = (header[10] & 0xff) | ((header[11] << 8) & 0xff);
+                
+                
+                if ((header[0] & MDVT_COMPRESSED) != 0) {
+                    // BLock is compressed
+//                    byte[] compressedData = new byte[fIn.available()];
+//                    readed = fIn.read(compressedData);
+//                    if (readed != compressedData.length)
+//                        return false;
+                    
+//                    ByteArrayInputStream bais = new ByteArrayInputStream(compressedData);
+                    InflaterInputStream iis = new InflaterInputStream(fIn);
+                    cartridge = new byte[sectorSize * numSectors];
+                    readed = 0;
+                    while (readed < cartridge.length) {
+                        int count = iis.read(cartridge, readed, cartridge.length - readed);
+                        if (count == -1) {
+                            break;
+                        }
+                        readed += count;
+                    }
+//                    iis.close();
+                    if (readed != cartridge.length) {
+                        iis.close();
+                        return false;
+                    }
+                    
+                    byte[] cswGaps = new byte[gapEntries];
+                    readed = 0;
+                    while (readed < cswGaps.length) {
+                        int count = iis.read(cswGaps, readed, cswGaps.length - readed);
+                        if (count == -1) {
+                            break;
+                        }
+                        readed += count;
+                    }
+                    
+                    iis.close();
+                    if (readed != cswGaps.length) {
+                        return false;
+                    }
+                    
+                    clockGap = convertCswToGaps(header[9], cswGaps);
+                    if (clockGap == null)
+                        return false;
+                    
+                    isCartridge = true;
+                }
                 return false;
             }
         } catch (IOException ex) {
@@ -376,32 +465,45 @@ public class Microdrive {
         }
 
         try {
-        // SZX Header
-            String blockID = "MDVT";
-            fOut.write(blockID.getBytes("US-ASCII"));
-            fOut.write(14);   // MDVT 1.0 header length
+            // MDVT Header
+            fOut.write(mdvtID.getBytes("US-ASCII"));
+            fOut.write(12);   // MDVT 1.0 header length (QWORD)
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);
 
             fOut.write(0x01); // MDV major version
             fOut.write(0x00); // MDV minor version
+            
             // Flags (WORD)
             int flags = MDVT_COMPRESSED;
             if (writeProtected)
                 flags |= MDVT_WR_PROT;
+            if (mdrFile)
+                flags |= MDVT_MDR_CONVERTED;
             fOut.write(flags);
             fOut.write(flags >>> 8);
-            // Raw sector size (WORD)
-            fOut.write(RAW_SECTOR_SIZE);
-            fOut.write(RAW_SECTOR_SIZE >>> 8);
-            // Num sectors (QWORD)
-            fOut.write(numSectors);
-            fOut.write(numSectors >>> 8);
             
-            // GAP size used (in converted mdr files)
-            fOut.write(0x00);
-            
+            if (mdrFile) {
+                 // Raw sector size (WORD)
+                fOut.write(MDR_SECTOR_SIZE);
+                fOut.write(MDR_SECTOR_SIZE >>> 8);
+                // Num sectors (QWORD)
+                fOut.write(mdrSectors);
+                fOut.write(mdrSectors >>> 8);
+                // GAP size used (in converted mdr files)
+                fOut.write(MDR_GAP_LENGTH);
+            } else {
+                 // Raw sector size (WORD)
+                fOut.write(RAW_SECTOR_SIZE);
+                fOut.write(RAW_SECTOR_SIZE >>> 8);
+                // Num sectors (QWORD)
+                fOut.write(numSectors);
+                fOut.write(numSectors >>> 8);
+                // No GAP size predefined
+                fOut.write(0x00);
+            }   
+
             // First GAP value
             fOut.write(clockGap[0]);
             
@@ -412,7 +514,7 @@ public class Microdrive {
             fOut.write(buflen >>> 9);
             
             // Creator ID
-            String creatorID = "JSpeccy 0.89 (14/12/2011)";
+            String creatorID = "JSpeccy 0.89 (15/12/2011)";
             // Creator Length
             fOut.write(creatorID.length());
             // Creator message
@@ -465,33 +567,58 @@ public class Microdrive {
 
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
-        System.out.println(String.format("First clockGap: %02X", clockGap[0]));
+//        System.out.println(String.format("First clockGap: %02X", clockGap[0]));
         byte value = clockGap[0];
         int counter = 0;
-        int tot = 0;
+//        int tot = 0;
         
         for (int pos = 0; pos < clockGap.length; pos++) {
             if (clockGap[pos] == value) {
                 counter++;
             } else {
-                System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+//                System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
                 value = clockGap[pos];
                 buffer.write(counter);
                 buffer.write(counter >>> 8);
-                tot += counter;
+//                tot += counter;
                 counter = 1;
             }
         }
         
-        System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
+//        System.out.println(String.format("value: %02X, ntimes: %d", value, counter));
         buffer.write(counter);
         buffer.write(counter >>> 8);
         
-        tot += counter;
+//        tot += counter;
         
-        System.out.println(String.format("Length: %d, Total # bytes: %d",
-            clockGap.length, tot));
+//        System.out.println(String.format("Length: %d, Total # bytes: %d",
+//            clockGap.length, tot));
         
         return buffer;
+    }
+
+    private byte[] convertCswToGaps(byte firstGap, byte[] cswGaps) {
+        byte[] dataGaps = new byte[cartridge.length];
+        
+        int nGap = 0, idx = 0;
+        firstGap = firstGap == 0 ? CLOCK_DATA : CLOCK_GAP;
+        
+        while (nGap < dataGaps.length) {
+            int gapLen = (cswGaps[nGap] & 0xff) | ((cswGaps[nGap + 1] << 8) & 0xff);
+            nGap += 2;
+            
+            while(gapLen-- > 0) {
+                dataGaps[idx++] = firstGap;
+            }
+            
+            firstGap = firstGap == 0 ? CLOCK_GAP : CLOCK_DATA;
+        }
+        
+        if (idx != clockGap.length) {
+            System.out.println("Error regenerating GAP info!");
+            return null;
+        }
+        
+        return dataGaps;
     }
 }
