@@ -392,7 +392,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                 case 3:
                     return if1.isModified(row);
                 default:
-                    return "NOT EXISTANT COLUMN!";
+                    return "NOT EXISTENT COLUMN!";
             }
         }
 

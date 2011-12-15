@@ -1938,7 +1938,7 @@ public class Tape {
                     msg = getBlockInfo(row);
                     break;
                 default:
-                    return "NON EXISTANT COLUMN!";
+                    return "NON EXISTENT COLUMN!";
             }
             return msg;
         }
