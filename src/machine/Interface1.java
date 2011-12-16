@@ -6,6 +6,7 @@ package machine;
 
 import configuration.Interface1Type;
 import java.io.File;
+import java.util.ArrayList;
 import javax.swing.SwingUtilities;
 import utilities.Microdrive;
 
@@ -43,6 +44,8 @@ public class Interface1 {
     private Interface1Type settings;
     private int lan;
     
+    private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<Interface1DriveListener>();
+    
     public Interface1(TimeCounters clk, Interface1Type if1settings) {
         clock = clk;
         settings = if1settings;
@@ -56,6 +59,50 @@ public class Interface1 {
         
         commsClk = false;
         lan = 0;
+    }
+    
+    /**
+     * Adds a new event listener to the list of event listeners.
+     *
+     * @param listener The new event listener.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     */
+    public void addInterface1DriveListener(final Interface1DriveListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Error: Listener can't be null");
+        }
+
+        // Avoid duplicates
+        if (!driveListeners.contains(listener)) {
+            driveListeners.add(listener);
+        }
+    }
+    
+    /**
+     * Remove a new event listener from the list of event listeners.
+     *
+     * @param listener The event listener to remove.
+     *
+     * @throws NullPointerException Thrown if the listener argument is null.
+     * @throws IllegalArgumentException Thrown if the listener wasn't registered.
+     */
+    public void removeInterface1DriveListener(final Interface1DriveListener listener) {
+
+        if (listener == null) {
+            throw new NullPointerException("Internal Error: Listener can't be null");
+        }
+
+        if (!driveListeners.remove(listener)) {
+            throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
+        }
+    }
+    
+    public void fireDriveSelected(final int unit) {
+        for (final Interface1DriveListener listener : driveListeners) {
+            listener.driveSelected(unit);
+        }
     }
     
     public int readControlPort() {
@@ -118,14 +165,13 @@ public class Interface1 {
             
             if (mdrFlipFlop != 0) {
                 microdrive[mdrSelected].selected();
+                fireDriveSelected(mdrSelected + 1);
 //                System.out.println(String.format("MDR %d [%d] selected",
 //                    mdrFlipFlop, mdrSelected));
-//            } else {
+            } else {
 //                System.out.println("All MDR are stopped");
+                fireDriveSelected(0);
             }
-            
-            if (mdrvIcon.isEnabled() != (mdrFlipFlop != 0))
-                updateMdrvIcon();
         }   
         
         if (mdrFlipFlop != 0)
@@ -149,7 +195,7 @@ public class Interface1 {
     
     public void reset() {
         mdrFlipFlop = 0;
-        updateMdrvIcon();
+        fireDriveSelected(0);
     }
     
     public boolean isCartridge(int drive) {
@@ -305,29 +351,5 @@ public class Interface1 {
         
         return;
 //        microdrive[drive].setPreambleRem(offset);
-    }
-    
-    private javax.swing.JLabel mdrvIcon;
-    public void setMdrvIcon(javax.swing.JLabel tapeLabel) {
-        mdrvIcon = tapeLabel;
-        updateMdrvIcon();
-    }
-    
-    private void updateMdrvIcon() {
-        if (mdrvIcon == null) {
-            return;
-        }
-
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                if (mdrFlipFlop == 0) {
-                    mdrvIcon.setEnabled(false);
-                } else {
-                    mdrvIcon.setEnabled(true);
-            }
-            }
-        });
     }
 }

@@ -40,6 +40,7 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
+import machine.Interface1DriveListener;
 import machine.Keyboard.Joystick;
 import snapshots.SnapshotException;
 import snapshots.SnapshotSNA;
@@ -73,12 +74,12 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     SnapshotSZX snapSZX; // for SZX snapshots
     SpectrumState memorySnapshot;
-    
+
+    Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
     Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
     Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
     Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
-    
 
     /** Creates new form JSpeccy */
     public JSpeccy() {
@@ -275,6 +276,22 @@ public class JSpeccy extends javax.swing.JFrame {
                 lsm.setSelectionInterval(block, block);
             }
         });
+        
+        spectrum.getInterface1().addInterface1DriveListener(new Interface1DriveListener() {
+            
+            @Override
+            public void driveSelected(int unit) {
+                if (unit == 0) {
+                    mdrvLabel.setIcon(mdrOff);
+                    mdrvLabel.setToolTipText(
+                        ResourceBundle.getBundle("gui/Bundle").getString("MICRODRIVES_STOPPED"));
+                } else {
+                    mdrvLabel.setIcon(mdrOn);
+                    mdrvLabel.setToolTipText(String.format(
+                        ResourceBundle.getBundle("gui/Bundle").getString("MICRODRIVE_RUNNING"), unit));
+                }
+            }
+        });
 
         getContentPane().add(jscr, BorderLayout.CENTER);
         pack();
@@ -333,7 +350,6 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         settingsDialog = new SettingsDialog(settings);
-        spectrum.getInterface1().setMdrvIcon(mdrvLabel);
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         allSnapTapeExtension = new FileNameExtensionFilter(
@@ -477,17 +493,29 @@ public class JSpeccy extends javax.swing.JFrame {
     
     private void updateGuiSelections() {
         
-        IF1MediaMenu.setEnabled(spectrum.isIF1Connected());
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
+        if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            if (settings.getInterface1Settings().isConnectedIF1()) {
+                IF1MediaMenu.setEnabled(true);
+                mdrvLabel.setEnabled(true);
+                mdrvLabel.setIcon(mdrOff);
+                mdrvLabel.setToolTipText(
+                ResourceBundle.getBundle("gui/Bundle").getString("MICRODRIVES_STOPPED"));
+            } else {
+                IF1MediaMenu.setEnabled(false);
+                mdrvLabel.setEnabled(false);
+                mdrvLabel.setToolTipText(null);
+            }
+            
+            IF2MediaMenu.setEnabled(true);
+            insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
+            extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
         } else {
-            mdrvLabel.setDisabledIcon(null);
+            IF1MediaMenu.setEnabled(false);
+            IF2MediaMenu.setEnabled(false);
+            mdrvLabel.setEnabled(false);
+            mdrvLabel.setToolTipText(null);
         }
-        
-        IF2MediaMenu.setEnabled(true);
-        insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
-        extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
-        
+
         switch (spectrum.getSpectrumModel()) {
             case SPECTRUM16K:
                 spec16kHardware.setSelected(true);
@@ -1866,19 +1894,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
-        
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
-            IF1MediaMenu.setEnabled(true);
-        } else {
-            mdrvLabel.setDisabledIcon(null);
-            IF1MediaMenu.setEnabled(false);
-        }
-        
-        IF2MediaMenu.setEnabled(true);
-        
+        updateGuiSelections();
+
         spectrum.reset();
     }//GEN-LAST:event_spec48kHardwareActionPerformed
 
@@ -1888,19 +1905,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
-        
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
-            IF1MediaMenu.setEnabled(true);
-        } else {
-            mdrvLabel.setDisabledIcon(null);
-            IF1MediaMenu.setEnabled(false);
-        }
-        
-        IF2MediaMenu.setEnabled(true);
-        
+        updateGuiSelections();
+
         spectrum.reset();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
@@ -1923,19 +1929,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
-        
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
-            IF1MediaMenu.setEnabled(true);
-        } else {
-            mdrvLabel.setDisabledIcon(null);
-            IF1MediaMenu.setEnabled(false);
-        }
-        
-        IF2MediaMenu.setEnabled(true);
-        
+        updateGuiSelections();
+
         spectrum.reset();
         
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
@@ -1946,13 +1941,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
-        
-        IF1MediaMenu.setEnabled(false);
-        mdrvLabel.setDisabledIcon(null);
-        IF2MediaMenu.setEnabled(false);
-        
+        updateGuiSelections();
+
         spectrum.reset();
 
     }//GEN-LAST:event_specPlus2AHardwareActionPerformed
@@ -1980,19 +1970,7 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.muteSound(false);
         }
         
-        if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-            if (settings.getInterface1Settings().isConnectedIF1()) {
-                IF1MediaMenu.setEnabled(true);
-                mdrvLabel.setDisabledIcon(mdrOff);
-            } else {
-                IF1MediaMenu.setEnabled(false);
-                mdrvLabel.setDisabledIcon(null);
-            }
-            IF2MediaMenu.setEnabled(true);
-        } else {
-            IF1MediaMenu.setEnabled(false);
-            IF2MediaMenu.setEnabled(false);
-        }
+        updateGuiSelections();
         
         if (doubleSize != settings.getSpectrumSettings().isDoubleSize()) {
             doubleSizeToggleButton.setSelected(!doubleSize);
@@ -2176,19 +2154,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
-        
-        if (settings.getInterface1Settings().isConnectedIF1()) {
-            mdrvLabel.setDisabledIcon(mdrOff);
-            IF1MediaMenu.setEnabled(true);
-        } else {
-            mdrvLabel.setDisabledIcon(null);
-            IF1MediaMenu.setEnabled(false);
-        }
-        
-        IF2MediaMenu.setEnabled(true);
-        
+        updateGuiSelections();
+
         spectrum.reset();
     }//GEN-LAST:event_spec16kHardwareActionPerformed
 
@@ -2198,13 +2165,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         
         spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-        modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
-        modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
-        
-        IF1MediaMenu.setEnabled(false);
-        mdrvLabel.setDisabledIcon(null);
-        IF2MediaMenu.setEnabled(false);
-        
+        updateGuiSelections();
+
         spectrum.reset();
     }//GEN-LAST:event_specPlus3HardwareActionPerformed
 
