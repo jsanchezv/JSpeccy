@@ -159,9 +159,12 @@ public class Keyboard implements KeyListener {
     @Override
     public void keyPressed(KeyEvent evt) {
 
+        if (evt.isAltDown())
+            return;
+        
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
-            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
+            if (keychar != KeyEvent.CHAR_UNDEFINED) {
 //            System.out.println("pressed " + keychar);
                 if (pressedKeyChar(keychar)) {
                     for (int key = 0; key < keyEventPending.length; key++) {
@@ -182,9 +185,9 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_SPACE:
                 rowKey[7] &= KEY_PRESSED_BIT0; // Break/Space
                 break;
-            case KeyEvent.VK_ALT:
-                rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
-                break;
+//            case KeyEvent.VK_ALT:
+//                rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
+//                break;
             case KeyEvent.VK_M:
                 rowKey[7] &= KEY_PRESSED_BIT2; // M
                 break;
@@ -292,7 +295,13 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
+                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                    rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
+                }
+                
+                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
+                    rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
+                }
                 shiftPressed = true;
                 break;
             case KeyEvent.VK_Z:
@@ -461,10 +470,13 @@ public class Keyboard implements KeyListener {
     @Override
     public void keyReleased(KeyEvent evt) {
 
+        if (evt.isAltDown())
+            return;
+        
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
 
-            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
+            if (keychar != KeyEvent.CHAR_UNDEFINED) {
 //            System.out.println("released " + keychar);
                 for (int key = 0; key < keyEventPending.length; key++) {
                     if (keyEventPending[key] != null
@@ -487,9 +499,9 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_SPACE:
                 rowKey[7] |= KEY_RELEASED_BIT0; // Break/Space
                 break;
-            case KeyEvent.VK_ALT:
-                rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
-                break;
+//            case KeyEvent.VK_ALT:
+//                rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
+//                break;
             case KeyEvent.VK_M:
                 rowKey[7] |= KEY_RELEASED_BIT2; // M
                 break;
@@ -597,7 +609,13 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
+                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+                }
+                
+                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
+                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
+                }
                 shiftPressed = false;
                 break;
             case KeyEvent.VK_Z:
