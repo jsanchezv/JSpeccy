@@ -2039,7 +2039,6 @@ public class JSpeccy extends javax.swing.JFrame {
             openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             openTapeDlg.addChoosableFileFilter(createTapeExtension);
             openTapeDlg.addChoosableFileFilter(tapeExtension);
-            openTapeDlg.setFileFilter(createTapeExtension);
         } else {
             openTapeDlg.setCurrentDirectory(currentFileTape.getParentFile());
         }
@@ -2048,6 +2047,7 @@ public class JSpeccy extends javax.swing.JFrame {
             spectrum.stopEmulation();
         }
 
+        openTapeDlg.setFileFilter(createTapeExtension);
         int status = openTapeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
             if (!createTapeExtension.accept(openTapeDlg.getSelectedFile())) {

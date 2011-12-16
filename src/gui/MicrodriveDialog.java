@@ -219,12 +219,12 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             currentDir = cartridgeDlg.getCurrentDirectory();
+            cartridgeDlg.addChoosableFileFilter(mdrExtension);
+            cartridgeDlg.addChoosableFileFilter(mdvExtension);
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
         }
-        
-        cartridgeDlg.resetChoosableFileFilters();
-        cartridgeDlg.addChoosableFileFilter(mdrExtension);
+
         cartridgeDlg.setFileFilter(mdrExtension);
         int status = cartridgeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
@@ -270,13 +270,13 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            cartridgeDlg.addChoosableFileFilter(mdrExtension);
+            cartridgeDlg.addChoosableFileFilter(mdvExtension);
             currentDir = cartridgeDlg.getCurrentDirectory();
         } else {
             cartridgeDlg.setCurrentDirectory(currentDir);
         }
-        
-        cartridgeDlg.resetChoosableFileFilters();
-        cartridgeDlg.addChoosableFileFilter(mdvExtension);
+
         cartridgeDlg.setFileFilter(mdvExtension);
         int status = cartridgeDlg.showSaveDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
