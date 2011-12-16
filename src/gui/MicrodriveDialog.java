@@ -282,8 +282,13 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         if (status == JFileChooser.APPROVE_OPTION) {
             currentDir = cartridgeDlg.getCurrentDirectory();
 //            File filename = new File(cartridgeDlg.getSelectedFile().getAbsolutePath());
+            if (mdvExtension.accept(cartridgeDlg.getSelectedFile())) {
                 if1.save(row, cartridgeDlg.getSelectedFile());
-                tableModel.fireTableRowsUpdated(row, row);
+            } else {
+                String saveName = cartridgeDlg.getSelectedFile().getAbsolutePath() + ".mdv";
+                if1.save(row, new File(saveName));
+            }
+            tableModel.fireTableRowsUpdated(row, row);
         }
     }//GEN-LAST:event_saveAsCartridgeActionPerformed
 

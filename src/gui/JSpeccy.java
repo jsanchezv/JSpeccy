@@ -70,7 +70,7 @@ public class JSpeccy extends javax.swing.JFrame {
     MicrodriveDialog microdriveDialog;
     MemoryBrowserDialog memoryBrowserDialog;
     FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
-            tapeExtension, imageExtension, screenExtension, romExtension;
+            tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     SnapshotSZX snapSZX; // for SZX snapshots
     SpectrumState memorySnapshot;
     
@@ -343,6 +343,8 @@ public class JSpeccy extends javax.swing.JFrame {
                 bundle.getString("SNAPSHOT_TYPE"), "sna", "z80", "szx");
         tapeExtension = new FileNameExtensionFilter(
                 bundle.getString("TAPE_TYPE"), "tap", "tzx", "csw");
+        createTapeExtension = new FileNameExtensionFilter(
+                bundle.getString("SAVE_TAPE_TYPE"), "tap", "tzx");
         imageExtension = new FileNameExtensionFilter(
                 bundle.getString("IMAGE_TYPE"), "scr", "png");
         screenExtension = new FileNameExtensionFilter(
@@ -1564,6 +1566,7 @@ public class JSpeccy extends javax.swing.JFrame {
             openSnapshotDlg.addChoosableFileFilter(allSnapTapeExtension);
             openSnapshotDlg.addChoosableFileFilter(snapshotExtension);
             openSnapshotDlg.addChoosableFileFilter(tapeExtension);
+            openSnapshotDlg.addChoosableFileFilter(createTapeExtension);
             openSnapshotDlg.setFileFilter(allSnapTapeExtension);
         }
         else
@@ -1704,6 +1707,7 @@ public class JSpeccy extends javax.swing.JFrame {
             openTapeDlg = new JFileChooser(
                     settings.getRecentFilesSettings().getLastTapeDir());
             openTapeDlg.addChoosableFileFilter(tapeExtension);
+            openTapeDlg.addChoosableFileFilter(createTapeExtension);
             openTapeDlg.setFileFilter(tapeExtension);
         }
         else
@@ -1777,8 +1781,13 @@ public class JSpeccy extends javax.swing.JFrame {
         int status = saveSnapshotDlg.showSaveDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
+            if (!snapshotExtension.accept(saveSnapshotDlg.getSelectedFile())) {
+                String saveName = saveSnapshotDlg.getSelectedFile().getAbsolutePath() + ".szx";
+                saveSnapshotDlg.setSelectedFile(new File(saveName));
+            }
+
             if (tape.getTapeFilename() != null &&
-                    saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith("szx")) {
+                    saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".szx")) {
                 tapeFilenameLabel.setText(tape.getTapeFilename().getName());
                 ignoreRadioButton.setSelected(true);
                 snapSZX = new SnapshotSZX();
@@ -1800,6 +1809,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
 
                 if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".szx")) {
+                    snapSZX = new SnapshotSZX();
                     snapSZX.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
                 }
                 
@@ -2011,9 +2021,13 @@ public class JSpeccy extends javax.swing.JFrame {
 
         int status = saveImageDlg.showSaveDialog(getContentPane());
         if( status == JFileChooser.APPROVE_OPTION ) {
-            //spectrum.stopEmulation();
             currentDirSaveImage = saveImageDlg.getCurrentDirectory();
-            spectrum.saveImage(saveImageDlg.getSelectedFile());
+            if (imageExtension.accept(saveImageDlg.getSelectedFile())) {
+                spectrum.saveImage(saveImageDlg.getSelectedFile());
+            } else {
+                String saveName = saveImageDlg.getSelectedFile().getAbsolutePath() + ".scr";
+                spectrum.saveImage(new File(saveName));
+            }
         }
         if (!paused)
             spectrum.startEmulation();
@@ -2023,8 +2037,9 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean paused = spectrum.isPaused();
         if (openTapeDlg == null) {
             openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openTapeDlg.addChoosableFileFilter(createTapeExtension);
             openTapeDlg.addChoosableFileFilter(tapeExtension);
-            openTapeDlg.setFileFilter(tapeExtension);
+            openTapeDlg.setFileFilter(createTapeExtension);
         } else {
             openTapeDlg.setCurrentDirectory(currentFileTape.getParentFile());
         }
@@ -2035,7 +2050,12 @@ public class JSpeccy extends javax.swing.JFrame {
 
         int status = openTapeDlg.showOpenDialog(this);
         if (status == JFileChooser.APPROVE_OPTION) {
+            if (!createTapeExtension.accept(openTapeDlg.getSelectedFile())) {
+                String saveName = openTapeDlg.getSelectedFile().getAbsolutePath() + ".tzx";
+                openTapeDlg.setSelectedFile(new File(saveName));
+            }
             currentFileTape = openTapeDlg.getSelectedFile();
+            
             try {
                 currentFileTape.createNewFile();
                 tape.eject();
