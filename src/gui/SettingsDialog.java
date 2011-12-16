@@ -181,14 +181,13 @@ public class SettingsDialog extends javax.swing.JPanel {
         acceleratedLoad = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
-        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16));
         samplingPanel = new javax.swing.JPanel();
         lowSampling = new javax.swing.JRadioButton();
         highSampling = new javax.swing.JRadioButton();
         keyboardPanelTab = new javax.swing.JPanel();
         keyboard48kPanel = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
+        keyboardIssueInfoLabel = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         issue2 = new javax.swing.JRadioButton();
         issue3 = new javax.swing.JRadioButton();
@@ -206,11 +205,16 @@ public class SettingsDialog extends javax.swing.JPanel {
         multiface128RadioButton = new javax.swing.JRadioButton();
         IF1PanelTab = new javax.swing.JPanel();
         connectedIF1Panel = new javax.swing.JPanel();
+        connectedIF1InfoLabel = new javax.swing.JLabel();
+        jPanel4 = new javax.swing.JPanel();
         connectedIF1 = new javax.swing.JCheckBox();
         mdrPanel = new javax.swing.JPanel();
+        numDrivesPanel = new javax.swing.JPanel();
         numDrivesLabel = new javax.swing.JLabel();
         numDrivesSpinner = new javax.swing.JSpinner();
-        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16), new java.awt.Dimension(25, 16));
+        numBlocksInfoPanel = new javax.swing.JPanel();
+        numBlocksInfoLabel = new javax.swing.JLabel();
+        numBlocksPanel = new javax.swing.JPanel();
         numSectorsLabel = new javax.swing.JLabel();
         cartridgeSizeSpinner = new javax.swing.JSpinner();
         lecPanelTab = new javax.swing.JPanel();
@@ -220,7 +224,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         lecEnabled = new javax.swing.JCheckBox();
 
         setMinimumSize(new java.awt.Dimension(50, 50));
-        setPreferredSize(new java.awt.Dimension(440, 363));
+        setPreferredSize(new java.awt.Dimension(400, 363));
         setLayout(new java.awt.BorderLayout());
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -313,7 +317,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         soundPanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         audioPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.audioPanel.border.text"))); // NOI18N
-        audioPanel.setLayout(new javax.swing.BoxLayout(audioPanel, javax.swing.BoxLayout.PAGE_AXIS));
+        audioPanel.setLayout(new java.awt.GridLayout(3, 0));
 
         soundMuted.setText(bundle.getString("SettingsDialog.soundPanel.soundMuted.text")); // NOI18N
         soundMuted.addActionListener(new java.awt.event.ActionListener() {
@@ -405,7 +409,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         tapePanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
-        loadPanel.setLayout(new javax.swing.BoxLayout(loadPanel, javax.swing.BoxLayout.PAGE_AXIS));
+        loadPanel.setLayout(new java.awt.GridLayout(3, 1));
 
         enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.enableLoadTraps.text")); // NOI18N
         enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
@@ -434,7 +438,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         tapePanelTab.add(loadPanel);
 
         savePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.savePanel.border.text"))); // NOI18N
-        savePanel.setLayout(new javax.swing.BoxLayout(savePanel, javax.swing.BoxLayout.LINE_AXIS));
+        savePanel.setLayout(new java.awt.GridLayout(1, 2));
 
         enableSaveTraps.setSelected(true);
         enableSaveTraps.setText(bundle.getString("SettingsDialog.savePanel.enableSaveTraps.text")); // NOI18N
@@ -444,10 +448,9 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         savePanel.add(enableSaveTraps);
-        savePanel.add(filler1);
 
         samplingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSamplingFreq.border.text"))); // NOI18N
-        samplingPanel.setLayout(new javax.swing.BoxLayout(samplingPanel, javax.swing.BoxLayout.PAGE_AXIS));
+        samplingPanel.setLayout(new java.awt.GridLayout(2, 1));
 
         samplingButtonGroup.add(lowSampling);
         lowSampling.setSelected(true);
@@ -481,9 +484,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         keyboard48kPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.keyboard48kPanel.title.text"))); // NOI18N
         keyboard48kPanel.setLayout(new javax.swing.BoxLayout(keyboard48kPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
-        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText(bundle.getString("SettingsDialog.jlabel1.text")); // NOI18N
-        jPanel3.add(jLabel1);
+        keyboardIssueInfoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        keyboardIssueInfoLabel.setText(bundle.getString("SettingsDialog.keyboardIssueInfoLabel.text")); // NOI18N
+        jPanel3.add(keyboardIssueInfoLabel);
 
         keyboard48kPanel.add(jPanel3);
 
@@ -584,9 +587,14 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.multifacePanel.TabTitle"), multifacePanelTab); // NOI18N
 
-        IF1PanelTab.setLayout(new javax.swing.BoxLayout(IF1PanelTab, javax.swing.BoxLayout.PAGE_AXIS));
+        IF1PanelTab.setLayout(new java.awt.GridLayout(2, 1));
 
         connectedIF1Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.connectedIF1.border.text"))); // NOI18N
+        connectedIF1Panel.setLayout(new java.awt.GridLayout(2, 0));
+
+        connectedIF1InfoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        connectedIF1InfoLabel.setText(bundle.getString("SettingsDialog.connectedIF1InfoLabel.text")); // NOI18N
+        connectedIF1Panel.add(connectedIF1InfoLabel);
 
         connectedIF1.setText(bundle.getString("SettingsDialog.connectedIF1Panel.enabled.text")); // NOI18N
         connectedIF1.addActionListener(new java.awt.event.ActionListener() {
@@ -594,14 +602,17 @@ public class SettingsDialog extends javax.swing.JPanel {
                 connectedIF1ActionPerformed(evt);
             }
         });
-        connectedIF1Panel.add(connectedIF1);
+        jPanel4.add(connectedIF1);
+
+        connectedIF1Panel.add(jPanel4);
 
         IF1PanelTab.add(connectedIF1Panel);
 
         mdrPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("ZX Microdrives"));
+        mdrPanel.setLayout(new java.awt.GridLayout(3, 1));
 
         numDrivesLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numDrivesLabel.text")); // NOI18N
-        mdrPanel.add(numDrivesLabel);
+        numDrivesPanel.add(numDrivesLabel);
 
         numDrivesSpinner.setModel(new javax.swing.SpinnerNumberModel(Byte.valueOf((byte)8), Byte.valueOf((byte)1), Byte.valueOf((byte)8), Byte.valueOf((byte)1)));
         numDrivesSpinner.setPreferredSize(new java.awt.Dimension(40, 20));
@@ -610,11 +621,17 @@ public class SettingsDialog extends javax.swing.JPanel {
                 numDrivesSpinnerStateChanged(evt);
             }
         });
-        mdrPanel.add(numDrivesSpinner);
-        mdrPanel.add(filler2);
+        numDrivesPanel.add(numDrivesSpinner);
+
+        mdrPanel.add(numDrivesPanel);
+
+        numBlocksInfoLabel.setText(bundle.getString("SettingsDialog.numBlocksInfoLabel.text")); // NOI18N
+        numBlocksInfoPanel.add(numBlocksInfoLabel);
+
+        mdrPanel.add(numBlocksInfoPanel);
 
         numSectorsLabel.setText(bundle.getString("SettingsDialog.mdrPanel.numSectorsLabel.text")); // NOI18N
-        mdrPanel.add(numSectorsLabel);
+        numBlocksPanel.add(numSectorsLabel);
 
         cartridgeSizeSpinner.setModel(new javax.swing.SpinnerNumberModel(180, 10, 253, 1));
         cartridgeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
@@ -622,7 +639,9 @@ public class SettingsDialog extends javax.swing.JPanel {
                 cartridgeSizeSpinnerStateChanged(evt);
             }
         });
-        mdrPanel.add(cartridgeSizeSpinner);
+        numBlocksPanel.add(cartridgeSizeSpinner);
+
+        mdrPanel.add(numBlocksPanel);
 
         IF1PanelTab.add(mdrPanel);
 
@@ -636,6 +655,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         lecInfoLabel.setText(bundle.getString("SettingsDialog.lecPanelTab.lecInfoLabel.text")); // NOI18N
         lecInfoLabel.setMaximumSize(new java.awt.Dimension(2147483647, 640));
+        lecInfoLabel.setPreferredSize(new java.awt.Dimension(380, 288));
         lecInfoPanel.add(lecInfoLabel);
 
         lecPanelTab.add(lecInfoPanel);
@@ -824,14 +844,13 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JSpinner cartridgeSizeSpinner;
     private javax.swing.JButton closeButton;
     private javax.swing.JCheckBox connectedIF1;
+    private javax.swing.JLabel connectedIF1InfoLabel;
     private javax.swing.JPanel connectedIF1Panel;
     private javax.swing.JPanel defaultModelPanel;
     private javax.swing.JCheckBox doubleSize;
     private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
-    private javax.swing.Box.Filler filler1;
-    private javax.swing.Box.Filler filler2;
     private javax.swing.JCheckBox flashLoad;
     private javax.swing.JPanel hardwarePanelTab;
     private javax.swing.JCheckBox hifiSound;
@@ -839,16 +858,17 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel highSpeedPanel;
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JComboBox joystick;
     private javax.swing.JPanel joystickPanel;
     private javax.swing.JPanel keyboard48kPanel;
     private javax.swing.ButtonGroup keyboardButtonGroup;
+    private javax.swing.JLabel keyboardIssueInfoLabel;
     private javax.swing.JPanel keyboardPanelTab;
     private javax.swing.JCheckBox lecEnabled;
     private javax.swing.JPanel lecEnabledPanel;
@@ -868,7 +888,11 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JRadioButton multifaceOneRadioButton;
     private javax.swing.JPanel multifacePanel;
     private javax.swing.JPanel multifacePanelTab;
+    private javax.swing.JLabel numBlocksInfoLabel;
+    private javax.swing.JPanel numBlocksInfoPanel;
+    private javax.swing.JPanel numBlocksPanel;
     private javax.swing.JLabel numDrivesLabel;
+    private javax.swing.JPanel numDrivesPanel;
     private javax.swing.JSpinner numDrivesSpinner;
     private javax.swing.JLabel numSectorsLabel;
     private javax.swing.ButtonGroup samplingButtonGroup;

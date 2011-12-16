@@ -7,7 +7,6 @@ package machine;
 import configuration.Interface1Type;
 import java.io.File;
 import java.util.ArrayList;
-import javax.swing.SwingUtilities;
 import utilities.Microdrive;
 
 /**
