@@ -1339,7 +1339,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     public void saveImage(File filename) {
-        BufferedOutputStream fOut;
+        BufferedOutputStream fOut = null;
 
         if (filename.getName().toLowerCase().endsWith(".scr")) {
             try {
@@ -1356,11 +1356,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         }
                     }
                 }
-                fOut.close();
             } catch (FileNotFoundException excpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
             } catch (IOException ioExcpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+            } finally {
+                try {
+                    if (fOut != null)
+                        fOut.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
             return;
         }
@@ -1376,7 +1382,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     public boolean loadScreen(File filename) {
-        BufferedInputStream fIn;
+        BufferedInputStream fIn = null;
 
         if (filename.getName().toLowerCase().endsWith(".scr")) {
             try {
@@ -1413,13 +1419,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         }
                     }
                 }
-
-                fIn.close();
                 return true;
             } catch (FileNotFoundException excpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
             } catch (IOException ioExcpt) {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+            } finally {
+                try {
+                    if (fIn != null)
+                        fIn.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
         return false;
