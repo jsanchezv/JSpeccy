@@ -1317,8 +1317,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     machineMenu.add(pauseMachineMenu);
 
-    silenceMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.ALT_MASK));
-    silenceMachineMenu.setText(bundle.getString("JSpeccy.silenceMachineMenu.text_1")); // NOI18N
+    silenceMachineMenu.setText(bundle.getString("JSpeccy.silenceMachineMenu.text")); // NOI18N
     silenceMachineMenu.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
             silenceSoundToggleButtonActionPerformed(evt);
