@@ -12,7 +12,7 @@ public class MemoryState {
     private byte ram[][] = new byte[8][];
     private byte IF2Rom[];
     private byte mfRam[];
-    private byte lecRam[][] = new byte[60][];
+    private byte lecRam[][] = new byte[15][];
     private int pageLec;
     private boolean IF1RomPaged, IF2RomPaged, lecPaged;
     private boolean multifacePaged, multifaceLocked, mf128on48k;

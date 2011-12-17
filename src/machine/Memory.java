@@ -86,7 +86,7 @@ public final class Memory {
                 if (lecRam != null) {
                     state.setLecPaged(lecPaged);
                     state.setPageLec(pageLEC);
-                    for (int page = 0; page < 14; page++) {
+                    for (int page = 0; page < 15; page++) {
                         state.setLecPageRam(page, savePageLec(page));
                     }
                 }
@@ -127,7 +127,7 @@ public final class Memory {
                 loadPage(2, state.getPageRam(2));
                 loadPage(0, state.getPageRam(0));
                 if (state.getLecPageRam(0) != null) {
-                    for (int page = 0; page < 14; page++) {
+                    for (int page = 0; page < 15; page++) {
                         loadPageLec(page, state.getLecPageRam(page));
                     }
                 }
