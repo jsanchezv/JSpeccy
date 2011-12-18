@@ -168,6 +168,12 @@ public class SnapshotSZX {
     private static final int ZXSTOPDF_EMBEDDED = 1;
     private static final int ZXSTOPDF_COMPRESSED = 2;
     private static final int ZXSTOPDF_WRITEPROTECT = 4;
+    
+    // LEC RAM Extension
+    private static final int ZXSTBID_LEC = 0x0043454C;      // LEC\0
+    private static final int ZXSTLECF_PAGED = 0x01;
+    private static final int ZXSTBID_LECRAMPAGE = 0x5052434C;  // LCRP
+    private static final int ZXSTLCRPF_COMPRESSED = 0x01;
 
     /**
      * @return the tapeEmbedded
@@ -829,6 +835,77 @@ public class SnapshotSZX {
 //                        if (motor == 1)
 //                            driveRunning = driveNum;
                         break;
+                    case ZXSTBID_LEC:
+                        if (spectrum.getSpectrumModel() != MachineTypes.SPECTRUM48K) {
+                            System.out.println(
+                                    "SZX Error: LEC Block with a Spectrum model != 48k");
+                            while (szxLen > 0) {
+                                szxLen -= fIn.skip(szxLen);
+                            }
+                            break;
+                        }
+                        
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
+                        
+                        byte[] lecHeader = new byte[4];
+                        readed = fIn.read(lecHeader);
+                        if (readed != lecHeader.length) {
+                            throw new SnapshotException("FILE_READ_ERROR");
+                        }
+                        
+                        spectrum.setConnectedLec(true);
+                        memory.setLecPaged((lecHeader[0] & ZXSTLECF_PAGED) != 0);
+                        if (memory.isLecPaged())
+                            memory.setPageLec(lecHeader[2] & 0x0f);
+                        break;
+                    case ZXSTBID_LECRAMPAGE:
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
+                        }
+                        
+                        byte lecPage[] = new byte[3];
+                        readed = fIn.read(lecPage);
+                        if (readed != lecPage.length) {
+                            throw new SnapshotException("FILE_READ_ERROR");
+                        }
+                        
+                        szxLen -= 3;
+                        if (szxLen > 0x8000) {
+                            throw new SnapshotException("SZX_RAMP_SIZE_ERROR");
+                        }
+
+                        chData = new byte[szxLen];
+                        readed = fIn.read(chData);
+                        if (readed != szxLen) {
+                            throw new SnapshotException("FILE_READ_ERROR");
+                        }
+
+                        if ((lecPage[0] & ZXSTLCRPF_COMPRESSED) == 0) {
+                            memory.setLecPageRam(lecPage[2] & 0x0f, chData);
+                            break;
+                        }
+                        // Compressed RAM page
+                        bais = new ByteArrayInputStream(chData);
+                        iis = new InflaterInputStream(bais);
+                        byte lecRAM[] = new byte[0x8000];
+                        readed = 0;
+                        while (readed < lecRAM.length) {
+                            int count = iis.read(lecRAM, readed, lecRAM.length - readed);
+                            if (count == -1) {
+                                break;
+                            }
+                            readed += count;
+                        }
+                        iis.close();
+                        if (readed != 0x8000) {
+                            throw new SnapshotException("SZX_RAMP_SIZE_ERROR");
+                        }
+                        memory.setLecPageRam(lecPage[2] & 0x0f, lecRAM);
+                        break;
                     case ZXSTBID_ZXATASP:
                     case ZXSTBID_ATARAM:
                     case ZXSTBID_ZXCF:
@@ -1274,7 +1351,47 @@ public class SnapshotSZX {
                 byte reserved[] = new byte[38]; // 35 reserved + wRomSize + chRomData[1]
                 fOut.write(reserved);
             }
-
+            
+            // LEC RAM Extension Block
+            if (spectrum.isConnectedLec() && spectrum.getSpectrumModel() == MachineTypes.SPECTRUM48K) {
+                blockID = "LEC\0";
+                fOut.write(blockID.getBytes("US-ASCII"));
+                fOut.write(0x04);
+                fOut.write(0x00);
+                fOut.write(0x00);
+                fOut.write(0x00); // LEC block size (4 bytes)
+                
+                fOut.write(memory.isLecPaged() == true ? 0x01 : 0x00);
+                fOut.write(0x00); // Flags
+                
+                fOut.write(memory.getPageLec()); // active page
+                
+                fOut.write(0x10); // 16 Ram pages
+                
+                // LEC RAM Pages (0 to 14, 15 is at the upper 32 KB Spectrum RAM)
+                blockID = "LCRP";
+                for (int page = 0; page < 15; page++) {
+                    if (spectrum.getMemoryState().getLecPageRam(page) != null) {
+                        ram = memory.getLecPageRam(page);
+                        baos = new ByteArrayOutputStream();
+                        dos = new DeflaterOutputStream(baos);
+                        dos.write(ram, 0, ram.length);
+                        dos.close();
+//                    System.out.println(String.format("Ram page: %d, compressed len: %d",
+//                        page, baos.size()));
+                        fOut.write(blockID.getBytes("US-ASCII"));
+                        int pageLen = baos.size() + 3;
+                        fOut.write(pageLen);
+                        fOut.write(pageLen >>> 8);
+                        fOut.write(pageLen >>> 16);
+                        fOut.write(pageLen >>> 24);
+                        fOut.write(ZXSTLCRPF_COMPRESSED);
+                        fOut.write(0x00);
+                        fOut.write(page);
+                        baos.writeTo(fOut);
+                    }
+                }
+            }
         } catch (IOException ex) {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
         } finally {
