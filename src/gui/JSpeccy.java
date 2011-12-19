@@ -70,6 +70,7 @@ public class JSpeccy extends javax.swing.JFrame {
     SettingsDialog settingsDialog;
     MicrodriveDialog microdriveDialog;
     MemoryBrowserDialog memoryBrowserDialog;
+    LoadSaveMemoryDialog loadSaveMemoryDialog;
     FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     SnapshotSZX snapSZX; // for SZX snapshots
@@ -657,6 +658,9 @@ public class JSpeccy extends javax.swing.JFrame {
         loadMemorySnapshot = new javax.swing.JMenuItem();
         saveMemorySnapshot = new javax.swing.JMenuItem();
         jSeparator15 = new javax.swing.JPopupMenu.Separator();
+        loadBinaryFile = new javax.swing.JMenuItem();
+        saveBinaryFile = new javax.swing.JMenuItem();
+        jSeparator16 = new javax.swing.JPopupMenu.Separator();
         loadScreenShot = new javax.swing.JMenuItem();
         saveScreenShot = new javax.swing.JMenuItem();
         jSeparator1 = new javax.swing.JSeparator();
@@ -1156,6 +1160,23 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     fileMenu.add(saveMemorySnapshot);
     fileMenu.add(jSeparator15);
+
+    loadBinaryFile.setText(bundle.getString("JSpeccy.loadBinaryFile.text")); // NOI18N
+    loadBinaryFile.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            loadBinaryFileActionPerformed(evt);
+        }
+    });
+    fileMenu.add(loadBinaryFile);
+
+    saveBinaryFile.setText(bundle.getString("JSpeccy.saveBinaryFile.text")); // NOI18N
+    saveBinaryFile.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            saveBinaryFileActionPerformed(evt);
+        }
+    });
+    fileMenu.add(saveBinaryFile);
+    fileMenu.add(jSeparator16);
 
     loadScreenShot.setText(bundle.getString("JSpeccy.loadScreenShot.text")); // NOI18N
     loadScreenShot.addActionListener(new java.awt.event.ActionListener() {
@@ -2512,6 +2533,22 @@ public class JSpeccy extends javax.swing.JFrame {
         memorySnapshot = spectrum.getSpectrumState();
         loadMemorySnapshot.setEnabled(true);
     }//GEN-LAST:event_saveMemorySnapshotActionPerformed
+
+    private void loadBinaryFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadBinaryFileActionPerformed
+        if (loadSaveMemoryDialog == null)
+            loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
+        
+        loadSaveMemoryDialog.showLoadDialog(this);
+        // The display area may have been affected
+        spectrum.invalidateScreen(false);
+    }//GEN-LAST:event_loadBinaryFileActionPerformed
+
+    private void saveBinaryFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveBinaryFileActionPerformed
+        if (loadSaveMemoryDialog == null)
+            loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
+        
+        loadSaveMemoryDialog.showSaveDialog(this);
+    }//GEN-LAST:event_saveBinaryFileActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2571,6 +2608,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator jSeparator13;
     private javax.swing.JPopupMenu.Separator jSeparator14;
     private javax.swing.JPopupMenu.Separator jSeparator15;
+    private javax.swing.JPopupMenu.Separator jSeparator16;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -2585,6 +2623,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JDialog keyboardHelper;
     private javax.swing.JLabel keyboardImage;
     private javax.swing.JRadioButton linkedRadioButton;
+    private javax.swing.JMenuItem loadBinaryFile;
     private javax.swing.JMenuItem loadMemorySnapshot;
     private javax.swing.JMenuItem loadScreenShot;
     private javax.swing.JMenu machineMenu;
@@ -2619,6 +2658,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JMenuItem rewindTapeMediaMenu;
+    private javax.swing.JMenuItem saveBinaryFile;
     private javax.swing.JMenuItem saveMemorySnapshot;
     private javax.swing.JMenuItem saveScreenShot;
     private javax.swing.JMenuItem saveSnapshot;
