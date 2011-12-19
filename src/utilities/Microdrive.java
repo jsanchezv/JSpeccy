@@ -2,34 +2,8 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  * 
- * MDVT file format
+ * MDVT file format: http://www.worldofspectrum.org/forums/showthread.php?t=37039
  *
- * 'MDVT' (4 bytes)
- * HEADER LENGTH (4 bytes) [from VERSION to #GAP ENTRIES, first 8 bytes not included]
- *
- * VERSION (2 bytes) [Major.Minor]
- * FLAGS (2 bytes) [COMPRESSED, CONVERTED, WR-PROT]
- * RAW SECTOR SIZE [2 bytes]
- * NUM SECTORS [2 byte]
- * GAP SIZE USED (1 byte) [in converted mdr files]
- * FIRST GAP STATE (1 byte)
- * # GAP ENTRIES (2 bytes) [CSW coded]
- *
- * CREATOR LENGTH (1 bytes)
- * CREATOR FIELD (CREATOR LENGTH bytes)
- *
- * COMMENTS LENGTH (1 bytes)
- * COMMENTS FIELD (COMMENTS LENGTH bytes)
- *
- * DATA (RAW SECTOR SIZE * NUM SECTORS bytes)
- * GAP DATA (# GAP ENTRIES  * 2 bytes)
- *
- * FLAGS
- * -------------
- * WR_PROT 0x01
- * COMPRESSED 0x02
- * CONVERTED 0x04
- * 
  */
 package utilities;
 
@@ -356,12 +330,20 @@ public class Microdrive {
                 numSectors = (header[6] & 0xff) | ((header[7] << 8) & 0xff00);
                 int gapEntries = (header[10] & 0xff) | ((header[11] << 8) & 0xff00);
                 
-                int creatorLen = fIn.read() & 0xff;
-                if (creatorLen > 0)
-                    fIn.skip(creatorLen);
-                int commentsLen = fIn.read() & 0xff;
-                if (commentsLen > 0)
-                    fIn.skip(commentsLen);       
+                // Creator field
+                int lenTextField = fIn.read() & 0xff;
+                if (lenTextField > 0)
+                    fIn.skip(lenTextField);
+                
+                // Description field
+                lenTextField = fIn.read() & 0xff;
+                if (lenTextField > 0)
+                    fIn.skip(lenTextField);
+                
+                // Comments field
+                lenTextField = fIn.read() & 0xff;
+                if (lenTextField > 0)
+                    fIn.skip(lenTextField);
 
                 if ((header[2] & MDVT_COMPRESSED) != 0) {
                     // Block is compressed
@@ -546,11 +528,16 @@ public class Microdrive {
             fOut.write(buflen >>> 9);
             
             // Creator ID
-            String creatorID = "JSpeccy 0.89 (15/12/2011)";
+            String creatorID = "JSpeccy 0.89 (19/12/2011)";
             // Creator Length
-            fOut.write(creatorID.length());
+            byte[] fieldText = creatorID.getBytes("UTF-8");
+            int fieldLen = fieldText.length < 256 ? fieldText.length : 255;
+            fOut.write(fieldLen);
             // Creator message
-            fOut.write(creatorID.getBytes("US-ASCII"));
+            fOut.write(fieldText, 0, fieldLen);
+            
+            // Desription length
+            fOut.write(0x00);
             
             // Comments length
             fOut.write(0x00);
