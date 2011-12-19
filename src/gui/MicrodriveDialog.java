@@ -158,7 +158,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         });
         popupMenu.add(saveAsCartridge);
 
-        setPreferredSize(new java.awt.Dimension(500, 205));
+        setPreferredSize(new java.awt.Dimension(500, 210));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         jPanel1.setLayout(new javax.swing.BoxLayout(jPanel1, javax.swing.BoxLayout.LINE_AXIS));
