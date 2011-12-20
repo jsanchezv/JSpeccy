@@ -124,7 +124,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
         setMaximumSize(new java.awt.Dimension(520, 800));
         setMinimumSize(new java.awt.Dimension(30, 200));
-        setPreferredSize(new java.awt.Dimension(512, 430));
+        setPreferredSize(new java.awt.Dimension(512, 415));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         headerBrowserPanel.setPreferredSize(new java.awt.Dimension(512, 21));
@@ -164,6 +164,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         informationPanel.setMinimumSize(new java.awt.Dimension(513, 34));
         informationPanel.setPreferredSize(new java.awt.Dimension(512, 34));
 
+        informationLabel.setForeground(new java.awt.Color(255, 0, 0));
         informationLabel.setText(bundle.getString("MemoryBrowserDialog.informationLabel.txt")); // NOI18N
         informationPanel.add(informationLabel);
         informationPanel.add(filler5);
