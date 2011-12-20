@@ -124,7 +124,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
         setMaximumSize(new java.awt.Dimension(520, 800));
         setMinimumSize(new java.awt.Dimension(30, 200));
-        setPreferredSize(new java.awt.Dimension(512, 415));
+        setPreferredSize(new java.awt.Dimension(512, 425));
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.PAGE_AXIS));
 
         headerBrowserPanel.setPreferredSize(new java.awt.Dimension(512, 21));
