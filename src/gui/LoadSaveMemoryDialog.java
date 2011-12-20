@@ -14,9 +14,11 @@ import java.awt.Component;
 import java.awt.Dialog.ModalityType;
 import java.awt.Frame;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -284,30 +286,62 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         SpinnerNumberModel snmSize = (SpinnerNumberModel) sizeSpinner.getModel();
         int start = snmAddress.getNumber().intValue();
         int size = snmSize.getNumber().intValue();
-        int maxAddress = rangeCombobox.getSelectedIndex() == 0 ? 0xFFFF : 0x3FFF;
+        int maxSize = rangeCombobox.getSelectedIndex() == 0 ? 0x10000 : 0x4000;
         String error;
 
         if (size == 0)
             return;
         
-        if (start + size > maxAddress) {
-            error = String.format(bundle.getString("SIZE_BINARY_ERROR"), maxAddress);
+        if (start + size > maxSize) {
+            error = String.format(bundle.getString("SIZE_BINARY_ERROR"), maxSize);
             JOptionPane.showMessageDialog(this, error,
                     bundle.getString("SIZE_BINARY_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         if (saveDialog) {
-            
+            BufferedOutputStream fOut = null;
+            try {
+                fOut = new BufferedOutputStream(new FileOutputStream(filename));
+
+                if (rangeCombobox.getSelectedIndex() == 0) {
+                    // Range 0x0000-0xFFFF
+                    for (int addr = start; addr < start + size; addr++) {
+                        fOut.write(memory.readByte(addr));
+                    }
+                } else {
+                    // Page Range
+                    for (int addr = start; addr < start + size; addr++) {
+                        fOut.write(memory.readByte(rangeCombobox.getSelectedIndex() - 1, addr));
+                    }
+                }
+                JOptionPane.showMessageDialog(this, bundle.getString("SAVE_BINARY_OK"),
+                        bundle.getString("SAVE_BINARY_OK_TITLE"), JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (FileNotFoundException excpt) {
+                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, excpt);
+            } catch (IOException ioExcpt) {
+                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ioExcpt);
+            } finally {
+                try {
+                    if (fOut != null)
+                        fOut.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            return;
         } else {
             BufferedInputStream fIn = null;
             try {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
-                if (maxAddress > 0x3FFF) {
+                if (rangeCombobox.getSelectedIndex() == 0) {
+                    // Range 0x0000-0xFFFF
                     for (int addr = start; addr < start + size; addr++) {
                         memory.writeByte(addr, (byte)(fIn.read() & 0xff));
                     }
                 } else {
+                    // Page Range
                     for (int addr = start; addr < start + size; addr++) {
                         memory.writeByte(rangeCombobox.getSelectedIndex() - 1,
                                 addr, (byte)(fIn.read() & 0xff));
@@ -321,7 +355,8 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
                 Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
             } finally {
                 try {
-                    fIn.close();
+                    if (fIn != null)
+                        fIn.close();
                 } catch (IOException ex) {
                     Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
                 }
