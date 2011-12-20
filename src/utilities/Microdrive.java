@@ -424,7 +424,8 @@ public class Microdrive {
             return false;
         } finally {
             try {
-                fIn.close();
+                if (fIn != null)
+                    fIn.close();
             } catch (IOException ex) {
                 Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
@@ -559,7 +560,8 @@ public class Microdrive {
             return false;
         } finally {
             try {
-                fOut.close();
+                if (fOut != null)
+                    fOut.close();
             } catch (IOException ex) {
                 Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
             }

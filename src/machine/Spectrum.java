@@ -1391,7 +1391,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 // Needs to be a screen file (size == 6912) or a
                 // ULAplus screen file (size == 6912 + 64)
                 if (fIn.available() != 6912 && fIn.available() != 6976) {
-                    fIn.close();
                     return false;
                 }
 
