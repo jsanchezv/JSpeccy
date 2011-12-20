@@ -64,8 +64,6 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         if (loadSaveMemoryDialog == null) {
             loadSaveMemoryDialog = new JDialog(owner, false);
             loadSaveMemoryDialog.setModalityType(ModalityType.APPLICATION_MODAL);
-//            loadSaveMemoryDialog.setMinimumSize(new Dimension(30, 200));
-//            loadSaveMemoryDialog.setMaximumSize(new Dimension(520, 800));
             loadSaveMemoryDialog.getContentPane().add(this);
             loadSaveMemoryDialog.pack();
         }
@@ -73,7 +71,6 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         saveDialog = false;
         filename = null;
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-//        closeButton.setText(bundle.getString("LoadSaveMemoryDialog.closeButton.text"));
         loadSaveMemoryDialog.setTitle(bundle.getString("LoadSaveMemoryDialog.LoadTitle.text"));
         fileChoosedLabel.setText(bundle.getString("LoadSaveMemoryDialog.fileChoosedLabel.text"));
         addressSpinner.setEnabled(false);
@@ -97,8 +94,6 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         if (loadSaveMemoryDialog == null) {
             loadSaveMemoryDialog = new JDialog(owner, false);
             loadSaveMemoryDialog.setModalityType(ModalityType.APPLICATION_MODAL);
-//            loadSaveMemoryDialog.setMinimumSize(new Dimension(30, 200));
-//            loadSaveMemoryDialog.setMaximumSize(new Dimension(520, 800));
             loadSaveMemoryDialog.getContentPane().add(this);
             loadSaveMemoryDialog.pack();
         }
@@ -106,7 +101,6 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         saveDialog = true;
         filename = null;
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-//        closeButton.setText(bundle.getString("LoadSaveMemoryDialog.closeButton.text"));
         loadSaveMemoryDialog.setTitle(bundle.getString("LoadSaveMemoryDialog.SaveTitle.text"));
         fileChoosedLabel.setText(bundle.getString("LoadSaveMemoryDialog.fileChoosedLabel.text"));
         addressSpinner.setEnabled(false);
