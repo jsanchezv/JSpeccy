@@ -251,7 +251,7 @@ public class Tape {
 
         // Hay que quitar los caracteres especiales
         for (int car = 0; car < len; car++) {
-            if (tapeBuffer[offset + car] > 31 && tapeBuffer[offset + car] < 128) {
+            if ((tapeBuffer[offset + car] & 0xff) > 31 && (tapeBuffer[offset + car] & 0xff) < 128) {
                 msg[car] = tapeBuffer[offset + car];
             } else {
                 msg[car] = '?'; // sustituir el carácter no imprimible
@@ -1379,7 +1379,7 @@ public class Tape {
                     repeat = false;
                     break;
                 case 0x19: // Generalized Data Block
-                    printGDBHeader(tapePos);
+//                    printGDBHeader(tapePos);
                     idxHeader++;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
@@ -1460,28 +1460,28 @@ public class Tape {
 //                    tapeBuffer.length, tapePos, blockLen));
     }
 
-    private void printGDBHeader(int index) {
-        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8)
-                + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
-        int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
-        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8)
-                + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
-        int npp = tapeBuffer[index + 11];
-        int asp = tapeBuffer[index + 12];
-        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8)
-                + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
-        int npd = tapeBuffer[index + 17];
-        int asd = tapeBuffer[index + 18];
-
-        System.out.println(String.format("GDB size: %d", blkLenght));
-        System.out.println(String.format("Pause: %d ms", pause));
-        System.out.println(String.format("TOTP: %d", totp));
-        System.out.println(String.format("NPP: %d", npp));
-        System.out.println(String.format("ASP: %d", asp));
-        System.out.println(String.format("TOTD: %d", totd));
-        System.out.println(String.format("NPD: %d", npd));
-        System.out.println(String.format("ASD: %d", asd));
-    }
+//    private void printGDBHeader(int index) {
+//        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8)
+//                + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
+//        int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
+//        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8)
+//                + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
+//        int npp = tapeBuffer[index + 11];
+//        int asp = tapeBuffer[index + 12];
+//        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8)
+//                + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
+//        int npd = tapeBuffer[index + 17];
+//        int asd = tapeBuffer[index + 18];
+//
+//        System.out.println(String.format("GDB size: %d", blkLenght));
+//        System.out.println(String.format("Pause: %d ms", pause));
+//        System.out.println(String.format("TOTP: %d", totp));
+//        System.out.println(String.format("NPP: %d", npp));
+//        System.out.println(String.format("ASP: %d", asp));
+//        System.out.println(String.format("TOTD: %d", totd));
+//        System.out.println(String.format("NPD: %d", npd));
+//        System.out.println(String.format("ASD: %d", asd));
+//    }
 
     private boolean playCsw() {
         switch (statePlay) {

@@ -298,7 +298,7 @@ public class SnapshotZ80 {
                             }
 
                             spectrum.setConnectedIF1(true);
-                            if (z80Header2[4] == 0xff) {
+                            if ((z80Header2[4] & 0xff) == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
@@ -319,7 +319,7 @@ public class SnapshotZ80 {
                             }
 
                             spectrum.setConnectedIF1(true);
-                            if (z80Header2[4] == 0xff) {
+                            if ((z80Header2[4] & 0xff) == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
@@ -340,7 +340,7 @@ public class SnapshotZ80 {
                             throw new SnapshotException("UNSUPPORTED_SNAPSHOT");
                     }
                 } else { // Z80 v3
-                    switch (z80Header2[2]& 0xff) {
+                    switch (z80Header2[2] & 0xff) {
                         case 0: // 48k
                             if (modifiedHW) {
                                 spectrum.setSpectrumModel(MachineTypes.SPECTRUM16K);
@@ -358,7 +358,7 @@ public class SnapshotZ80 {
                             }
 
                             spectrum.setConnectedIF1(true);
-                            if (z80Header2[4] == 0xff) {
+                            if ((z80Header2[4] & 0xff) == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;
@@ -379,7 +379,7 @@ public class SnapshotZ80 {
                             }
 
                             spectrum.setConnectedIF1(true);
-                            if (z80Header2[4] == 0xff) {
+                            if ((z80Header2[4] & 0xff) == 0xff) {
                                 memory.setIF1RomPaged(true);
                             }
                             break;

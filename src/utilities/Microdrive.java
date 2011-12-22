@@ -332,18 +332,24 @@ public class Microdrive {
                 
                 // Creator field
                 int lenTextField = fIn.read() & 0xff;
-                if (lenTextField > 0)
-                    fIn.skip(lenTextField);
+                if (lenTextField > 0) {
+                    if (fIn.skip(lenTextField) != lenTextField)
+                        return false;
+                }
                 
                 // Description field
                 lenTextField = fIn.read() & 0xff;
-                if (lenTextField > 0)
-                    fIn.skip(lenTextField);
+                if (lenTextField > 0) {
+                    if (fIn.skip(lenTextField) != lenTextField)
+                        return false;
+                }
                 
                 // Comments field
                 lenTextField = fIn.read() & 0xff;
-                if (lenTextField > 0)
-                    fIn.skip(lenTextField);
+                if (lenTextField > 0) {
+                    if (fIn.skip(lenTextField) != lenTextField)
+                        return false;
+                }
 
                 if ((header[2] & MDVT_COMPRESSED) != 0) {
                     // Block is compressed

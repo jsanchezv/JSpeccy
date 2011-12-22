@@ -206,10 +206,10 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         if1.insertNew(row);
         tableModel.fireTableRowsUpdated(row, row);
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-            int ret = JOptionPane.showConfirmDialog(microdriveDialog.getContentPane(),
-                  bundle.getString("NEW_CARTRIDGE_WARNING"),
-                  bundle.getString("NEW_CARTRIDGE_WARNING_TITLE"),
-                  JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE); // NOI18N
+            JOptionPane.showConfirmDialog(microdriveDialog.getContentPane(),
+            bundle.getString("NEW_CARTRIDGE_WARNING"),
+            bundle.getString("NEW_CARTRIDGE_WARNING_TITLE"),
+            JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE); // NOI18N
     }//GEN-LAST:event_newCartridgeActionPerformed
 
     private void openCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openCartridgeActionPerformed

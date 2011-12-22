@@ -136,22 +136,31 @@ public class JSpeccy extends javax.swing.JFrame {
 
         // Si el archivo de configuración no existe, lo crea de nuevo en el
         // directorio actual copiándolo del bueno que hay siempre en el .jar
+        InputStream input = null;
+        BufferedOutputStream output = null;
         try {
-            InputStream input = Spectrum.class.getResourceAsStream("/schema/JSpeccy.xml");
-            FileOutputStream output = new FileOutputStream("JSpeccy.xml");
+            input = Spectrum.class.getResourceAsStream("/schema/JSpeccy.xml");
+            output = new BufferedOutputStream (new FileOutputStream("JSpeccy.xml"));
 
-            int value = input.read();
-            while (value != -1) {
-                output.write(value & 0xff);
-                value = input.read();
-            }
-
-            input.close();
-            output.close();
+            byte[] fileConf = new byte[input.available()];
+            input.read(fileConf);
+            output.write(fileConf, 0, fileConf.length);
         } catch (FileNotFoundException notFoundExcpt) {
             Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, notFoundExcpt);
         } catch (IOException ioExcpt) {
             Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ioExcpt);
+        } finally {
+            try {
+                if (input != null) {
+                    input.close();
+                }
+                
+                if (output != null) {
+                    output.close();
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 
@@ -2087,9 +2096,10 @@ public class JSpeccy extends javax.swing.JFrame {
             currentFileTape = openTapeDlg.getSelectedFile();
             
             try {
-                currentFileTape.createNewFile();
-                tape.eject();
-                if (tape.insert(currentFileTape)) {
+                boolean res = currentFileTape.createNewFile();
+                if (res)
+                    tape.eject();
+                if (res && tape.insert(currentFileTape)) {
                     rotateRecentFile(currentFileTape);
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
