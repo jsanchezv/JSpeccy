@@ -40,6 +40,7 @@ public class Microdrive {
     private static final int MDVT_WR_PROT = 0x01;       // Cartridge protected flag
     private static final int MDVT_COMPRESSED = 0x02;    // Cartridge data is compressed
     private static final int MDVT_MDR_CONVERTED = 0x04; // Cartridge converted from MDR
+    private static final int MDVT_UNFORMATTED = 0x08;   // Cartridge created but unformatted
 
     private static final byte GAP = 0x04;
     private static final byte SYNC = 0x02;
@@ -60,7 +61,7 @@ public class Microdrive {
     private int mdrSectors;
     private int sectorSize;
     private boolean isCartridge;
-    private boolean modified;
+    private boolean modified, unformatted;
     private boolean writeProtected;
     private boolean wrGapPending;
     private boolean mdrFile;
@@ -189,6 +190,8 @@ public class Microdrive {
 
         clockGap[cartridgePos] = CLOCK_DATA;
         cartridge[cartridgePos] = (byte) value;
+        modified = true;
+        unformatted = false;
         
         if (++cartridgePos >= clockGap.length)
             cartridgePos = 0;
@@ -234,7 +237,7 @@ public class Microdrive {
 
         isCartridge = true;
         writeProtected = mdrFile = false;
-        modified = true;
+        modified = unformatted = true;
         filename = null;
         this.numSectors = numSectors;
         cartridgePos = 0;
@@ -326,6 +329,7 @@ public class Microdrive {
                 
                 mdrFile = (header[2] & MDVT_MDR_CONVERTED) != 0;
                 writeProtected = (header[2] & MDVT_WR_PROT) != 0;
+                unformatted = (header[2] & MDVT_UNFORMATTED) != 0;
                 sectorSize = (header[4] & 0xff) | ((header[5] << 8) & 0xff00);
                 numSectors = (header[6] & 0xff) | ((header[7] << 8) & 0xff00);
                 int gapEntries = (header[10] & 0xff) | ((header[11] << 8) & 0xff00);
@@ -349,6 +353,19 @@ public class Microdrive {
                 if (lenTextField > 0) {
                     if (fIn.skip(lenTextField) != lenTextField)
                         return false;
+                }
+
+                if ((header[2] & MDVT_UNFORMATTED) != 0) {
+                    cartridge = new byte[sectorSize * numSectors];
+                    clockGap = new byte[sectorSize * numSectors];
+
+                     Arrays.fill(cartridge, DATA_FILLER);
+                     Arrays.fill(clockGap, CLOCK_GAP);
+
+                    unformatted = isCartridge = true;
+                    filename = fileName;
+                    cartridgePos = 0;
+                    return true;
                 }
 
                 if ((header[2] & MDVT_COMPRESSED) != 0) {
@@ -497,11 +514,16 @@ public class Microdrive {
             fOut.write(0x00); // MDV minor version
             
             // Flags (WORD)
-            int flags = MDVT_COMPRESSED;
+            int flags = 0x00;
             if (writeProtected)
                 flags |= MDVT_WR_PROT;
             if (mdrFile)
                 flags |= MDVT_MDR_CONVERTED;
+            if (unformatted)
+                flags |= MDVT_UNFORMATTED;
+            else
+                flags |= MDVT_COMPRESSED;
+            
             fOut.write(flags);
             fOut.write(flags >>> 8);
             
@@ -529,10 +551,16 @@ public class Microdrive {
             fOut.write(clockGap[0]);
             
             // GAP array length (WORD)
-            ByteArrayOutputStream buffer = createCswBuffer();
-            int buflen = buffer.size();
-            fOut.write(buflen >>> 1);
-            fOut.write(buflen >>> 9);
+            ByteArrayOutputStream buffer = null;
+            if (unformatted) {
+                fOut.write(0x00);
+                fOut.write(0x00);
+            } else {
+                buffer = createCswBuffer();
+                int buflen = buffer.size();
+                fOut.write(buflen >>> 1);
+                fOut.write(buflen >>> 9);
+            }
             
             // Creator ID
             String creatorID = "JSpeccy 0.89 (19/12/2011)";
@@ -549,17 +577,20 @@ public class Microdrive {
             // Comments length
             fOut.write(0x00);
             
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DeflaterOutputStream dos = new DeflaterOutputStream(baos);
-            // Sectors Data
-            dos.write(cartridge);
+            if (!unformatted) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DeflaterOutputStream dos = new DeflaterOutputStream(baos);
+                
+                // Sectors Data
+                dos.write(cartridge);
             
-            // GAP DATA
-            dos.write(buffer.toByteArray());
+                // GAP DATA
+                dos.write(buffer.toByteArray());
             
-            dos.close();
+                dos.close();
             
-            baos.writeTo(fOut);
+                baos.writeTo(fOut);
+            }
             
         } catch (IOException ex) {
             Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
