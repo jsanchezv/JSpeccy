@@ -224,7 +224,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         lecEnabled = new javax.swing.JCheckBox();
 
         setMinimumSize(new java.awt.Dimension(50, 50));
-        setPreferredSize(new java.awt.Dimension(400, 425));
+        setPreferredSize(new java.awt.Dimension(440, 400));
         setLayout(new java.awt.BorderLayout());
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
