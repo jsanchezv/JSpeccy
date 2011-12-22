@@ -10,4 +10,5 @@ package machine;
  */
 public interface Interface1DriveListener {
     public void driveSelected(final int drive);
+    public void driveModified(final int drive);
 }

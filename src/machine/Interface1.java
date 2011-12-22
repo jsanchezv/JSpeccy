@@ -104,6 +104,12 @@ public class Interface1 {
         }
     }
     
+    public void fireDriveWrited(final int unit) {
+        for (final Interface1DriveListener listener : driveListeners) {
+            listener.driveModified(unit);
+        }
+    }
+    
     public int readControlPort() {
         if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
 //            System.out.println(String.format("readControlPort: Unit %d selected",
@@ -183,6 +189,10 @@ public class Interface1 {
     
     public void writeDataPort(int value) {
         if (mdrFlipFlop != 0 && microdrive[mdrSelected].isCartridge()) {
+            if (!microdrive[mdrSelected].isModified()) {
+                fireDriveWrited(mdrSelected + 1);
+            }
+            
             microdrive[mdrSelected].writeData(value);
         }
     }

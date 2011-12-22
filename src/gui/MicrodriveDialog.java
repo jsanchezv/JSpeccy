@@ -25,6 +25,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import machine.Interface1;
+import machine.Interface1DriveListener;
 
 /**
  *
@@ -53,6 +54,22 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                 int row = microdrivesTable.rowAtPoint(evt.getPoint());
                 microdrivesTable.setToolTipText(if1.getAbsolutePath(row));
             }
+        });
+        
+        if1.addInterface1DriveListener(new Interface1DriveListener() {
+            
+            @Override
+            public void driveSelected(final int drive) {
+                // Nothing to do
+            }
+
+            @Override
+            public void driveModified(int drive) {
+                drive -= 1;
+                tableModel.fireTableRowsUpdated(drive, drive);
+                microdrivesTable.getSelectionModel().setSelectionInterval(drive, drive);
+            }
+
         });
         
         microdrivesTable.getColumnModel().getColumn(0).setPreferredWidth(25);

@@ -321,6 +321,11 @@ public class JSpeccy extends javax.swing.JFrame {
                         ResourceBundle.getBundle("gui/Bundle").getString("MICRODRIVE_RUNNING"), unit));
                 }
             }
+
+            @Override
+            public void driveModified(int drive) {
+                // Nothing to do
+            }
         });
 
         getContentPane().add(jscr, BorderLayout.CENTER);
