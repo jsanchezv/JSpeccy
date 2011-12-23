@@ -563,7 +563,7 @@ public class Microdrive {
             }
             
             // Creator ID
-            String creatorID = "JSpeccy 0.89 (19/12/2011)";
+            String creatorID = "JSpeccy 0.89.1 (24/12/2011)";
             // Creator Length
             byte[] fieldText = creatorID.getBytes("UTF-8");
             int fieldLen = fieldText.length < 256 ? fieldText.length : 255;
