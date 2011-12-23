@@ -24,7 +24,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
-    private boolean doubleSize;
+    private int zoom;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
@@ -53,19 +53,35 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         tvImage = bImage;
     }
 
-    public void setDoubleSize(boolean doubled) {
-        doubleSize = doubled;
-        if (doubleSize) {
-            this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH * 2,
-                Spectrum.SCREEN_HEIGHT * 2));
+    public void setZoom(int zoom) {
+        if (this.zoom == zoom)
+            return;
+        
+        if (zoom < 2)
+            zoom = 1;
+        
+        if (zoom > 4)
+            zoom = 4;
+        
+        this.zoom = zoom;
+        
+        if (zoom > 1) {
+            escala = AffineTransform.getScaleInstance(zoom, zoom);
+            escalaOp = new AffineTransformOp(escala, renderHints);
+            this.setPreferredSize(
+                new Dimension(Spectrum.SCREEN_WIDTH * zoom, Spectrum.SCREEN_HEIGHT * zoom));
         } else {
-            this.setPreferredSize(new Dimension(Spectrum.SCREEN_WIDTH,
-                Spectrum.SCREEN_HEIGHT));
+            this.setPreferredSize(
+                new Dimension(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT));
         }
     }
 
-    public boolean isDoubleSized() {
-        return doubleSize;
+    public int getZoom() {
+        return zoom;
+    }
+    
+    public boolean isZoomed() {
+        return zoom > 1;
     }
 
     @Override
@@ -73,10 +89,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         //super.paintComponent(gc);
         Graphics2D gc2 = (Graphics2D) gc;
 
-        if (doubleSize) {
+        if (zoom > 1) {
             gc2.drawImage(tvImage, escalaOp, 0, 0);
-//            gc2.drawImage(tvImage, 0, 0, Spectrum.SCREEN_WIDTH * 2,
-//                    Spectrum.SCREEN_HEIGHT * 2, null);
         } else {
             gc2.drawImage(tvImage, 0, 0, null);
         }

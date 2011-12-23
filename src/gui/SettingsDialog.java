@@ -69,7 +69,9 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         speed.setValue(settings.getSpectrumSettings().getFramesInt());
 
-        doubleSize.setSelected(settings.getSpectrumSettings().isDoubleSize());
+        zoomCheckbox.setSelected(settings.getSpectrumSettings().isZoomed());
+        
+        zoomSlider.setValue(settings.getSpectrumSettings().getZoom());
 
         if (settings.getKeyboardJoystickSettings().isIssue2()) {
             issue2.setSelected(true);
@@ -156,7 +158,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         spectrumModel = new javax.swing.JComboBox();
         videoPanel = new javax.swing.JPanel();
         ULAplus = new javax.swing.JCheckBox();
-        doubleSize = new javax.swing.JCheckBox();
+        zoomPanel = new javax.swing.JPanel();
+        zoomCheckbox = new javax.swing.JCheckBox();
+        zoomLabel = new javax.swing.JLabel();
+        zoomSlider = new javax.swing.JSlider();
         highSpeedPanel = new javax.swing.JPanel();
         speed = new javax.swing.JSlider();
         autoSavePanel = new javax.swing.JPanel();
@@ -261,9 +266,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         hardwarePanelTab.add(defaultModelPanel);
 
         videoPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Video"));
-        videoPanel.setLayout(new java.awt.GridLayout(2, 0));
+        videoPanel.setLayout(new java.awt.GridLayout(2, 1));
 
         ULAplus.setText(bundle.getString("SettingsDialog.hardwarePanel.ULAplus.text")); // NOI18N
+        ULAplus.setPreferredSize(new java.awt.Dimension(440, 24));
         ULAplus.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 ULAplusActionPerformed(evt);
@@ -271,13 +277,38 @@ public class SettingsDialog extends javax.swing.JPanel {
         });
         videoPanel.add(ULAplus);
 
-        doubleSize.setText(bundle.getString("SettingsDialog.hardwarePanel.doubleSize.text")); // NOI18N
-        doubleSize.addActionListener(new java.awt.event.ActionListener() {
+        zoomPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        zoomPanel.setMaximumSize(new java.awt.Dimension(32767, 53));
+        zoomPanel.setPreferredSize(new java.awt.Dimension(100, 53));
+        zoomPanel.setLayout(new java.awt.GridLayout(1, 3));
+
+        zoomCheckbox.setText(bundle.getString("SettingsDialog.hardwarePanel.zoomCheckbox.text")); // NOI18N
+        zoomCheckbox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                doubleSizeActionPerformed(evt);
+                zoomCheckboxActionPerformed(evt);
             }
         });
-        videoPanel.add(doubleSize);
+        zoomPanel.add(zoomCheckbox);
+
+        zoomLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        zoomLabel.setText(bundle.getString("SettingsDialog.hardwarePanel.zoomLabel.text")); // NOI18N
+        zoomPanel.add(zoomLabel);
+
+        zoomSlider.setMajorTickSpacing(1);
+        zoomSlider.setMaximum(4);
+        zoomSlider.setMinimum(2);
+        zoomSlider.setPaintLabels(true);
+        zoomSlider.setPaintTicks(true);
+        zoomSlider.setSnapToTicks(true);
+        zoomSlider.setValue(2);
+        zoomSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                zoomSliderStateChanged(evt);
+            }
+        });
+        zoomPanel.add(zoomSlider);
+
+        videoPanel.add(zoomPanel);
 
         hardwarePanelTab.add(videoPanel);
 
@@ -750,10 +781,6 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getTapeSettings().setAccelerateLoading(acceleratedLoad.isSelected());
     }//GEN-LAST:event_acceleratedLoadActionPerformed
 
-    private void doubleSizeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doubleSizeActionPerformed
-        settings.getSpectrumSettings().setDoubleSize(doubleSize.isSelected());
-    }//GEN-LAST:event_doubleSizeActionPerformed
-
     private void enableSaveTrapsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enableSaveTrapsActionPerformed
         settings.getTapeSettings().setEnableSaveTraps(enableSaveTraps.isSelected());
     }//GEN-LAST:event_enableSaveTrapsActionPerformed
@@ -824,6 +851,14 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setLecEnabled(lecEnabled.isSelected());
     }//GEN-LAST:event_lecEnabledActionPerformed
 
+    private void zoomSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_zoomSliderStateChanged
+        settings.getSpectrumSettings().setZoom(zoomSlider.getValue());
+    }//GEN-LAST:event_zoomSliderStateChanged
+
+    private void zoomCheckboxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_zoomCheckboxActionPerformed
+        settings.getSpectrumSettings().setZoomed(zoomCheckbox.isSelected());
+    }//GEN-LAST:event_zoomCheckboxActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -847,7 +882,6 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JLabel connectedIF1InfoLabel;
     private javax.swing.JPanel connectedIF1Panel;
     private javax.swing.JPanel defaultModelPanel;
-    private javax.swing.JCheckBox doubleSize;
     private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;
@@ -905,6 +939,10 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JSlider speed;
     private javax.swing.JPanel tapePanelTab;
     private javax.swing.JPanel videoPanel;
+    private javax.swing.JCheckBox zoomCheckbox;
+    private javax.swing.JLabel zoomLabel;
+    private javax.swing.JPanel zoomPanel;
+    private javax.swing.JSlider zoomSlider;
     // End of variables declaration//GEN-END:variables
 
 }

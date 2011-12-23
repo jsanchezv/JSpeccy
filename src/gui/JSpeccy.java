@@ -337,12 +337,17 @@ public class JSpeccy extends javax.swing.JFrame {
             silenceSoundToggleButton.setSelected(true);
         }
 
-        if (settings.getSpectrumSettings().isDoubleSize()) {
-            jscr.setDoubleSize(true);
+        if (settings.getSpectrumSettings().isZoomed()) {
+            jscr.setZoom(settings.getSpectrumSettings().getZoom());
             doubleSizeOption.setSelected(true);
             doubleSizeToggleButton.setSelected(true);
-            pack();
+        } else {
+            jscr.setZoom(1);
+            doubleSizeOption.setSelected(false);
+            doubleSizeToggleButton.setSelected(false);
         }
+
+        pack();
 
         if (settings.getRecentFilesSettings().getRecentFile0() != null
             && !settings.getRecentFilesSettings().getRecentFile0().isEmpty()) {
@@ -1277,7 +1282,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     optionsMenu.setText(bundle.getString("JSpeccy.optionsMenu.text")); // NOI18N
 
-    doubleSizeOption.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_D, java.awt.event.InputEvent.ALT_MASK));
+    doubleSizeOption.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.ALT_MASK));
     doubleSizeOption.setText(bundle.getString("JSpeccy.doubleSizeOption.text")); // NOI18N
     doubleSizeOption.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1749,8 +1754,14 @@ public class JSpeccy extends javax.swing.JFrame {
         else
             doubleSizeOption.setSelected(doubleSizeToggleButton.isSelected());
 
-        settings.getSpectrumSettings().setDoubleSize(doubleSizeToggleButton.isSelected());
-        jscr.setDoubleSize(doubleSizeToggleButton.isSelected());
+        settings.getSpectrumSettings().setZoomed(doubleSizeOption.isSelected());
+        
+        if (settings.getSpectrumSettings().isZoomed()) {
+            jscr.setZoom(settings.getSpectrumSettings().getZoom());
+        } else {
+            jscr.setZoom(1);
+        }
+        
         pack();
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
 
@@ -2018,7 +2029,8 @@ public class JSpeccy extends javax.swing.JFrame {
         int AYsoundMode = settings.getAY8912Settings().getSoundMode();
         boolean hifiSound = settings.getSpectrumSettings().isHifiSound();
         boolean muted = settings.getSpectrumSettings().isMutedSound();
-        boolean doubleSize = settings.getSpectrumSettings().isDoubleSize();
+        boolean zoomed = settings.getSpectrumSettings().isZoomed();
+        int zoom = settings.getSpectrumSettings().getZoom();
         
         settingsDialog.showDialog(this, bundle.getString("SETTINGS_DIALOG_TITLE"));
         spectrum.loadConfigVars();
@@ -2038,11 +2050,16 @@ public class JSpeccy extends javax.swing.JFrame {
         
         updateGuiSelections();
         
-        if (doubleSize != settings.getSpectrumSettings().isDoubleSize()) {
-            doubleSizeToggleButton.setSelected(!doubleSize);
-            doubleSizeOption.setSelected(!doubleSize);
-            jscr.setDoubleSize(!doubleSize);
+        if (settings.getSpectrumSettings().isZoomed() != zoomed) {
+            doubleSizeToggleButton.setSelected(settings.getSpectrumSettings().isZoomed());
+            doubleSizeOption.setSelected(settings.getSpectrumSettings().isZoomed());
+            jscr.setZoom(settings.getSpectrumSettings().isZoomed() ? settings.getSpectrumSettings().getZoom() : 1);
             pack();
+        } else {
+            if (zoomed && zoom != settings.getSpectrumSettings().getZoom()) {
+                jscr.setZoom(settings.getSpectrumSettings().getZoom());
+                pack();
+            }
         }
     }//GEN-LAST:event_settingsOptionsMenuActionPerformed
 

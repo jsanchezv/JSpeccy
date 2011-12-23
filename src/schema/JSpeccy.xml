@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 12 de diciembre de 2011, 12:19
+    Created on : 23 de diciembre de 2011, 18:17
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -18,7 +18,8 @@
         <ns0:ULAplus>false</ns0:ULAplus>
         <ns0:defaultModel>1</ns0:defaultModel>
         <ns0:framesInt>2</ns0:framesInt>
-        <ns0:doubleSize>false</ns0:doubleSize>
+        <ns0:zoomed>false</ns0:zoomed>
+        <ns0:zoom>2</ns0:zoom>
         <ns0:multifaceEnabled>false</ns0:multifaceEnabled>
         <ns0:mf128on48K>false</ns0:mf128on48K>
         <ns0:hifiSound>false</ns0:hifiSound>

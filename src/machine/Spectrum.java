@@ -609,9 +609,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             firstLine = repaintTable[firstLine & 0x1fff];
             lastLine = repaintTable[lastLine & 0x1fff];
 
-            if (jscr.isDoubleSized()) {
-                jscr.repaint(BORDER_WIDTH * 2 + leftCol * 16, (BORDER_WIDTH + firstLine) * 2,
-                    (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2);
+            if (jscr.isZoomed()) {
+                int zoom = jscr.getZoom();
+                jscr.repaint(BORDER_WIDTH * zoom + leftCol * 8 * zoom, (BORDER_WIDTH + firstLine) * zoom,
+                    (rightCol - leftCol + 1) * 8 * zoom, (lastLine - firstLine + 1) * zoom);
 //                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
 //                        BORDER_WIDTH * 2 + leftCol * 16, (BORDER_WIDTH + firstLine) * 2,
 //                        (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2));
