@@ -27,7 +27,15 @@
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
-            <xsd:element name="doubleSize" type="xsd:boolean" default="false"/>
+            <xsd:element name="zoomed" type="xsd:boolean" default="false"/>
+            <xsd:element name="zoom" default="2">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:int">
+                        <xsd:maxInclusive value="4"/>
+                        <xsd:minInclusive value="2"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
             <xsd:element name="multifaceEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="mf128on48K" default="false" type="xsd:boolean"/>
             <xsd:element name="hifiSound" type="xsd:boolean" default="false"/>
