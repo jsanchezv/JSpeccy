@@ -1753,8 +1753,10 @@ public class Tape {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        
+        File tmp = filename;
         eject();
-        insert(filename);
+        insert(tmp);
         return true;
     }
 
@@ -1854,8 +1856,9 @@ public class Tape {
         }
         
         tapeRecording = false;
+        File tmp = filename;
         eject();
-        insert(filename);
+        insert(tmp);
 
         return true;
     }
