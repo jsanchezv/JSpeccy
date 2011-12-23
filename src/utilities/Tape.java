@@ -1888,7 +1888,7 @@ public class Tape {
             }
         } else { // DRB
             int pulses = len + (freqSample >>> 1);
-            pulses = len / freqSample;
+            pulses /= freqSample;
             while (pulses-- > 0) {
                 if (bitsLastByte == 8) {
                     record.write(byteTmp);
