@@ -12,6 +12,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import machine.Spectrum;
 
 /**
@@ -21,10 +22,13 @@ import machine.Spectrum;
 public class JSpeccyScreen extends javax.swing.JComponent {
 
     private BufferedImage tvImage;
+    private BufferedImage tvImageFiltered;
+    private Graphics2D tvImageFilteredGc;
     private AffineTransform escala;
     private AffineTransformOp escalaOp;
     private RenderingHints renderHints;
     private int zoom;
+    private int[] imageBuffer;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
@@ -32,7 +36,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         renderHints.put(RenderingHints.KEY_RENDERING,
             RenderingHints.VALUE_RENDER_SPEED);
         renderHints.put(RenderingHints.KEY_ANTIALIASING,
@@ -47,6 +51,12 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             Spectrum.SCREEN_HEIGHT));
         setPreferredSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
             Spectrum.SCREEN_HEIGHT));
+        
+        tvImageFiltered = new BufferedImage(Spectrum.SCREEN_WIDTH * 2, Spectrum.SCREEN_HEIGHT * 2,
+            BufferedImage.TYPE_INT_RGB);
+        imageBuffer =
+            ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
+        tvImageFilteredGc = tvImageFiltered.createGraphics();
     }
 
     public void setTvImage(BufferedImage bImage) {
@@ -90,12 +100,32 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         Graphics2D gc2 = (Graphics2D) gc;
 
         if (zoom > 1) {
-            gc2.drawImage(tvImage, escalaOp, 0, 0);
+            tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
+            drawScanlines();
+            gc2.drawImage(tvImageFiltered, 0, 0, null);
+//            gc2.drawImage(tvImageFiltered, escalaOp, 0, 0);
         } else {
             gc2.drawImage(tvImage, 0, 0, null);
         }
     }
 
+    public void drawScanlines() {
+        int pos = 0;
+        
+        while (pos < imageBuffer.length) {
+            if (pos % 640 == 0)
+                pos += 640;
+            
+//            int red = (int) ((imageBuffer[pos] >>> 16) * 0.60f);
+//            int green = (int) (((imageBuffer[pos] >>> 8) & 0xff) * 0.60f);
+//            int blue = (int) ((imageBuffer[pos] & 0xff) * 0.60f);
+            int red = imageBuffer[pos] >>> 17;
+            int green = (imageBuffer[pos] & 0x00ff00) >>> 9;
+            int blue = imageBuffer[pos] & 0xff >>> 1;
+            imageBuffer[pos] = (red << 16) | (green << 8)  | blue;
+            pos++;
+        }
+    }
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is

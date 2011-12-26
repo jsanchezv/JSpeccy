@@ -704,6 +704,7 @@ public class JSpeccy extends javax.swing.JFrame {
         machineMenu = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
         silenceMachineMenu = new javax.swing.JCheckBoxMenuItem();
+        jSeparator17 = new javax.swing.JPopupMenu.Separator();
         resetMachineMenu = new javax.swing.JMenuItem();
         hardResetMachineMenu = new javax.swing.JMenuItem();
         nmiMachineMenu = new javax.swing.JMenuItem();
@@ -1384,6 +1385,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     machineMenu.add(silenceMachineMenu);
+    machineMenu.add(jSeparator17);
 
     resetMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
     resetMachineMenu.setText(bundle.getString("JSpeccy.resetMachineMenu.text")); // NOI18N
@@ -2641,6 +2643,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator jSeparator14;
     private javax.swing.JPopupMenu.Separator jSeparator15;
     private javax.swing.JPopupMenu.Separator jSeparator16;
+    private javax.swing.JPopupMenu.Separator jSeparator17;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
