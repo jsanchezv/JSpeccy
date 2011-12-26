@@ -29,6 +29,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private RenderingHints renderHints;
     private int zoom;
     private int[] imageBuffer;
+    private int[] percentColor= new int[256];
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
@@ -36,7 +37,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
         renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         renderHints.put(RenderingHints.KEY_RENDERING,
             RenderingHints.VALUE_RENDER_SPEED);
         renderHints.put(RenderingHints.KEY_ANTIALIASING,
@@ -57,6 +58,11 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         imageBuffer =
             ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
         tvImageFilteredGc = tvImageFiltered.createGraphics();
+        
+        percentColor[0] = 0;
+        for (int color = 1; color < percentColor.length; color++) {
+            percentColor[color] = (int)(color * 0.70f);
+        }
     }
 
     public void setTvImage(BufferedImage bImage) {
@@ -101,7 +107,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         if (zoom > 1) {
             tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-            drawScanlines();
+            filterRGB2x();
+//            drawScanlines();
             gc2.drawImage(tvImageFiltered, 0, 0, null);
 //            gc2.drawImage(tvImageFiltered, escalaOp, 0, 0);
         } else {
@@ -112,18 +119,62 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     public void drawScanlines() {
         int pos = 0;
         
+        int width = Spectrum.SCREEN_WIDTH * zoom;
+        
         while (pos < imageBuffer.length) {
-            if (pos % 640 == 0)
-                pos += 640;
+            if (pos % width == 0)
+                pos += width;
             
-//            int red = (int) ((imageBuffer[pos] >>> 16) * 0.60f);
-//            int green = (int) (((imageBuffer[pos] >>> 8) & 0xff) * 0.60f);
-//            int blue = (int) ((imageBuffer[pos] & 0xff) * 0.60f);
-            int red = imageBuffer[pos] >>> 17;
-            int green = (imageBuffer[pos] & 0x00ff00) >>> 9;
-            int blue = imageBuffer[pos] & 0xff >>> 1;
+            int color = imageBuffer[pos];
+            if (color == 0) {
+                pos++;
+                continue;
+            }
+            
+            int red = percentColor[color >>> 16];
+            int green = percentColor[(color >>> 8) & 0xff];
+            int blue = percentColor[color & 0xff];
             imageBuffer[pos] = (red << 16) | (green << 8)  | blue;
             pos++;
+        }
+    }
+    
+    public void filterRGB2x() {
+        int pixel = 0;
+
+        while (pixel < imageBuffer.length) {
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+//                 imageBuffer[pixel++] &= 0xff0000;
+                pixel++;
+                int color = imageBuffer[pixel];
+                if (color == 0) {
+                    pixel++;
+                    continue;
+                }
+
+                int red = percentColor[color >>> 16];
+                int green = percentColor[(color >>> 8) & 0xff];
+                int blue = percentColor[color & 0xff];
+                imageBuffer[pixel++] = (red << 16) | (green << 8)  | blue;
+//                imageBuffer[pixel++] &= 0x00ff00;
+
+            }
+
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+//                imageBuffer[pixel] &= 0x0000ff;
+                int color = imageBuffer[pixel];
+                if (color == 0) {
+                    pixel += 2;
+                    continue;
+                }
+
+                int red = percentColor[color >>> 16];
+                int green = percentColor[(color >>> 8) & 0xff];
+                int blue = percentColor[color & 0xff];
+                imageBuffer[pixel] = (red << 16) | (green << 8)  | blue;
+                pixel += 2;
+
+            }
         }
     }
     /** This method is called from within the constructor to
