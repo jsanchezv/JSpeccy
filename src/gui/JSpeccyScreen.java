@@ -57,11 +57,11 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             BufferedImage.TYPE_INT_RGB);
         imageBuffer =
             ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
-        tvImageFilteredGc = tvImageFiltered.createGraphics();
+//        tvImageFilteredGc = tvImageFiltered.createGraphics();
         
         percentColor[0] = 0;
         for (int color = 1; color < percentColor.length; color++) {
-            percentColor[color] = (int)(color * 0.70f);
+            percentColor[color] = (int)(color * 0.50f);
         }
     }
 
@@ -105,76 +105,65 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         //super.paintComponent(gc);
         Graphics2D gc2 = (Graphics2D) gc;
 
-        if (zoom > 1) {
-            tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-            filterRGB2x();
+        switch (zoom) {
+            case 2:
+                tvImageFilteredGc = tvImageFiltered.createGraphics();
+                tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //            drawScanlines();
-            gc2.drawImage(tvImageFiltered, 0, 0, null);
-//            gc2.drawImage(tvImageFiltered, escalaOp, 0, 0);
-        } else {
-            gc2.drawImage(tvImage, 0, 0, null);
+                filterRGB2x();
+                gc2.drawImage(tvImageFiltered, 0, 0, null);
+                tvImageFilteredGc.dispose();
+                break;
+            default:
+                gc2.drawImage(tvImage, 0, 0, null);
         }
     }
-
-    public void drawScanlines() {
-        int pos = 0;
+    
+    public void drawScanlines2x() {
+        int color = 0, res = 0;
         
-        int width = Spectrum.SCREEN_WIDTH * zoom;
+        int width = Spectrum.SCREEN_WIDTH * 2;
         
-        while (pos < imageBuffer.length) {
-            if (pos % width == 0)
-                pos += width;
-            
-            int color = imageBuffer[pos];
-            if (color == 0) {
-                pos++;
-                continue;
+        int pixel = 0;
+        
+        while (pixel < imageBuffer.length) {
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+                
+                if (imageBuffer[pixel] == 0) {
+                    pixel += 2;
+                    continue;
+                }
+                
+                if (color != imageBuffer[pixel]) {
+                    color = imageBuffer[pixel];
+                    int red = percentColor[color >>> 16];
+                    int green = percentColor[(color >>> 8) & 0xff];
+                    int blue = percentColor[color & 0xff];
+                    res = (red << 16) | (green << 8)  | blue;
+                }
+                
+                imageBuffer[pixel++] = res;
+                imageBuffer[pixel++] = res;
             }
             
-            int red = percentColor[color >>> 16];
-            int green = percentColor[(color >>> 8) & 0xff];
-            int blue = percentColor[color & 0xff];
-            imageBuffer[pos] = (red << 16) | (green << 8)  | blue;
-            pos++;
+            pixel += width;
         }
     }
     
     public void filterRGB2x() {
         int pixel = 0;
 
+        int width = Spectrum.SCREEN_WIDTH * zoom;
+        
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
-//                 imageBuffer[pixel++] &= 0xff0000;
-                pixel++;
-                int color = imageBuffer[pixel];
-                if (color == 0) {
-                    pixel++;
-                    continue;
-                }
-
-                int red = percentColor[color >>> 16];
-                int green = percentColor[(color >>> 8) & 0xff];
-                int blue = percentColor[color & 0xff];
-                imageBuffer[pixel++] = (red << 16) | (green << 8)  | blue;
-//                imageBuffer[pixel++] &= 0x00ff00;
-
+                 imageBuffer[pixel] &= 0xff0000;
+                 imageBuffer[pixel + width] &= 0x0000ff;
+                 pixel++;
+                 imageBuffer[pixel++] &= 0x00ff00;
             }
 
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
-//                imageBuffer[pixel] &= 0x0000ff;
-                int color = imageBuffer[pixel];
-                if (color == 0) {
-                    pixel += 2;
-                    continue;
-                }
-
-                int red = percentColor[color >>> 16];
-                int green = percentColor[(color >>> 8) & 0xff];
-                int blue = percentColor[color & 0xff];
-                imageBuffer[pixel] = (red << 16) | (green << 8)  | blue;
-                pixel += 2;
-
-            }
+            pixel += width;
         }
     }
     /** This method is called from within the constructor to

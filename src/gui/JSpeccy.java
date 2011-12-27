@@ -1764,6 +1764,7 @@ public class JSpeccy extends javax.swing.JFrame {
             jscr.setZoom(1);
         }
         
+        spectrum.invalidateScreen(true);
         pack();
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
 
@@ -2056,10 +2057,12 @@ public class JSpeccy extends javax.swing.JFrame {
             doubleSizeToggleButton.setSelected(settings.getSpectrumSettings().isZoomed());
             doubleSizeOption.setSelected(settings.getSpectrumSettings().isZoomed());
             jscr.setZoom(settings.getSpectrumSettings().isZoomed() ? settings.getSpectrumSettings().getZoom() : 1);
+            spectrum.invalidateScreen(true);
             pack();
         } else {
             if (zoomed && zoom != settings.getSpectrumSettings().getZoom()) {
                 jscr.setZoom(settings.getSpectrumSettings().getZoom());
+                spectrum.invalidateScreen(true);
                 pack();
             }
         }
