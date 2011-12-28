@@ -122,15 +122,19 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //                drawScanlines3x();
-                filterRGB3x();
+                int[] masks3x = { 0xff0000, 0x00ff00, 0x0000ff };
+                filterRGB(masks3x);
+//                filterRGB3x();
                 gc2.drawImage(tvImageFiltered, 0, 0, null);
                 tvImageFilteredGc.dispose();
                 break;
             case 4:
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-                drawScanlines4x();
-                filterRGB2x();
+                int[] masks4x = { 0xff0000, 0x00ff00, 0x0000ff, 0xffffff };
+                filterRGB(masks4x);
+//                filterRGB2x();
+//                drawScanlines4x();
                 gc2.drawImage(tvImageFiltered, 0, 0, null);
                 tvImageFilteredGc.dispose();
                 break;
@@ -277,6 +281,27 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             }
         }
     }
+    
+    public void filterRGB(int[] masks) {
+
+        int width = Spectrum.SCREEN_WIDTH * zoom;
+
+        int pixel = 0;
+
+        int mask = 0;
+        
+        while (pixel < imageBuffer.length) {
+            for (int col = 0; col < width; col++) {
+                imageBuffer[pixel] &= masks[mask];
+                pixel++;
+                mask++;
+                if (mask == masks.length) {
+                    mask = 0;
+                }
+            }
+            pixel += width;
+        }
+    }
 
     /** This method is called from within the constructor to
      * initialize the form.
@@ -286,7 +311,6 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        setBorder(javax.swing.BorderFactory.createEtchedBorder());
         setDoubleBuffered(false);
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
