@@ -12,7 +12,9 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
 import java.awt.image.DataBufferInt;
+import java.awt.image.Kernel;
 import machine.Spectrum;
 
 /**
@@ -29,7 +31,20 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private RenderingHints renderHints;
     private int zoom;
     private int[] imageBuffer;
-    private int[] percentColor= new int[256];
+    private int[] scanline1 = new int[256];
+    private int[] scanline2 = new int[256];
+//    private int[] scanline3 = new int[256];
+    private static final int redMask = 0xff0000;
+    private static final int greenMask = 0x00ff00;
+    private static final int blueMask = 0x0000ff;
+    
+    public static final float[] BLUR3x3 = {
+        0.1f, 0.1f, 0.1f, // low-pass filter kernel
+        0.1f, 0.2f, 0.1f,
+        0.1f, 0.1f, 0.1f
+    };
+    
+    private ConvolveOp cop;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
@@ -59,10 +74,16 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
 //        tvImageFilteredGc = tvImageFiltered.createGraphics();
         
-        percentColor[0] = 0;
-        for (int color = 1; color < percentColor.length; color++) {
-            percentColor[color] = (int)(color * 0.75f);
+        scanline1 [0] = scanline2 [0] = 0; // scanline3 [0] = 0;
+        for (int color = 1; color < scanline1 .length; color++) {
+            scanline1 [color] = (int)(color * 0.625f);
+            scanline2 [color] = (int)(color * 0.3125f);
+//            scanline3 [color] = (int)(color * 0.15625f);
         }
+        
+        cop = new ConvolveOp(new Kernel(3, 3, BLUR3x3),
+            ConvolveOp.EDGE_NO_OP,
+            null);
     }
 
     public void setTvImage(BufferedImage bImage) {
@@ -115,27 +136,24 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //                drawScanlines2x();
                 filterRGB2x();
-                gc2.drawImage(tvImageFiltered, 0, 0, null);
+//                gc2.drawImage(hq2x.HQ2X(tvImage), 0, 0, null);
+                gc2.drawImage(tvImageFiltered, cop, 0, 0);
                 tvImageFilteredGc.dispose();
                 break;
             case 3:
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //                drawScanlines3x();
-                int[] masks3x = { 0xff0000, 0x00ff00, 0x0000ff };
-                filterRGB(masks3x);
-//                filterRGB3x();
-                gc2.drawImage(tvImageFiltered, 0, 0, null);
+                filterRGB3x();
+                gc2.drawImage(tvImageFiltered, cop, 0, 0);
                 tvImageFilteredGc.dispose();
                 break;
             case 4:
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-                int[] masks4x = { 0xff0000, 0x00ff00, 0x0000ff, 0xffffff };
-                filterRGB(masks4x);
 //                filterRGB2x();
-//                drawScanlines4x();
-                gc2.drawImage(tvImageFiltered, 0, 0, null);
+                drawScanlines4x();
+                gc2.drawImage(tvImageFiltered, cop, 0, 0);
                 tvImageFilteredGc.dispose();
                 break;
             default:
@@ -160,9 +178,9 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 
                 if (color != imageBuffer[pixel]) {
                     color = imageBuffer[pixel];
-                    int red = percentColor[color >>> 16];
-                    int green = percentColor[(color >>> 8) & 0xff];
-                    int blue = percentColor[color & 0xff];
+                    int red = scanline1 [color >>> 16];
+                    int green = scanline1 [(color >>> 8) & 0xff];
+                    int blue = scanline1 [color & 0xff];
                     res = (red << 16) | (green << 8)  | blue;
                 }
                 
@@ -175,7 +193,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     }
     
     public void drawScanlines3x() {
-        int color = 0, res = 0;
+        int color = 0, res1 = 0, res2 = 0;
         
         int width = Spectrum.SCREEN_WIDTH * 3;
         
@@ -191,15 +209,21 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 
                 if (color != imageBuffer[pixel]) {
                     color = imageBuffer[pixel];
-                    int red = percentColor[color >>> 16];
-                    int green = percentColor[(color >>> 8) & 0xff];
-                    int blue = percentColor[color & 0xff];
-                    res = (red << 16) | (green << 8)  | blue;
+                    int red = color >>> 16;
+                    int green = (color >>> 8) & 0xff;
+                    int blue = color & 0xff;
+                    res1 = (scanline1[red] << 16) | (scanline1[green] << 8)  | scanline1[blue];
+                    res2 = (scanline2[red] << 16) | (scanline2[green] << 8)  | scanline2[blue];
                 }
                 
-                imageBuffer[pixel++] = res;
-                imageBuffer[pixel++] = res;
-                imageBuffer[pixel++] = res;
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
+                
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
+                
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
             }
             
             pixel += width * 2;
@@ -207,11 +231,11 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     }
     
     public void drawScanlines4x() {
-        int color = 0, res = 0;
+        int color = 0, res1 = 0, res2 = 0;
         
         int width = Spectrum.SCREEN_WIDTH * 4;
         
-        int pixel = width;
+        int pixel = width * 2;
         
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
@@ -223,20 +247,24 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 
                 if (color != imageBuffer[pixel]) {
                     color = imageBuffer[pixel];
-                    int red = percentColor[color >>> 16];
-                    int green = percentColor[(color >>> 8) & 0xff];
-                    int blue = percentColor[color & 0xff];
-                    res = (red << 16) | (green << 8)  | blue;
+                    int red = color >>> 16;
+                    int green = (color >>> 8) & 0xff;
+                    int blue = color & 0xff;
+                    res1 = (scanline1[red] << 16) | (scanline1[green] << 8)  | scanline1[blue];
+                    res2 = (scanline2[red] << 16) | (scanline2[green] << 8)  | scanline2[blue];
                 }
                 
-                imageBuffer[pixel + width] = res;
-                imageBuffer[pixel++] = res;
-                imageBuffer[pixel + width] = res;
-                imageBuffer[pixel++] = res;
-                imageBuffer[pixel + width] = res;
-                imageBuffer[pixel++] = res;
-                imageBuffer[pixel + width] = res;
-                imageBuffer[pixel++] = res;
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
+                
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
+                
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
+                
+                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel++] = res1;
             }
             
             pixel += width * 3;
@@ -251,12 +279,10 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < width / 2; col++) {
-                 imageBuffer[pixel] &= 0xffff00;
-                 imageBuffer[pixel + width] &= 0x00ffff;
-                 pixel++;
-                 imageBuffer[pixel++] &= 0xff00ff;
+                 imageBuffer[pixel + width] &= blueMask;
+                 imageBuffer[pixel++] &= redMask;
+                 imageBuffer[pixel++] &= greenMask;
             }
-
             pixel += width;
         }
     }
@@ -267,39 +293,19 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         int pixel = 0;
         
-        int mask = 0xff0000;
-        
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < width / 2; col++) {
-                imageBuffer[pixel] &= mask;
-                pixel += 2;
-            }
-
-            mask >>>= 8;
-            if (mask == 0) {
-                mask = 0xff0000;
-            }
-        }
-    }
-    
-    public void filterRGB(int[] masks) {
-
-        int width = Spectrum.SCREEN_WIDTH * zoom;
-
-        int pixel = 0;
-
-        int mask = 0;
-        
-        while (pixel < imageBuffer.length) {
-            for (int col = 0; col < width; col++) {
-                imageBuffer[pixel] &= masks[mask];
+            for (int col = 0; col < width / 3; col++) {
+                imageBuffer[pixel + width] &= greenMask;
                 pixel++;
-                mask++;
-                if (mask == masks.length) {
-                    mask = 0;
-                }
+                
+                imageBuffer[pixel + width] &= redMask;
+                imageBuffer[pixel + width * 2] &= blueMask;
+                imageBuffer[pixel++] &= greenMask;
+                
+                imageBuffer[pixel + width * 2] &= redMask;
+                imageBuffer[pixel++] &= blueMask;
             }
-            pixel += width;
+            pixel += width * 2;
         }
     }
 
