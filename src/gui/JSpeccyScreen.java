@@ -37,12 +37,20 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int redMask = 0xff0000;
     private static final int greenMask = 0x00ff00;
     private static final int blueMask = 0x0000ff;
+    private static final int redGreenMask = 0xffff00;
+    private static final int greenBlueMask = 0x00ffff;
+    private static final int redBlueMask = 0xff00ff;
     
     public static final float[] BLUR3x3 = {
-        0.1f, 0.1f, 0.1f, // low-pass filter kernel
-        0.1f, 0.2f, 0.1f,
-        0.1f, 0.1f, 0.1f
+         // low-pass filter kernel
+       0.15f, 0.6f, 0.15f, 0.1f
     };
+    
+//    public static final float[] BLUR3x3 = {
+//        0.1f, 0.1f, 0.1f, // low-pass filter kernel
+//        0.1f, 0.2f, 0.1f,
+//        0.1f, 0.1f, 0.1f
+//    };
     
     private ConvolveOp cop;
 
@@ -76,12 +84,12 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         scanline1 [0] = scanline2 [0] = 0; // scanline3 [0] = 0;
         for (int color = 1; color < scanline1 .length; color++) {
-            scanline1 [color] = (int)(color * 0.625f);
-            scanline2 [color] = (int)(color * 0.3125f);
+            scanline1 [color] = (int)(color * 0.80f);
+            scanline2 [color] = (int)(color * 0.70f);
 //            scanline3 [color] = (int)(color * 0.15625f);
         }
         
-        cop = new ConvolveOp(new Kernel(3, 3, BLUR3x3),
+        cop = new ConvolveOp(new Kernel(4, 1, BLUR3x3),
             ConvolveOp.EDGE_NO_OP,
             null);
     }
@@ -134,8 +142,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             case 2:
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-//                drawScanlines2x();
-                filterRGB2x();
+                drawScanlines2x();
+//                filterRGB2x();
 //                gc2.drawImage(hq2x.HQ2X(tvImage), 0, 0, null);
                 gc2.drawImage(tvImageFiltered, cop, 0, 0);
                 tvImageFilteredGc.dispose();
@@ -145,7 +153,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //                drawScanlines3x();
                 filterRGB3x();
-                gc2.drawImage(tvImageFiltered, cop, 0, 0);
+                gc2.drawImage(tvImageFiltered, 0, 0, null);
                 tvImageFilteredGc.dispose();
                 break;
             case 4:
@@ -153,7 +161,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
 //                filterRGB2x();
                 drawScanlines4x();
-                gc2.drawImage(tvImageFiltered, cop, 0, 0);
+                gc2.drawImage(tvImageFiltered, 0, 0, null);
                 tvImageFilteredGc.dispose();
                 break;
             default:
@@ -317,6 +325,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        setBorder(javax.swing.BorderFactory.createEtchedBorder());
         setDoubleBuffered(false);
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
