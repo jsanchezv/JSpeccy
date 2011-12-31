@@ -337,8 +337,14 @@ public class JSpeccy extends javax.swing.JFrame {
             silenceSoundToggleButton.setSelected(true);
         }
 
+        int zoom = settings.getSpectrumSettings().getZoom();
+        if (zoom < 2 || zoom > 4) {
+            zoom = 2;
+            settings.getSpectrumSettings().setZoom(zoom);
+        }
+        
         if (settings.getSpectrumSettings().isZoomed()) {
-            jscr.setZoom(settings.getSpectrumSettings().getZoom());
+            jscr.setZoom(zoom);
             doubleSizeOption.setSelected(true);
             doubleSizeToggleButton.setSelected(true);
         } else {

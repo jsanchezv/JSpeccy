@@ -619,8 +619,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //                jscr.repaint(BORDER_WIDTH * zoom - zoom, BORDER_WIDTH * zoom - zoom, (256 + zoom) * zoom, (192 + zoom) * zoom);
 //                jscr.repaint();
             } else {
-                jscr.repaint(BORDER_WIDTH + leftCol * 8, BORDER_WIDTH + firstLine,
-                    (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1);
+                jscr.repaint((BORDER_WIDTH + leftCol * 8) - 1, BORDER_WIDTH + firstLine - 1,
+                    (rightCol - leftCol + 2) * 8, lastLine - firstLine + 2);
 //                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
 //                        BORDER_WIDTH + leftCol * 8, BORDER_WIDTH + firstLine,
 //                        (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1));

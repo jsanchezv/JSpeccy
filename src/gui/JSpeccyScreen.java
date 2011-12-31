@@ -43,7 +43,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     
     public static final float[] BLUR3x3 = {
          // low-pass filter kernel
-       0.15f, 0.6f, 0.15f, 0.1f
+       0.1f, 0.70f, 0.13f, 0.075f
     };
     
 //    public static final float[] BLUR3x3 = {
@@ -142,9 +142,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             case 2:
                 tvImageFilteredGc = tvImageFiltered.createGraphics();
                 tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-                drawScanlines2x();
+//                drawScanlines2x();
 //                filterRGB2x();
-//                gc2.drawImage(hq2x.HQ2X(tvImage), 0, 0, null);
                 gc2.drawImage(tvImageFiltered, cop, 0, 0);
                 tvImageFilteredGc.dispose();
                 break;
@@ -165,7 +164,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 tvImageFilteredGc.dispose();
                 break;
             default:
-                gc2.drawImage(tvImage, 0, 0, null);
+                gc2.drawImage(tvImage, cop, 0, 0);
         }
     }
     
