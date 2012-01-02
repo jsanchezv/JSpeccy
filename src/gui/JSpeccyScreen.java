@@ -9,8 +9,6 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.awt.image.DataBufferInt;
@@ -25,11 +23,18 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
     private BufferedImage tvImage;
     private BufferedImage tvImageFiltered;
+    private BufferedImage tvPalImage;
     private Graphics2D tvImageFilteredGc;
-    private AffineTransform escala;
-    private AffineTransformOp escalaOp;
-    private RenderingHints renderHints;
-    private int zoom;
+    private Graphics2D tvPalImageGc;
+//    private AffineTransform escala;
+//    private AffineTransformOp escalaOp;
+//    private RenderingHints renderHints;
+    private int zoom, screenWidth, screenHeight;
+    private Object interpolationMethod;
+    private boolean anyFilter = false;
+    private boolean palFilter = true;
+    private boolean scanlinesFilter = true;
+    private boolean rgbFilter = false;
     private int[] imageBuffer;
     private int[] scanline1 = new int[256];
     private int[] scanline2 = new int[256];
@@ -41,46 +46,41 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int greenBlueMask = 0x00ffff;
     private static final int redBlueMask = 0xff00ff;
     
-    public static final float[] BLUR3x3 = {
+    public static final float[] PAL_KERNEL = {
          // low-pass filter kernel
        0.1f, 0.70f, 0.13f, 0.075f
     };
     
-//    public static final float[] BLUR3x3 = {
-//        0.1f, 0.1f, 0.1f, // low-pass filter kernel
-//        0.1f, 0.2f, 0.1f,
-//        0.1f, 0.1f, 0.1f
-//    };
-    
-    private ConvolveOp cop;
+    private ConvolveOp palOp;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
         initComponents();
 
-        escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
-        renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-        renderHints.put(RenderingHints.KEY_RENDERING,
-            RenderingHints.VALUE_RENDER_SPEED);
-        renderHints.put(RenderingHints.KEY_ANTIALIASING,
-            RenderingHints.VALUE_ANTIALIAS_OFF);
-        renderHints.put(RenderingHints.KEY_COLOR_RENDERING,
-            RenderingHints.VALUE_COLOR_RENDER_SPEED);
-        escalaOp = new AffineTransformOp(escala, renderHints);
+//        escala = AffineTransform.getScaleInstance(2.0f, 2.0f);
+//        renderHints = new RenderingHints(RenderingHints.KEY_INTERPOLATION,
+//            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+//        renderHints.put(RenderingHints.KEY_RENDERING,
+//            RenderingHints.VALUE_RENDER_SPEED);
+//        renderHints.put(RenderingHints.KEY_ANTIALIASING,
+//            RenderingHints.VALUE_ANTIALIAS_OFF);
+//        renderHints.put(RenderingHints.KEY_COLOR_RENDERING,
+//            RenderingHints.VALUE_COLOR_RENDER_SPEED);
+//        escalaOp = new AffineTransformOp(escala, renderHints);
 
-        setMaximumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH * 2,
-            Spectrum.SCREEN_HEIGHT * 2));
+        screenWidth = Spectrum.SCREEN_WIDTH * 2;
+        screenHeight = Spectrum.SCREEN_HEIGHT * 2;
+        setMaximumSize(new java.awt.Dimension(screenWidth, screenHeight));
         setMinimumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
             Spectrum.SCREEN_HEIGHT));
         setPreferredSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
             Spectrum.SCREEN_HEIGHT));
         
-//        tvImageFiltered = new BufferedImage(Spectrum.SCREEN_WIDTH * 2, Spectrum.SCREEN_HEIGHT * 2,
-//            BufferedImage.TYPE_INT_RGB);
-//        imageBuffer =
-//            ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
-//        tvImageFilteredGc = tvImageFiltered.createGraphics();
+        tvPalImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
+            BufferedImage.TYPE_INT_RGB);
+        tvPalImageGc = tvPalImage.createGraphics();
+        
+        interpolationMethod = RenderingHints.VALUE_INTERPOLATION_BILINEAR;
         
         scanline1 [0] = scanline2 [0] = 0; // scanline3 [0] = 0;
         for (int color = 1; color < scanline1 .length; color++) {
@@ -89,9 +89,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            scanline3 [color] = (int)(color * 0.15625f);
         }
         
-        cop = new ConvolveOp(new Kernel(4, 1, BLUR3x3),
-            ConvolveOp.EDGE_NO_OP,
-            null);
+        palOp = new ConvolveOp(new Kernel(PAL_KERNEL.length, 1, PAL_KERNEL), ConvolveOp.EDGE_NO_OP, null);
     }
 
     public void setTvImage(BufferedImage bImage) {
@@ -111,14 +109,16 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         this.zoom = zoom;
         
         if (zoom > 1) {
-            tvImageFiltered = new BufferedImage(Spectrum.SCREEN_WIDTH * zoom, Spectrum.SCREEN_HEIGHT * zoom,
-                BufferedImage.TYPE_INT_RGB);
+            screenWidth = Spectrum.SCREEN_WIDTH * zoom;
+            screenHeight = Spectrum.SCREEN_HEIGHT * zoom;
+            tvImageFiltered = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
             imageBuffer =
                 ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
-            escala = AffineTransform.getScaleInstance(zoom, zoom);
-            escalaOp = new AffineTransformOp(escala, renderHints);
-            this.setPreferredSize(
-                new Dimension(Spectrum.SCREEN_WIDTH * zoom, Spectrum.SCREEN_HEIGHT * zoom));
+            tvImageFilteredGc = tvImageFiltered.createGraphics();
+            tvImageFilteredGc.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
+//            escala = AffineTransform.getScaleInstance(zoom, zoom);
+//            escalaOp = new AffineTransformOp(escala, renderHints);
+            this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         } else {
             this.setPreferredSize(
                 new Dimension(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT));
@@ -137,38 +137,82 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     public void paintComponent(Graphics gc) {
         //super.paintComponent(gc);
         Graphics2D gc2 = (Graphics2D) gc;
-
+        
         switch (zoom) {
-            case 2:
-                tvImageFilteredGc = tvImageFiltered.createGraphics();
-                tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-//                drawScanlines2x();
-//                filterRGB2x();
-                gc2.drawImage(tvImageFiltered, cop, 0, 0);
-                tvImageFilteredGc.dispose();
+            case 2:    
+                if (anyFilter) {
+                    if (palFilter) {
+                        tvPalImageGc.drawImage(tvImage, palOp, 0, 0);
+                        tvImageFilteredGc.drawImage(tvPalImage, 0, 0, screenWidth, screenHeight, null);
+                    } else {
+                        tvImageFilteredGc.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                    }
+
+                    if (scanlinesFilter)
+                        drawScanlines2x();
+                    
+                    if (rgbFilter)
+                        filterRGB2x();
+                    
+                    gc2.drawImage(tvImageFiltered, 0, 0, null);
+                } else {
+                    gc2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
+                    gc2.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                }
                 break;
             case 3:
-                tvImageFilteredGc = tvImageFiltered.createGraphics();
-                tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-//                drawScanlines3x();
-                filterRGB3x();
-                gc2.drawImage(tvImageFiltered, 0, 0, null);
-                tvImageFilteredGc.dispose();
+                if (anyFilter) {
+                    if (palFilter) {
+                        tvPalImageGc.drawImage(tvImage, palOp, 0, 0);
+                        tvImageFilteredGc.drawImage(tvPalImage, 0, 0, screenWidth, screenHeight, null);
+                    } else {
+                        tvImageFilteredGc.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                    }
+
+                    if (scanlinesFilter)
+                        drawScanlines3x();
+                    
+                    if (rgbFilter)
+                        filterRGB3x();
+                    
+                    gc2.drawImage(tvImageFiltered, 0, 0, null);
+                } else {
+                    gc2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
+                    gc2.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                }
                 break;
             case 4:
-                tvImageFilteredGc = tvImageFiltered.createGraphics();
-                tvImageFilteredGc.drawImage(tvImage, escalaOp, 0, 0);
-//                filterRGB2x();
-                drawScanlines4x();
-                gc2.drawImage(tvImageFiltered, 0, 0, null);
-                tvImageFilteredGc.dispose();
+                if (anyFilter) {
+                    if (palFilter) {
+                        tvPalImageGc.drawImage(tvImage, palOp, 0, 0);
+                        tvImageFilteredGc.drawImage(tvPalImage, 0, 0, screenWidth, screenHeight, null);
+                    } else {
+                        tvImageFilteredGc.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                    }
+
+                    if (scanlinesFilter)
+                        drawScanlines4x();
+                    
+                    if (rgbFilter)
+                        filterRGB2x();
+                    
+                    gc2.drawImage(tvImageFiltered, 0, 0, null);
+                } else {
+                    gc2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
+                    gc2.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
+                }
                 break;
             default:
-                gc2.drawImage(tvImage, cop, 0, 0);
+                if (palFilter) {
+                    gc2.drawImage(tvImage, palOp, 0, 0);
+                } else {
+                    gc2.drawImage(tvImage, 0, 0, null);
+                }
+//                gc2.drawImage(tvImage, cop, 0, 0);
         }
     }
     
-    public void drawScanlines2x() {
+    private void drawScanlines2x() {
         int color = 0, res = 0;
         
         int width = Spectrum.SCREEN_WIDTH * 2;
@@ -199,7 +243,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         }
     }
     
-    public void drawScanlines3x() {
+    private void drawScanlines3x() {
         int color = 0, res1 = 0, res2 = 0;
         
         int width = Spectrum.SCREEN_WIDTH * 3;
@@ -237,7 +281,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         }
     }
     
-    public void drawScanlines4x() {
+    private void drawScanlines4x() {
         int color = 0, res1 = 0, res2 = 0;
         
         int width = Spectrum.SCREEN_WIDTH * 4;
@@ -278,7 +322,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         }
     }
     
-    public void filterRGB2x() {
+    private void filterRGB2x() {
 
         int width = Spectrum.SCREEN_WIDTH * zoom;
 
@@ -294,7 +338,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         }
     }
     
-    public void filterRGB3x() {
+    private void filterRGB3x() {
 
         int width = Spectrum.SCREEN_WIDTH * zoom;
 
@@ -329,4 +373,69 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+
+    /**
+     * @return the palFilter
+     */
+    public boolean isPalFilter() {
+        return palFilter;
+    }
+
+    /**
+     * @param palFilter the palFilter to set
+     */
+    public void setPalFilter(boolean palFilter) {
+        this.palFilter = palFilter;
+        
+        if (palFilter) {
+            rgbFilter = false;
+            anyFilter = true;
+        }
+        
+    }
+
+    /**
+     * @return the scanlinesFilter
+     */
+    public boolean isScanlinesFilter() {
+        return scanlinesFilter;
+    }
+
+    /**
+     * @param scanlinesFilter the scanlinesFilter to set
+     */
+    public void setScanlinesFilter(boolean scanlinesFilter) {
+        this.scanlinesFilter = scanlinesFilter;
+        
+        if (scanlinesFilter) {
+            rgbFilter = false;
+            anyFilter = true;
+        }
+    }
+
+    /**
+     * @return the rgbFilter
+     */
+    public boolean isRgbFilter() {
+        return rgbFilter;
+    }
+
+    /**
+     * @param rgbFilter the rgbFilter to set
+     */
+    public void setRgbFilter(boolean rgbFilter) {
+        this.rgbFilter = rgbFilter;
+        
+        if (rgbFilter) {
+            palFilter = scanlinesFilter = false;
+            anyFilter = true;
+        }
+    }
+
+    /**
+     * @param interpolationMethod the interpolationMethod to set
+     */
+    public void setInterpolationMethod(Object interpolationMethod) {
+        this.interpolationMethod = interpolationMethod;
+    }
 }
