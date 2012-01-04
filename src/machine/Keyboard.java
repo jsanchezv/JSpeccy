@@ -67,7 +67,7 @@ public class Keyboard implements KeyListener {
 
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
-        shiftPressed = mapPCKeys = false;
+        shiftPressed = false;
         kempston = 0;
         fuller = 0xff;
         Arrays.fill(keyEventPending, null);
