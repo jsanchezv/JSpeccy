@@ -51,8 +51,8 @@ public enum MachineTypes {
                 this.firstScrUpdate = 14328;
                 this.lastScrUpdate = 57237;
                 this.firstBorderUpdate =
-                    ((64 - Spectrum.BORDER_WIDTH )* tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
                 this.hasAY8912 = false;
                 this.hasDisk = false;
@@ -71,8 +71,8 @@ public enum MachineTypes {
                 this.firstScrUpdate = 14328;
                 this.lastScrUpdate = 57237;
                 this.firstBorderUpdate =
-                    ((64 - Spectrum.BORDER_WIDTH )* tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
                 this.hasAY8912 = false;
                 this.hasDisk = false;
@@ -87,12 +87,12 @@ public enum MachineTypes {
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14361;
-                this.firstScrUpdate = 14344;
+                this.firstScrByte = 14364;
+                this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_WIDTH) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
@@ -107,12 +107,12 @@ public enum MachineTypes {
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14361;
-                this.firstScrUpdate = 14344;
+                this.firstScrByte = 14364;
+                this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_WIDTH) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
@@ -131,8 +131,8 @@ public enum MachineTypes {
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_WIDTH) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
@@ -151,8 +151,8 @@ public enum MachineTypes {
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_WIDTH) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_WIDTH) * tstatesLine;
+                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
+                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.hasAY8912 = true;
                 this.hasDisk = true;

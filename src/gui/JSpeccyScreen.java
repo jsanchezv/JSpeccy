@@ -32,8 +32,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private int zoom, screenWidth, screenHeight;
     private Object interpolationMethod;
     private boolean anyFilter = false;
-    private boolean palFilter = true;
-    private boolean scanlinesFilter = true;
+    private boolean palFilter = false;
+    private boolean scanlinesFilter = false;
     private boolean rgbFilter = false;
     private int[] imageBuffer;
     private int[] scanline1 = new int[256];
@@ -48,7 +48,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     
     public static final float[] PAL_KERNEL = {
          // low-pass filter kernel
-       0.1f, 0.70f, 0.13f, 0.075f
+       0.05f, 0.85f, 0.1f
     };
     
     private ConvolveOp palOp;
@@ -80,7 +80,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             BufferedImage.TYPE_INT_RGB);
         tvPalImageGc = tvPalImage.createGraphics();
         
-        interpolationMethod = RenderingHints.VALUE_INTERPOLATION_BILINEAR;
+        interpolationMethod = RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR;
         
         scanline1 [0] = scanline2 [0] = 0; // scanline3 [0] = 0;
         for (int color = 1; color < scanline1 .length; color++) {
@@ -368,7 +368,6 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        setBorder(javax.swing.BorderFactory.createEtchedBorder());
         setDoubleBuffered(false);
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
