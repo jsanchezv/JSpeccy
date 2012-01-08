@@ -611,7 +611,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (jscr.isZoomed()) {
                 int zoom = jscr.getZoom();
-                jscr.repaint((BORDER_WIDTH * zoom + leftCol * 8 * zoom) - zoom, ((BORDER_WIDTH + firstLine) * zoom) - zoom,
+                jscr.repaint((BORDER_WIDTH * zoom + leftCol * 8 * zoom) - zoom, ((BORDER_HEIGHT + firstLine) * zoom) - zoom,
                     (rightCol - leftCol + zoom + 1) * 8 * zoom, (lastLine - firstLine + zoom + 1) * zoom);
 //                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
 //                        BORDER_WIDTH * 2 + leftCol * 16, (BORDER_WIDTH + firstLine) * 2,
@@ -619,12 +619,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //                jscr.repaint(BORDER_WIDTH * zoom - zoom, BORDER_WIDTH * zoom - zoom, (256 + zoom) * zoom, (192 + zoom) * zoom);
 //                jscr.repaint();
             } else {
-                jscr.repaint((BORDER_WIDTH + leftCol * 8) - 1, BORDER_WIDTH + firstLine - 1,
+                jscr.repaint((BORDER_WIDTH + leftCol * 8) - 1, BORDER_HEIGHT + firstLine - 1,
                     (rightCol - leftCol + 2) * 8, lastLine - firstLine + 2);
 //                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
 //                        BORDER_WIDTH + leftCol * 8, BORDER_WIDTH + firstLine,
 //                        (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1));
 //                  jscr.repaint(BORDER_WIDTH, BORDER_WIDTH , 256, 192);
+//                jscr.repaint();
 
             }
         }
@@ -1551,7 +1552,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     
     public static final int BORDER_WIDTH = 32;
     public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    public static final int SCREEN_HEIGHT = BORDER_WIDTH + 192 + BORDER_WIDTH;
+    public static final int BORDER_HEIGHT = 24;
+    public static final int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1652,7 +1654,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             scan = (address & 0x700) >>> 8;
 
             repaintTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
-            bufAddr[address & 0x1fff] = row * 2560 + (scan + BORDER_WIDTH) * 320
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + BORDER_HEIGHT) * SCREEN_WIDTH
                 + col * 8 + BORDER_WIDTH;
             scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
         }
@@ -1695,17 +1697,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (64 - BORDER_WIDTH - 1) || row > (256 + BORDER_WIDTH - 1)) {
+        if (row < (64 - BORDER_HEIGHT - 1) || row > (256 + BORDER_HEIGHT - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (64 - BORDER_WIDTH - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (64 - BORDER_HEIGHT - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (256 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (256 + BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1727,7 +1729,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         } else {
             col += BORDER_WIDTH / 2;
         }
-        row -= BORDER_WIDTH;
+
+        row -= (64 - BORDER_HEIGHT);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1739,17 +1742,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (63 - BORDER_WIDTH - 1) || row > (255 + BORDER_WIDTH - 1)) {
+        if (row < (63 - BORDER_HEIGHT - 1) || row > (255 + BORDER_HEIGHT - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (63 - BORDER_WIDTH - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (63 - BORDER_HEIGHT - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (255 + BORDER_WIDTH - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (255 + BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1771,7 +1774,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         } else {
             col += BORDER_WIDTH / 2;
         }
-        row -= (BORDER_WIDTH - 1);
+        row -= (63 - BORDER_HEIGHT);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1796,7 +1799,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
 
-            if (idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
+            if (idxColor >= dataInProgress.length || idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
                 continue;
             }
 
@@ -1922,7 +1925,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         Arrays.fill(states2border, 0xf0cab0ba);
 
         for (int tstates = spectrumModel.firstBorderUpdate;
-            tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
+                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix48k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -1959,12 +1962,13 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates - 12] = scrAddr[scan] + col;
+            states2scr[tstates - 8] = scrAddr[scan] + col;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
-        for (int tstates = 0; tstates < spectrumModel.tstatesFrame; tstates += 4) {
+        for (int tstates = spectrumModel.firstBorderUpdate;
+                tstates < spectrumModel.tstatesFrame; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -1973,9 +1977,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58040; idx += 228) {
-            for (int ndx = 0; ndx
-                < 128; ndx += 8) {
+        for (int idx = 14363; idx < 58138; idx += 228) {
+            for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
                 delayTstates[frame++] = 5;
@@ -2007,7 +2010,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
-        for (int tstates = 0; tstates < spectrumModel.tstatesFrame; tstates += 4) {
+        for (int tstates = spectrumModel.firstBorderUpdate;
+                tstates < spectrumModel.tstatesFrame; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -2019,7 +2023,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // confirma. Gracias Pedro!.
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58040; idx += 228) {
+        for (int idx = 14363; idx < 58040; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 1;
@@ -2049,7 +2053,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         ULAPlusPrecompPalette[register >>> 4][register & 0x0f] =
             (red << 16) | (green << 8) | blue;
-        return;
     }
     
     public synchronized boolean startRecording() {
