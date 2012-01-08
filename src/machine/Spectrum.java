@@ -4,18 +4,13 @@
  */
 package machine;
 
-import configuration.*;
+import configuration.JSpeccySettingsType;
+import configuration.SpectrumType;
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.logging.Level;
@@ -946,7 +941,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // El +3 no tiene bus flotante, responde siempre con 0xFF a puertos no usados
         int floatbus = 0xff;
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-            int addr = 0;
+            int addr;
             if (clock.tstates < spectrumModel.firstScrByte || clock.tstates > spectrumModel.lastScrUpdate) {
                 return 0xff;
             }
@@ -1219,7 +1214,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         precompULAplusColor(paletteGroup, value);
                     }
                 }
-                return;
             }
         } finally {
             postIO(port);
@@ -1381,7 +1375,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
             }
         }
-        return;
     }
 
     public boolean loadScreen(File filename) {
@@ -1962,7 +1955,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates - 8] = scrAddr[scan] + col;
+            states2scr[tstates - 16] = scrAddr[scan] + col;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
@@ -1977,7 +1970,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14363; idx < 58138; idx += 228) {
+        for (int idx = 14361; idx < 58138; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -2023,7 +2016,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // confirma. Gracias Pedro!.
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14363; idx < 58040; idx += 228) {
+        for (int idx = 14361; idx < 58138; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 1;
