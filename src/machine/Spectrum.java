@@ -1970,7 +1970,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58138; idx += 228) {
+        for (int idx = 14361; idx < 58037; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -2016,7 +2016,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         // confirma. Gracias Pedro!.
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58138; idx += 228) {
+        for (int idx = 14361; idx < 58037; idx += 228) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 1;
