@@ -126,7 +126,7 @@ public enum MachineTypes {
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
-                this.lengthINT = 36;
+                this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
@@ -146,7 +146,7 @@ public enum MachineTypes {
                 this.tstatesLine = 228;
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
-                this.lengthINT = 36;
+                this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
                 this.lastScrUpdate = 58040;
