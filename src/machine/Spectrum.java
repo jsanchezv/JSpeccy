@@ -678,6 +678,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         
         updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
         updateBorder(spectrumModel.lastBorderUpdate);
+        borderDirty = true;
+        nBorderChanges += 2;
         drawFrame();
         
         startEmulation();
@@ -1961,7 +1963,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         Arrays.fill(states2border, 0xf0cab0ba);
 
         for (int tstates = spectrumModel.firstBorderUpdate;
-                tstates < spectrumModel.tstatesFrame; tstates += 4) {
+                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -2004,7 +2006,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         Arrays.fill(states2border, 0xf0cab0ba);
 
         for (int tstates = spectrumModel.firstBorderUpdate;
-                tstates < spectrumModel.tstatesFrame; tstates += 4) {
+                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
