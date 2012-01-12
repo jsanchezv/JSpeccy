@@ -499,6 +499,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastScreenState = spectrumModel.firstScrUpdate;
 
         do {
             // Cuando se entra desde una carga de snapshot los t-states pueden
@@ -511,14 +512,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (clock.tstates < spectrumModel.firstScrByte) {
                 z80.execute(spectrumModel.firstScrByte);
-                updateScreen(spectrumModel.firstScrUpdate, clock.tstates);
+                updateScreen(clock.tstates);
             }
 
-            int fromTstates;
+//            int fromTstates;
             while (clock.tstates < spectrumModel.lastScrUpdate) {
-                fromTstates = clock.tstates + 1;
-                z80.execute(fromTstates + 3);
-                updateScreen(fromTstates, clock.tstates);
+//                fromTstates = clock.tstates + 1;
+                z80.execute(clock.tstates + 4);
+                updateScreen(clock.tstates);
             }
 
             z80.execute(spectrumModel.tstatesFrame);
@@ -634,6 +635,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastScreenState = spectrumModel.firstScrUpdate;
 
         do {
             // Cuando se entra desde una carga de snapshot los t-states pueden
@@ -649,7 +651,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             clock.endFrame();
 
             if (clock.getFrames() % 100 == 0) {
-                updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
+                updateScreen(spectrumModel.lastScrUpdate);
 
                 if (borderChanged) {
                     updateBorder(spectrumModel.lastBorderUpdate);
@@ -659,6 +661,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 firstLine = lastLine = rightCol = 0;
                 leftCol = 31;
                 lastChgBorder = spectrumModel.firstBorderUpdate;
+                lastScreenState = spectrumModel.firstScrUpdate;
                 
                 long now = System.currentTimeMillis();
                 speed = 200000 / (now - speedometer);
@@ -676,7 +679,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
         } while (tape.isTapePlaying());
         
-        updateScreen(spectrumModel.firstScrUpdate, spectrumModel.lastScrUpdate);
+        lastScreenState = spectrumModel.firstScrUpdate;
+        updateScreen(spectrumModel.lastScrUpdate);
         updateBorder(spectrumModel.lastBorderUpdate);
         borderDirty = true;
         nBorderChanges += 2;
@@ -1591,6 +1595,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //    private int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
 //    private int m1regR;
+    // Ultimo valor de t-states en que se actualizó la pantalla
+    private int lastScreenState;
     // Primera y última línea a ser actualizada
     private int firstLine, lastLine;
     private int leftCol, rightCol;
@@ -1812,22 +1818,22 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    public void updateScreen(int fromTstates, int toTstates) {
+    public void updateScreen(int toTstates) {
         int fromAddr, addrBuf;
         int paper, ink;
         byte scrByte;
         int attr;
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
 
-        while (fromTstates % 4 != 0) {
-            fromTstates++;
+        while (lastScreenState % 4 != 0) {
+            lastScreenState++;
         }
 
-        while (fromTstates <= toTstates) {
-            fromAddr = states2scr[fromTstates];
+        while (lastScreenState <= toTstates) {
+            fromAddr = states2scr[lastScreenState];
 
             if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
-                fromTstates += 4;
+                lastScreenState += 4;
                 continue;
             }
 
@@ -1873,7 +1879,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             
             dirtyByte[fromAddr] = false;
             screenDirty = true;
-            fromTstates += 4;
+            lastScreenState += 4;
         }
     }
 
