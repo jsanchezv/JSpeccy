@@ -83,27 +83,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         if1 = new Interface1(clock, settings.getInterface1Settings());
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
-        joystick = keyboard.getJoystick();
-
-        switch (specSettings.getDefaultModel()) {
-            case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K);
-                break;
-            case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
-                break;
-            case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                break;
-            case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                break;
-            case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                break;
-            default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K);
-        }
+        
+        doHardReset();
 
         resetPending = hardResetPending = false;
 
@@ -395,7 +376,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         hardResetPending = resetPending = true;
     }
 
-    public void doHardReset() {
+    private void doHardReset() {
 
         switch (specSettings.getDefaultModel()) {
             case 0:
