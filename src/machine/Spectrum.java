@@ -225,7 +225,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
            pageLec(state.getMemoryState().getPageLec());
     }
     
-    private void selectHardwareModel(MachineTypes hardwareModel) {
+    public void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
         spectrumModel = hardwareModel;
