@@ -225,7 +225,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
            pageLec(state.getMemoryState().getPageLec());
     }
     
-    public final void selectHardwareModel(MachineTypes hardwareModel) {
+    private void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
         spectrumModel = hardwareModel;
@@ -353,7 +353,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         resetPending = true;
     }
 
-    public void doReset() {
+    private void doReset() {
         tape.stop();
         clock.reset();
         z80.reset();
@@ -1761,7 +1761,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         return row * SCREEN_WIDTH + col * 2;
     }
 
-    public void updateBorder(int tstates) {
+    private void updateBorder(int tstates) {
         int nowColor;
 
         if (ULAPlusActive) {
@@ -1799,7 +1799,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    public void updateScreen(int toTstates) {
+    private void updateScreen(int toTstates) {
         int fromAddr, addrBuf;
         int paper, ink;
         byte scrByte;
@@ -1864,7 +1864,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
     }
 
-    public void notifyScreenWrite(int address) {
+    private void notifyScreenWrite(int address) {
         address &= 0x1fff;
 
         if (address < 6144) {
