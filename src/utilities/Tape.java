@@ -1022,7 +1022,7 @@ public class Tape {
                     offset += 10;
                     break;
                 default:
-                    System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
+                    System.out.println(String.format("Block ID: %02x", tapeBuffer[offset]));
                     return false; // Error en TZX
             }
             
