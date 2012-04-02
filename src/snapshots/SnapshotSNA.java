@@ -84,8 +84,13 @@ public class SnapshotSNA {
             z80.setRegIY((snaHeader[15] & 0xff) | (snaHeader[16] << 8));
             z80.setRegIX((snaHeader[17] & 0xff) | (snaHeader[18] << 8));
 
-            z80.setIFF1((snaHeader[19] & 0x02) != 0);
-            z80.setIFF2((snaHeader[19] & 0x04) != 0);
+            // From SNA specification:
+            // When the registers have been loaded, a RETN command is required to start the program.
+            // IFF2 is short for interrupt flip-flop 2, and for all practical purposes is the
+            // interrupt-enabled flag. Set means enabled. 
+            boolean intEnabled = (snaHeader[19] & 0x04) != 0;
+            z80.setIFF1(intEnabled);
+            z80.setIFF2(intEnabled);
 
             z80.setRegR(snaHeader[20]);
             z80.setRegF(snaHeader[21]);
@@ -269,13 +274,8 @@ public class SnapshotSNA {
             snaHeader[16] = (byte) (z80.getRegIY() >>> 8);
             snaHeader[17] = (byte) z80.getRegIX();
             snaHeader[18] = (byte) (z80.getRegIX() >>> 8);
-
-            if (z80.isIFF1()) {
-                snaHeader[19] |= 0x02;
-            }
-            if (z80.isIFF2()) {
-                snaHeader[19] |= 0x04;
-            }
+            
+            snaHeader[19] = (byte) (z80.isIFF2() ?  0x04 : 0x00);
 
             snaHeader[20] = (byte) z80.getRegR();
             snaHeader[21] = (byte) z80.getRegF();
