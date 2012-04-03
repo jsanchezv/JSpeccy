@@ -868,7 +868,7 @@ public class Z80 {
         memptr = state.getMemPtr();
         halted = state.isHalted();
         ffIFF1 = state.isIFF1();
-        ffIFF2 = state.isIFF1();
+        ffIFF2 = state.isIFF2();
         modeINT = state.getIM();
         activeINT = state.isINTLine();
         pendingEI = state.isPendingEI();
