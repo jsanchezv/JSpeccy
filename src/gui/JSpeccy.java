@@ -449,6 +449,10 @@ public class JSpeccy extends javax.swing.JFrame {
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         
+        if (tape.isTapeRunning()) {
+            tape.stop();
+        }
+        
         if (spectrum.getInterface1().hasDirtyCartridges()) {
             msg = bundle.getString("DIRTY_CARTRIDGES_WARNING");
             dialogType = JOptionPane.WARNING_MESSAGE;
