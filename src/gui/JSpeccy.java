@@ -2811,6 +2811,9 @@ public class JSpeccy extends javax.swing.JFrame {
                     clearTapeMediaMenu.setEnabled(canRec);
                     recordStartTapeMediaMenu.setEnabled(canRec);
                     tapeBrowserButtonRec.setEnabled(canRec);
+                    pauseToggleButton.setEnabled(true);
+                    pauseMachineMenu.setEnabled(true);
+                    fastEmulationToggleButton.setEnabled(true);
                     break;
                 case RECORD:
                     tapeLabel.setIcon(tapeRecording);
@@ -2827,6 +2830,11 @@ public class JSpeccy extends javax.swing.JFrame {
                     ejectTapeMediaMenu.setEnabled(false);
                     reloadTapeMediaMenu.setEnabled(false);
                     createTapeMediaMenu.setEnabled(false);
+                    if (settings.getTapeSettings().isAccelerateLoading()) {
+                        pauseToggleButton.setEnabled(false);
+                        pauseMachineMenu.setEnabled(false);
+                        fastEmulationToggleButton.setEnabled(false);
+                    }
                     break;
                 case PLAY:
                     tapeLabel.setIcon(tapePlaying);
@@ -2842,6 +2850,11 @@ public class JSpeccy extends javax.swing.JFrame {
                     ejectTapeMediaMenu.setEnabled(false);
                     reloadTapeMediaMenu.setEnabled(false);
                     createTapeMediaMenu.setEnabled(false);
+                    if (settings.getTapeSettings().isAccelerateLoading()) {
+                        pauseToggleButton.setEnabled(false);
+                        pauseMachineMenu.setEnabled(false);
+                        fastEmulationToggleButton.setEnabled(false);
+                    }
                     break;
             }
         }
