@@ -16,6 +16,9 @@
  * que usa es muy sensible y suele dar problemas en todos los emuladores que he
  * probado. Con un poco de paciencia, acaba por cargar. :)
  * 
+ * 08/04/2012 Añadido el soporte de bloques CALL y RETURN en los TZX. Solo hay un
+ * programa que lo necesita (que yo sepa), el Hollywood Poker que está en tzxvault.
+ * 
  */
 package utilities;
 
@@ -112,6 +115,10 @@ public class Tape {
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
     private TapeType settings;
+    // # of Calls & Call block of TZX CALL block 
+    private int nCalls, callBlk;
+    // Call sequence for TZX CALL block
+    private short[] callSeq;
     
 
     public Tape(TapeType tapeSettings) {
@@ -1413,10 +1420,31 @@ public class Tape {
                     idxHeader = loopStart;
                     break;
                 case 0x26: // Call Sequence
-                    idxHeader++;
+                    if (callSeq == null) {
+                        nCalls = readInt(tapeBuffer, tapePos + 1, 2);
+                        callSeq = new short[nCalls];
+//                        System.out.print(String.format("Call sequence of %d calls: ", nCalls));
+                        for (int idx = 0; idx < nCalls; idx++) {
+                            callSeq[idx] = (short)(readInt(tapeBuffer, tapePos + idx * 2 + 3, 2));
+//                            System.out.print(String.format("%d ", callSeq[idx]));
+                        }
+//                        System.out.println("");
+                        callBlk = idxHeader;
+                        nCalls = 0;
+                        idxHeader += callSeq[nCalls++];
+                    } else {
+                        System.out.println("The CALL blocks can't be nested!. Skipping!!!");
+                        idxHeader++;
+                    }
                     break;
                 case 0x27: // Return from Sequence
-                    idxHeader++;
+//                    System.out.println("Return from sequence");
+                    if (nCalls < callSeq.length) {
+                        idxHeader = callBlk + callSeq[nCalls++];
+                    } else {
+                        idxHeader = callBlk + 1;
+                        callSeq = null;
+                    }
                     break;
                 case 0x28: // Select Block
                     idxHeader++;
