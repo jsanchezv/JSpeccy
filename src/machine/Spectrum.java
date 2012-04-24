@@ -662,9 +662,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         
         lastScreenState = spectrumModel.firstScrUpdate;
         updateScreen(spectrumModel.lastScrUpdate);
+        
+        lastChgBorder = spectrumModel.firstBorderUpdate;
         updateBorder(spectrumModel.lastBorderUpdate);
-        borderDirty = true;
-        nBorderChanges += 2;
+        
         drawFrame();
         
         startEmulation();
