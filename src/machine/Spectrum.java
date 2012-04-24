@@ -312,7 +312,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
      * Esto es necesario para conseguir un mejor funcionamiento en Windows.
      * Para los sistemas Unix debería ser una modificación inocua. La razón del
      * hack está explicada en:
-     * http://blogs.sun.com/dholmes/entry/inside_the_hotspot_vm_clocks
+     * http://blogs.oracle.com/dholmes/entry/inside_the_hotspot_vm_clocks
      * y en
      * http://www.javamex.com/tutorials/threads/sleep.shtml
      * 
