@@ -613,17 +613,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         lastChgBorder = spectrumModel.firstBorderUpdate;
         lastScreenState = spectrumModel.firstScrUpdate;
 
+        speedometer = System.currentTimeMillis();
         do {
-            // Cuando se entra desde una carga de snapshot los t-states pueden
-            // no ser 0 y el frame estar a mitad (pojemplo)
-            if (clock.tstates < spectrumModel.lengthINT) {
-                z80.setINTLine(true);
-                z80.execute(spectrumModel.lengthINT);
-            }
+            z80.setINTLine(true);
+            z80.execute(spectrumModel.lengthINT);
             z80.setINTLine(false);
 
             z80.execute(spectrumModel.tstatesFrame);
-
+            
             clock.endFrame();
 
             if (clock.getFrames() % 100 == 0) {
@@ -655,7 +652,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         updateScreen(spectrumModel.lastScrUpdate);
         
         lastChgBorder = spectrumModel.firstBorderUpdate;
-        updateBorder(spectrumModel.lastBorderUpdate);
         
         drawFrame();
         
