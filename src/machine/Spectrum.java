@@ -505,10 +505,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             z80.execute(spectrumModel.tstatesFrame);
 
-            if (borderChanged) {
-                updateBorder(spectrumModel.lastBorderUpdate);
-            }
-
             if (enabledSound) {
                 if (enabledAY) {
                     ay8912.updateAY(clock.tstates);
@@ -564,19 +560,18 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
          */
 
 //        System.out.println(
-//         String.format("borderdirty: %b, screenDirty: %b, lastChgBorder: %d, nBorderChanges %d",
-//           borderDirty, screenDirty, lastChgBorder, nBorderChanges));
+//         String.format("screenDirty: %b, lastChgBorder: %d, borderChanged: %b, nBorderChanges: %d",
+//           screenDirty, lastChgBorder, borderChanged, nBorderChanges));
 
-        if (borderDirty || framesByInt > 1) {
-            if (nBorderChanges == 0 && framesByInt == 1) {
-                borderDirty = borderChanged = false;
-            } else {
-                nBorderChanges = 0;
-                screenDirty = false;
-                gcTvImage.drawImage(inProgressImage, 0, 0, null);
-                jscr.repaint();
-//                System.out.println(String.format("Frame: %8d - Repaint border", nFrame));
-            }
+        if (borderChanged) {
+            borderChanged = nBorderChanges != 0;
+            nBorderChanges = 0;
+            screenDirty = false;
+            updateBorder(spectrumModel.lastBorderUpdate);
+            gcTvImage.drawImage(inProgressImage, 0, 0, null);
+            jscr.repaint();
+            return;
+//                System.out.println(String.format("Frame: %8d - Repaint border", clock.getFrames()));
         }
 
         if (screenDirty) {
@@ -633,10 +628,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (clock.getFrames() % 100 == 0) {
                 updateScreen(spectrumModel.lastScrUpdate);
-
-                if (borderChanged) {
-                    updateBorder(spectrumModel.lastBorderUpdate);
-                }
 
                 drawFrame();
                 firstLine = lastLine = rightCol = 0;
@@ -1045,6 +1036,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 if ((portFE & 0x07) != (value & 0x07)) {
                     updateBorder(clock.tstates);
                     borderChanged = true;
+                    nBorderChanges++;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
 //                    System.out.println(String.format("Frame: %d tstates: %d border: %d",
 //                        nFrame, z80.tEstados, value & 0x07));
@@ -1570,7 +1562,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
      * borderChanged indica que se hizo un out que cambió el color del borde, lo que
      *               no significa que haya que redibujarlo necesariamente.
      */
-    private boolean screenDirty, borderDirty, borderChanged;
+    private boolean screenDirty, borderChanged;
 
     ;
     // t-states del ciclo contended por I=0x40-0x7F o -1
@@ -1604,7 +1596,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         lastChgBorder = 0;
 //        m1contended = -1;
         Arrays.fill(dirtyByte, true);
-        screenDirty = borderDirty = false;
+        screenDirty = false;
         borderChanged = true;
 
         // Paletas para el soporte de ULAplus
@@ -1763,26 +1755,27 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     private void updateBorder(int tstates) {
-        int nowColor;
+        
+        if (tstates < lastChgBorder || tstates > spectrumModel.lastBorderUpdate) {
+//            System.out.println("Out from updateBorder by the fast lane");
+            return;
+        }
+        
+//        System.out.println(String.format("In @ updateBorder: lastChgBorder = %d, tstates = %d",
+//                lastChgBorder, tstates));
 
+        int nowColor;
         if (ULAPlusActive) {
             nowColor = ULAPlusPrecompPalette[0][(portFE & 0x07) | 0x08];
         } else {
             nowColor = Paleta[portFE & 0x07];
         }
 
-        int idxColor;
-        if (tstates < lastChgBorder) {
-            return;
-        }
-
-        tstates -= 4;
-
-        while (lastChgBorder <= tstates) {
-            idxColor = states2border[lastChgBorder];
+        while (lastChgBorder < tstates) {
+            int idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
 
-            if (idxColor >= dataInProgress.length || idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
+            if (idxColor == 0xf0cab0ba || nowColor == dataInProgress[idxColor]) {
                 continue;
             }
 
@@ -1794,10 +1787,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             dataInProgress[idxColor + 5] = nowColor;
             dataInProgress[idxColor + 6] = nowColor;
             dataInProgress[idxColor + 7] = nowColor;
-            nBorderChanges++;
-
-            borderDirty = true;
         }
+        
+        lastChgBorder = tstates;
+//        System.out.println(String.format("Out @ updateBorder: lastChgBorder = %d, nBorderChanges = %d",
+//                lastChgBorder, nBorderChanges));
     }
 
     private void updateScreen(int toTstates) {
@@ -1907,6 +1901,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         
         Arrays.fill(states2border, 0xf0cab0ba);
 
+//        System.out.println(String.format("48k - > firstBU: %d, lastBU: %d",
+//                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
         for (int tstates = spectrumModel.firstBorderUpdate;
                 tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix48k(tstates);
@@ -1950,12 +1946,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
+//        System.out.println(String.format("128k - > firstBU: %d, lastBU: %d",
+//                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
         for (int tstates = spectrumModel.firstBorderUpdate;
                 tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
-            states2border[tstates + 2] = states2border[tstates];
-            states2border[tstates + 3] = states2border[tstates];
+            states2border[tstates - 1] = states2border[tstates];
+            states2border[tstates - 2] = states2border[tstates];
         }
 
         Arrays.fill(delayTstates, (byte) 0x00);
@@ -1993,12 +1991,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2border, 0xf0cab0ba);
 
+//        System.out.println(String.format("+3 - > firstBU: %d, lastBU: %d",
+//                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
         for (int tstates = spectrumModel.firstBorderUpdate;
                 tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
-            states2border[tstates] = tStatesToScrPix128k(tstates);
-            states2border[tstates + 1] = states2border[tstates];
-            states2border[tstates + 2] = states2border[tstates];
-            states2border[tstates + 3] = states2border[tstates];
+            states2border[tstates + 1] = tStatesToScrPix128k(tstates);
+            states2border[tstates + 2] = states2border[tstates + 1];
+            states2border[tstates + 3] = states2border[tstates + 1];
+            states2border[tstates + 4] = states2border[tstates + 1];
         }
 
         // Diga lo que diga la FAQ de WoS, los estados de espera comienzan
