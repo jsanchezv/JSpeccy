@@ -563,14 +563,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //         String.format("screenDirty: %b, lastChgBorder: %d, borderChanged: %b, nBorderChanges: %d",
 //           screenDirty, lastChgBorder, borderChanged, nBorderChanges));
 
-        if (borderChanged) {
-            borderChanged = nBorderChanges != 0;
-            nBorderChanges = 0;
-            screenDirty = false;
+        if (borderUpdated || borderChanged) {
+            borderChanged = borderUpdated;
+            borderUpdated = false;
             updateBorder(spectrumModel.lastBorderUpdate);
-            gcTvImage.drawImage(inProgressImage, 0, 0, null);
-            jscr.repaint();
-            return;
+            if (borderDirty) {
+                screenDirty = borderDirty = false;
+//                System.out.println("borderDirty @ frame " + clock.getFrames());
+                gcTvImage.drawImage(inProgressImage, 0, 0, null);
+                jscr.repaint();
+                return;
+            }
 //                System.out.println(String.format("Frame: %8d - Repaint border", clock.getFrames()));
         }
 
@@ -623,7 +626,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             
             clock.endFrame();
 
-            if (clock.getFrames() % 100 == 0) {
+            if (clock.getFrames() % 500 == 0) {
                 updateScreen(spectrumModel.lastScrUpdate);
 
                 drawFrame();
@@ -633,7 +636,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 lastScreenState = spectrumModel.firstScrUpdate;
                 
                 long now = System.currentTimeMillis();
-                speed = 200000 / (now - speedometer);
+                speed = 1000000 / (now - speedometer);
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -1031,8 +1034,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             if ((port & 0x0001) == 0) {
                 if ((portFE & 0x07) != (value & 0x07)) {
                     updateBorder(clock.tstates);
-                    borderChanged = true;
-                    nBorderChanges++;
+                    borderUpdated = true;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
 //                    System.out.println(String.format("Frame: %d tstates: %d border: %d",
 //                        nFrame, z80.tEstados, value & 0x07));
@@ -1551,16 +1553,15 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     // t-states del último cambio de border
     private int lastChgBorder;
     // veces que ha cambiado el borde en el último frame
-    private int nBorderChanges;
+    //private int nBorderChanges;
     /*
      * screenDirty indica que se cambiaron bytes de la pantalla. Hay que redibujarla
      * borderDirty indica que hay colores del borde que cambiaron. Hay que redibujarlo
      * borderChanged indica que se hizo un out que cambió el color del borde, lo que
      *               no significa que haya que redibujarlo necesariamente.
      */
-    private boolean screenDirty, borderChanged;
+    private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
 
-    ;
     // t-states del ciclo contended por I=0x40-0x7F o -1
 //    private int m1contended;
     // valor del registro R cuando se produjo el ciclo m1
@@ -1767,7 +1768,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             nowColor = Paleta[portFE & 0x07];
         }
 
-        while (lastChgBorder < tstates) {
+        while (lastChgBorder < tstates && lastChgBorder < spectrumModel.lastBorderUpdate) {
             int idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
 
@@ -1783,6 +1784,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             dataInProgress[idxColor + 5] = nowColor;
             dataInProgress[idxColor + 6] = nowColor;
             dataInProgress[idxColor + 7] = nowColor;
+            borderDirty = true;
         }
         
         lastChgBorder = tstates;
