@@ -8,6 +8,7 @@ import configuration.JSpeccySettingsType;
 import configuration.SpectrumType;
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.*;
@@ -476,7 +477,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         long counter = framesByInt;
 
-        firstLine = lastLine = 0;
+        firstLine = lastLine = lastBorderPix = 0;
+        firstBorderPix = dataInProgress.length;
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = spectrumModel.firstBorderUpdate;
@@ -568,10 +570,29 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             borderUpdated = false;
             updateBorder(spectrumModel.lastBorderUpdate);
             if (borderDirty) {
-                screenDirty = borderDirty = false;
-//                System.out.println("borderDirty @ frame " + clock.getFrames());
+                borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
-                jscr.repaint();
+                int zoom = jscr.getZoom();
+                int fbl = firstBorderPix / 320;
+                borderRect.x = 0;
+                borderRect.y = fbl * zoom;
+                borderRect.width = 320 * zoom;
+                borderRect.height = (lastBorderPix / 320 - fbl + 1) * zoom;
+                if (screenDirty) {
+                    screenDirty = false;
+                    gcTvImage.drawImage(inProgressImage, 0, 0, null);
+                    firstLine = repaintTable[firstLine & 0x1fff];
+                    lastLine = repaintTable[lastLine & 0x1fff];
+                    screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
+                    screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
+                    screenRect.width = (rightCol - leftCol + 1) * 8 * zoom;
+                    screenRect.height = (lastLine - firstLine + 1) * zoom;
+//                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
+                    jscr.repaint(borderRect.union(screenRect));
+                } else {
+//                    System.out.println("borderDirty @ rect " + borderRect);
+                    jscr.repaint(borderRect);
+                }
                 return;
             }
 //                System.out.println(String.format("Frame: %8d - Repaint border", clock.getFrames()));
@@ -584,25 +605,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             firstLine = repaintTable[firstLine & 0x1fff];
             lastLine = repaintTable[lastLine & 0x1fff];
 
-            if (jscr.isZoomed()) {
-                int zoom = jscr.getZoom();
-                jscr.repaint((BORDER_WIDTH * zoom + leftCol * 8 * zoom) - zoom, ((BORDER_HEIGHT + firstLine) * zoom) - zoom,
-                    (rightCol - leftCol + zoom + 1) * 8 * zoom, (lastLine - firstLine + zoom + 1) * zoom);
-//                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
-//                        BORDER_WIDTH * 2 + leftCol * 16, (BORDER_WIDTH + firstLine) * 2,
-//                        (rightCol - leftCol + 1) * 16, (lastLine - firstLine + 1) * 2));
-//                jscr.repaint(BORDER_WIDTH * zoom - zoom, BORDER_WIDTH * zoom - zoom, (256 + zoom) * zoom, (192 + zoom) * zoom);
-//                jscr.repaint();
-            } else {
-                jscr.repaint((BORDER_WIDTH + leftCol * 8) - 1, BORDER_HEIGHT + firstLine - 1,
-                    (rightCol - leftCol + 2) * 8, lastLine - firstLine + 2);
-//                System.out.println(String.format("repaint x: %d, y: %d, w: %d, h: %d",
-//                        BORDER_WIDTH + leftCol * 8, BORDER_WIDTH + firstLine,
-//                        (rightCol - leftCol + 1) * 8, lastLine - firstLine + 1));
-//                  jscr.repaint(BORDER_WIDTH, BORDER_WIDTH , 256, 192);
-//                jscr.repaint();
+            int zoom = jscr.getZoom();
+            screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
+            screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
+            screenRect.width = (rightCol - leftCol + 1) * 8 * zoom;
+            screenRect.height = (lastLine - firstLine + 1) * zoom;
+//                System.out.println("screenDirty @ rect " + screenRect);
+            jscr.repaint(screenRect);
 
-            }
         }
     }
 
@@ -610,7 +620,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         stopEmulation();
 
-        firstLine = lastLine = 0;
+        firstLine = lastLine = lastBorderPix = 0;
+        firstBorderPix = dataInProgress.length;
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = spectrumModel.firstBorderUpdate;
@@ -630,7 +641,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 updateScreen(spectrumModel.lastScrUpdate);
 
                 drawFrame();
-                firstLine = lastLine = rightCol = 0;
+                firstLine = lastLine = rightCol = lastBorderPix = 0;
+                firstBorderPix = dataInProgress.length;
                 leftCol = 31;
                 lastChgBorder = spectrumModel.firstBorderUpdate;
                 lastScreenState = spectrumModel.firstScrUpdate;
@@ -1580,6 +1592,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     private boolean ULAPlusActive;
     // ULAplus precomputed color palette
     private int ULAPlusPrecompPalette[][];
+    
+    private Rectangle screenRect = new Rectangle();
+    private int firstBorderPix, lastBorderPix;
+    private Rectangle borderRect = new Rectangle();
 
     private void initGFX() {
         tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
@@ -1785,6 +1801,9 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             dataInProgress[idxColor + 6] = nowColor;
             dataInProgress[idxColor + 7] = nowColor;
             borderDirty = true;
+            if (firstBorderPix > idxColor)
+                firstBorderPix = idxColor;
+            lastBorderPix = idxColor;
         }
         
         lastChgBorder = tstates;
