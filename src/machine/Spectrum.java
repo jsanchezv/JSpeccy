@@ -754,7 +754,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
     @Override
     public void contendedStates(int address, int tstates) {
-        if (contendedRamPage[address >>> 14]) {
+        if (contendedRamPage[address >>> 14]
+                && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 clock.tstates += delayTstates[clock.tstates] + 1;
             }
@@ -1215,11 +1216,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
      * siguientes condicionantes dependiendo del estado del bit A0 y de si el
      * puerto accedido se encuentra entre las direcciones 0x4000-0x7FFF:
      *
-     * High byte in 0x40 (0xc0) to 0x7f (0xff)? 	Low bit  Contention pattern
+     * High byte in 0x40 (0xc0) to 0x7f (0xff)?     Low bit  Contention pattern
      *                                      No      Reset    N:1, C:3
      *                                      No      Set      N:4
      *                                      Yes     Reset    C:1, C:3
-     *                                      Yes 	Set      C:1, C:1, C:1, C:1
+     *                                      Yes     Set      C:1, C:1, C:1, C:1
      *
      * La columna 'Contention Pattern' se lee 'N:x', no contención x ciclos
      * 'C:n' se lee contención seguido de n ciclos sin contención.

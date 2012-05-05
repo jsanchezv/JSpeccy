@@ -140,7 +140,7 @@ public enum MachineTypes {
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
-                this.outBorderOffset = 3;
+                this.outBorderOffset = -1;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUMPLUS3;
