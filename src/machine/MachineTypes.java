@@ -32,6 +32,7 @@ public enum MachineTypes {
     public int firstBorderUpdate;
     public int lastBorderUpdate;
     public int outOffset;       //
+    public int outBorderOffset; //
     public int lengthINT;       // Duración en t-states de la señal INT
     private boolean hasAY8912;  // Tiene un AY-3-8912?
     private boolean hasDisk;    // Tiene un controlador de disco y disquetera?
@@ -54,6 +55,7 @@ public enum MachineTypes {
                     ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
+                this.outBorderOffset = 0;
                 this.hasAY8912 = false;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM48K;
@@ -74,6 +76,7 @@ public enum MachineTypes {
                     ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
+                this.outBorderOffset = 0;
                 this.hasAY8912 = false;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM48K;
@@ -95,6 +98,7 @@ public enum MachineTypes {
                 this.lastBorderUpdate =
                         (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
+                this.outBorderOffset = 2;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM128K;
@@ -115,6 +119,7 @@ public enum MachineTypes {
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
+                this.outBorderOffset = 2;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUM128K;
@@ -135,6 +140,7 @@ public enum MachineTypes {
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
+                this.outBorderOffset = 3;
                 this.hasAY8912 = true;
                 this.hasDisk = false;
                 this.codeModel = CodeModel.SPECTRUMPLUS3;
@@ -155,6 +161,7 @@ public enum MachineTypes {
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
+                this.outBorderOffset = 3;
                 this.hasAY8912 = true;
                 this.hasDisk = true;
                 this.codeModel = CodeModel.SPECTRUMPLUS3;

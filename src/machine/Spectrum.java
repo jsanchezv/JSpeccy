@@ -599,7 +599,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         }
 
         if (screenDirty) {
-//            System.out.println(String.format("Frame: %8d - Screen Repaint", nFrame));
             screenDirty = false;
             gcTvImage.drawImage(inProgressImage, 0, 0, null);
             firstLine = repaintTable[firstLine & 0x1fff];
@@ -610,7 +609,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
             screenRect.width = (rightCol - leftCol + 1) * 8 * zoom;
             screenRect.height = (lastLine - firstLine + 1) * zoom;
-//                System.out.println("screenDirty @ rect " + screenRect);
+//            System.out.println("screenDirty @ rect " + screenRect);
             jscr.repaint(screenRect);
 
         }
@@ -755,8 +754,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
     @Override
     public void contendedStates(int address, int tstates) {
-        if (contendedRamPage[address >>> 14]
-            && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+        if (contendedRamPage[address >>> 14]) {
             for (int idx = 0; idx < tstates; idx++) {
                 clock.tstates += delayTstates[clock.tstates] + 1;
             }
@@ -1211,7 +1209,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     /*
-     * Las operaciones de I/O se producen entre los estados T3 y T4 de la CPU,
+     * Las operaciones de I/O se producen entre los ciclos M3 y M4 de la CPU,
      * y justo ahí es donde podemos encontrar la contención en los accesos. Los
      * ciclos de contención son exactamente iguales a los de la memoria, con los
      * siguientes condicionantes dependiendo del estado del bit A0 y de si el
@@ -1229,7 +1227,17 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
      * con sus contenciones cuando procede y la que añade el estado final con
      * la contención correspondiente.
      */
+    private void preIO(int port) {
+
+        if (contendedIOPage[port >>> 14]) {
+            // A0 == 1 y es contended RAM
+            clock.tstates += delayTstates[clock.tstates];
+        }
+        clock.tstates++;
+    }
+    
     private void postIO(int port) {
+
         if ((port & 0x0001) != 0) {
             if (contendedIOPage[port >>> 14]) {
                 // A0 == 1 y es contended RAM
@@ -1242,17 +1250,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
         } else {
             // A0 == 0
-            clock.tstates += delayTstates[clock.tstates] + 3;
+            if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                clock.tstates += delayTstates[clock.tstates];
+            }
+            clock.tstates += 3;
         }
-    }
-
-    private void preIO(int port) {
-        if (contendedIOPage[port >>> 14]) {
-            // A0 == 1 y es contended RAM
-            clock.tstates += delayTstates[clock.tstates];
-        }
-        clock.tstates++;
-//        z80.addTEstados(1);
     }
 
     @Override
@@ -1768,7 +1770,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     private void updateBorder(int tstates) {
-        
+
         if (tstates < lastChgBorder || tstates > spectrumModel.lastBorderUpdate) {
 //            System.out.println("Out from updateBorder by the fast lane");
             return;
@@ -1784,6 +1786,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             nowColor = Paleta[portFE & 0x07];
         }
 
+        tstates += spectrumModel.outBorderOffset;
+        tstates &= 0x00fffffc;
         while (lastChgBorder < tstates && lastChgBorder < spectrumModel.lastBorderUpdate) {
             int idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
@@ -1969,8 +1973,8 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                 tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
-            states2border[tstates - 1] = states2border[tstates];
-            states2border[tstates - 2] = states2border[tstates];
+            states2border[tstates + 2] = states2border[tstates];
+            states2border[tstates + 3] = states2border[tstates];
         }
 
         Arrays.fill(delayTstates, (byte) 0x00);
@@ -2012,10 +2016,10 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 //                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
         for (int tstates = spectrumModel.firstBorderUpdate;
                 tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
-            states2border[tstates + 1] = tStatesToScrPix128k(tstates);
-            states2border[tstates + 2] = states2border[tstates + 1];
-            states2border[tstates + 3] = states2border[tstates + 1];
-            states2border[tstates + 4] = states2border[tstates + 1];
+            states2border[tstates] = tStatesToScrPix128k(tstates);
+            states2border[tstates + 1] = states2border[tstates];
+            states2border[tstates + 2] = states2border[tstates];
+            states2border[tstates + 3] = states2border[tstates];
         }
 
         // Diga lo que diga la FAQ de WoS, los estados de espera comienzan
