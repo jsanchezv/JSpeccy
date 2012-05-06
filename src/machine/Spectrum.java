@@ -1210,7 +1210,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     }
 
     /*
-     * Las operaciones de I/O se producen entre los ciclos M3 y M4 de la CPU,
+     * Las operaciones de I/O se producen entre los ciclos T3 y T4 de la CPU,
      * y justo ahí es donde podemos encontrar la contención en los accesos. Los
      * ciclos de contención son exactamente iguales a los de la memoria, con los
      * siguientes condicionantes dependiendo del estado del bit A0 y de si el
@@ -1218,20 +1218,19 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
      *
      * High byte in 0x40 (0xc0) to 0x7f (0xff)?     Low bit  Contention pattern
      *                                      No      Reset    N:1, C:3
-     *                                      No      Set      N:4
+     *                                      No      Set      N:1, N:3
      *                                      Yes     Reset    C:1, C:3
      *                                      Yes     Set      C:1, C:1, C:1, C:1
      *
      * La columna 'Contention Pattern' se lee 'N:x', no contención x ciclos
      * 'C:n' se lee contención seguido de n ciclos sin contención.
-     * Así pues se necesitan dos rutinas, la que añade los primeros 3 t-estados
-     * con sus contenciones cuando procede y la que añade el estado final con
-     * la contención correspondiente.
+     * Así pues se necesitan dos rutinas, la que añade el t-estado inicial
+     * con sus contenciones cuando procede y la que añade los 3 estados finales
+     * con la contención correspondiente.
      */
     private void preIO(int port) {
-
+        
         if (contendedIOPage[port >>> 14]) {
-            // A0 == 1 y es contended RAM
             clock.tstates += delayTstates[clock.tstates];
         }
         clock.tstates++;
@@ -1239,22 +1238,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     
     private void postIO(int port) {
 
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            clock.tstates += 3;
+            return;
+        }
+        
         if ((port & 0x0001) != 0) {
             if (contendedIOPage[port >>> 14]) {
-                // A0 == 1 y es contended RAM
+                // A0 == 1 y es contended IO
                 clock.tstates += delayTstates[clock.tstates] + 1;
                 clock.tstates += delayTstates[clock.tstates] + 1;
                 clock.tstates += delayTstates[clock.tstates] + 1;
             } else {
-                // A0 == 1 y no es contended RAM
+                // A0 == 1 y no es contended IO
                 clock.tstates += 3;
             }
         } else {
             // A0 == 0
-            if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                clock.tstates += delayTstates[clock.tstates];
-            }
-            clock.tstates += 3;
+            clock.tstates += delayTstates[clock.tstates] + 3;
         }
     }
 
