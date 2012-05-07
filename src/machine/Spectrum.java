@@ -456,6 +456,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         return memory;
     }
 
+    boolean screenUpdatePending = true;
     public synchronized void generateFrame() {
 
 //        long startFrame, endFrame, sleepTime;
@@ -494,18 +495,24 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             z80.setINTLine(false);
 
             if (clock.tstates < spectrumModel.firstScrByte) {
+                screenUpdatePending = true;
                 z80.execute(spectrumModel.firstScrByte);
-                updateScreen(clock.tstates);
+                if (screenUpdatePending)
+                    updateScreen(clock.tstates);
             }
 
 //            int fromTstates;
             while (clock.tstates < spectrumModel.lastScrUpdate) {
 //                fromTstates = clock.tstates + 1;
+                screenUpdatePending = true;
                 z80.execute(clock.tstates + 4);
-                updateScreen(clock.tstates);
+                if (screenUpdatePending)
+                    updateScreen(clock.tstates);
             }
 
             z80.execute(spectrumModel.tstatesFrame);
+//            if (lastScreenState < spectrumModel.lastScrUpdate)
+//                updateScreen(spectrumModel.lastScrUpdate);
 
             if (enabledSound) {
                 if (enabledAY) {
@@ -697,14 +704,23 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     @Override
     public void poke8(int address, int value) {
 
+        boolean screenWrite = false;
+        
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates];
-            if (memory.isScreenByte(address)) {
+            screenWrite = memory.isScreenByteModified(address, (byte)value);
+            if (screenWrite) {
                 notifyScreenWrite(address);
             }
         }
         clock.tstates += 3;
 
+        if (screenWrite && clock.tstates > lastScreenState
+                && lastScreenState <= spectrumModel.lastScrUpdate) {
+            updateScreen(clock.tstates);
+            screenUpdatePending = false;
+        }
+        
         memory.writeByte(address, (byte) value);
     }
 
@@ -729,27 +745,46 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     @Override
     public void poke16(int address, int word) {
 
+        boolean screenWrite = false;
+        byte lsb = (byte) word;
+        byte msb = (byte) (word >>> 8);
+        
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates];
-            if (memory.isScreenByte(address)) {
+            screenWrite = memory.isScreenByteModified(address, lsb);
+            if (screenWrite) {
                 notifyScreenWrite(address);
             }
         }
         clock.tstates += 3;
 
-        memory.writeByte(address, (byte) word);
+        if (screenWrite && clock.tstates > lastScreenState
+                && lastScreenState <= spectrumModel.lastScrUpdate) {
+            updateScreen(clock.tstates);
+            screenUpdatePending = false;
+            
+        }
+
+        memory.writeByte(address, lsb);
 
         address = (address + 1) & 0xffff;
 
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates];
-            if (memory.isScreenByte(address)) {
+            screenWrite = memory.isScreenByteModified(address, msb);
+            if (screenWrite) {
                 notifyScreenWrite(address);
             }
         }
         clock.tstates += 3;
 
-        memory.writeByte(address, (byte) (word >>> 8));
+        if (screenWrite && clock.tstates > lastScreenState
+                && lastScreenState <= spectrumModel.lastScrUpdate) {
+            updateScreen(clock.tstates);
+            screenUpdatePending = false;
+        }
+
+        memory.writeByte(address, msb);
     }
 
     @Override
@@ -1824,15 +1859,16 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
         int attr;
         //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
 
-        while (lastScreenState % 4 != 0) {
-            lastScreenState++;
-        }
+//        while (lastScreenState % 4 != 0) {
+//            lastScreenState++;
+//        }
+//        lastScreenState &= 0xfffc;
 
         while (lastScreenState <= toTstates) {
             fromAddr = states2scr[lastScreenState];
+            lastScreenState += 4;
 
             if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
-                lastScreenState += 4;
                 continue;
             }
 
@@ -1878,7 +1914,6 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             
             dirtyByte[fromAddr] = false;
             screenDirty = true;
-            lastScreenState += 4;
         }
     }
 
@@ -1912,14 +1947,14 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14336; tstates < 57344; tstates += 4) {
+        for (int tstates = 14336; tstates < 57252; tstates += 4) {
             col = (tstates % 224) / 4;
 
             if (col > 31) {
                 continue;
             }
             scan = tstates / 224 - 64;
-            states2scr[tstates - 8] = scrAddr[scan] + col;
+            states2scr[tstates] = scrAddr[scan] + col;
         }
         
         Arrays.fill(states2border, 0xf0cab0ba);
@@ -1956,7 +1991,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14364; tstates < 58140; tstates += 4) {
+        for (int tstates = 14364; tstates < 58044; tstates += 4) {
             col = (tstates % 228) / 4;
 
             if (col > 31) {
@@ -1964,7 +1999,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates - 16] = scrAddr[scan] + col;
+            states2scr[tstates] = scrAddr[scan] + col;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
@@ -2001,7 +2036,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14364; tstates < 58140; tstates += 4) {
+        for (int tstates = 14364; tstates < 58044; tstates += 4) {
             col = (tstates % 228) / 4;
 
             if (col > 31) {
@@ -2009,7 +2044,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates - 8] = scrAddr[scan] + col;
+            states2scr[tstates] = scrAddr[scan] + col;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);

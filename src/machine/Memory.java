@@ -634,6 +634,11 @@ public final class Memory {
         return false;
     }
 
+    public boolean isScreenByteModified(int address, byte value) {
+        return (readPages[address >>> 13][address & 0x1fff] != value
+                && isScreenByte(address));
+    }
+
     public boolean isModel128k() {
         return model128k;
     }

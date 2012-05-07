@@ -50,7 +50,7 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14336;
                 this.firstScrUpdate = 14328;
-                this.lastScrUpdate = 57237;
+                this.lastScrUpdate = 57248;
                 this.firstBorderUpdate =
                     ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
@@ -71,7 +71,7 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14336;
                 this.firstScrUpdate = 14328;
-                this.lastScrUpdate = 57237;
+                this.lastScrUpdate = 57248;
                 this.firstBorderUpdate =
                     ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
@@ -135,7 +135,7 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
-                this.lastScrUpdate = 58040;
+                this.lastScrUpdate = 58044;
                 this.firstBorderUpdate =
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
@@ -156,7 +156,7 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.firstScrUpdate = 14356;
-                this.lastScrUpdate = 58040;
+                this.lastScrUpdate = 58044;
                 this.firstBorderUpdate =
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
                 this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
