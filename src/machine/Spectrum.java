@@ -495,15 +495,12 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
 
             if (clock.tstates < spectrumModel.firstScrByte) {
                 z80.execute(spectrumModel.firstScrByte);
-                if (lastScreenState < clock.tstates)
-                    updateScreen(clock.tstates);
+                updateScreen(clock.tstates);
             }
 
             while (clock.tstates < spectrumModel.lastScrUpdate) {
-                z80.execute(clock.tstates + spectrumModel.tstatesLine);
-                if (lastScreenState < clock.tstates) {
-                    updateScreen(clock.tstates);
-                }
+                z80.execute(clock.tstates + 48);
+                updateScreen(clock.tstates);
             }
 
             z80.execute(spectrumModel.tstatesFrame);
@@ -1555,7 +1552,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
     
     public static final int BORDER_WIDTH = 32;
     public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    public static final int BORDER_HEIGHT = 24;
+    public static final int BORDER_HEIGHT = 28;
     public static final int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
 
     static {
