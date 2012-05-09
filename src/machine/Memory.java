@@ -605,38 +605,26 @@ public final class Memory {
                 case 0: // Pages 0, 1, 2, 3
                     return false;
                 case 4: // Pages 4, 5, 6, 3
-                    if (addr > 0x3FFF && addr < 0x5B00 && screenPage == 10) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+                    return (addr > 0x3FFF && addr < 0x5B00 && screenPage == 10);
                 case 6: // Pages 4, 7, 6, 3
-                    if (addr > 0x3FFF && addr < 0x5B00 && screenPage == 14) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+                    return (addr > 0x3FFF && addr < 0x5B00 && screenPage == 14);
             }
         }
 
         // El caso de todo RAM con páginas 4, 5, 6, 7 cae aquí
         switch (addr >>> 13) {
             case 2: // Address 0x4000-0x5fff
-                if (addr < 0x5B00 && screenPage == 10) {
-                    return true;
-                }
-                break;
+                return (addr < 0x5B00 && screenPage == 10);
             case 6: // Address 0xc000-0xdfff
-                if (model128k && addr < 0xDB00 && (highPage << 1) == screenPage) {
-                    return true;
-                }
+                return (addr < 0xDB00 && (highPage << 1) == screenPage);
         }
+        
         return false;
     }
 
     public boolean isScreenByteModified(int address, byte value) {
         return (readPages[address >>> 13][address & 0x1fff] != value
-                && isScreenByte(address));
+            && isScreenByte(address));
     }
 
     public boolean isModel128k() {
