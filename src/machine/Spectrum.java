@@ -498,7 +498,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             }
 
             while (clock.tstates < spectrumModel.lastScrUpdate) {
-                z80.execute(clock.tstates + 48);
+                z80.execute(clock.tstates + 40);
                 updateScreen(clock.tstates);
             }
 
@@ -1202,7 +1202,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                         // de los colores de paper de la paleta 0. (8-15)
                         // Pero hay que hacerlo *antes* de modificar la paleta.
                         if (paletteGroup > 7 && paletteGroup < 16) {
-                            invalidateScreen(true);
+                            borderUpdated = true;
                             updateBorder(clock.tstates);
                         }
                         ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
@@ -1249,6 +1249,11 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
             return;
         }
         
+        if (ULAPlusEnabled && (port & 0x0004) == 0) {
+            clock.tstates += delayTstates[clock.tstates] + 3;
+            return;
+        }
+
         if ((port & 0x0001) != 0) {
             if (contendedIOPage[port >>> 14]) {
                 // A0 == 1 y es contended IO
