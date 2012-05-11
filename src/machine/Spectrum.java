@@ -1065,11 +1065,7 @@ public class Spectrum extends Thread implements z80core.MemIoOps, z80core.Notify
                     }
 
                     if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                        if ((value & issueMask) == 0) {
-                            tape.setEarBit(false);
-                        } else {
-                            tape.setEarBit(true);
-                        }
+                        tape.setEarBit((value & issueMask) == 0);
 //                    System.out.println(String.format("setEarBit: %b", (value & issueMask) == 0));
                     }
                 }
