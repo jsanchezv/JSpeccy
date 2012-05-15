@@ -2050,26 +2050,28 @@ public class JSpeccy extends javax.swing.JFrame {
         boolean hifiSound = settings.getSpectrumSettings().isHifiSound();
         boolean muted = settings.getSpectrumSettings().isMutedSound();
         boolean zoomed = settings.getSpectrumSettings().isZoomed();
+        boolean ayOn48k = settings.getSpectrumSettings().isAYEnabled48K();
         int zoom = settings.getSpectrumSettings().getZoom();
-        
+
         settingsDialog.showDialog(this, bundle.getString("SETTINGS_DIALOG_TITLE"));
         spectrum.loadConfigVars();
-        
+
         if (muted != settings.getSpectrumSettings().isMutedSound()) {
             spectrum.muteSound(!muted);
             silenceMachineMenu.setSelected(!muted);
             silenceSoundToggleButton.setSelected(!muted);
         }
-        
-        if ((AYsoundMode !=  settings.getAY8912Settings().getSoundMode() ||
-            hifiSound != settings.getSpectrumSettings().isHifiSound()) &&
-            !spectrum.isMuteSound()) {
+
+        if ((AYsoundMode != settings.getAY8912Settings().getSoundMode()
+                || hifiSound != settings.getSpectrumSettings().isHifiSound()
+                || ayOn48k != settings.getSpectrumSettings().isAYEnabled48K())
+                && !spectrum.isMuteSound()) {
             spectrum.muteSound(true);
             spectrum.muteSound(false);
         }
-        
+
         updateGuiSelections();
-        
+
         if (settings.getSpectrumSettings().isZoomed() != zoomed) {
             doubleSizeToggleButton.setSelected(settings.getSpectrumSettings().isZoomed());
             doubleSizeOption.setSelected(settings.getSpectrumSettings().isZoomed());

@@ -270,6 +270,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         // AND con 0x10 para emular un Issue 3
         if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
             issueMask = issue2 ? 0x18 : 0x10;
+            enabledAY = settings.getSpectrumSettings().isAYEnabled48K();
         } else {
             issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
         }
