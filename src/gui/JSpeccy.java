@@ -42,6 +42,7 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
 import machine.Interface1DriveListener;
 import machine.Keyboard.Joystick;
+import machine.SleeperThread;
 import snapshots.SnapshotException;
 import snapshots.SnapshotSNA;
 import snapshots.SnapshotSZX;
@@ -75,6 +76,7 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     SnapshotSZX snapSZX; // for SZX snapshots
     SpectrumState memorySnapshot;
+    Thread sleeper;
 
     Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
@@ -120,6 +122,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         initComponents();
         initEmulator();
+        spectrum.startEmulation();
     }
 
     private void verifyConfigFile(boolean deleteFile) {
@@ -440,7 +443,11 @@ public class JSpeccy extends javax.swing.JFrame {
 
         updateGuiSelections();
         
-        spectrum.start();
+        // That hack is only needed on Windows (sigh!)
+        if (System.getProperty("os.name").contains("Windows")) {
+            sleeper = new Thread(new SleeperThread(), "SleeperThread");
+            sleeper.start();
+        }
     }
     
     private void exitEmulator() {
