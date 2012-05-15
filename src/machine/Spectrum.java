@@ -30,7 +30,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
+public class Spectrum extends Thread implements z80core.MemIoOps, z80core.NotifyOps {
 
     private Z80 z80;
     private Memory memory;
@@ -65,6 +65,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private Interface1 if1;
 
     public Spectrum(JSpeccySettingsType config) {
+        super("SpectrumThread");
         settings = config;
         specSettings = settings.getSpectrumSettings();
         clock = new TimeCounters();
@@ -305,6 +306,26 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             } else {
                 unpageLec();
             }
+        }
+    }
+    
+    /*
+     * Esto es necesario para conseguir un mejor funcionamiento en Windows.
+     * Para los sistemas Unix debería ser una modificación inocua. La razón del
+     * hack está explicada en:
+     * http://blogs.oracle.com/dholmes/entry/inside_the_hotspot_vm_clocks
+     * y en
+     * http://www.javamex.com/tutorials/threads/sleep.shtml
+     * 
+     */
+
+    @Override
+    public void run() {
+        startEmulation();
+        try {
+            sleep(Long.MAX_VALUE);
+        } catch (InterruptedException excpt) {
+            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
         }
     }
 
