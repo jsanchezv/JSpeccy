@@ -498,7 +498,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 toggleFlash();
             }
 
-            if ( clock.getFrames() % 50 == 0) {
+            if (clock.getFrames() % 50 == 0) {
                 long now = System.currentTimeMillis();
                 speed = 100000 / (now - speedometer);
                 speedometer = now;
@@ -516,13 +516,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
         } while (--counter > 0);
 
-        // In the 128K/+2 models, when register I is between 0x40-0x7F, the
+        // In the 128K/+2 models, when register I is between 0x40-0x7F, or
+        // the register I >= 0xC0 and a contended page is at 0xc000-0xffff, the
         // computer resets shortly.
-        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K
-            && z80.getRegI() < 0x80 && z80.getRegI() > 0x3f) {
-            z80.reset();
+        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
+            int regI = z80.getRegI();
+            if ((regI >= 0x40 && regI <= 0x7f) || (regI >= 0xc0 && contendedRamPage[3])) {
+                System.out.println(String.format(
+                        "Incompatible program with 128k/+2. Register I = 0x%02X. Reset!", regI));
+                z80.reset();
+            }
         }
-
         //endFrame = System.currentTimeMillis();
         //System.out.println("End frame: " + endFrame);
         //sleepTime = endFrame - startFrame;
