@@ -48,7 +48,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     
     public static final float[] PAL_KERNEL = {
          // low-pass filter kernel
-       0.05f, 0.85f, 0.1f
+       0.25f, 0.5f, 0.25f
     };
     
     private ConvolveOp palOp;
@@ -120,6 +120,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            escalaOp = new AffineTransformOp(escala, renderHints);
             this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         } else {
+//            imageBuffer =
+//                ((DataBufferInt) tvPalImage.getRaster().getDataBuffer()).getBankData()[0];
             this.setPreferredSize(
                 new Dimension(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT));
         }
@@ -208,16 +210,15 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 } else {
                     gc2.drawImage(tvImage, 0, 0, null);
                 }
-//                gc2.drawImage(tvImage, cop, 0, 0);
         }
     }
     
     private void drawScanlines2x() {
+
         int color = 0, res = 0;
         
-        int width = Spectrum.SCREEN_WIDTH * 2;
-        
-        int pixel = width;
+        // Jump the first line
+        int pixel = screenWidth;
         
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
@@ -239,16 +240,18 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 imageBuffer[pixel++] = res;
             }
             
-            pixel += width;
-        }
+            // Jump the next line
+            pixel += screenWidth;
+        }        
     }
     
     private void drawScanlines3x() {
         int color = 0, res1 = 0, res2 = 0;
         
-        int width = Spectrum.SCREEN_WIDTH * 3;
+        int jump = screenWidth * 2;
         
-        int pixel = width;
+        // Jump the first line
+        int pixel = screenWidth;
         
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
@@ -267,26 +270,26 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                     res2 = (scanline2[red] << 16) | (scanline2[green] << 8)  | scanline2[blue];
                 }
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
             }
             
-            pixel += width * 2;
+            pixel += jump;
         }
     }
     
     private void drawScanlines4x() {
         int color = 0, res1 = 0, res2 = 0;
         
-        int width = Spectrum.SCREEN_WIDTH * 4;
+        int jump = screenWidth * 3;
         
-        int pixel = width * 2;
+        int pixel = screenWidth * 2;
         
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
@@ -305,59 +308,104 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                     res2 = (scanline2[red] << 16) | (scanline2[green] << 8)  | scanline2[blue];
                 }
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
                 
-                imageBuffer[pixel + width] = res2;
+                imageBuffer[pixel + screenWidth] = res2;
                 imageBuffer[pixel++] = res1;
             }
             
-            pixel += width * 3;
+            pixel += jump;
         }
     }
     
     private void filterRGB2x() {
 
-        int width = Spectrum.SCREEN_WIDTH * zoom;
-
         int pixel = 0;
         
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < width / 2; col++) {
-                 imageBuffer[pixel + width] &= blueMask;
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+                 imageBuffer[pixel + screenWidth] &= blueMask;
                  imageBuffer[pixel++] &= redMask;
                  imageBuffer[pixel++] &= greenMask;
             }
-            pixel += width;
+            pixel += screenWidth;
         }
     }
     
     private void filterRGB3x() {
 
-        int width = Spectrum.SCREEN_WIDTH * zoom;
-
+        int jump = screenWidth * 2;
+        
         int pixel = 0;
         
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < width / 3; col++) {
-                imageBuffer[pixel + width] &= greenMask;
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+                imageBuffer[pixel + screenWidth] &= greenMask;
                 pixel++;
                 
-                imageBuffer[pixel + width] &= redMask;
-                imageBuffer[pixel + width * 2] &= blueMask;
+                imageBuffer[pixel + screenWidth] &= redMask;
+                imageBuffer[pixel + jump] &= blueMask;
                 imageBuffer[pixel++] &= greenMask;
                 
-                imageBuffer[pixel + width * 2] &= redMask;
+                imageBuffer[pixel + jump] &= redMask;
                 imageBuffer[pixel++] &= blueMask;
             }
-            pixel += width * 2;
+            pixel += jump;
         }
+    }
+    
+    // http://softpixel.com/~cwright/programming/colorspace/
+    private void palFilter() {
+        
+//        long start = System.currentTimeMillis();
+        int r1, g1, b1;
+        int r2, g2, b2;
+        int r3, g3, b3;
+        
+        int pixel = 0;
+        
+        while (pixel < imageBuffer.length - 2) {
+            int color = imageBuffer[pixel++];
+            r1 = color >>> 16;
+            g1 = (color >>> 8) & 0xff;
+            b1 = color & 0xff;
+            color = imageBuffer[pixel];
+            r2 = color >>> 16;
+            g2 = (color >>> 8) & 0xff;
+            b2 = color & 0xff;
+            for (int col = 1; col < Spectrum.SCREEN_WIDTH - 2; col++) {
+                color = imageBuffer[pixel + 1];
+                r3 = color >>> 16;
+                g3 = (color >>> 8) & 0xff;
+                b3 = color & 0xff;
+                int rf = (r1 + 2 * r2 + r3) >>> 2;
+                if (rf > 255)
+                    rf = 255;
+                int gf = (g1 + 2 * g2 + g3) >>> 2;
+                if (gf > 255)
+                    gf = 255;
+                int bf = (b1 + 2 * b2 + b3) >>> 2;
+                if (gf > 255)
+                    gf = 255;
+                imageBuffer[pixel++] = (rf << 16) | (gf << 8) | bf;
+                r1 = r2;
+                g1 = g2;
+                b1 = b2;
+                r2 = r3;
+                g2 = g3;
+                b2 = b3;
+            }
+            pixel += 2;
+        }
+        
+//        System.out.println(String.format("PalFilter in %d ms.", System.currentTimeMillis() - start));
     }
 
     /** This method is called from within the constructor to
