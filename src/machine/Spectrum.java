@@ -565,9 +565,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     firstLine = repaintTable[firstLine & 0x1fff];
                     lastLine = repaintTable[lastLine & 0x1fff];
                     screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
+                    screenRect.x -= zoom;
                     screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
-                    screenRect.width = (rightCol - leftCol + 1) * 8 * zoom;
-                    screenRect.height = (lastLine - firstLine + 1) * zoom;
+                    screenRect.y -= zoom;
+                    screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
+                    screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
                     jscr.repaint(borderRect.union(screenRect));
                 } else {
@@ -587,9 +589,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
             int zoom = jscr.getZoom();
             screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
+            screenRect.x -= zoom;
             screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
-            screenRect.width = (rightCol - leftCol + 1) * 8 * zoom;
-            screenRect.height = (lastLine - firstLine + 1) * zoom;
+            screenRect.y -= zoom;
+            screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
+            screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
             jscr.repaint(screenRect);
 
