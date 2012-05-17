@@ -1487,7 +1487,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     /* Sección gráfica */
     //Vector con los valores correspondientes a lo colores anteriores
-    private static final int[] Paleta = {
+    public static final int[] Paleta = {
         0x000000, /* negro */
         0x0000c0, /* azul */
         0xc00000, /* rojo */
@@ -1503,7 +1503,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         0x00ff00, /* verde brillante */
         0x00ffff, /* cyan brillante */
         0xffff00, /* amarillo brillante */
-        0xffffff /* blanco brillante */};
+        0xffffff  /* blanco brillante */
+    };
     // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
     // corresponde una entrada en la tabla que hace referencia al color
     // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
