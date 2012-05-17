@@ -31,8 +31,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //    private RenderingHints renderHints;
     private int zoom, screenWidth, screenHeight;
     private Object interpolationMethod;
-    private boolean anyFilter = false;
-    private boolean palFilter = false;
+    private boolean anyFilter = true;
+    private boolean palFilter = true;
     private boolean scanlinesFilter = false;
     private boolean rgbFilter = false;
     private int[] imageBuffer;
@@ -68,8 +68,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            RenderingHints.VALUE_COLOR_RENDER_SPEED);
 //        escalaOp = new AffineTransformOp(escala, renderHints);
 
-        screenWidth = Spectrum.SCREEN_WIDTH * 2;
-        screenHeight = Spectrum.SCREEN_HEIGHT * 2;
+        screenWidth = Spectrum.SCREEN_WIDTH;
+        screenHeight = Spectrum.SCREEN_HEIGHT;
         setMaximumSize(new java.awt.Dimension(screenWidth, screenHeight));
         setMinimumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
             Spectrum.SCREEN_HEIGHT));
@@ -120,8 +120,10 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            escalaOp = new AffineTransformOp(escala, renderHints);
             this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         } else {
-//            imageBuffer =
-//                ((DataBufferInt) tvPalImage.getRaster().getDataBuffer()).getBankData()[0];
+            screenWidth = Spectrum.SCREEN_WIDTH;
+            screenHeight = Spectrum.SCREEN_HEIGHT;
+            imageBuffer =
+                ((DataBufferInt) tvPalImage.getRaster().getDataBuffer()).getBankData()[0];
             this.setPreferredSize(
                 new Dimension(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT));
         }
@@ -206,7 +208,10 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 break;
             default:
                 if (palFilter) {
-                    gc2.drawImage(tvImage, palOp, 0, 0);
+//                    gc2.drawImage(tvImage, palOp, 0, 0);
+                    tvPalImageGc.drawImage(tvImage, 0, 0, null);
+                    palFilterYUV();
+                    gc2.drawImage(tvPalImage, 0, 0, null);
                 } else {
                     gc2.drawImage(tvImage, 0, 0, null);
                 }
@@ -360,52 +365,87 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             pixel += jump;
         }
     }
+
+    /*
+     * Y = R *  .299000 + G *  .587000 + B *  .114000
+     * U = R * -.168736 + G * -.331264 + B *  .500000 + 128 or U = (B - Y) * 0.565 + 128
+     * V = R *  .500000 + G * -.418688 + B * -.081312 + 128 or V = (R - Y) * 0.713 + 128
+     * http://www.fourcc.org/fccyvrgb.php
+     * http://softpixel.com/~cwright/programming/colorspace/
+     */
+    private void rgb2yuv(int rgb, int[] yuv) {
+        int r = rgb >>> 16;
+//        int g = ((rgb >>> 8) & 0xff);
+        int b = rgb & 0xff;
+
+		int y = (int)(0.299 * r + 0.587 * ((rgb >>> 8) & 0xff) + 0.114 * b);
+//        int u = (int)(r * -.168736 + g * -.331264 + b *  0.5);
+//        int v = (int)(r * 0.5 + g * -0.418688 + b * -0.081312);
+		int u = (int)((b - y) * 0.565); 
+		int v = (int)((r - y) * 0.713);
+	
+		yuv[0]= y;
+		yuv[1]= u + 128;
+		yuv[2]= v + 128;
+	}
     
-    // http://softpixel.com/~cwright/programming/colorspace/
-    private void palFilter() {
+    /*
+     * R = Y + 1.402 (V - 128)
+     * G = Y - 0.34414 (U - 128) - 0.71414 (V - 128)
+     * B = Y + 1.772 (U - 128)
+     */
+    private int yuv2rgb(int y, int u, int v) {
+        u -= 128;
+        v -= 128;
+//        int r = (int)(y + 1.4075 * v);
+        int r = (int)(y + 1.402 * v);
+        if (r < 0) r = 0;
+        if (r > 255) r = 255;
+
+//        int g = (int)(y - 0.3455 * u - 0.7169 * v);
+        int g = (int)(y - 0.34414 * u - 0.71414 * v);
+        if (g < 0) g = 0;
+        if (g > 255) g = 255;
+
+//        int b = (int)(y + 1.7790 * u);
+        int b = (int)(y + 1.772 * u);
+        if (b < 0) b = 0;
+        if (b > 255) b = 255;
         
-//        long start = System.currentTimeMillis();
-        int r1, g1, b1;
-        int r2, g2, b2;
-        int r3, g3, b3;
+        return (r << 16) | (g << 8) | b;
+    }
+  
+    private void palFilterYUV() {
         
-        int pixel = 0;
+        long start = System.currentTimeMillis();
+        int yuv1[] = new int[3];
+        int yuv2[] = new int[3];
+        int yuv3[] = new int[3];
         
-        while (pixel < imageBuffer.length - 2) {
-            int color = imageBuffer[pixel++];
-            r1 = color >>> 16;
-            g1 = (color >>> 8) & 0xff;
-            b1 = color & 0xff;
-            color = imageBuffer[pixel];
-            r2 = color >>> 16;
-            g2 = (color >>> 8) & 0xff;
-            b2 = color & 0xff;
-            for (int col = 1; col < Spectrum.SCREEN_WIDTH - 2; col++) {
-                color = imageBuffer[pixel + 1];
-                r3 = color >>> 16;
-                g3 = (color >>> 8) & 0xff;
-                b3 = color & 0xff;
-                int rf = (r1 + 2 * r2 + r3) >>> 2;
-                if (rf > 255)
-                    rf = 255;
-                int gf = (g1 + 2 * g2 + g3) >>> 2;
-                if (gf > 255)
-                    gf = 255;
-                int bf = (b1 + 2 * b2 + b3) >>> 2;
-                if (gf > 255)
-                    gf = 255;
-                imageBuffer[pixel++] = (rf << 16) | (gf << 8) | bf;
-                r1 = r2;
-                g1 = g2;
-                b1 = b2;
-                r2 = r3;
-                g2 = g3;
-                b2 = b3;
+        int pixel = Spectrum.BORDER_HEIGHT * screenWidth + Spectrum.BORDER_WIDTH - 2;
+        int limit = (Spectrum.BORDER_HEIGHT + 192) * screenWidth - Spectrum.BORDER_WIDTH + 2;
+        int jump = Spectrum.BORDER_WIDTH * 2 - 2;
+        
+        while (pixel < limit) {
+            rgb2yuv(imageBuffer[pixel++], yuv1);
+            rgb2yuv(imageBuffer[pixel], yuv2);
+            for (int col = 0; col < 258; col++) {
+                rgb2yuv(imageBuffer[pixel + 1], yuv3);
+//                int yf = (yuv1[0] + 2 * yuv2[0] + yuv3[0]) >>> 2;
+                int uf = (yuv1[1] + 2 * yuv2[1] + yuv3[1]) >>> 2;
+                int vf = (yuv1[2] + 2 * yuv2[2] + yuv3[2]) >>> 2;
+                imageBuffer[pixel++] = yuv2rgb(yuv2[0], (yuv1[1] + uf) >>> 1, (yuv1[2] + vf) >>> 1);
+                yuv1[0] = yuv2[0];
+                yuv1[1] = yuv2[1];
+                yuv1[2] = yuv2[2];
+                yuv2[0] = yuv3[0];
+                yuv2[1] = yuv3[1];
+                yuv2[2] = yuv3[2];
             }
-            pixel += 2;
+            pixel += jump;
         }
         
-//        System.out.println(String.format("PalFilter in %d ms.", System.currentTimeMillis() - start));
+        System.out.println(String.format("PalFilterYUV in %d ms.", System.currentTimeMillis() - start));
     }
 
     /** This method is called from within the constructor to
