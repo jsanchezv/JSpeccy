@@ -10,9 +10,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.awt.image.ConvolveOp;
 import java.awt.image.DataBufferInt;
-import java.awt.image.Kernel;
 import machine.Spectrum;
 
 /**
@@ -31,14 +29,13 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //    private RenderingHints renderHints;
     private int zoom, screenWidth, screenHeight;
     private Object interpolationMethod;
-    private boolean anyFilter = true;
-    private boolean palFilter = true;
+    private boolean anyFilter = false;
+    private boolean palFilter = false;
     private boolean scanlinesFilter = false;
     private boolean rgbFilter = false;
     private int[] imageBuffer, imagePalBuffer;
     private int[] scanline1 = new int[256];
     private int[] scanline2 = new int[256];
-//    private int[] scanline3 = new int[256];
     private static final int redMask = 0xff0000;
     private static final int greenMask = 0x00ff00;
     private static final int blueMask = 0x0000ff;
@@ -46,16 +43,17 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int greenBlueMask = 0x00ffff;
     private static final int redBlueMask = 0xff00ff;
     
-    public static final float[] PAL_KERNEL = {
-         // low-pass filter kernel
-       0.25f, 0.5f, 0.25f
-    };
+//    public static final float[] PAL_KERNEL = {
+//         // low-pass filter kernel
+//       0.25f, 0.5f, 0.25f
+//    };
     
-    private ConvolveOp palOp;
-    
-    private int tableY[] = new int[32];
-    private int tableU[] = new int[32];
-    private int tableV[] = new int[32];
+//    private ConvolveOp palOp;
+
+    private int tableYUV[][] = new int[3][32];
+    private static final int Yuv = 0;
+    private static final int yUv = 1;
+    private static final int yuV = 2;
 
     /** Creates new form JScreen */
     public JSpeccyScreen() {
@@ -92,20 +90,18 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         for (int color = 1; color < scanline1 .length; color++) {
             scanline1 [color] = (int)(color * 0.80f);
             scanline2 [color] = (int)(color * 0.70f);
-//            scanline3 [color] = (int)(color * 0.15625f);
         }
         
-        palOp = new ConvolveOp(new Kernel(PAL_KERNEL.length, 1, PAL_KERNEL), ConvolveOp.EDGE_NO_OP, null);
+//        palOp = new ConvolveOp(new Kernel(PAL_KERNEL.length, 1, PAL_KERNEL), ConvolveOp.EDGE_NO_OP, null);
         
-        int yuv[] = new int[3];
-        
+        int yuv[] = new int[3];      
         for (int color = 0; color < Spectrum.Paleta.length; color++) {
             int rgb = Spectrum.Paleta[color];
             rgb2yuv(rgb, yuv);
             rgb %= 31;
-            tableY[rgb] = yuv[0];
-            tableU[rgb] = yuv[1];
-            tableV[rgb] = yuv[2];
+            tableYUV[Yuv][rgb] = yuv[0];
+            tableYUV[yUv][rgb] = yuv[1];
+            tableYUV[yuV][rgb] = yuv[2];
         }
     }
 
@@ -125,9 +121,10 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         this.zoom = zoom;
         
-        if (zoom > 1) {
-            screenWidth = Spectrum.SCREEN_WIDTH * zoom;
-            screenHeight = Spectrum.SCREEN_HEIGHT * zoom;
+        screenWidth = Spectrum.SCREEN_WIDTH * zoom;
+        screenHeight = Spectrum.SCREEN_HEIGHT * zoom;
+
+        if (zoom > 1) {    
             tvImageFiltered = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
             imageBuffer =
                 ((DataBufferInt) tvImageFiltered.getRaster().getDataBuffer()).getBankData()[0];
@@ -135,13 +132,9 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             tvImageFilteredGc.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
 //            escala = AffineTransform.getScaleInstance(zoom, zoom);
 //            escalaOp = new AffineTransformOp(escala, renderHints);
-            this.setPreferredSize(new Dimension(screenWidth, screenHeight));
-        } else {
-            screenWidth = Spectrum.SCREEN_WIDTH;
-            screenHeight = Spectrum.SCREEN_HEIGHT;
-            this.setPreferredSize(
-                new Dimension(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT));
         }
+
+        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
     }
 
     public int getZoom() {
@@ -183,7 +176,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             case 3:
                 if (anyFilter) {
                     if (palFilter) {
-                        tvPalImageGc.drawImage(tvImage, palOp, 0, 0);
+                        tvPalImageGc.drawImage(tvImage, 0, 0, null);
+                        palFilterYUV();
                         tvImageFilteredGc.drawImage(tvPalImage, 0, 0, screenWidth, screenHeight, null);
                     } else {
                         tvImageFilteredGc.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
@@ -204,7 +198,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
             case 4:
                 if (anyFilter) {
                     if (palFilter) {
-                        tvPalImageGc.drawImage(tvImage, palOp, 0, 0);
+                        tvPalImageGc.drawImage(tvImage, 0, 0, null);
+                        palFilterYUV();
                         tvImageFilteredGc.drawImage(tvPalImage, 0, 0, screenWidth, screenHeight, null);
                     } else {
                         tvImageFilteredGc.drawImage(tvImage, 0, 0, screenWidth, screenHeight, null);
@@ -383,9 +378,14 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     }
 
     /*
+     * Equations from ITU.BT-601 Y'CbCr
      * Y = R *  .299000 + G *  .587000 + B *  .114000
-     * U = R * -.168736 + G * -.331264 + B *  .500000 + 128 or U = (B - Y) * 0.565 + 128
-     * V = R *  .500000 + G * -.418688 + B * -.081312 + 128 or V = (R - Y) * 0.713 + 128
+     * U = R * -.168736 + G * -.331264 + B *  .500000 + 128
+     * V = R *  .500000 + G * -.418688 + B * -.081312 + 128
+     * or
+     * U = (B - Y) * 0.565 + 128
+     * V = (R - Y) * 0.713 + 128
+     * 
      * http://www.fourcc.org/fccyvrgb.php
      * http://softpixel.com/~cwright/programming/colorspace/
      */
@@ -405,7 +405,12 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         yuv[2] = v + 128;
     }
     
-    /*
+    /* Inverse equations of rgb2yuv
+     * R = Y + 1.4075 (V - 128)
+     * G = Y - 0.3455 (U - 128) - 0.7169 (V - 128)
+     * B = Y + 1.7790 (U - 128)
+     * 
+     * Inverse equation from JPEG/JFIF
      * R = Y + 1.402 (V - 128)
      * G = Y - 0.34414 (U - 128) - 0.71414 (V - 128)
      * B = Y + 1.772 (U - 128)
@@ -442,50 +447,35 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         return (r << 16) | (g << 8) | b;
     }
-  
+
     private void palFilterYUV() {
         
-        long ini = System.currentTimeMillis();
-
-        int u1, v1;
-        int y2, u2, v2;
-        int y3, u3, v3;
+//        long ini = System.currentTimeMillis();
         
-        int start = Spectrum.BORDER_HEIGHT * 320 + Spectrum.BORDER_WIDTH - 2;
-        int limit = (Spectrum.BORDER_HEIGHT + 192) * 320 - Spectrum.BORDER_WIDTH + 1;
+        int idx1, idx2, idx3;
+        
+        int start = Spectrum.BORDER_HEIGHT * Spectrum.SCREEN_WIDTH + Spectrum.BORDER_WIDTH - 2;
+        int limit = (Spectrum.BORDER_HEIGHT + 192) * Spectrum.SCREEN_WIDTH - Spectrum.BORDER_WIDTH + 1;
         int pixel = 0;
         
         while (pixel < limit) {
             pixel = start;
-            int idx = imagePalBuffer[pixel++] % 31;
-            // Y1 is never used
-            u1 = tableU[idx];
-            v1 = tableV[idx];
-
-            idx = imagePalBuffer[pixel] % 31;
-            y2 = tableY[idx];
-            u2 = tableU[idx];
-            v2 = tableV[idx];
+            idx1 = imagePalBuffer[pixel++] % 31;
+            idx2 = imagePalBuffer[pixel] % 31;
             for (int col = 0; col < 258; col++) {
-                idx = imagePalBuffer[pixel + 1] % 31;
-                y3 = tableY[idx];
-                u3 = tableU[idx];
-                v3 = tableV[idx];
-                imagePalBuffer[pixel++] = yuv2rgb(y2,
-                        (u1 + u1 + u2 + u3) >>> 2,
-                        (v1 + v1 + v2 + v3) >>> 2);
-                u1 = u2;
-                v1 = v2;
-                y2 = y3;
-                u2 = u3;
-                v2 = v3;
+                idx3 = imagePalBuffer[pixel + 1] % 31;
+                imagePalBuffer[pixel++] = yuv2rgb(tableYUV[Yuv][idx2],
+                        (tableYUV[yUv][idx1] + 2 * tableYUV[yUv][idx2] + tableYUV[yUv][idx3]) >>> 2,
+                        (tableYUV[yuV][idx1] + 2 * tableYUV[yuV][idx2] + tableYUV[yuV][idx3]) >>> 2);
+                idx1 = idx2;
+                idx2 = idx3;
             }
-            start += 320;
+            start += Spectrum.SCREEN_WIDTH;
         }
         
-        System.out.println(String.format("PalFilterYUV in %d ms.", System.currentTimeMillis() - ini));
+//        System.out.println(String.format("PalFilterYUV in %d ms.", System.currentTimeMillis() - ini));
     }
-
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -562,5 +552,22 @@ public class JSpeccyScreen extends javax.swing.JComponent {
      */
     public void setInterpolationMethod(Object interpolationMethod) {
         this.interpolationMethod = interpolationMethod;
+    }
+
+    /**
+     * @return the anyFilter
+     */
+    public boolean isAnyFilter() {
+        return anyFilter;
+    }
+
+    /**
+     * @param anyFilter the anyFilter to set
+     */
+    public void setAnyFilter(boolean anyFilter) {
+        this.anyFilter = anyFilter;
+        if (!anyFilter) {
+            palFilter = scanlinesFilter = rgbFilter = false;
+        }
     }
 }
