@@ -1053,7 +1053,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     }
 
                     if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                        tape.setEarBit((value & issueMask) == 0);
+                        tape.setEarBit((value & issueMask) != 0);
 //                    System.out.println(String.format("setEarBit: %b", (value & issueMask) == 0));
                     }
                 }
