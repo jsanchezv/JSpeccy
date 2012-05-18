@@ -26,6 +26,7 @@ import javax.xml.bind.JAXBException;
 import machine.MachineTypes;
 import machine.Spectrum;
 import configuration.*;
+import java.awt.RenderingHints;
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -671,6 +672,7 @@ public class JSpeccy extends javax.swing.JFrame {
         closePokeDialogPanel = new javax.swing.JPanel();
         closePokeDialogButton = new javax.swing.JButton();
         filtersButtonGroup = new javax.swing.ButtonGroup();
+        zoomMethodButtonGroup = new javax.swing.ButtonGroup();
         statusPanel = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
@@ -711,6 +713,10 @@ public class JSpeccy extends javax.swing.JFrame {
         thisIsTheEndMyFriend = new javax.swing.JMenuItem();
         optionsMenu = new javax.swing.JMenu();
         doubleSizeOption = new javax.swing.JCheckBoxMenuItem();
+        zoomMethodOptionMenu = new javax.swing.JMenu();
+        standardZoom = new javax.swing.JRadioButtonMenuItem();
+        bilinearZoom = new javax.swing.JRadioButtonMenuItem();
+        bicubicZoom = new javax.swing.JRadioButtonMenuItem();
         filtersOptionMenu = new javax.swing.JMenu();
         noneFilter = new javax.swing.JRadioButtonMenuItem();
         palTvFilter = new javax.swing.JRadioButtonMenuItem();
@@ -1317,6 +1323,38 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     optionsMenu.add(doubleSizeOption);
+
+    zoomMethodOptionMenu.setText(bundle.getString("JSpeccy.zoomMethodOptionMenu.text")); // NOI18N
+
+    zoomMethodButtonGroup.add(standardZoom);
+    standardZoom.setSelected(true);
+    standardZoom.setText(bundle.getString("JSpeccy.standardZoom.text")); // NOI18N
+    standardZoom.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            standardZoomActionPerformed(evt);
+        }
+    });
+    zoomMethodOptionMenu.add(standardZoom);
+
+    zoomMethodButtonGroup.add(bilinearZoom);
+    bilinearZoom.setText(bundle.getString("JSpeccy.bilinearZoom.text")); // NOI18N
+    bilinearZoom.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            bilinearZoomActionPerformed(evt);
+        }
+    });
+    zoomMethodOptionMenu.add(bilinearZoom);
+
+    zoomMethodButtonGroup.add(bicubicZoom);
+    bicubicZoom.setText(bundle.getString("JSpeccy.bicubicZoom.text")); // NOI18N
+    bicubicZoom.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            bicubicZoomActionPerformed(evt);
+        }
+    });
+    zoomMethodOptionMenu.add(bicubicZoom);
+
+    optionsMenu.add(zoomMethodOptionMenu);
 
     filtersOptionMenu.setText(bundle.getString("JSpeccy.filtersOptionMenu.text")); // NOI18N
 
@@ -2682,6 +2720,21 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr.setScanlinesFilter(scanlinesFilter.isSelected());
         jscr.repaint();
     }//GEN-LAST:event_scanlinesFilterActionPerformed
+
+    private void standardZoomActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_standardZoomActionPerformed
+        jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        jscr.repaint();
+    }//GEN-LAST:event_standardZoomActionPerformed
+
+    private void bilinearZoomActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bilinearZoomActionPerformed
+        jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        jscr.repaint();
+    }//GEN-LAST:event_bilinearZoomActionPerformed
+
+    private void bicubicZoomActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bicubicZoomActionPerformed
+        jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        jscr.repaint();
+    }//GEN-LAST:event_bicubicZoomActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2701,6 +2754,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem aboutHelpMenu;
     private javax.swing.JPanel addrValuePanel;
     private javax.swing.JSpinner addressSpinner;
+    private javax.swing.JRadioButtonMenuItem bicubicZoom;
+    private javax.swing.JRadioButtonMenuItem bilinearZoom;
     private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JMenuItem clearTapeMediaMenu;
     private javax.swing.JButton closeKeyboardHelper;
@@ -2821,6 +2876,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem specPlus2Hardware;
     private javax.swing.JRadioButtonMenuItem specPlus3Hardware;
     private javax.swing.JLabel speedLabel;
+    private javax.swing.JRadioButtonMenuItem standardZoom;
     private javax.swing.JPanel statusPanel;
     private javax.swing.JButton tapeBrowserButtonEject;
     private javax.swing.JButton tapeBrowserButtonPlay;
@@ -2838,6 +2894,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem thisIsTheEndMyFriend;
     private javax.swing.JToolBar toolbarMenu;
     private javax.swing.JSpinner valueSpinner;
+    private javax.swing.ButtonGroup zoomMethodButtonGroup;
+    private javax.swing.JMenu zoomMethodOptionMenu;
     // End of variables declaration//GEN-END:variables
     
     private class TapeChangedListener implements TapeStateListener {

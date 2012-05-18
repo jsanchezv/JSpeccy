@@ -209,7 +209,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                         drawScanlines4x();
                     
                     if (rgbFilter)
-                        filterRGB2x();
+                        filterRGB4x();
                     
                     gc2.drawImage(tvImageFiltered, 0, 0, null);
                 } else {
@@ -344,34 +344,65 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private void filterRGB2x() {
 
         int pixel = 0;
-        
+
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
-                 imageBuffer[pixel + screenWidth] &= blueMask;
-                 imageBuffer[pixel++] &= redMask;
-                 imageBuffer[pixel++] &= greenMask;
+                imageBuffer[pixel + screenWidth] &= blueMask;
+                imageBuffer[pixel++] &= redMask;
+                imageBuffer[pixel++] &= greenMask;
             }
             pixel += screenWidth;
         }
     }
-    
+
     private void filterRGB3x() {
 
         int jump = screenWidth * 2;
-        
+
         int pixel = 0;
-        
+
         while (pixel < imageBuffer.length) {
             for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
                 imageBuffer[pixel + screenWidth] &= greenMask;
                 pixel++;
-                
+
                 imageBuffer[pixel + screenWidth] &= redMask;
                 imageBuffer[pixel + jump] &= blueMask;
                 imageBuffer[pixel++] &= greenMask;
-                
+
                 imageBuffer[pixel + jump] &= redMask;
                 imageBuffer[pixel++] &= blueMask;
+            }
+            pixel += jump;
+        }
+    }
+    
+    private void filterRGB4x() {
+
+        int pixel = 0;
+
+        int jump = screenWidth * 3;
+
+        while (pixel < imageBuffer.length) {
+            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+                imageBuffer[pixel] &= redMask;
+                imageBuffer[pixel + 1] &= redMask;
+                imageBuffer[pixel + screenWidth] &= redMask;
+                imageBuffer[pixel + screenWidth + 1] &= redMask;
+                
+                imageBuffer[pixel + screenWidth * 2] &= blueMask;
+                imageBuffer[pixel + screenWidth * 2 + 1] &= blueMask;
+                imageBuffer[pixel + screenWidth * 3] &= blueMask;
+                imageBuffer[pixel + screenWidth * 3 + 1] &= blueMask;
+
+                pixel += 2;
+
+                imageBuffer[pixel] &= greenMask;
+                imageBuffer[pixel + 1] &= greenMask;
+                imageBuffer[pixel + screenWidth] &= greenMask;
+                imageBuffer[pixel + screenWidth + 1] &= greenMask;
+
+                pixel += 2;
             }
             pixel += jump;
         }
@@ -552,6 +583,9 @@ public class JSpeccyScreen extends javax.swing.JComponent {
      */
     public void setInterpolationMethod(Object interpolationMethod) {
         this.interpolationMethod = interpolationMethod;
+        if (tvImageFilteredGc != null) {
+            tvImageFilteredGc.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolationMethod);
+        }
     }
 
     /**
