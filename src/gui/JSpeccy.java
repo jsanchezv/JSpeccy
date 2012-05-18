@@ -670,6 +670,7 @@ public class JSpeccy extends javax.swing.JFrame {
         pokeButton = new javax.swing.JButton();
         closePokeDialogPanel = new javax.swing.JPanel();
         closePokeDialogButton = new javax.swing.JButton();
+        filtersButtonGroup = new javax.swing.ButtonGroup();
         statusPanel = new javax.swing.JPanel();
         modelLabel = new javax.swing.JLabel();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
@@ -710,6 +711,13 @@ public class JSpeccy extends javax.swing.JFrame {
         thisIsTheEndMyFriend = new javax.swing.JMenuItem();
         optionsMenu = new javax.swing.JMenu();
         doubleSizeOption = new javax.swing.JCheckBoxMenuItem();
+        filtersOptionMenu = new javax.swing.JMenu();
+        noneFilter = new javax.swing.JRadioButtonMenuItem();
+        palTvFilter = new javax.swing.JRadioButtonMenuItem();
+        rgbFilter = new javax.swing.JRadioButtonMenuItem();
+        jSeparator20 = new javax.swing.JPopupMenu.Separator();
+        scanlinesFilter = new javax.swing.JCheckBoxMenuItem();
+        jSeparator19 = new javax.swing.JPopupMenu.Separator();
         joystickOptionMenu = new javax.swing.JMenu();
         noneJoystick = new javax.swing.JRadioButtonMenuItem();
         kempstonJoystick = new javax.swing.JRadioButtonMenuItem();
@@ -717,6 +725,7 @@ public class JSpeccy extends javax.swing.JFrame {
         sinclair2Joystick = new javax.swing.JRadioButtonMenuItem();
         cursorJoystick = new javax.swing.JRadioButtonMenuItem();
         fullerJoystick = new javax.swing.JRadioButtonMenuItem();
+        jSeparator18 = new javax.swing.JPopupMenu.Separator();
         settingsOptionsMenu = new javax.swing.JMenuItem();
         machineMenu = new javax.swing.JMenu();
         pauseMachineMenu = new javax.swing.JCheckBoxMenuItem();
@@ -1309,6 +1318,48 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     optionsMenu.add(doubleSizeOption);
 
+    filtersOptionMenu.setText(bundle.getString("JSpeccy.filtersOptionMenu.text")); // NOI18N
+
+    filtersButtonGroup.add(noneFilter);
+    noneFilter.setSelected(true);
+    noneFilter.setText(bundle.getString("JSpeccy.noneFilter.text")); // NOI18N
+    noneFilter.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            noneFilterActionPerformed(evt);
+        }
+    });
+    filtersOptionMenu.add(noneFilter);
+
+    filtersButtonGroup.add(palTvFilter);
+    palTvFilter.setText(bundle.getString("JSpeccy.palTvFilter.text")); // NOI18N
+    palTvFilter.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            palTvFilterActionPerformed(evt);
+        }
+    });
+    filtersOptionMenu.add(palTvFilter);
+
+    filtersButtonGroup.add(rgbFilter);
+    rgbFilter.setText(bundle.getString("JSpeccy.rgbFilter.text")); // NOI18N
+    rgbFilter.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            rgbFilterActionPerformed(evt);
+        }
+    });
+    filtersOptionMenu.add(rgbFilter);
+    filtersOptionMenu.add(jSeparator20);
+
+    scanlinesFilter.setText(bundle.getString("JSpeccy.scanlinesFilter.text")); // NOI18N
+    scanlinesFilter.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            scanlinesFilterActionPerformed(evt);
+        }
+    });
+    filtersOptionMenu.add(scanlinesFilter);
+
+    optionsMenu.add(filtersOptionMenu);
+    optionsMenu.add(jSeparator19);
+
     joystickOptionMenu.setText(bundle.getString("JSpeccy.joystickOptionMenu.text")); // NOI18N
 
     joystickButtonGroup.add(noneJoystick);
@@ -1367,6 +1418,7 @@ public class JSpeccy extends javax.swing.JFrame {
     joystickOptionMenu.add(fullerJoystick);
 
     optionsMenu.add(joystickOptionMenu);
+    optionsMenu.add(jSeparator18);
 
     settingsOptionsMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
     settingsOptionsMenu.setText(bundle.getString("JSpeccy.settings.text")); // NOI18N
@@ -2605,6 +2657,31 @@ public class JSpeccy extends javax.swing.JFrame {
         
         loadSaveMemoryDialog.showSaveDialog(this);
     }//GEN-LAST:event_saveBinaryFileActionPerformed
+
+    private void noneFilterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noneFilterActionPerformed
+        jscr.setAnyFilter(false);
+        scanlinesFilter.setEnabled(true);
+        jscr.setScanlinesFilter(scanlinesFilter.isSelected());
+        jscr.repaint();
+    }//GEN-LAST:event_noneFilterActionPerformed
+
+    private void palTvFilterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_palTvFilterActionPerformed
+        jscr.setPalFilter(true);
+        scanlinesFilter.setEnabled(true);
+        jscr.setScanlinesFilter(scanlinesFilter.isSelected());
+        jscr.repaint();
+    }//GEN-LAST:event_palTvFilterActionPerformed
+
+    private void rgbFilterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rgbFilterActionPerformed
+        jscr.setRgbFilter(true);
+        scanlinesFilter.setEnabled(false);
+        jscr.repaint();
+    }//GEN-LAST:event_rgbFilterActionPerformed
+
+    private void scanlinesFilterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_scanlinesFilterActionPerformed
+        jscr.setScanlinesFilter(scanlinesFilter.isSelected());
+        jscr.repaint();
+    }//GEN-LAST:event_scanlinesFilterActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2643,6 +2720,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.Box.Filler filler3;
     private javax.swing.Box.Filler filler4;
     private javax.swing.Box.Filler filler5;
+    private javax.swing.ButtonGroup filtersButtonGroup;
+    private javax.swing.JMenu filtersOptionMenu;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
     private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;
@@ -2666,7 +2745,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator jSeparator15;
     private javax.swing.JPopupMenu.Separator jSeparator16;
     private javax.swing.JPopupMenu.Separator jSeparator17;
+    private javax.swing.JPopupMenu.Separator jSeparator18;
+    private javax.swing.JPopupMenu.Separator jSeparator19;
     private javax.swing.JSeparator jSeparator2;
+    private javax.swing.JPopupMenu.Separator jSeparator20;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
     private javax.swing.JPopupMenu.Separator jSeparator5;
@@ -2690,11 +2772,13 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem microdrivesIF1MediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;
+    private javax.swing.JRadioButtonMenuItem noneFilter;
     private javax.swing.JRadioButtonMenuItem noneJoystick;
     private javax.swing.JMenuItem openSnapshot;
     private javax.swing.JButton openSnapshotButton;
     private javax.swing.JMenuItem openTapeMediaMenu;
     private javax.swing.JMenu optionsMenu;
+    private javax.swing.JRadioButtonMenuItem palTvFilter;
     private javax.swing.JCheckBoxMenuItem pauseMachineMenu;
     private javax.swing.JToggleButton pauseToggleButton;
     private javax.swing.JMenuItem playTapeMediaMenu;
@@ -2715,6 +2799,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem resetMachineMenu;
     private javax.swing.JButton resetSpectrumButton;
     private javax.swing.JMenuItem rewindTapeMediaMenu;
+    private javax.swing.JRadioButtonMenuItem rgbFilter;
     private javax.swing.JMenuItem saveBinaryFile;
     private javax.swing.JMenuItem saveMemorySnapshot;
     private javax.swing.JMenuItem saveScreenShot;
@@ -2723,6 +2808,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JPanel saveSzxChoosePanel;
     private javax.swing.JButton saveSzxCloseButton;
     private javax.swing.JDialog saveSzxTape;
+    private javax.swing.JCheckBoxMenuItem scanlinesFilter;
     private javax.swing.JMenuItem settingsOptionsMenu;
     private javax.swing.JCheckBoxMenuItem silenceMachineMenu;
     private javax.swing.JToggleButton silenceSoundToggleButton;
