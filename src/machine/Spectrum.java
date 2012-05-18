@@ -554,11 +554,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 int zoom = jscr.getZoom();
-                int fbl = firstBorderPix / 320;
+                int fbl = firstBorderPix / Spectrum.SCREEN_WIDTH;
                 borderRect.x = 0;
                 borderRect.y = fbl * zoom;
-                borderRect.width = 320 * zoom;
-                borderRect.height = (lastBorderPix / 320 - fbl + 1) * zoom;
+                borderRect.y = borderRect.y >= zoom ? borderRect.y - zoom : 0;
+                borderRect.width = Spectrum.SCREEN_WIDTH * zoom;
+                borderRect.height = (lastBorderPix / Spectrum.SCREEN_WIDTH - fbl + zoom) * zoom;
                 if (screenDirty) {
                     screenDirty = false;
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
