@@ -644,6 +644,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                         }
                     });
                 }
+                
+                if (resetPending) {
+                    tape.stop();
+                }
             }
         } while (tape.isTapePlaying());
         
