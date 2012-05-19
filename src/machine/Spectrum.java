@@ -516,14 +516,27 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
         } while (--counter > 0);
 
-        // In the 128K/+2 models, when register I is between 0x40-0x7F, or
-        // the register I >= 0xC0 and a contended page is at 0xc000-0xffff, the
-        // computer resets shortly.
+        /*
+         * In the 128K/+2 models, when register I is between 0x40-0x7F, or
+         * the register I >= 0xC0 and a contended page is at 0xc000-0xffff, the
+         * computer resets shortly.
+         * From VELESOFT:
+         * More Russian software use IM2 vector table in slow memory area (16384-32767
+         * and slow mem pages on ZX48/128/+2/+3). This ZX models contain HW bug in HAL10H8
+         * chip and if high adress byte of vector table (register I) is set to this slow
+         * (contended) memory, ZX is very unstable and ULA show in screen raining effect.
+         * ZX will crash.
+         * 
+         * http://www.worldofspectrum.org/forums/showthread.php?t=38284
+         * 
+         * JSpeccy emulates a +2 with a corrected HAL10H8 chip.
+         */
         if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
             int regI = z80.getRegI();
-            if ((regI >= 0x40 && regI <= 0x7f) || (regI >= 0xc0 && contendedRamPage[3])) {
+            if ((regI >= 0x40 && regI <= 0x7f)
+                    || (spectrumModel == MachineTypes.SPECTRUM128K && regI > 0xbf && contendedRamPage[3])) {
                 System.out.println(String.format(
-                        "Incompatible program with 128k/+2. Register I = 0x%02X. Reset!", regI));
+                        "Incompatible program with 128k. Register I = 0x%02X. Reset!", regI));
                 z80.reset();
             }
         }
