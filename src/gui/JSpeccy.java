@@ -619,6 +619,19 @@ public class JSpeccy extends javax.swing.JFrame {
             default:
                 noneJoystick.setSelected(true);
         }
+        
+        if (settings.getSpectrumSettings().isULAplus()) {
+            if (jscr.isPalFilter()) {
+                noneFilter.setSelected(true);
+                jscr.setAnyFilter(false);
+                scanlinesFilter.setEnabled(true);
+                jscr.setScanlinesFilter(scanlinesFilter.isSelected());
+                jscr.repaint();
+            }
+            palTvFilter.setEnabled(false);
+        } else {
+            palTvFilter.setEnabled(true);
+        }
     }
     
     /** This method is called from within the constructor to
@@ -2704,6 +2717,10 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_noneFilterActionPerformed
 
     private void palTvFilterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_palTvFilterActionPerformed
+        if (settings.getSpectrumSettings().isULAplus()) {
+            noneFilter.setSelected(true);
+            return;
+        }
         jscr.setPalFilter(true);
         scanlinesFilter.setEnabled(true);
         jscr.setScanlinesFilter(scanlinesFilter.isSelected());
