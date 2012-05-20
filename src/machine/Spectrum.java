@@ -1192,6 +1192,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                         paletteGroup = 0x40;
                     } else {
                         paletteGroup = value & 0x3f;
+                        invalidateScreen(true);
                     }
                 } else {
                     // Data port (read/write)
