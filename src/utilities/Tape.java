@@ -1736,7 +1736,7 @@ public class Tape {
                 byte hdrTZX[], idTZX[];
                 try {
                     hdrTZX = "ZXTape!\u001A".getBytes("US-ASCII");
-                    idTZX = "TZX created with JSpeccy v0.89.1".getBytes("US-ASCII");
+                    idTZX = "TZX created with JSpeccy v0.90".getBytes("US-ASCII");
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
                     return false;
