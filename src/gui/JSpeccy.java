@@ -457,10 +457,6 @@ public class JSpeccy extends javax.swing.JFrame {
         
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         
-        if (tape.isTapeRunning()) {
-            tape.stop();
-        }
-        
         if (spectrum.getInterface1().hasDirtyCartridges()) {
             msg = bundle.getString("DIRTY_CARTRIDGES_WARNING");
             dialogType = JOptionPane.WARNING_MESSAGE;
@@ -475,6 +471,9 @@ public class JSpeccy extends javax.swing.JFrame {
         
         if( ret == JOptionPane.YES_OPTION ) {
             spectrum.stopEmulation();
+            if (tape.isTapeRunning()) {
+                tape.stop();
+            }
             if (settings.getSpectrumSettings().isHibernateMode()) {
                 snapSZX = new SnapshotSZX();
                 if (tape.getTapeFilename() != null) {
