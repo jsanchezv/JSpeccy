@@ -586,7 +586,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
                     jscr.repaint(borderRect.union(screenRect));
                 } else {
-                    System.out.println("borderDirty @ rect " + borderRect);
+//                    System.out.println("borderDirty @ rect " + borderRect);
                     jscr.repaint(borderRect);
                 }
                 return;
