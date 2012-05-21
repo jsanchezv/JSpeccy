@@ -399,9 +399,6 @@ public final class Memory {
 
         bankM = port7ffd & 0xff;
 
-        // Set the page locking state
-        pagingLocked = (port7ffd & 0x20) != 0;
-
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 10 : 14;
 
@@ -445,6 +442,9 @@ public final class Memory {
                 doPagingPlus3();
                 break;
         }
+        
+        // Set the page locking state
+        pagingLocked = (port7ffd & 0x20) != 0;
     }
 
     /*
