@@ -152,14 +152,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         portFE = state.getPortFE();
 
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
-            
             port7ffd = state.getPort7ffd();
-            memory.setPort7ffd(port7ffd);
-
             if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                // Set 0x1ffd first, because the paging can be locked at 0x7ffd
                 port1ffd = state.getPort1ffd();
                 memory.setPort1ffd(port1ffd);
 
+                memory.setPort7ffd(port7ffd);
                 if (memory.isPlus3RamMode()) {
                     switch (port1ffd & 0x06) {
                         case 0:
@@ -179,6 +178,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     contendedRamPage[3] = memory.getPlus3HighPage() > 3;
                 }
             } else {
+                memory.setPort7ffd(port7ffd);
                 contendedRamPage[3] = contendedIOPage[3] =
                     (port7ffd & 0x01) != 0;
             }
