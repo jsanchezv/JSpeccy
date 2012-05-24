@@ -96,28 +96,28 @@ public final class Memory {
                     state.setPageRam(page, savePage(page));
                 }
         }
-        
+
         state.setIF2RomPaged(IF2RomPaged);
         if (IF2RomPaged) {
             state.setIF2Rom(saveIF2Rom());
         }
-        
+
         state.setMf128on48k(settings.getSpectrumSettings().isMf128On48K());
         state.setMultifaceRam(saveMFRam());
         state.setMultifacePaged(multifacePaged);
         state.setMultifaceLocked(multifaceLocked);
-        
+
         state.setIF1RomPaged(IF1RomPaged);
 
         return state;
     }
     
     public void setMemoryState(MemoryState state) {
-        
+
         if (IF2RomPaged) {
             extractIF2Rom();
         }
-        
+
         switch (spectrumModel) {
             case SPECTRUM16K:
                 loadPage(5, state.getPageRam(5));
@@ -137,24 +137,27 @@ public final class Memory {
                     loadPage(page, state.getPageRam(page));
                 }
         }
-        
-        if (state.isIF2RomPaged()) {
+
+        if (state.isIF2RomPaged() && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             loadIF2Rom(state.getIF2Rom());
             readPages[0] = IF2Rom[0];
             readPages[1] = IF2Rom[1];
         }
-        
+
         settings.getSpectrumSettings().setMf128On48K(state.isMf128on48k());
-        if (state.getMultifaceRam() != null)
+        if (state.getMultifaceRam() != null) {
             loadMFRam(state.getMultifaceRam());
-        
-        if (state.isMultifacePaged())
+        }
+
+        if (state.isMultifacePaged()) {
             pageMultiface();
-        
+        }
+
         multifaceLocked = state.isMultifaceLocked();
-        
-        if (state.isIF1RomPaged())
+
+        if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3 && state.isIF1RomPaged()) {
             pageIF1Rom();
+        }
     }
     
     public byte readScreenByte(int address) {
@@ -413,7 +416,8 @@ public final class Memory {
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
         // Si está funcionando el IF1, el IF2 o el MF, no tocar la ROM
-        if (IF1RomPaged || IF2RomPaged || multifacePaged) {
+        if (IF1RomPaged || multifacePaged
+                || (IF2RomPaged && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3)) {
             return;
         }
 

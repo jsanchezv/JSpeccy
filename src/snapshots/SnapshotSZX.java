@@ -332,6 +332,7 @@ public class SnapshotSZX {
                 }
 
                 szxId = dwMagicToInt(dwMagic);
+//                System.out.println(new String(dwMagic));
                 szxLen = dwMagicToInt(dwSize);
                 if (szxLen < 1) {
                     throw new SnapshotException("FILE_READ_ERROR");
@@ -716,6 +717,15 @@ public class SnapshotSZX {
                         }
                         break;
                     case ZXSTBID_IF2ROM:
+                        if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                            System.out.println(
+                                    "SZX Error: +2a/+3 snapshot with IF-2 block. Skipping...");
+                            while (szxLen > 0) {
+                                szxLen -= fIn.skip(szxLen);
+                            }
+                            break;
+                        }
+
                         if (memory == null) {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
@@ -778,18 +788,18 @@ public class SnapshotSZX {
                         }
                         break;
                     case ZXSTBID_IF1:
-                        if (memory == null) {
-                            memory = new MemoryState();
-                            spectrum.setMemoryState(memory);
-                        }
-                        
                         if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                             System.out.println(
-                                    "SZX Error: +2a/+3 snapshot with IF1 block. Skipping");
+                                    "SZX Error: +2a/+3 snapshot with IF-1 block. Skipping...");
                             while (szxLen > 0) {
                                 szxLen -= fIn.skip(szxLen);
                             }
                             break;
+                        }
+                        
+                        if (memory == null) {
+                            memory = new MemoryState();
+                            spectrum.setMemoryState(memory);
                         }
 
                         int if1Flags;
@@ -1236,7 +1246,8 @@ public class SnapshotSZX {
             }
 
             // SZX IF2 ROM Block
-            if (memory.isIF2RomPaged()) {
+            if (memory.isIF2RomPaged()
+                    && spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 blockID = "IF2R";
                 fOut.write(blockID.getBytes("US-ASCII"));
 
