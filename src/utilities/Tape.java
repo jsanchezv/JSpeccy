@@ -1826,7 +1826,7 @@ public class Tape {
                 fOut.write("ZXTape!\u001A".getBytes("US-ASCII"));
                 fOut.write(01);
                 fOut.write(20);
-                byte idTZX[] = "TZX created with JSpeccy v0.89".getBytes("US-ASCII");
+                byte idTZX[] = "TZX created with JSpeccy v0.90".getBytes("US-ASCII");
                 fOut.write(0x30);
                 fOut.write(idTZX.length);
                 fOut.write(idTZX);
