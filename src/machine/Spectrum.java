@@ -583,10 +583,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     screenRect.y -= zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
                     screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom;
-//                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
+                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
                     jscr.repaint(borderRect.union(screenRect));
                 } else {
-//                    System.out.println("borderDirty @ rect " + borderRect);
+                    System.out.println("borderDirty @ rect " + borderRect);
                     jscr.repaint(borderRect);
                 }
                 return;
@@ -664,13 +664,21 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
         } while (tape.isTapePlaying());
         
-        lastScreenState = spectrumModel.firstScrByte;
-        updateScreen(spectrumModel.lastScrUpdate);
-        
+        firstLine = lastLine = rightCol = lastBorderPix = 0;
+        firstBorderPix = dataInProgress.length;
+        leftCol = 31;
         lastChgBorder = spectrumModel.firstBorderUpdate;
-        
+        lastScreenState = spectrumModel.firstScrByte;
+
+        updateScreen(spectrumModel.lastScrUpdate);
+
+        borderUpdated = true;
+
         drawFrame();
-        
+
+        // Be sure the last repaint is full
+        jscr.repaint();
+
         startEmulation();
     }
     
