@@ -87,7 +87,7 @@ public enum MachineTypes {
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14364;
+                this.firstScrByte = 14362;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
                         ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
@@ -108,7 +108,7 @@ public enum MachineTypes {
                 this.upBorderWidth = 63;
                 this.scanLines = 311;
                 this.lengthINT = 36;
-                this.firstScrByte = 14364;
+                this.firstScrByte = 14362;
                 this.lastScrUpdate = 58040;
                 this.firstBorderUpdate =
                     ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;

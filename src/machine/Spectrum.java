@@ -478,7 +478,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             while (clock.tstates < spectrumModel.lastScrUpdate) {
-                z80.execute(clock.tstates + 40);
+                z80.execute(clock.tstates + 1);
                 updateScreen(clock.tstates);
             }
 
@@ -1843,15 +1843,15 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         int paper, ink;
         byte scrByte;
         int attr;
-        //System.out.println(String.format("from: %d\tto: %d", fromTstates, toTstates));
+//        System.out.println(String.format("from: %d\tto: %d", lastScreenState, toTstates));
 
         if (toTstates < spectrumModel.firstScrByte)
             return;
 
-        toTstates &= 0xffffc;
+        toTstates &= 0xffffe;
         while (lastScreenState <= toTstates && lastScreenState <= spectrumModel.lastScrUpdate) {
             fromAddr = states2scr[lastScreenState];
-            lastScreenState += 4;
+            lastScreenState += 2;
 
             if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
                 continue;
@@ -1939,7 +1939,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 continue;
             }
             scan = tstates / 224 - 64;
-            states2scr[tstates + 4] = scrAddr[scan] + col;
+            states2scr[tstates + 2] = scrAddr[scan] + col;
         }
         
         Arrays.fill(states2border, 0xf0cab0ba);
@@ -2029,7 +2029,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             scan = tstates / 228 - 63;
-            states2scr[tstates + 4] = scrAddr[scan] + col;
+            states2scr[tstates + 2] = scrAddr[scan] + col;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
