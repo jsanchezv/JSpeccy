@@ -40,7 +40,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
     private long framesByInt, speedometer, speed, prevSpeed;
     private boolean muted, enabledSound, enabledAY;
-    private static final byte delayTstates[] =
+    private final byte delayTstates[] =
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
     private Timer timerFrame;
@@ -218,7 +218,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
 
         clock.setTstates(state.getTstates());
-        
+        step = 0;
+        while (step < stepStates.length && stepStates[step] < state.getTstates())
+            step++;
+
         loadConfigVars();
         
         if (memory.getMemoryState().isLecPaged())
@@ -317,6 +320,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         audio.reset();
         enableSound();
         invalidateScreen(true);
+        lastChgBorder = spectrumModel.firstBorderUpdate;
+        borderChanged = true;
+        drawFrame();
+        jscr.repaint();
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
     }
@@ -348,7 +355,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             if1.reset();
         portFE = port7ffd = port1ffd = 0;
         ULAPlusActive = false;
-        paletteGroup = 0;
+        step  = paletteGroup = 0;
         invalidateScreen(true);
         hardResetPending = resetPending = false;
     }
@@ -461,7 +468,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
         lastChgBorder = spectrumModel.firstBorderUpdate;
-        lastScreenState = spectrumModel.firstScrByte;
 
         do {
             // Cuando se entra desde una carga de snapshot los t-states pueden
@@ -472,13 +478,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
             z80.setINTLine(false);
 
-            if (clock.tstates < spectrumModel.firstScrByte) {
-                z80.execute(spectrumModel.firstScrByte);
-                updateScreen(clock.tstates);
-            }
-
-            while (clock.tstates < spectrumModel.lastScrUpdate) {
-                z80.execute(clock.tstates + 1);
+            while (step < stepStates.length) {
+                z80.execute(stepStates[step]);
                 updateScreen(clock.tstates);
             }
 
@@ -493,6 +494,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             clock.endFrame();
+            
+            step = 0;
             
             if (!ULAPlusActive && clock.getFrames() % 16 == 0) {
                 toggleFlash();
@@ -622,10 +625,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = spectrumModel.firstBorderUpdate;
-        lastScreenState = spectrumModel.firstScrByte;
 
         speedometer = System.currentTimeMillis();
         do {
+            step = 0;
             z80.setINTLine(true);
             z80.execute(spectrumModel.lengthINT);
             z80.setINTLine(false);
@@ -642,7 +645,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 firstBorderPix = dataInProgress.length;
                 leftCol = 31;
                 lastChgBorder = spectrumModel.firstBorderUpdate;
-                lastScreenState = spectrumModel.firstScrByte;
                 
                 long now = System.currentTimeMillis();
                 speed = 1000000 / (now - speedometer);
@@ -664,20 +666,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
         } while (tape.isTapePlaying());
         
-        firstLine = lastLine = rightCol = lastBorderPix = 0;
+        firstLine = lastLine = rightCol = lastBorderPix = step = 0;
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
         lastChgBorder = spectrumModel.firstBorderUpdate;
-        lastScreenState = spectrumModel.firstScrByte;
 
         updateScreen(spectrumModel.lastScrUpdate);
 
         borderUpdated = true;
-
-        drawFrame();
-
-        // Be sure the last repaint is full
-        jscr.repaint();
 
         startEmulation();
     }
@@ -1538,26 +1534,29 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private static final int Paper[] = new int[256];
     private static final int Ink[] = new int[256];
     // Tabla de correspondencia entre la dirección de pantalla y su atributo
-    public final int scr2attr[] = new int[0x1800];
+    public final int scr2attr[] = new int[6144];
     // Tabla de correspondencia entre cada atributo y el primer byte del carácter
     // en la pantalla del Spectrum (la contraria de la anterior)
     private final int attr2scr[] = new int[768];
     // Tabla de correspondencia entre la dirección de pantalla del Spectrum
     // y la dirección que le corresponde en el BufferedImage.
-    private final int bufAddr[] = new int[0x1800];
+    private final int bufAddr[] = new int[6144];
     // Tabla para hacer más rápido el redibujado
-    private final int repaintTable[] = new int[0x1800];
+    private final int repaintTable[] = new int[6144];
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     public final int scrAddr[] = new int[192];
     // Tabla que indica si un byte de la pantalla ha sido modificado y habrá que
     // redibujarlo.
-    private final boolean dirtyByte[] = new boolean[0x1800];
+    private final boolean dirtyByte[] = new boolean[6144];
     // Tabla de traslación entre t-states y la dirección de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
     // Tabla de traslación de t-states al pixel correspondiente del borde.
     private final int states2border[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
+    // Secuencia de t-states que hay que ejecutar para ir actualizando la pantalla
+    int stepStates[] = new int[6144];
+    int step = 0;
     
     public static final int BORDER_WIDTH = 32;
     public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
@@ -1600,12 +1599,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
 
-    // t-states del ciclo contended por I=0x40-0x7F o -1
-//    private int m1contended;
-    // valor del registro R cuando se produjo el ciclo m1
-//    private int m1regR;
-    // Ultimo valor de t-states en que se actualizó la pantalla
-    private int lastScreenState;
     // Primera y última línea a ser actualizada
     private int firstLine, lastLine;
     private int leftCol, rightCol;
@@ -1848,12 +1841,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (toTstates < spectrumModel.firstScrByte)
             return;
 
-        toTstates &= 0xffffe;
-        while (lastScreenState <= toTstates && lastScreenState <= spectrumModel.lastScrUpdate) {
-            fromAddr = states2scr[lastScreenState];
-            lastScreenState += 2;
+        while (step < stepStates.length && stepStates[step] <= toTstates) {
+            fromAddr = states2scr[stepStates[step++]];
 
-            if (fromAddr == -1 || !dirtyByte[fromAddr & 0x1fff]) {
+            if (!dirtyByte[fromAddr & 0x1fff]) {
                 continue;
             }
 
@@ -1932,16 +1923,18 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14336; tstates < 57252; tstates += 4) {
-            col = (tstates % 224) / 4;
+        step = 0;
+        for (int tstates = spectrumModel.firstScrByte; tstates < 57248; tstates += 4) {
+            col = (tstates % spectrumModel.tstatesLine) / 4;
 
             if (col > 31) {
                 continue;
             }
-            scan = tstates / 224 - 64;
+            scan = tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
             states2scr[tstates + 2] = scrAddr[scan] + col;
+            stepStates[step++] = tstates + 2;
         }
-        
+
         Arrays.fill(states2border, 0xf0cab0ba);
 
 //        System.out.println(String.format("48k - > firstBU: %d, lastBU: %d",
@@ -1956,7 +1949,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14335; idx < 57343; idx += 224) {
+        for (int idx = 14335; idx < 57247; idx += 224) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -1976,15 +1969,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14364; tstates < 58044; tstates += 4) {
-            col = (tstates % 228) / 4;
+        step = 0;
+        for (int tstates = 14364; tstates < spectrumModel.lastScrUpdate; tstates += 4) {
+            col = (tstates % spectrumModel.tstatesLine) / 4;
 
             if (col > 31) {
                 continue;
             }
 
-            scan = tstates / 228 - 63;
+            scan = tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
             states2scr[tstates] = scrAddr[scan] + col;
+            stepStates[step++] = tstates;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
@@ -2021,15 +2016,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(states2scr, -1);
 
-        for (int tstates = 14364; tstates < 58044; tstates += 4) {
-            col = (tstates % 228) / 4;
+        step = 0;
+        for (int tstates = spectrumModel.firstScrByte; tstates < spectrumModel.lastScrUpdate; tstates += 4) {
+            col = (tstates % spectrumModel.tstatesLine) / 4;
 
             if (col > 31) {
                 continue;
             }
 
-            scan = tstates / 228 - 63;
+            scan = tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
             states2scr[tstates + 2] = scrAddr[scan] + col;
+            stepStates[step++] = tstates + 2;
         }
 
         Arrays.fill(states2border, 0xf0cab0ba);
