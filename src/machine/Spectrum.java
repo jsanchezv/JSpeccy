@@ -470,6 +470,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = spectrumModel.firstBorderUpdate;
 
         do {
+            drawingScreen = false;
             // Cuando se entra desde una carga de snapshot los t-states pueden
             // no ser 0 y el frame estar a mitad (pojemplo)
             if (clock.tstates < spectrumModel.lengthINT) {
@@ -479,9 +480,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             z80.setINTLine(false);
 
             while (step < stepStates.length) {
+                int scrStep = step;
                 z80.execute(stepStates[step]);
-                updateScreen(clock.tstates);
+                if (scrStep == step)
+                    updateScreen(clock.tstates);
+                drawingScreen = true;
             }
+            drawingScreen = false;
 
             z80.execute(spectrumModel.tstatesFrame);
 
@@ -627,6 +632,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = spectrumModel.firstBorderUpdate;
 
         speedometer = System.currentTimeMillis();
+        drawingScreen = false;
         do {
             step = 0;
             z80.setINTLine(true);
@@ -685,6 +691,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             clock.tstates += delayTstates[clock.tstates];
         }
         clock.tstates += 4;
+        
+        if (drawingScreen)
+            updateScreen(clock.tstates);
 
         return memory.readByte(address) & 0xff;
     }
@@ -706,13 +715,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, (byte) value)) {
-                updateScreen(clock.tstates);
                 notifyScreenWrite(address);
+                if (drawingScreen)
+                    updateScreen(clock.tstates);
             }
         } else {
             clock.tstates += 3;
         }
-        
+                
         memory.writeByte(address, (byte) value);
     }
 
@@ -723,6 +733,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             clock.tstates += delayTstates[clock.tstates];
         }
         clock.tstates += 3;
+
         int lsb = memory.readByte(address) & 0xff;
 
         address = (address + 1) & 0xffff;
@@ -743,8 +754,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, lsb)) {
-                updateScreen(clock.tstates);
                 notifyScreenWrite(address);
+                if (drawingScreen)
+                    updateScreen(clock.tstates);
             }
         } else {
             clock.tstates += 3;
@@ -757,8 +769,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, msb)) {
-                updateScreen(clock.tstates);
                 notifyScreenWrite(address);
+                if (drawingScreen)
+                    updateScreen(clock.tstates);
             }
         } else {
             clock.tstates += 3;
@@ -1598,6 +1611,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
      *               no significa que haya que redibujarlo necesariamente.
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
+    // Flag que indica si está en la zona de actualización de pantalla
+    boolean drawingScreen;
 
     // Primera y última línea a ser actualizada
     private int firstLine, lastLine;
@@ -1837,9 +1852,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         byte scrByte;
         int attr;
 //        System.out.println(String.format("from: %d\tto: %d", lastScreenState, toTstates));
-
-        if (toTstates < spectrumModel.firstScrByte)
-            return;
 
         while (step < stepStates.length && stepStates[step] <= toTstates) {
             fromAddr = states2scr[stepStates[step++]];
