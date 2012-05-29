@@ -470,7 +470,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = spectrumModel.firstBorderUpdate;
 
         do {
-            drawingScreen = false;
+            nextEvent = stepStates[0];
             // Cuando se entra desde una carga de snapshot los t-states pueden
             // no ser 0 y el frame estar a mitad (pojemplo)
             if (clock.tstates < spectrumModel.lengthINT) {
@@ -480,13 +480,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             z80.setINTLine(false);
 
             while (step < stepStates.length) {
-                int scrStep = step;
                 z80.execute(stepStates[step]);
-                if (scrStep == step)
+                if (clock.tstates >= nextEvent) {
                     updateScreen(clock.tstates);
-                drawingScreen = true;
+                }
             }
-            drawingScreen = false;
 
             z80.execute(spectrumModel.tstatesFrame);
 
@@ -632,9 +630,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = spectrumModel.firstBorderUpdate;
 
         speedometer = System.currentTimeMillis();
-        drawingScreen = false;
+        nextEvent = NO_EVENT;
         do {
-            step = 0;
             z80.setINTLine(true);
             z80.execute(spectrumModel.lengthINT);
             z80.setINTLine(false);
@@ -644,6 +641,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             clock.endFrame();
 
             if (clock.getFrames() % 500 == 0) {
+                step = 0;
                 updateScreen(spectrumModel.lastScrUpdate);
 
                 drawFrame();
@@ -692,8 +690,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
         clock.tstates += 4;
         
-        if (drawingScreen)
+        if (clock.tstates >= nextEvent) {
             updateScreen(clock.tstates);
+        }
 
         return memory.readByte(address) & 0xff;
     }
@@ -715,9 +714,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, (byte) value)) {
-                notifyScreenWrite(address);
-                if (drawingScreen)
+                if (clock.tstates >= nextEvent) {
                     updateScreen(clock.tstates);
+                }
+                notifyScreenWrite(address);
             }
         } else {
             clock.tstates += 3;
@@ -754,9 +754,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, lsb)) {
-                notifyScreenWrite(address);
-                if (drawingScreen)
+                if (clock.tstates >= nextEvent) {
                     updateScreen(clock.tstates);
+                }
+                notifyScreenWrite(address);
             }
         } else {
             clock.tstates += 3;
@@ -769,9 +770,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (contendedRamPage[address >>> 14]) {
             clock.tstates += delayTstates[clock.tstates] + 3;
             if (memory.isScreenByteModified(address, msb)) {
-                notifyScreenWrite(address);
-                if (drawingScreen)
+                if (clock.tstates >= nextEvent) {
                     updateScreen(clock.tstates);
+                }
+                notifyScreenWrite(address);
             }
         } else {
             clock.tstates += 3;
@@ -1611,8 +1613,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
      *               no significa que haya que redibujarlo necesariamente.
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
-    // Flag que indica si está en la zona de actualización de pantalla
-    boolean drawingScreen;
+    // Constante que indica que no hay un evento próximo
+    // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
+    private final int NO_EVENT = 0x1234567;
+    // t-states del próximo evento
+    int nextEvent = NO_EVENT;
 
     // Primera y última línea a ser actualizada
     private int firstLine, lastLine;
@@ -1903,6 +1908,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             dirtyByte[fromAddr] = false;
             screenDirty = true;
         }
+        
+        nextEvent = step < stepStates.length ? stepStates[step] : NO_EVENT;
     }
 
     private void notifyScreenWrite(int address) {
@@ -1933,7 +1940,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables48k() {
         int col, scan;
 
-        Arrays.fill(states2scr, -1);
+        Arrays.fill(states2scr, 0);
 
         step = 0;
         for (int tstates = spectrumModel.firstScrByte; tstates < 57248; tstates += 4) {
@@ -1961,7 +1968,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14335; idx < 57247; idx += 224) {
+        for (int idx = 14335; idx < 57247; idx += spectrumModel.tstatesLine) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -1979,7 +1986,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables128k() {
         int col, scan;
 
-        Arrays.fill(states2scr, -1);
+        Arrays.fill(states2scr, 0);
 
         step = 0;
         for (int tstates = 14364; tstates < spectrumModel.lastScrUpdate; tstates += 4) {
@@ -2008,7 +2015,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58037; idx += 228) {
+        for (int idx = 14361; idx < 58037; idx += spectrumModel.tstatesLine) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 6;
@@ -2026,7 +2033,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTablesPlus3() {
         int col, scan;
 
-        Arrays.fill(states2scr, -1);
+        Arrays.fill(states2scr, 0);
 
         step = 0;
         for (int tstates = spectrumModel.firstScrByte; tstates < spectrumModel.lastScrUpdate; tstates += 4) {
@@ -2058,7 +2065,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         // confirma. Gracias Pedro!.
         Arrays.fill(delayTstates, (byte) 0x00);
 
-        for (int idx = 14361; idx < 58036; idx += 228) {
+        for (int idx = 14361; idx < 58036; idx += spectrumModel.tstatesLine) {
             for (int ndx = 0; ndx < 128; ndx += 8) {
                 int frame = idx + ndx;
                 delayTstates[frame++] = 1;
