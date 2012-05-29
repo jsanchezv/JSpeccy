@@ -51,7 +51,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private AY8912 ay8912;
     private Tape tape;
     private boolean paused;
-    private boolean hardResetPending, resetPending;
+    private boolean resetPending;
     private JLabel speedLabel;
 
     private Joystick joystick;
@@ -84,9 +84,30 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
         
-        doHardReset();
+        switch (specSettings.getDefaultModel()) {
+            case 0:
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
+                break;
+            case 2:
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
+                break;
+            case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 4:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+                break;
+            case 5:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            default:
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
+        }
+        
+        keyboard.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
+        joystick = keyboard.getJoystick();
 
-        resetPending = hardResetPending = false;
+        resetPending = false;
 
         loadConfigVars();
 
@@ -228,7 +249,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
            pageLec(state.getMemoryState().getPageLec());
     }
     
-    public void selectHardwareModel(MachineTypes hardwareModel) {
+    public final void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
         spectrumModel = hardwareModel;
@@ -339,6 +360,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     public void reset() {
         resetPending = true;
+        z80.setPinReset();
     }
 
     private void doReset() {
@@ -357,37 +379,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         ULAPlusActive = false;
         step  = paletteGroup = 0;
         invalidateScreen(true);
-        hardResetPending = resetPending = false;
+        resetPending = false;
     }
 
     public void hardReset() {
-        hardResetPending = resetPending = true;
-    }
-
-    private void doHardReset() {
-
-        switch (specSettings.getDefaultModel()) {
-            case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K);
-                break;
-            case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
-                break;
-            case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                break;
-            case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                break;
-            case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                break;
-            default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K);
-        }
-        
-        keyboard.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
-        joystick = keyboard.getJoystick();
+        resetPending = true;
     }
 
     public boolean isPaused() {
@@ -453,12 +449,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         //System.out.println(String.format("Begin frame. t-states: %d", z80.tEstados));
 
         if (resetPending) {
-            if (hardResetPending) {
-                doHardReset();                
-            } else {
-                z80.setPinReset();
-            }
-
             doReset();
         }
 

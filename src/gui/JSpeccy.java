@@ -2323,50 +2323,61 @@ public class JSpeccy extends javax.swing.JFrame {
                     spec16kHardware.setSelected(true);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
                     break;
                 case 2:
                     spec128kHardware.setSelected(true);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
                     break;
                 case 3:
                     specPlus2Hardware.setSelected(true);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
                     break;
                 case 4:
                     specPlus2AHardware.setSelected(true);
                     IF1MediaMenu.setEnabled(false);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
                     break;
                 case 5:
                     specPlus3Hardware.setSelected(true);
                     IF1MediaMenu.setEnabled(false);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
                     break;
                 default:
                     spec48kHardware.setSelected(true);
                     modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
                     modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
             }
 
             switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
                 case 1:
                     kempstonJoystick.setSelected(true);
+                    spectrum.setJoystick(Joystick.KEMPSTON);
                     break;
                 case 2:
                     sinclair1Joystick.setSelected(true);
+                    spectrum.setJoystick(Joystick.SINCLAIR1);
                     break;
                 case 3:
                     sinclair2Joystick.setSelected(true);
+                    spectrum.setJoystick(Joystick.SINCLAIR2);
                     break;
                 case 4:
                     cursorJoystick.setSelected(true);
+                    spectrum.setJoystick(Joystick.CURSOR);
                     break;
                 default:
                     noneJoystick.setSelected(true);
+                    spectrum.setJoystick(Joystick.NONE);
             }
 
             if (settings.getSpectrumSettings().getDefaultModel() < 4) {
