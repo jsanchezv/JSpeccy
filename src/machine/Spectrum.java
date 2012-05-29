@@ -631,6 +631,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         speedometer = System.currentTimeMillis();
         nextEvent = NO_EVENT;
+        int frames = 500;
         do {
             z80.setINTLine(true);
             z80.execute(spectrumModel.lengthINT);
@@ -640,11 +641,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             
             clock.endFrame();
 
-            if (clock.getFrames() % 500 == 0) {
+            if (frames-- == 0) {
+                frames = 500;
                 step = 0;
                 updateScreen(spectrumModel.lastScrUpdate);
 
-                drawFrame();
+                gcTvImage.drawImage(inProgressImage, 0, 0, null);
+                jscr.repaint();
+
                 firstLine = lastLine = rightCol = lastBorderPix = 0;
                 firstBorderPix = dataInProgress.length;
                 leftCol = 31;
