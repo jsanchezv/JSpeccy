@@ -60,7 +60,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private SpectrumType specSettings;
     /* Config vars */
     private boolean ULAPlusEnabled, issue2, multiface, mf128on48k,
-            saveTrap, loadTrap, flashload, connectedLec;
+            saveTrap, loadTrap, flashload, connectedLec, emulate128kBug;
     private boolean connectedIF1;
     private Interface1 if1;
 
@@ -331,6 +331,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 unpageLec();
             }
         }
+        
+        emulate128kBug = settings.getSpectrumSettings().isEmulate128KBug();
     }
 
     public synchronized void startEmulation() {
@@ -527,7 +529,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
          * 
          * JSpeccy emulates a +2 with a corrected HAL10H8 chip.
          */
-        if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
+        if (emulate128kBug && spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
             int regI = z80.getRegI();
             if ((regI >= 0x40 && regI <= 0x7f)
                     || (spectrumModel == MachineTypes.SPECTRUM128K && regI > 0xbf && contendedRamPage[3])) {
