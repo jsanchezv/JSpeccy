@@ -260,6 +260,28 @@ public class JSpeccy extends javax.swing.JFrame {
         if (currentFileTape != null)
             settings.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
+        short filterM = 0, zoomM = 0;
+        
+        if (palTvFilter.isSelected()) {
+            filterM = 1;
+        }
+        
+        if (rgbFilter.isSelected()) {
+            filterM = 2;
+        }
+        
+        if (bilinearZoom.isSelected()) {
+            zoomM = 1;
+        }
+        
+        if (bicubicZoom.isSelected()) {
+            zoomM = 2;
+        }
+        
+        settings.getSpectrumSettings().setZoomMethod(zoomM);
+        settings.getSpectrumSettings().setFilterMethod(filterM);
+        settings.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
+
         try {
             BufferedOutputStream fOut =
                 new BufferedOutputStream(new FileOutputStream("JSpeccy.xml"));
@@ -441,6 +463,38 @@ public class JSpeccy extends javax.swing.JFrame {
                         "HIBERNATE_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
             }
+        }
+
+        switch(settings.getSpectrumSettings().getZoomMethod()) {
+            case 1: // Bilineal
+                jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                bilinearZoom.setSelected(true);
+                break;
+            case 2: // Bicubic
+                jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                bicubicZoom.setSelected(true);
+                break;
+            default:
+                jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                standardZoom.setSelected(true);
+        }
+
+        jscr.setScanlinesFilter(settings.getSpectrumSettings().isScanLines());
+        scanlinesFilter.setSelected(settings.getSpectrumSettings().isScanLines());
+
+        switch(settings.getSpectrumSettings().getFilterMethod()) {
+            case 1: // PAL TV
+                jscr.setPalFilter(true);
+                palTvFilter.setSelected(true);
+                break;
+            case 2: // RGB
+                jscr.setRgbFilter(true);
+                rgbFilter.setSelected(true);
+                scanlinesFilter.setEnabled(false);
+                break;
+            default:
+                jscr.setAnyFilter(false);
+                noneFilter.setSelected(true);
         }
 
         updateGuiSelections();
