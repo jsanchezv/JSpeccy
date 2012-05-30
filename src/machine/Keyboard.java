@@ -4,6 +4,7 @@
  */
 package machine;
 
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Arrays;
@@ -20,7 +21,7 @@ public class Keyboard implements KeyListener {
     };
     
     private int rowKey[] = new int[8];
-    private boolean shiftPressed, mapPCKeys;
+    private boolean shiftPressed, mapPCKeys, winBug;
     private KeyEvent keyEventPending[] = new KeyEvent[8];
     private int kempston, fuller;
     private Joystick joystick;
@@ -63,6 +64,7 @@ public class Keyboard implements KeyListener {
         reset();
         setJoystick(config.getJoystickModel());
         mapPCKeys = config.isMapPCKeys();
+        winBug = System.getProperty("os.name").contains("Windows");
     }
 
     public final void reset() {
@@ -158,9 +160,6 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyPressed(KeyEvent evt) {
-
-        if (evt.isAltDown())
-            return;
         
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
@@ -180,14 +179,36 @@ public class Keyboard implements KeyListener {
         }
 
         int key = evt.getKeyCode();
+        
+//        System.out.println(String.format("Press keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
+
+        /*
+         * Windows no envía el keycode VK_ALT_GRAPH y en su lugar envía dos eventos, Ctrl + Alt, en ese orden.
+         * 
+         * El Ctrl es una pulsación normal y el Alt lleva activos los modificadores CTRL y ALT.
+         * 
+         * El problema es que el primer Ctrl nos "presiona" la tecla Symbol-Shift, y hay que quitarla.
+         * 
+         * En cualquier otro caso, la tecla Alt hay que saltársela para que sigan funcionando los
+         * atajos de teclado sin producir pulsaciones espureas en el emulador.
+         * 
+         */
+        if (winBug && key == KeyEvent.VK_ALT && evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK)) {
+            key = KeyEvent.VK_ALT_GRAPH;
+            rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
+        } else {
+            if (evt.isAltDown())
+                return;
+        }
+        
         switch (key) {
             // Row B - Break/Space
             case KeyEvent.VK_SPACE:
                 rowKey[7] &= KEY_PRESSED_BIT0; // Break/Space
                 break;
-//            case KeyEvent.VK_ALT:
-//                rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
-//                break;
+            case KeyEvent.VK_CONTROL:
+                rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
+                break;
             case KeyEvent.VK_M:
                 rowKey[7] &= KEY_PRESSED_BIT2; // M
                 break;
@@ -295,13 +316,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
-                    rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
-                }
-                
-                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
-                    rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
-                }
+                rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 shiftPressed = true;
                 break;
             case KeyEvent.VK_Z:
@@ -444,8 +459,7 @@ public class Keyboard implements KeyListener {
                         break;
                 }
                 break;
-//            case KeyEvent.VK_ALT_GRAPH:
-            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT_GRAPH:
                 switch (joystick) {
                     case NONE:
                         break;
@@ -469,9 +483,6 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent evt) {
-
-        if (evt.isAltDown())
-            return;
         
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
@@ -494,14 +505,33 @@ public class Keyboard implements KeyListener {
         }
         
         int key = evt.getKeyCode();
+        
+//        System.out.println(String.format("Release keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
+
+        /*
+         * Windows no envía el keycode VK_ALT_GRAPH y en su lugar envía dos eventos, Ctrl + Alt, en ese orden.
+         * 
+         * El Ctrl lleva activo el modificador Alt. El Alt es un evento normal.
+         * 
+         * La tecla Alt hay que saltársela para que sigan funcionando los atajos de teclado sin
+         * producir pulsaciones espureas en el emulador.
+         * 
+         */
+        if (winBug && key == KeyEvent.VK_CONTROL && evt.getModifiersEx() == InputEvent.ALT_DOWN_MASK) {
+            key = KeyEvent.VK_ALT_GRAPH;
+        } else {
+            if (evt.isAltDown())
+                return;
+        }
+        
         switch (key) {
             // Row Break/Space - B
             case KeyEvent.VK_SPACE:
                 rowKey[7] |= KEY_RELEASED_BIT0; // Break/Space
                 break;
-//            case KeyEvent.VK_ALT:
-//                rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
-//                break;
+            case KeyEvent.VK_CONTROL:
+                rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
+                break;
             case KeyEvent.VK_M:
                 rowKey[7] |= KEY_RELEASED_BIT2; // M
                 break;
@@ -609,13 +639,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_LEFT) {
-                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
-                }
-                
-                if (evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
-                    rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
-                }
+                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 shiftPressed = false;
                 break;
             case KeyEvent.VK_Z:
@@ -758,8 +782,8 @@ public class Keyboard implements KeyListener {
                         break;
                 }
                 break;
-//            case KeyEvent.VK_ALT_GRAPH:
-            case KeyEvent.VK_CONTROL:
+//            case KeyEvent.VK_ALT:
+            case KeyEvent.VK_ALT_GRAPH:
                 switch (joystick) {
                     case NONE:
                         break;
@@ -1273,107 +1297,81 @@ public class Keyboard implements KeyListener {
                 rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case 'A':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[1] |= KEY_RELEASED_BIT0; // A
                 break;
             case 'B':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[7] |= KEY_RELEASED_BIT4; // B
                 break;
             case 'C':
-//                rowKey[0] |= (KEY_RELEASED_BIT0 | KEY_RELEASED_BIT3); // Caps Shift + c
                 rowKey[0] |= KEY_RELEASED_BIT3; // C
                 break;
             case 'D':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[1] |= KEY_RELEASED_BIT2; // D
                 break;
             case 'E':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[2] |= KEY_RELEASED_BIT2; // E
                 break;
             case 'F':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[1] |= KEY_RELEASED_BIT3; // F
                 break;
             case 'G':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[1] |= KEY_RELEASED_BIT4; // G
                 break;
             case 'H':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[6] |= KEY_RELEASED_BIT4; // H
                 break;
             case 'I':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[5] |= KEY_RELEASED_BIT2; // I
                 break;
             case 'J':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[6] |= KEY_RELEASED_BIT3; // J
                 break;
             case 'K':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[6] |= KEY_RELEASED_BIT2; // K
                 break;
             case 'L':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[6] |= KEY_RELEASED_BIT1; // L
                 break;
             case 'M':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[7] |= KEY_RELEASED_BIT2; // M
                 break;
             case 'N':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[7] |= KEY_RELEASED_BIT3; // N
                 break;
             case 'O':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case 'P':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[5] |= KEY_RELEASED_BIT0; // P
                 break;
             case 'Q':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[2] |= KEY_RELEASED_BIT0; // Q
                 break;
             case 'R':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[2] |= KEY_RELEASED_BIT3; // R
                 break;
             case 'S':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[1] |= KEY_RELEASED_BIT1; // S
                 break;
             case 'T':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[2] |= KEY_RELEASED_BIT4; // T
                 break;
             case 'U':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[5] |= KEY_RELEASED_BIT3; // U
                 break;
             case 'V':
-//                rowKey[0] |= (KEY_RELEASED_BIT0 | KEY_RELEASED_BIT4); // Caps Shift + v
                 rowKey[0] |= KEY_RELEASED_BIT4; // V
                 break;
             case 'W':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[2] |= KEY_RELEASED_BIT1; // W
                 break;
             case 'X':
-//                rowKey[0] |= (KEY_RELEASED_BIT0 | KEY_RELEASED_BIT2); // Caps Shift + x
                 rowKey[0] |= KEY_RELEASED_BIT2; // X
                 break;
             case 'Y':
-//                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[5] |= KEY_RELEASED_BIT4; // Y
                 break;
             case 'Z':
-//                rowKey[0] |= (KEY_RELEASED_BIT0 | KEY_RELEASED_BIT1); // Caps Shift + z
                 rowKey[0] |= KEY_RELEASED_BIT1; // Z
                 break;
             case '[':
