@@ -1571,7 +1571,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     
     public static final int BORDER_WIDTH = 32;
     public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    public static final int BORDER_HEIGHT = 28;
+    public static final int BORDER_HEIGHT = 32;
     public static final int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
 
     static {
