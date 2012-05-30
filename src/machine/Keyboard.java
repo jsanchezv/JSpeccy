@@ -192,8 +192,11 @@ public class Keyboard implements KeyListener {
          * En cualquier otro caso, la tecla Alt hay que saltársela para que sigan funcionando los
          * atajos de teclado sin producir pulsaciones espureas en el emulador.
          * 
+         * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
-        if (winBug && key == KeyEvent.VK_ALT && evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK)) {
+        if (winBug && key == KeyEvent.VK_ALT &&
+                (evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK))
+                || evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
             key = KeyEvent.VK_ALT_GRAPH;
             rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
         } else {
@@ -459,6 +462,7 @@ public class Keyboard implements KeyListener {
                         break;
                 }
                 break;
+            case KeyEvent.VK_META:
             case KeyEvent.VK_ALT_GRAPH:
                 switch (joystick) {
                     case NONE:
@@ -516,8 +520,10 @@ public class Keyboard implements KeyListener {
          * La tecla Alt hay que saltársela para que sigan funcionando los atajos de teclado sin
          * producir pulsaciones espureas en el emulador.
          * 
+         * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
-        if (winBug && key == KeyEvent.VK_CONTROL && evt.getModifiersEx() == InputEvent.ALT_DOWN_MASK) {
+        if (winBug && ((key == KeyEvent.VK_CONTROL && evt.getModifiersEx() == InputEvent.ALT_DOWN_MASK)
+                || (key == KeyEvent.VK_ALT && evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT))) {
             key = KeyEvent.VK_ALT_GRAPH;
         } else {
             if (evt.isAltDown())
@@ -782,7 +788,7 @@ public class Keyboard implements KeyListener {
                         break;
                 }
                 break;
-//            case KeyEvent.VK_ALT:
+            case KeyEvent.VK_META:
             case KeyEvent.VK_ALT_GRAPH:
                 switch (joystick) {
                     case NONE:
