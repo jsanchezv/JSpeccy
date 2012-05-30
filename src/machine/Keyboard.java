@@ -194,9 +194,8 @@ public class Keyboard implements KeyListener {
          * 
          * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
-        if (winBug && key == KeyEvent.VK_ALT &&
-                (evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK))
-                || evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT) {
+        if (winBug && key == KeyEvent.VK_ALT && (evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK)
+                || evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT)) {
             key = KeyEvent.VK_ALT_GRAPH;
             rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
         } else {
