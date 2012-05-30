@@ -42,6 +42,9 @@
             <xsd:element name="hibernateMode" default="false" type="xsd:boolean"/>
             <xsd:element name="lecEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="emulate128kBug" type="xsd:boolean" default="false"/>
+            <xsd:element name="zoomMethod" type="xsd:unsignedByte" default="0"/>
+            <xsd:element name="filterMethod" type="xsd:unsignedByte" default="0"/>
+            <xsd:element name="scanLines" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">
