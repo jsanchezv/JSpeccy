@@ -28,8 +28,6 @@ public enum MachineTypes {
     public int scanLines;       // Número de líneas de imagen
     public int firstScrByte;    // t-states hasta el primer byte de la pantalla
     public int lastScrUpdate;   // t-states última actualización de la pantalla
-    public int firstBorderUpdate;
-    public int lastBorderUpdate;
     public int outOffset;       //
     public int outBorderOffset; //
     public int lengthINT;       // Duración en t-states de la señal INT
@@ -49,9 +47,6 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14336;
                 this.lastScrUpdate = 57246;
-                this.firstBorderUpdate =
-                    ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
                 this.outBorderOffset = 0;
                 this.hasAY8912 = false;
@@ -69,9 +64,6 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14336;
                 this.lastScrUpdate = 57246;
-                this.firstBorderUpdate =
-                    ((64 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (256 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 3;
                 this.outBorderOffset = 0;
                 this.hasAY8912 = false;
@@ -89,10 +81,6 @@ public enum MachineTypes {
                 this.lengthINT = 36;
                 this.firstScrByte = 14362;
                 this.lastScrUpdate = 58040;
-                this.firstBorderUpdate =
-                        ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate =
-                        (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.outBorderOffset = 2;
                 this.hasAY8912 = true;
@@ -110,9 +98,6 @@ public enum MachineTypes {
                 this.lengthINT = 36;
                 this.firstScrByte = 14362;
                 this.lastScrUpdate = 58040;
-                this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.outBorderOffset = 2;
                 this.hasAY8912 = true;
@@ -130,9 +115,6 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.lastScrUpdate = 58044;
-                this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.outBorderOffset = -1;
                 this.hasAY8912 = true;
@@ -150,9 +132,6 @@ public enum MachineTypes {
                 this.lengthINT = 32;
                 this.firstScrByte = 14364;
                 this.lastScrUpdate = 58044;
-                this.firstBorderUpdate =
-                    ((63 - Spectrum.BORDER_HEIGHT) * tstatesLine) - Spectrum.BORDER_WIDTH / 2;
-                this.lastBorderUpdate = (255 + Spectrum.BORDER_HEIGHT) * tstatesLine;
                 this.outOffset = 1;
                 this.outBorderOffset = 3;
                 this.hasAY8912 = true;

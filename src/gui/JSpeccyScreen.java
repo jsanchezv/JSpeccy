@@ -27,7 +27,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //    private AffineTransform escala;
 //    private AffineTransformOp escalaOp;
 //    private RenderingHints renderHints;
-    private int zoom, screenWidth, screenHeight;
+    private int zoom, screenWidth, screenHeight, borderWidth, borderHeight;
     private Object interpolationMethod;
     private boolean anyFilter = false;
     private boolean palFilter = false;
@@ -70,16 +70,17 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 //            RenderingHints.VALUE_COLOR_RENDER_SPEED);
 //        escalaOp = new AffineTransformOp(escala, renderHints);
 
-        screenWidth = Spectrum.SCREEN_WIDTH;
-        screenHeight = Spectrum.SCREEN_HEIGHT;
-        setMaximumSize(new java.awt.Dimension(screenWidth, screenHeight));
-        setMinimumSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
-            Spectrum.SCREEN_HEIGHT));
-        setPreferredSize(new java.awt.Dimension(Spectrum.SCREEN_WIDTH,
-            Spectrum.SCREEN_HEIGHT));
+        borderWidth = 64;
+        borderHeight = 48;
+        screenWidth = borderWidth * 2 + 256;
+        screenHeight = borderHeight * 2 + 192;
         
-        tvPalImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
-            BufferedImage.TYPE_INT_RGB);
+        Dimension screenSize = new Dimension(screenWidth, screenHeight);
+        setMaximumSize(screenSize);
+        setMinimumSize(screenSize);
+        setPreferredSize(screenSize);
+        
+        tvPalImage = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
         tvPalImageGc = tvPalImage.createGraphics();
         imagePalBuffer =
                 ((DataBufferInt) tvPalImage.getRaster().getDataBuffer()).getBankData()[0];
@@ -121,8 +122,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         this.zoom = zoom;
         
-        screenWidth = Spectrum.SCREEN_WIDTH * zoom;
-        screenHeight = Spectrum.SCREEN_HEIGHT * zoom;
+        screenWidth = (borderWidth * 2 + 256) * zoom;
+        screenHeight = (borderHeight * 2 + 192) * zoom;
 
         if (zoom > 1) {    
             tvImageFiltered = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
@@ -237,7 +238,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int pixel = screenWidth;
         
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 
                 if (imageBuffer[pixel] == 0) {
                     pixel += 2;
@@ -270,7 +271,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int pixel = screenWidth;
         
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 
                 if (imageBuffer[pixel] == 0) {
                     pixel += 3;
@@ -308,7 +309,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int pixel = screenWidth * 2;
         
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 
                 if (imageBuffer[pixel] == 0) {
                     pixel += 4;
@@ -346,7 +347,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int pixel = 0;
 
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 imageBuffer[pixel + screenWidth] &= blueMask;
                 imageBuffer[pixel++] &= redMask;
                 imageBuffer[pixel++] &= greenMask;
@@ -362,7 +363,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int pixel = 0;
 
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 imageBuffer[pixel + screenWidth] &= greenMask;
                 pixel++;
 
@@ -384,7 +385,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         int jump = screenWidth * 3;
 
         while (pixel < imageBuffer.length) {
-            for (int col = 0; col < Spectrum.SCREEN_WIDTH; col++) {
+            for (int col = 0; col < screenWidth; col++) {
                 imageBuffer[pixel] &= redMask;
                 imageBuffer[pixel + 1] &= redMask;
                 imageBuffer[pixel + screenWidth] &= redMask;
@@ -485,8 +486,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         int idx1, idx2, idx3;
         
-        int start = Spectrum.BORDER_HEIGHT * Spectrum.SCREEN_WIDTH + Spectrum.BORDER_WIDTH - 2;
-        int limit = (Spectrum.BORDER_HEIGHT + 192) * Spectrum.SCREEN_WIDTH - Spectrum.BORDER_WIDTH + 1;
+        int start = borderHeight * screenWidth + borderWidth - 2;
+        int limit = (borderHeight + 192) * screenWidth - borderWidth + 1;
         int pixel = 0;
         
         while (pixel < limit) {
@@ -501,7 +502,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 idx1 = idx2;
                 idx2 = idx3;
             }
-            start += Spectrum.SCREEN_WIDTH;
+            start += screenWidth;
         }
         
 //        System.out.println(String.format("PalFilterYUV in %d ms.", System.currentTimeMillis() - ini));

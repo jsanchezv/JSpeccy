@@ -43,6 +43,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private final byte delayTstates[] =
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
+    public int firstBorderUpdate, lastBorderUpdate;
     private Timer timerFrame;
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
@@ -340,7 +341,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         audio.reset();
         enableSound();
         invalidateScreen(true);
-        lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastChgBorder = firstBorderUpdate;
         borderChanged = true;
         drawFrame();
         jscr.repaint();
@@ -461,7 +462,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         firstLine = lastLine = rightCol = lastBorderPix = 0;
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
-        lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastChgBorder = firstBorderUpdate;
 
         do {
             nextEvent = stepStates[0];
@@ -562,16 +563,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (borderUpdated || borderChanged) {
             borderChanged = borderUpdated;
             borderUpdated = false;
-            updateBorder(spectrumModel.lastBorderUpdate);
+            updateBorder(lastBorderUpdate);
             if (borderDirty) {
                 borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 int zoom = jscr.getZoom();
-                int fbl = firstBorderPix / Spectrum.SCREEN_WIDTH;
+                int fbl = firstBorderPix / SCREEN_WIDTH;
                 borderRect.x = 0;
                 borderRect.y = fbl * zoom;
-                borderRect.width = Spectrum.SCREEN_WIDTH * zoom;
-                borderRect.height = (lastBorderPix / Spectrum.SCREEN_WIDTH - fbl + zoom) * zoom;
+                borderRect.width = SCREEN_WIDTH * zoom;
+                borderRect.height = (lastBorderPix / SCREEN_WIDTH - fbl + zoom) * zoom;
                 if (screenDirty) {
                     screenDirty = false;
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
@@ -621,7 +622,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
         rightCol = 0;
-        lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastChgBorder = firstBorderUpdate;
 
         speedometer = System.currentTimeMillis();
         nextEvent = NO_EVENT;
@@ -646,7 +647,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 firstLine = lastLine = rightCol = lastBorderPix = 0;
                 firstBorderPix = dataInProgress.length;
                 leftCol = 31;
-                lastChgBorder = spectrumModel.firstBorderUpdate;
+                lastChgBorder = firstBorderUpdate;
                 
                 long now = System.currentTimeMillis();
                 speed = 1000000 / (now - speedometer);
@@ -671,7 +672,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         firstLine = lastLine = rightCol = lastBorderPix = step = 0;
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
-        lastChgBorder = spectrumModel.firstBorderUpdate;
+        lastChgBorder = firstBorderUpdate;
 
         updateScreen(spectrumModel.lastScrUpdate);
 
@@ -1571,10 +1572,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     int stepStates[] = new int[6144];
     int step = 0;
     
-    public static final int BORDER_WIDTH = 32;
-    public static final int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    public static final int BORDER_HEIGHT = 32;
-    public static final int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+    public int BORDER_WIDTH = 64;
+    public int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+    public int BORDER_HEIGHT = 48;
+    public int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1635,7 +1636,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private Rectangle borderRect = new Rectangle();
 
     private void initGFX() {
-        tvImage = new BufferedImage(Spectrum.SCREEN_WIDTH, Spectrum.SCREEN_HEIGHT,
+        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
             BufferedImage.TYPE_INT_RGB);
         gcTvImage = tvImage.createGraphics();
         inProgressImage =
@@ -1806,7 +1807,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     private void updateBorder(int tstates) {
 
-        if (tstates < lastChgBorder || lastChgBorder > spectrumModel.lastBorderUpdate) {
+        if (tstates < lastChgBorder || lastChgBorder > lastBorderUpdate) {
             return;
         }
         
@@ -1822,7 +1823,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         tstates += spectrumModel.outBorderOffset;
         tstates &= 0x00fffffc;
-        while (lastChgBorder < tstates && lastChgBorder < spectrumModel.lastBorderUpdate) {
+        while (lastChgBorder < tstates && lastChgBorder < lastBorderUpdate) {
             int idxColor = states2border[lastChgBorder];
             lastChgBorder += 4;
 
@@ -1938,6 +1939,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables48k() {
         int col, scan;
 
+        firstBorderUpdate = ((64 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (256 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+
         Arrays.fill(states2scr, 0);
 
         step = 0;
@@ -1956,8 +1960,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
 //        System.out.println(String.format("48k - > firstBU: %d, lastBU: %d",
 //                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
-        for (int tstates = spectrumModel.firstBorderUpdate;
-                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
+        for (int tstates = firstBorderUpdate;
+                tstates < lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix48k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -1984,6 +1988,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables128k() {
         int col, scan;
 
+        firstBorderUpdate = ((63 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (255 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+
         Arrays.fill(states2scr, 0);
 
         step = 0;
@@ -2003,8 +2010,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
 //        System.out.println(String.format("128k - > firstBU: %d, lastBU: %d",
 //                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
-        for (int tstates = spectrumModel.firstBorderUpdate;
-                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
+        for (int tstates = firstBorderUpdate;
+                tstates < lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
@@ -2031,6 +2038,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTablesPlus3() {
         int col, scan;
 
+        firstBorderUpdate = ((63 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (255 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+
         Arrays.fill(states2scr, 0);
 
         step = 0;
@@ -2050,8 +2060,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
 //        System.out.println(String.format("+3 - > firstBU: %d, lastBU: %d",
 //                spectrumModel.firstBorderUpdate, spectrumModel.lastBorderUpdate));
-        for (int tstates = spectrumModel.firstBorderUpdate;
-                tstates < spectrumModel.lastBorderUpdate; tstates += 4) {
+        for (int tstates = firstBorderUpdate;
+                tstates < lastBorderUpdate; tstates += 4) {
             states2border[tstates] = tStatesToScrPix128k(tstates);
             states2border[tstates + 1] = states2border[tstates];
             states2border[tstates + 2] = states2border[tstates];
