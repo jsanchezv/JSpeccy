@@ -115,10 +115,13 @@ public class Tape {
     private MachineTypes spectrumModel;
     private TapeTableModel tapeTableModel;
     private TapeType settings;
-    // # of Calls & Call block of TZX CALL block 
+    // # of Calls & origin block of TZX CALL block 
     private int nCalls, callBlk;
     // Call sequence for TZX CALL block
     private short[] callSeq;
+
+    private static final String tzxHeader = "ZXTape!\u001A";
+    private static final String tzxCreator = "TZX created with JSpeccy v0.90.1";
     
 
     public Tape(TapeType tapeSettings) {
@@ -1735,8 +1738,8 @@ public class Tape {
 
                 byte hdrTZX[], idTZX[];
                 try {
-                    hdrTZX = "ZXTape!\u001A".getBytes("US-ASCII");
-                    idTZX = "TZX created with JSpeccy v0.90".getBytes("US-ASCII");
+                    hdrTZX = tzxHeader.getBytes("US-ASCII");
+                    idTZX = tzxCreator.getBytes("US-ASCII");
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
                     return false;
@@ -1823,10 +1826,10 @@ public class Tape {
             fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
             // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
             if (nOffsetBlocks == 0) {
-                fOut.write("ZXTape!\u001A".getBytes("US-ASCII"));
+                fOut.write(tzxHeader.getBytes("US-ASCII"));
                 fOut.write(01);
                 fOut.write(20);
-                byte idTZX[] = "TZX created with JSpeccy v0.90".getBytes("US-ASCII");
+                byte idTZX[] = tzxCreator.getBytes("US-ASCII");
                 fOut.write(0x30);
                 fOut.write(idTZX.length);
                 fOut.write(idTZX);
