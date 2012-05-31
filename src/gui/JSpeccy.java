@@ -304,7 +304,15 @@ public class JSpeccy extends javax.swing.JFrame {
     private void initEmulator() {
 
         readSettingsFile();
+
         spectrum = new Spectrum(settings);
+
+        spectrum.selectHardwareModel(settings.getSpectrumSettings().getDefaultModel());
+        
+        spectrum.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
+        
+        spectrum.loadConfigVars();
+        
         tape = new Tape(settings.getTapeSettings());
         spectrum.setTape(tape);
         jscr = new JSpeccyScreen();

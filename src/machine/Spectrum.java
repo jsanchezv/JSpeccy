@@ -83,33 +83,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if1 = new Interface1(clock, settings.getInterface1Settings());
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
-        
-        switch (specSettings.getDefaultModel()) {
-            case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K);
-                break;
-            case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
-                break;
-            case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                break;
-            case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                break;
-            case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                break;
-            default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K);
-        }
-        
-        keyboard.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
-        joystick = keyboard.getJoystick();
 
         resetPending = false;
-
-        loadConfigVars();
 
         timerFrame = new Timer("SpectrumClock", true);
     }
@@ -244,12 +219,34 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             step++;
 
         loadConfigVars();
-        
+
         if (memory.getMemoryState().isLecPaged())
            pageLec(state.getMemoryState().getPageLec());
     }
-    
-    public final void selectHardwareModel(MachineTypes hardwareModel) {
+
+    public void selectHardwareModel(int model) {
+        switch (model) {
+            case 0:
+                selectHardwareModel(MachineTypes.SPECTRUM16K);
+                break;
+            case 2:
+                selectHardwareModel(MachineTypes.SPECTRUM128K);
+                break;
+            case 3:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 4:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+                break;
+            case 5:
+                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            default:
+                selectHardwareModel(MachineTypes.SPECTRUM48K);
+        }
+    }
+
+    public void selectHardwareModel(MachineTypes hardwareModel) {
 
         disableSound();
         spectrumModel = hardwareModel;
@@ -416,12 +413,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         return joystick;
     }
     
-    public final void setJoystick(Joystick type) {
+    public void setJoystick(Joystick type) {
         joystick = type;
         keyboard.setJoystick(type);
     }
     
-    public final void setTape(Tape player) {
+    public void setJoystick(int model) {
+        keyboard.setJoystick(model);
+        joystick = keyboard.getJoystick();
+    }
+    
+    public void setTape(Tape player) {
         tape = player;
         tape.setZ80Cpu(z80);
         tape.setSpectrumModel(spectrumModel);
