@@ -163,7 +163,7 @@ public class Keyboard implements KeyListener {
         
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
-            if (keychar != KeyEvent.CHAR_UNDEFINED) {
+            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
 //            System.out.println("pressed " + keychar);
                 if (pressedKeyChar(keychar)) {
                     for (int key = 0; key < keyEventPending.length; key++) {
@@ -490,7 +490,7 @@ public class Keyboard implements KeyListener {
         if (mapPCKeys) {
             char keychar = evt.getKeyChar();
 
-            if (keychar != KeyEvent.CHAR_UNDEFINED) {
+            if (keychar != KeyEvent.CHAR_UNDEFINED && !evt.isAltDown()) {
 //            System.out.println("released " + keychar);
                 for (int key = 0; key < keyEventPending.length; key++) {
                     if (keyEventPending[key] != null
