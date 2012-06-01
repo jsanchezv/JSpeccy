@@ -48,8 +48,9 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     // Estos miembros solo cambian cuando cambia el tamaño del borde
     private int BORDER_WIDTH = 32;
     private int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private int BORDER_HEIGHT = 24;
-    private int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+    private int TOP_BORDER_HEIGHT = 24;
+    private int BOTTOM_BORDER_HEIGHT = 24;
+    private int SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
     
     private int borderMode;
 
@@ -141,19 +142,26 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         switch(mode) {
             case 0: // no border
-                BORDER_WIDTH = BORDER_HEIGHT = 0;
+                BORDER_WIDTH = TOP_BORDER_HEIGHT = BOTTOM_BORDER_HEIGHT = 0;
                 break;
-            case 2: // Full border
+            case 2: // Full standard border
+                BORDER_WIDTH = 48;
+                TOP_BORDER_HEIGHT = 48;
+                BOTTOM_BORDER_HEIGHT = 56;
+                break;
+            case 3: // Huge border
                 BORDER_WIDTH = 64;
-                BORDER_HEIGHT = 48;
+                TOP_BORDER_HEIGHT = 56;
+                BOTTOM_BORDER_HEIGHT = 56;
                 break;
             default: // Standard border
                 BORDER_WIDTH = 32;
-                BORDER_HEIGHT = 24;
+                TOP_BORDER_HEIGHT = 24;
+                BOTTOM_BORDER_HEIGHT = 24;
         }
         
         SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-        SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+        SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
         
         tvPalImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         if (tvPalImageGc != null)
@@ -522,8 +530,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         int idx1, idx2, idx3;
         
-        int start = BORDER_HEIGHT * SCREEN_WIDTH + BORDER_WIDTH;
-        int limit = (BORDER_HEIGHT + 192) * SCREEN_WIDTH - BORDER_WIDTH - 1;
+        int start = TOP_BORDER_HEIGHT * SCREEN_WIDTH + BORDER_WIDTH;
+        int limit = (TOP_BORDER_HEIGHT + 192) * SCREEN_WIDTH - BORDER_WIDTH - 1;
         int pixel = 0;
         
         while (pixel < limit) {

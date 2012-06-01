@@ -582,7 +582,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     lastLine = repaintTable[lastLine & 0x1fff];
                     screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
                     screenRect.x -= zoom;
-                    screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
+                    screenRect.y = (TOP_BORDER_HEIGHT + firstLine) * zoom;
                     screenRect.y -= zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
                     screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom;
@@ -606,7 +606,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             int zoom = jscr.getZoom();
             screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
             screenRect.x -= zoom;
-            screenRect.y = (BORDER_HEIGHT + firstLine) * zoom;
+            screenRect.y = (TOP_BORDER_HEIGHT + firstLine) * zoom;
             screenRect.y -= zoom;
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
             screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
@@ -1577,8 +1577,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     // Estos miembros solo cambian cuando cambia el tamaño del borde
     private int BORDER_WIDTH = 32;
     private int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private int BORDER_HEIGHT = 24;
-    private int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+    private int TOP_BORDER_HEIGHT = 24;
+    private int BOTTOM_BORDER_HEIGHT = 24;
+    private int SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1683,7 +1684,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             scan = (address & 0x700) >>> 8;
 
             repaintTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + BORDER_HEIGHT) * SCREEN_WIDTH
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER_HEIGHT) * SCREEN_WIDTH
                 + col * 8 + BORDER_WIDTH;
             scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
         }
@@ -1704,20 +1705,27 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         borderMode = mode;
 
         switch(mode) {
-            case 0: // no border
-                BORDER_WIDTH = BORDER_HEIGHT = 0;
+           case 0: // no border
+                BORDER_WIDTH = TOP_BORDER_HEIGHT = BOTTOM_BORDER_HEIGHT = 0;
                 break;
-            case 2: // Full border
+            case 2: // Full standard border
+                BORDER_WIDTH = 48;
+                TOP_BORDER_HEIGHT = 48;
+                BOTTOM_BORDER_HEIGHT = 56;
+                break;
+            case 3: // Huge border
                 BORDER_WIDTH = 64;
-                BORDER_HEIGHT = 48;
+                TOP_BORDER_HEIGHT = 56;
+                BOTTOM_BORDER_HEIGHT = 56;
                 break;
             default: // Standard border
                 BORDER_WIDTH = 32;
-                BORDER_HEIGHT = 24;
+                TOP_BORDER_HEIGHT = 24;
+                BOTTOM_BORDER_HEIGHT = 24;
         }
         
         SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-        SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+        SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
         
         tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
             BufferedImage.TYPE_INT_RGB);
@@ -1736,7 +1744,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             int col = address & 0x1f;
             int scan = (address & 0x700) >>> 8;
 
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + BORDER_HEIGHT) * SCREEN_WIDTH
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER_HEIGHT) * SCREEN_WIDTH
                 + col * 8 + BORDER_WIDTH;
         }
 
@@ -1781,17 +1789,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (64 - BORDER_HEIGHT - 1) || row > (256 + BORDER_HEIGHT - 1)) {
+        if (row < (64 - TOP_BORDER_HEIGHT - 1) || row > (256 + BOTTOM_BORDER_HEIGHT - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (64 - BORDER_HEIGHT - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (64 - TOP_BORDER_HEIGHT - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (256 + BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (256 + BOTTOM_BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1814,7 +1822,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             col += BORDER_WIDTH / 2;
         }
 
-        row -= (64 - BORDER_HEIGHT);
+        row -= (64 - TOP_BORDER_HEIGHT);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1826,17 +1834,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (63 - BORDER_HEIGHT - 1) || row > (255 + BORDER_HEIGHT - 1)) {
+        if (row < (63 - TOP_BORDER_HEIGHT - 1) || row > (255 + BOTTOM_BORDER_HEIGHT - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (63 - BORDER_HEIGHT - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (63 - TOP_BORDER_HEIGHT - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (255 + BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (255 + BOTTOM_BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1858,7 +1866,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         } else {
             col += BORDER_WIDTH / 2;
         }
-        row -= (63 - BORDER_HEIGHT);
+        row -= (63 - TOP_BORDER_HEIGHT);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1997,8 +2005,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables48k() {
         int col, scan;
 
-        firstBorderUpdate = ((64 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (256 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((64 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (256 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
 
         Arrays.fill(states2scr, 0);
 
@@ -2046,8 +2054,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTables128k() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (255 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((63 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (255 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
 
         Arrays.fill(states2scr, 0);
 
@@ -2096,8 +2104,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private void buildScreenTablesPlus3() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (255 + BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((63 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
+        lastBorderUpdate = (255 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
 
         Arrays.fill(states2scr, 0);
 

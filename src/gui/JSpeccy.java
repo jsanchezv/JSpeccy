@@ -688,6 +688,9 @@ public class JSpeccy extends javax.swing.JFrame {
             case 2:
                 fullBorder.setSelected(true);
                 break;
+            case 3:
+                hugeBorder.setSelected(true);
+                break;
             default:
                 standardBorder.setSelected(true);
         }
@@ -773,13 +776,7 @@ public class JSpeccy extends javax.swing.JFrame {
         zoomMethodButtonGroup = new javax.swing.ButtonGroup();
         borderSizeButtonGroup = new javax.swing.ButtonGroup();
         statusPanel = new javax.swing.JPanel();
-        modelLabel = new JLabel() {
-            @Override
-            public void paintComponent(Graphics g) {
-                g.drawImage(new ImageIcon(getClass().getResource("/icons/spectrum_rainbow.png")).getImage(), 0, 0, null);
-                super.paintComponent(g);
-            }
-        };
+        modelLabel = new javax.swing.JLabel();
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         mdrvLabel = new javax.swing.JLabel();
         jSeparator10 = new javax.swing.JSeparator();
@@ -826,6 +823,7 @@ public class JSpeccy extends javax.swing.JFrame {
         noBorder = new javax.swing.JRadioButtonMenuItem();
         standardBorder = new javax.swing.JRadioButtonMenuItem();
         fullBorder = new javax.swing.JRadioButtonMenuItem();
+        hugeBorder = new javax.swing.JRadioButtonMenuItem();
         filtersOptionMenu = new javax.swing.JMenu();
         noneFilter = new javax.swing.JRadioButtonMenuItem();
         palTvFilter = new javax.swing.JRadioButtonMenuItem();
@@ -1140,7 +1138,6 @@ public class JSpeccy extends javax.swing.JFrame {
     statusPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
     statusPanel.setLayout(new javax.swing.BoxLayout(statusPanel, javax.swing.BoxLayout.LINE_AXIS));
 
-    modelLabel.setForeground(new java.awt.Color(238, 238, 238));
     modelLabel.setText(bundle.getString("JSpeccy.modelLabel.text")); // NOI18N
     modelLabel.setToolTipText(bundle.getString("JSpeccy.modelLabel.toolTipText")); // NOI18N
     modelLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
@@ -1495,6 +1492,15 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     });
     borderSizeOptionMenu.add(fullBorder);
+
+    borderSizeButtonGroup.add(hugeBorder);
+    hugeBorder.setText(bundle.getString("JSpeccy.hugeBorder.text")); // NOI18N
+    hugeBorder.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            hugeBorderActionPerformed(evt);
+        }
+    });
+    borderSizeOptionMenu.add(hugeBorder);
 
     optionsMenu.add(borderSizeOptionMenu);
 
@@ -2939,6 +2945,19 @@ public class JSpeccy extends javax.swing.JFrame {
         startEmulation();
     }//GEN-LAST:event_standardBorderActionPerformed
 
+    private void hugeBorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hugeBorderActionPerformed
+        if (jscr.getBorderMode() == 3) {
+            return;
+        }
+        
+        stopEmulation();
+        spectrum.setBorderMode(3);
+        jscr.setBorderMode(3);
+        jscr.setTvImage(spectrum.getTvImage());
+        pack();
+        startEmulation();
+    }//GEN-LAST:event_hugeBorderActionPerformed
+
     private void fullBorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullBorderActionPerformed
         if (jscr.getBorderMode() == 2) {
             return;
@@ -3002,6 +3021,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.ButtonGroup hardwareButtonGroup;
     private javax.swing.JMenu hardwareMachineMenu;
     private javax.swing.JMenu helpMenu;
+    private javax.swing.JRadioButtonMenuItem hugeBorder;
     private javax.swing.JRadioButton ignoreRadioButton;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JMenuItem insertIF2RomMediaMenu;

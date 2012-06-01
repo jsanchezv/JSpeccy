@@ -69,7 +69,7 @@
                         <xsd:totalDigits value="1"/>
                         <xsd:fractionDigits value="0"/>
                         <xsd:minInclusive value="0"/>
-                        <xsd:maxInclusive value="2"/>
+                        <xsd:maxInclusive value="3"/>
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
