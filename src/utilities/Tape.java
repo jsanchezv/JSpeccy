@@ -23,16 +23,7 @@
 package utilities;
 
 import configuration.TapeType;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -121,7 +112,7 @@ public class Tape {
     private short[] callSeq;
 
     private static final String tzxHeader = "ZXTape!\u001A";
-    private static final String tzxCreator = "TZX created with JSpeccy v0.90.1";
+    private static final String tzxCreator = "TZX created with JSpeccy v0.91";
     
 
     public Tape(TapeType tapeSettings) {
