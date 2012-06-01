@@ -43,7 +43,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private final byte delayTstates[] =
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
-    public int firstBorderUpdate, lastBorderUpdate;
+    public int firstBorderUpdate, lastBorderUpdate, borderMode;
     private Timer timerFrame;
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
@@ -81,6 +81,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         muted = specSettings.isMutedSound();
         enabledSound = false;
         paused = true;
+        borderMode = 1;
         if1 = new Interface1(clock, settings.getInterface1Settings());
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
@@ -563,7 +564,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (borderUpdated || borderChanged) {
             borderChanged = borderUpdated;
             borderUpdated = false;
-            updateBorder(lastBorderUpdate);
+            if (BORDER_WIDTH > 0)
+                updateBorder(lastBorderUpdate);
             if (borderDirty) {
                 borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
@@ -1072,7 +1074,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             if ((port & 0x0001) == 0) {
-                if ((portFE & 0x07) != (value & 0x07)) {
+                if ((portFE & 0x07) != (value & 0x07) && BORDER_WIDTH > 0) {
                     updateBorder(clock.tstates);
                     borderUpdated = true;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
@@ -1221,7 +1223,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                         // Solo es necesario redibujar el borde si se modificó uno
                         // de los colores de paper de la paleta 0. (8-15)
                         // Pero hay que hacerlo *antes* de modificar la paleta.
-                        if (paletteGroup > 7 && paletteGroup < 16) {
+                        if (paletteGroup > 7 && paletteGroup < 16 && BORDER_WIDTH > 0) {
                             borderUpdated = true;
                             updateBorder(clock.tstates);
                         }
@@ -1572,10 +1574,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     int stepStates[] = new int[6144];
     int step = 0;
     
-    public int BORDER_WIDTH = 64;
-    public int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    public int BORDER_HEIGHT = 48;
-    public int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+    // Estos miembros solo cambian cuando cambia el tamaño del borde
+    private int BORDER_WIDTH = 32;
+    private int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+    private int BORDER_HEIGHT = 24;
+    private int SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1692,6 +1695,61 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     public BufferedImage getTvImage() {
         return tvImage;
+    }
+    
+    public void setBorderMode(int mode) {
+        if (borderMode == mode)
+            return;
+
+        borderMode = mode;
+
+        switch(mode) {
+            case 0: // no border
+                BORDER_WIDTH = BORDER_HEIGHT = 0;
+                break;
+            case 2: // Full border
+                BORDER_WIDTH = 64;
+                BORDER_HEIGHT = 48;
+                break;
+            default: // Standard border
+                BORDER_WIDTH = 32;
+                BORDER_HEIGHT = 24;
+        }
+        
+        SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
+        SCREEN_HEIGHT = BORDER_HEIGHT + 192 + BORDER_HEIGHT;
+        
+        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
+            BufferedImage.TYPE_INT_RGB);
+        if (gcTvImage != null)
+            gcTvImage.dispose();
+        gcTvImage = tvImage.createGraphics();
+
+        inProgressImage =
+            new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        dataInProgress =
+            ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
+
+        
+        for (int address = 0x4000; address < 0x5800; address++) {
+            int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
+            int col = address & 0x1f;
+            int scan = (address & 0x700) >>> 8;
+
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + BORDER_HEIGHT) * SCREEN_WIDTH
+                + col * 8 + BORDER_WIDTH;
+        }
+
+        switch(spectrumModel.codeModel) {
+            case SPECTRUM128K:
+                buildScreenTables128k();
+                break;
+            case SPECTRUMPLUS3:
+                buildScreenTablesPlus3();
+                break;
+            default:
+                buildScreenTables48k();
+        }
     }
 
     public synchronized void toggleFlash() {

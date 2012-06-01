@@ -42,9 +42,37 @@
             <xsd:element name="hibernateMode" default="false" type="xsd:boolean"/>
             <xsd:element name="lecEnabled" type="xsd:boolean" default="false"/>
             <xsd:element name="emulate128kBug" type="xsd:boolean" default="false"/>
-            <xsd:element name="zoomMethod" type="xsd:unsignedByte" default="0"/>
-            <xsd:element name="filterMethod" type="xsd:unsignedByte" default="0"/>
+            <xsd:element name="zoomMethod" default="0">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:integer">
+                        <xsd:totalDigits value="1"/>
+                        <xsd:fractionDigits value="0"/>
+                        <xsd:minInclusive value="0"/>
+                        <xsd:maxInclusive value="2"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
+            <xsd:element name="filterMethod" default="0">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:integer">
+                        <xsd:totalDigits value="1"/>
+                        <xsd:fractionDigits value="0"/>
+                        <xsd:maxInclusive value="2"/>
+                        <xsd:minInclusive value="0"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
             <xsd:element name="scanLines" type="xsd:boolean" default="false"/>
+            <xsd:element name="borderSize" default="1">
+                <xsd:simpleType>
+                    <xsd:restriction base="xsd:integer">
+                        <xsd:totalDigits value="1"/>
+                        <xsd:fractionDigits value="0"/>
+                        <xsd:minInclusive value="0"/>
+                        <xsd:maxInclusive value="2"/>
+                    </xsd:restriction>
+                </xsd:simpleType>
+            </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="MemoryType">

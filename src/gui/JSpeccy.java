@@ -6,50 +6,26 @@
 
 package gui;
 
-import java.awt.BorderLayout;
-import java.awt.Toolkit;
-import java.io.File;
-import java.io.FileInputStream;
+import configuration.JSpeccySettingsType;
+import configuration.ObjectFactory;
+import java.awt.*;
+import java.io.*;
 import java.util.ResourceBundle;
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.ListSelectionModel;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.plaf.basic.BasicFileChooserUI;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Unmarshaller;
-import java.io.IOException;
-import javax.xml.bind.JAXBException;
-import machine.MachineTypes;
-import machine.Spectrum;
-import configuration.*;
-import java.awt.Color;
-import java.awt.RenderingHints;
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
-import javax.xml.bind.JAXB;
+import javax.xml.bind.*;
 import machine.Interface1DriveListener;
 import machine.Keyboard.Joystick;
+import machine.MachineTypes;
 import machine.SleeperThread;
-import snapshots.SnapshotException;
-import snapshots.SnapshotSNA;
-import snapshots.SnapshotSZX;
-import snapshots.SnapshotZ80;
-import snapshots.SpectrumState;
+import machine.Spectrum;
+import snapshots.*;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeBlockListener;
@@ -124,7 +100,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         initComponents();
         initEmulator();
-        spectrum.startEmulation();
+        startEmulation();
     }
 
     private void verifyConfigFile(boolean deleteFile) {
@@ -260,7 +236,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (currentFileTape != null)
             settings.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
-        short filterM = 0, zoomM = 0;
+        int filterM = 0, zoomM = 0;
         
         if (palTvFilter.isSelected()) {
             filterM = 1;
@@ -281,6 +257,10 @@ public class JSpeccy extends javax.swing.JFrame {
         settings.getSpectrumSettings().setZoomMethod(zoomM);
         settings.getSpectrumSettings().setFilterMethod(filterM);
         settings.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
+
+        settings.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
+        
+        settings.getSpectrumSettings().setZoomed(jscr.isZoomed());
 
         try {
             BufferedOutputStream fOut =
@@ -311,6 +291,8 @@ public class JSpeccy extends javax.swing.JFrame {
         
         spectrum.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
         
+        spectrum.setBorderMode(settings.getSpectrumSettings().getBorderSize());
+        
         spectrum.loadConfigVars();
         
         tape = new Tape(settings.getTapeSettings());
@@ -318,6 +300,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
+        jscr.setBorderMode(settings.getSpectrumSettings().getBorderSize());
         spectrum.setSpeedLabel(speedLabel);
         tapeCatalog.setModel(tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
@@ -501,7 +484,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 scanlinesFilter.setEnabled(false);
                 break;
             default:
-                jscr.setAnyFilter(false);
+                jscr.setAnyFilter(settings.getSpectrumSettings().isScanLines());
                 noneFilter.setSelected(true);
         }
 
@@ -697,6 +680,17 @@ public class JSpeccy extends javax.swing.JFrame {
         } else {
             palTvFilter.setEnabled(true);
         }
+        
+        switch(jscr.getBorderMode()) {
+            case 0:
+                noBorder.setSelected(true);
+                break;
+            case 2:
+                fullBorder.setSelected(true);
+                break;
+            default:
+                standardBorder.setSelected(true);
+        }
     }
     
     private void startEmulation() {
@@ -777,8 +771,15 @@ public class JSpeccy extends javax.swing.JFrame {
         closePokeDialogButton = new javax.swing.JButton();
         filtersButtonGroup = new javax.swing.ButtonGroup();
         zoomMethodButtonGroup = new javax.swing.ButtonGroup();
+        borderSizeButtonGroup = new javax.swing.ButtonGroup();
         statusPanel = new javax.swing.JPanel();
-        modelLabel = new javax.swing.JLabel();
+        modelLabel = new JLabel() {
+            @Override
+            public void paintComponent(Graphics g) {
+                g.drawImage(new ImageIcon(getClass().getResource("/icons/spectrum_rainbow.png")).getImage(), 0, 0, null);
+                super.paintComponent(g);
+            }
+        };
         filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 0));
         mdrvLabel = new javax.swing.JLabel();
         jSeparator10 = new javax.swing.JSeparator();
@@ -821,6 +822,10 @@ public class JSpeccy extends javax.swing.JFrame {
         standardZoom = new javax.swing.JRadioButtonMenuItem();
         bilinearZoom = new javax.swing.JRadioButtonMenuItem();
         bicubicZoom = new javax.swing.JRadioButtonMenuItem();
+        borderSizeOptionMenu = new javax.swing.JMenu();
+        noBorder = new javax.swing.JRadioButtonMenuItem();
+        standardBorder = new javax.swing.JRadioButtonMenuItem();
+        fullBorder = new javax.swing.JRadioButtonMenuItem();
         filtersOptionMenu = new javax.swing.JMenu();
         noneFilter = new javax.swing.JRadioButtonMenuItem();
         palTvFilter = new javax.swing.JRadioButtonMenuItem();
@@ -1135,6 +1140,7 @@ public class JSpeccy extends javax.swing.JFrame {
     statusPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
     statusPanel.setLayout(new javax.swing.BoxLayout(statusPanel, javax.swing.BoxLayout.LINE_AXIS));
 
+    modelLabel.setForeground(new java.awt.Color(238, 238, 238));
     modelLabel.setText(bundle.getString("JSpeccy.modelLabel.text")); // NOI18N
     modelLabel.setToolTipText(bundle.getString("JSpeccy.modelLabel.toolTipText")); // NOI18N
     modelLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
@@ -1459,6 +1465,38 @@ public class JSpeccy extends javax.swing.JFrame {
     zoomMethodOptionMenu.add(bicubicZoom);
 
     optionsMenu.add(zoomMethodOptionMenu);
+
+    borderSizeOptionMenu.setText(bundle.getString("JSpeccy.borderSizeOptionMenu.text")); // NOI18N
+
+    borderSizeButtonGroup.add(noBorder);
+    noBorder.setText(bundle.getString("JSpeccy.noBorder.text")); // NOI18N
+    noBorder.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            noBorderActionPerformed(evt);
+        }
+    });
+    borderSizeOptionMenu.add(noBorder);
+
+    borderSizeButtonGroup.add(standardBorder);
+    standardBorder.setSelected(true);
+    standardBorder.setText(bundle.getString("JSpeccy.standardBorder.text")); // NOI18N
+    standardBorder.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            standardBorderActionPerformed(evt);
+        }
+    });
+    borderSizeOptionMenu.add(standardBorder);
+
+    borderSizeButtonGroup.add(fullBorder);
+    fullBorder.setText(bundle.getString("JSpeccy.fullBorder.text")); // NOI18N
+    fullBorder.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            fullBorderActionPerformed(evt);
+        }
+    });
+    borderSizeOptionMenu.add(fullBorder);
+
+    optionsMenu.add(borderSizeOptionMenu);
 
     filtersOptionMenu.setText(bundle.getString("JSpeccy.filtersOptionMenu.text")); // NOI18N
 
@@ -2874,6 +2912,45 @@ public class JSpeccy extends javax.swing.JFrame {
         jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         jscr.repaint();
     }//GEN-LAST:event_bicubicZoomActionPerformed
+
+    private void noBorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noBorderActionPerformed
+        if (jscr.getBorderMode() == 0) {
+            return;
+        }
+        
+        stopEmulation();
+        spectrum.setBorderMode(0);
+        jscr.setBorderMode(0);
+        jscr.setTvImage(spectrum.getTvImage());
+        pack();
+        startEmulation();
+    }//GEN-LAST:event_noBorderActionPerformed
+
+    private void standardBorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_standardBorderActionPerformed
+        if (jscr.getBorderMode() == 1) {
+            return;
+        }
+        
+        stopEmulation();
+        spectrum.setBorderMode(1);
+        jscr.setBorderMode(1);
+        jscr.setTvImage(spectrum.getTvImage());
+        pack();
+        startEmulation();
+    }//GEN-LAST:event_standardBorderActionPerformed
+
+    private void fullBorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullBorderActionPerformed
+        if (jscr.getBorderMode() == 2) {
+            return;
+        }
+        
+        stopEmulation();
+        spectrum.setBorderMode(2);
+        jscr.setBorderMode(2);
+        jscr.setTvImage(spectrum.getTvImage());
+        pack();
+        startEmulation();
+    }//GEN-LAST:event_fullBorderActionPerformed
     
     /**
      * @param args the command line arguments
@@ -2895,6 +2972,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JSpinner addressSpinner;
     private javax.swing.JRadioButtonMenuItem bicubicZoom;
     private javax.swing.JRadioButtonMenuItem bilinearZoom;
+    private javax.swing.ButtonGroup borderSizeButtonGroup;
+    private javax.swing.JMenu borderSizeOptionMenu;
     private javax.swing.JMenuItem browserTapeMediaMenu;
     private javax.swing.JMenuItem clearTapeMediaMenu;
     private javax.swing.JButton closeKeyboardHelper;
@@ -2916,6 +2995,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.Box.Filler filler5;
     private javax.swing.ButtonGroup filtersButtonGroup;
     private javax.swing.JMenu filtersOptionMenu;
+    private javax.swing.JRadioButtonMenuItem fullBorder;
     private javax.swing.JRadioButtonMenuItem fullerJoystick;
     private javax.swing.JMenuItem hardResetMachineMenu;
     private javax.swing.JButton hardResetSpectrumButton;
@@ -2966,6 +3046,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem microdrivesIF1MediaMenu;
     private javax.swing.JLabel modelLabel;
     private javax.swing.JMenuItem nmiMachineMenu;
+    private javax.swing.JRadioButtonMenuItem noBorder;
     private javax.swing.JRadioButtonMenuItem noneFilter;
     private javax.swing.JRadioButtonMenuItem noneJoystick;
     private javax.swing.JMenuItem openSnapshot;
@@ -3015,6 +3096,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButtonMenuItem specPlus2Hardware;
     private javax.swing.JRadioButtonMenuItem specPlus3Hardware;
     private javax.swing.JLabel speedLabel;
+    private javax.swing.JRadioButtonMenuItem standardBorder;
     private javax.swing.JRadioButtonMenuItem standardZoom;
     private javax.swing.JPanel statusPanel;
     private javax.swing.JButton tapeBrowserButtonEject;

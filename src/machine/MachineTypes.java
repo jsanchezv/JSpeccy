@@ -89,7 +89,7 @@ public enum MachineTypes {
                 break;
             case 3: // Spectrum +2
                 this.longModelName = "Amstrad ZX Spectrum +2";
-                this.shortModelName = " +2";
+                this.shortModelName = "  +2";
                 this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
@@ -123,7 +123,7 @@ public enum MachineTypes {
                 break;
             case 5: // Spectrum +3
                 this.longModelName = "ZX Spectrum +3";
-                this.shortModelName = " +3";
+                this.shortModelName = "  +3";
                 this.clockFreq = 3546900;
                 this.tstatesFrame = 70908;
                 this.tstatesLine = 228;
