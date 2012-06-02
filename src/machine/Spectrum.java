@@ -343,7 +343,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         enableSound();
         invalidateScreen(true);
         lastChgBorder = firstBorderUpdate;
-        borderChanged = true;
         drawFrame();
         jscr.repaint();
         taskFrame = new SpectrumTimer(this);
@@ -564,8 +563,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (borderUpdated || borderChanged) {
             borderChanged = borderUpdated;
             borderUpdated = false;
-            if (BORDER_WIDTH > 0)
-                updateBorder(lastBorderUpdate);
+            updateBorder(lastBorderUpdate);
             if (borderDirty) {
                 borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
@@ -580,10 +578,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
                     firstLine = repaintTable[firstLine & 0x1fff];
                     lastLine = repaintTable[lastLine & 0x1fff];
-                    screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
-                    screenRect.x -= zoom;
-                    screenRect.y = (TOP_BORDER_HEIGHT + firstLine) * zoom;
-                    screenRect.y -= zoom;
+                    screenRect.x = ((BORDER_WIDTH + leftCol * 8) * zoom) - zoom;
+                    screenRect.y = ((TOP_BORDER_HEIGHT + firstLine) * zoom) - zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
                     screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
@@ -604,10 +600,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             lastLine = repaintTable[lastLine & 0x1fff];
 
             int zoom = jscr.getZoom();
-            screenRect.x = (BORDER_WIDTH + leftCol * 8) * zoom;
-            screenRect.x -= zoom;
-            screenRect.y = (TOP_BORDER_HEIGHT + firstLine) * zoom;
-            screenRect.y -= zoom;
+            screenRect.x = ((BORDER_WIDTH + leftCol * 8) * zoom) - zoom;
+            screenRect.y = ((TOP_BORDER_HEIGHT + firstLine) * zoom) - zoom;
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
             screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
@@ -1649,10 +1643,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
 
         lastChgBorder = 0;
-//        m1contended = -1;
         Arrays.fill(dirtyByte, true);
         screenDirty = false;
-        borderChanged = true;
+        borderChanged = BORDER_WIDTH > 0;
 
         // Paletas para el soporte de ULAplus
         ULAPlusPalette = new int[4][16];
@@ -1998,7 +1991,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public void invalidateScreen(boolean invalidateBorder) {
-        borderChanged = invalidateBorder;
+        borderChanged = BORDER_WIDTH > 0 && invalidateBorder;
         Arrays.fill(dirtyByte, true);
     }
 
