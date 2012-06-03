@@ -20,7 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import machine.TimeCounters;
+import machine.Clock;
 
 /**
  *
@@ -69,10 +69,10 @@ public class Microdrive {
     private BufferedInputStream fIn;
     private BufferedOutputStream fOut;
     private File filename;
-    private TimeCounters clock;
+    private Clock clock;
     private long startGap;
 
-    public Microdrive(TimeCounters clock) {
+    public Microdrive(Clock clock) {
         
         this.clock = clock;
         isCartridge = mdrFile = false;

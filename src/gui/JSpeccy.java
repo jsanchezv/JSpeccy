@@ -8,7 +8,10 @@ package gui;
 
 import configuration.JSpeccySettingsType;
 import configuration.ObjectFactory;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.io.*;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -20,11 +23,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.*;
-import machine.Interface1DriveListener;
 import machine.Keyboard.Joystick;
-import machine.MachineTypes;
-import machine.SleeperThread;
-import machine.Spectrum;
+import machine.*;
 import snapshots.*;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -36,6 +36,7 @@ import utilities.TapeStateListener;
  * @author  jsanchez
  */
 public class JSpeccy extends javax.swing.JFrame {
+    Clock clock;
     Spectrum spectrum;
     Tape tape;
     JSpeccyScreen jscr;
@@ -285,7 +286,9 @@ public class JSpeccy extends javax.swing.JFrame {
 
         readSettingsFile();
 
-        spectrum = new Spectrum(settings);
+        clock = new Clock();
+        
+        spectrum = new Spectrum(clock, settings);
 
         spectrum.selectHardwareModel(settings.getSpectrumSettings().getDefaultModel());
         
@@ -295,7 +298,7 @@ public class JSpeccy extends javax.swing.JFrame {
         
         spectrum.loadConfigVars();
         
-        tape = new Tape(settings.getTapeSettings());
+        tape = new Tape(clock, settings.getTapeSettings());
         spectrum.setTape(tape);
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);

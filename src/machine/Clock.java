@@ -8,13 +8,16 @@ package machine;
  *
  * @author jsanchez
  */
-public class TimeCounters {
+public class Clock {
     private MachineTypes spectrumModel;
     public int tstates;
     private long absTstates, frames;
+    ClockInterface target;
+    int timeout;
 
-    public TimeCounters() {
+    public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
+        target = null;
     }
 
     /**
@@ -42,6 +45,17 @@ public class TimeCounters {
     
     public void addTstates(int tstates) {
         this.tstates += tstates;
+
+        if (timeout <= 0)
+            return;
+        
+        timeout -= tstates;
+        if (timeout > 0) {
+            return;
+        }
+
+//        System.out.println("timeout fired for class " + target.getClass().getName());
+        target.clockTimeout();
     }
 
     /**
@@ -73,4 +87,22 @@ public class TimeCounters {
         tstates %= spectrumModel.tstatesFrame;
     }
     
+    public boolean setTimeout(ClockInterface dest, int tstates) {
+        if (dest == null || timeout > 0) {
+            System.err.println("Can't set a timeout!");
+            return false;
+        }
+
+        if (timeout > 0 && target != dest) {
+            System.out.println("A timeout was in use!");
+            return false;
+        }
+
+        target = dest;
+        timeout = tstates > 0 ? tstates : 1;
+
+//        System.out.println(String.format("timeout %d set for class %s", timeout, target.getClass().getName()));
+
+        return true;
+    }
 }

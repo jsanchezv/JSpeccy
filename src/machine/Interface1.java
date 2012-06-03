@@ -39,13 +39,13 @@ public class Interface1 {
     private byte numMicrodrives;
     private Microdrive microdrive[];
     private boolean commsClk;
-    private TimeCounters clock;
+    private Clock clock;
     private Interface1Type settings;
     private int lan;
     
     private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<Interface1DriveListener>();
     
-    public Interface1(TimeCounters clk, Interface1Type if1settings) {
+    public Interface1(Clock clk, Interface1Type if1settings) {
         clock = clk;
         settings = if1settings;
         mdrFlipFlop = 0;

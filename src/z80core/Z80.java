@@ -118,24 +118,29 @@
  *          estado de la CPU de una sola vez a través de la clase Z80State. Los modos
  *          de interrupción pasan a estar en una enumeración. Se proporcionan métodos de
  *          acceso a los registros alternativos de 8 bits.
+ * 
+ *          03/06/2012 Eliminada la adición del 25/09/2011. El núcleo de la Z80 no tiene
+ *          que preocuparse por timeouts ni zarandajas semejantes. Eso ahora es
+ *          responsabilidad de la clase Clock. Se mantiene la funcionalidad del execDone
+ *          por si fuera necesario en algún momento avisar tras cada ejecución de
+ *          instrucción (para un depurador, por ejemplo).
  *
  */
 package z80core;
 
 import java.util.Arrays;
-import machine.TimeCounters;
+import machine.Clock;
 import snapshots.Z80State;
 
 public class Z80 {
 
-    private final TimeCounters clock;
+    private final Clock clock;
     private final MemIoOps MemIoImpl;
     private final NotifyOps NotifyImpl;
     // Código de instrucción a ejecutar
     private int opCode;
     // Subsistema de notificaciones
     private boolean execDone;
-    private int timeout, counter;
     // Posiciones de los flags
     private static final int CARRY_MASK = 0x01;
     private static final int ADDSUB_MASK = 0x02;
@@ -274,11 +279,10 @@ public class Z80 {
     private boolean breakpointAt[] = new boolean[65536];
     
     // Constructor de la clase
-    public Z80(TimeCounters clock, MemIoOps memory, NotifyOps notify) {
+    public Z80(Clock clock, MemIoOps memory, NotifyOps notify) {
         this.clock = clock;
         MemIoImpl = memory;
         NotifyImpl = notify;
-        timeout = 0;
         execDone = false;
         Arrays.fill(breakpointAt, false);
         reset();
@@ -1628,7 +1632,7 @@ public class Z80 {
             regPC = (regPC + 1) & 0xffff;
         }
 
-        clock.tstates += 7;
+        clock.addTstates(7);
 
         regR++;
         ffIFF1 = ffIFF2 = false;
@@ -1653,7 +1657,7 @@ public class Z80 {
         //      1.- La lectura del opcode del M1 que se descarta
         //      2.- Si estaba en un HALT esperando una INT, lo saca de la espera
         MemIoImpl.fetchOpcode(regPC);
-        clock.tstates++;
+        clock.addTstates(1);
         if (halted) {
             halted = false;
             regPC = (regPC + 1) & 0xffff;
@@ -1662,21 +1666,6 @@ public class Z80 {
         ffIFF1 = false;
         push(regPC);  // 3+3 t-estados + contended si procede
         regPC = memptr = 0x0066;
-    }
-
-    public final void setExecDone(boolean notify) {
-        execDone = notify;
-        timeout = counter = 0;
-    }
-    
-    public final int getTimeout() {
-        return timeout;
-    }
-    
-    public final void setTimeout(int tstates) {
-//        System.out.println("Timeout: " + tstates);
-        timeout = tstates;
-        counter = 0;
     }
     
     public final boolean isBreakpoint(int address) {
@@ -1696,10 +1685,9 @@ public class Z80 {
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
      * simular la contended memory del Spectrum.
      */
-    public final int execute(int statesLimit) {
+    public final void execute(int statesLimit) {
 
         while (clock.tstates < statesLimit) {
-            int tmp = clock.tstates;
 
             // Primero se comprueba NMI
             if (activeNMI) {
@@ -1733,17 +1721,10 @@ public class Z80 {
             }
 
             if (execDone) {
-                counter += (clock.tstates - tmp);
-                
-                if (counter >= timeout) {
-                    NotifyImpl.execDone(counter);
-                    counter = 0;
-                }
+                NotifyImpl.execDone();
             }
 
         } /* del while */
-        
-        return clock.tstates;
     }
 
     private void decodeOpcode(int opCode) {
