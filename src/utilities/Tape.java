@@ -763,6 +763,7 @@ public class Tape implements machine.ClockInterface {
 //        cpu.setExecDone(true);
         fireTapeStateChanged(TapeState.PLAY);
         tapePlaying = true;
+        clock.setTimeoutListener(this);
         clockTimeout();
         return true;
     }
@@ -774,6 +775,7 @@ public class Tape implements machine.ClockInterface {
 
         statePlay = State.STOP;
 
+        clock.setTimeoutListener(null);
         fireTapeStateChanged(TapeState.STOP);
         fireTapeBlockChanged(idxHeader);
         tapePlaying = false;
@@ -829,21 +831,21 @@ public class Tape implements machine.ClockInterface {
                 leaderPulses = tapeBuffer[tapePos] >= 0 ? HEADER_PULSES : DATA_PULSES;
                 earBit = EAR_OFF;
                 statePlay = State.LEADER;
-                clock.setTimeout(this, LEADER_LENGHT);
+                clock.setTimeout(LEADER_LENGHT);
                 break;
             case LEADER:
                 earBit ^= EAR_MASK;
                 if (leaderPulses-- > 0) {
-                    clock.setTimeout(this, LEADER_LENGHT);
+                    clock.setTimeout(LEADER_LENGHT);
                     break;
                 }
                 statePlay = State.SYNC;
-                clock.setTimeout(this, SYNC1_LENGHT);
+                clock.setTimeout(SYNC1_LENGHT);
                 break;
             case SYNC:
                 earBit ^= EAR_MASK;
                 statePlay = State.NEWBYTE;
-                clock.setTimeout(this, SYNC2_LENGHT);
+                clock.setTimeout(SYNC2_LENGHT);
                 break;
             case NEWBYTE:
                 mask = 0x80; // se empieza por el bit 7
@@ -855,11 +857,11 @@ public class Tape implements machine.ClockInterface {
                     bitTime = ONE_LENGHT;
                 }
                 statePlay = State.HALF2;
-                clock.setTimeout(this, bitTime);
+                clock.setTimeout(bitTime);
                 break;
             case HALF2:
                 earBit ^= EAR_MASK;
-                clock.setTimeout(this, bitTime);
+                clock.setTimeout(bitTime);
                 mask >>>= 1;
                 if (mask == 0) {
                     tapePos++;
@@ -875,7 +877,7 @@ public class Tape implements machine.ClockInterface {
             case PAUSE:
                 earBit ^= EAR_MASK;
                 statePlay = State.PAUSE_STOP;
-                clock.setTimeout(this, END_BLOCK_PAUSE); // 1 seg. pausa
+                clock.setTimeout(END_BLOCK_PAUSE); // 1 seg. pausa
 //                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
 //                    tapeBuffer.length, tapePos));
                 break;
@@ -1043,15 +1045,15 @@ public class Tape implements machine.ClockInterface {
                 case LEADER_NOCHG:
                     if (leaderPulses-- > 0) {
                         statePlay = State.LEADER;
-                        clock.setTimeout(this, leaderLenght);
+                        clock.setTimeout(leaderLenght);
                         break;
                     }
-                    clock.setTimeout(this, sync1Lenght);
+                    clock.setTimeout(sync1Lenght);
                     statePlay = State.SYNC;
                     break;
                 case SYNC:
                     earBit ^= EAR_MASK;
-                    clock.setTimeout(this, sync2Lenght);
+                    clock.setTimeout(sync2Lenght);
                     if (blockLen > 0) {
                         statePlay = State.NEWBYTE;
                     } else {
@@ -1072,11 +1074,11 @@ public class Tape implements machine.ClockInterface {
                         bitTime = oneLenght;
                     }
                     statePlay = State.HALF2;
-                    clock.setTimeout(this, bitTime);
+                    clock.setTimeout(bitTime);
                     break;
                 case HALF2:
                     earBit ^= EAR_MASK;
-                    clock.setTimeout(this, bitTime);
+                    clock.setTimeout(bitTime);
                     mask >>>= 1;
                     if (blockLen == 1 && bitsLastByte < 8) {
                         if (mask == (0x80 >>> bitsLastByte)) {
@@ -1108,12 +1110,12 @@ public class Tape implements machine.ClockInterface {
                         break;
                     }
                     statePlay = State.PAUSE;
-                    clock.setTimeout(this, 3500); // 1 ms by TZX spec
+                    clock.setTimeout(3500); // 1 ms by TZX spec
                     break;
                 case PAUSE:
                     earBit = EAR_OFF;
                     statePlay = State.TZX_HEADER;
-                    clock.setTimeout(this, endBlockPause);
+                    clock.setTimeout(endBlockPause);
                     break;
                 case TZX_HEADER:
                     if (idxHeader >= nOffsetBlocks) {
@@ -1129,7 +1131,7 @@ public class Tape implements machine.ClockInterface {
                     earBit ^= EAR_MASK;
                 case PURE_TONE_NOCHG:
                     if (leaderPulses-- > 0) {
-                        clock.setTimeout(this, leaderLenght);
+                        clock.setTimeout(leaderLenght);
                         statePlay = State.PURE_TONE;
                         break;
                     }
@@ -1140,7 +1142,7 @@ public class Tape implements machine.ClockInterface {
                     earBit ^= EAR_MASK;
                 case PULSE_SEQUENCE_NOCHG:
                     if (leaderPulses-- > 0) {
-                        clock.setTimeout(this, readInt(tapeBuffer, tapePos, 2));
+                        clock.setTimeout(readInt(tapeBuffer, tapePos, 2));
                         tapePos += 2;
                         statePlay = State.PULSE_SEQUENCE;
                         break;
@@ -1172,21 +1174,21 @@ public class Tape implements machine.ClockInterface {
                             tapePos++;
                             if (--blockLen == 0) {
                                 statePlay = State.LAST_PULSE;
-                                clock.setTimeout(this, timeout);
+                                clock.setTimeout(timeout);
                                 break;
                             }
                         } else {
                             if (blockLen == 1 && bitsLastByte < 8) {
                                 if (mask == (0x80 >>> bitsLastByte)) {
                                     statePlay = State.LAST_PULSE;
-                                    clock.setTimeout(this, timeout);
+                                    clock.setTimeout(timeout);
                                     tapePos++;
                                     break;
                                 }
                             }
                         }
                     }
-                    clock.setTimeout(this, timeout);
+                    clock.setTimeout(timeout);
                     break;
                 case PAUSE_STOP:
                     if (endBlockPause == 0) {
@@ -1195,7 +1197,7 @@ public class Tape implements machine.ClockInterface {
                     } else {
                         earBit = EAR_OFF;
                         statePlay = State.TZX_HEADER;
-                        clock.setTimeout(this, endBlockPause);
+                        clock.setTimeout(endBlockPause);
                     }
                     break;
                 case CSW_RLE:
@@ -1215,7 +1217,7 @@ public class Tape implements machine.ClockInterface {
                     }
 
                     timeout *= cswStatesSample;
-                    clock.setTimeout(this, timeout);
+                    clock.setTimeout(timeout);
                     break;
                 case CSW_ZRLE:
                     earBit ^= EAR_MASK;
@@ -1253,7 +1255,7 @@ public class Tape implements machine.ClockInterface {
                         }
 
                         timeout *= cswStatesSample;
-                        clock.setTimeout(this, timeout);
+                        clock.setTimeout(timeout);
 
                     } catch (IOException ex) {
                         Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
@@ -1518,7 +1520,7 @@ public class Tape implements machine.ClockInterface {
                                 tapeBuffer.length - tapePos);
                         iis = new InflaterInputStream(bais);
                         statePlay = State.CSW_ZRLE;
-                        clock.setTimeout(this, 1);
+                        clock.setTimeout(1);
                         return true;
                     } else { // RLE as CSW v1.01
                         statePlay = State.CSW_RLE;
@@ -1539,7 +1541,7 @@ public class Tape implements machine.ClockInterface {
                 }
 
                 timeout *= cswStatesSample;
-                clock.setTimeout(this, timeout);
+                clock.setTimeout(timeout);
                 break;
             case CSW_ZRLE:
                 earBit ^= EAR_MASK;
@@ -1575,7 +1577,7 @@ public class Tape implements machine.ClockInterface {
                     }
 
                     timeout *= cswStatesSample;
-                    clock.setTimeout(this, timeout);
+                    clock.setTimeout(timeout);
 
                 } catch (IOException ex) {
                     Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);

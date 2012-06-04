@@ -12,12 +12,20 @@ public class Clock {
     private MachineTypes spectrumModel;
     public int tstates;
     private long absTstates, frames;
-    ClockInterface target;
+    ClockInterface listener;
+    ClockScreen updateScr;
     int timeout;
+    int tstatesTable[];
+    int step;
+    // Constante que indica que no hay un evento próximo
+    // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
+    private final int NO_EVENT = 0x1234567;
+    // t-states del próximo evento
+    int nextEvent = NO_EVENT;
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
-        target = null;
+        listener = null;
     }
 
     /**
@@ -40,22 +48,33 @@ public class Clock {
      */
     public void setTstates(int tstates) {
         this.tstates = tstates;
-        absTstates = frames = 0;
+        absTstates = frames = step = 0;
+        nextEvent = tstatesTable[0];
     }
     
-    public void addTstates(int tstates) {
-        this.tstates += tstates;
+    public void addTstates(int tsadd){
+        tstates += tsadd;
+
+        if (tstates >= nextEvent) {
+//            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
+            updateScr.updateScreen(tstates);
+            step++;
+            while(step < tstatesTable.length && tstates > tstatesTable[step])
+                step++;
+            nextEvent = step < tstatesTable.length ? tstatesTable[step] : NO_EVENT;
+        }
 
         if (timeout <= 0)
             return;
         
-        timeout -= tstates;
+        timeout -= tsadd;
         if (timeout > 0) {
             return;
         }
 
 //        System.out.println("timeout fired for class " + target.getClass().getName());
-        target.clockTimeout();
+        if (listener != null)
+            listener.clockTimeout();
     }
 
     /**
@@ -77,7 +96,7 @@ public class Clock {
     }
     
     public void reset() {
-        tstates = 0;
+        tstates = step = 0;
         absTstates = frames = 0;
     }
     
@@ -85,24 +104,33 @@ public class Clock {
         absTstates += spectrumModel.tstatesFrame;
         frames++;
         tstates %= spectrumModel.tstatesFrame;
+        step = 0;
+        nextEvent = tstatesTable[0];
     }
-    
-    public boolean setTimeout(ClockInterface dest, int tstates) {
-        if (dest == null || timeout > 0) {
+
+    public void setTimeoutListener(ClockInterface dest) {
+        if (dest != null && listener != null) {
+            System.err.println("Can't set a listener for timeouts!");
+            return;
+        }
+
+        listener = dest;
+        timeout = 0;
+    }
+
+    public void setTimeout(int tstates) {
+        if (listener == null || timeout > 0) {
             System.err.println("Can't set a timeout!");
-            return false;
+            return;
         }
 
-        if (timeout > 0 && target != dest) {
-            System.out.println("A timeout was in use!");
-            return false;
-        }
-
-        target = dest;
         timeout = tstates > 0 ? tstates : 1;
 
 //        System.out.println(String.format("timeout %d set for class %s", timeout, target.getClass().getName()));
-
-        return true;
+    }
+    
+    public void setUpdateScreen(ClockScreen scr, int[] tst) {
+        updateScr = scr;
+        tstatesTable = tst;
     }
 }
