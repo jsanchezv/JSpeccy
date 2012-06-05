@@ -60,8 +60,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
     /* Config vars */
-    private boolean ULAPlusEnabled, issue2, multiface, mf128on48k,
-            saveTrap, loadTrap, flashload, loadingNoise, connectedLec, emulate128kBug;
+    private boolean ULAPlusEnabled, issue2, saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private Interface1 if1;
 
@@ -97,7 +96,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         state.setSpectrumModel(spectrumModel);
         state.setZ80State(z80.getZ80State());
         state.setMemoryState(memory.getMemoryState());
-        state.setConnectedLec(connectedLec);
+        state.setConnectedLec(specSettings.isLecEnabled());
         
         state.setEarBit(earBit);
         state.setPortFE(portFE);
@@ -121,7 +120,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (connectedIF1)
             state.setNumMicrodrives(settings.getInterface1Settings().getMicrodriveUnits());
 
-        state.setMultiface(multiface);
+        state.setMultiface(specSettings.isMultifaceEnabled());
 
         state.setULAPlusEnabled(ULAPlusEnabled);
         if (ULAPlusEnabled) {
@@ -144,7 +143,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         selectHardwareModel(state.getSpectrumModel());
         z80.setZ80State(state.getZ80State());
         memory.setMemoryState(state.getMemoryState());
-        settings.getSpectrumSettings().setLecEnabled(state.isConnectedLec());
+        specSettings.setLecEnabled(state.isConnectedLec());
 
         earBit = state.getEarBit();
         portFE = state.getPortFE();
@@ -198,9 +197,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             settings.getInterface1Settings().setMicrodriveUnits(state.getNumMicrodrives());
         }
         
-        settings.getSpectrumSettings().setMultifaceEnabled(state.isMultiface());
+        specSettings.setMultifaceEnabled(state.isMultiface());
         
-        settings.getSpectrumSettings().setULAplus(state.isULAPlusEnabled());
+        specSettings.setULAplus(state.isULAPlusEnabled());
         if (state.isULAPlusEnabled()) {
             ULAPlusActive = state.isULAPlusActive();
             paletteGroup = state.getPaletteGroup();
@@ -286,23 +285,21 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     }
 
     public final void loadConfigVars() {
-        ULAPlusEnabled = settings.getSpectrumSettings().isULAplus();
+        ULAPlusEnabled = specSettings.isULAplus();
         
         issue2 = settings.getKeyboardJoystickSettings().isIssue2();
         // AND con 0x18 para emular un Issue 2
         // AND con 0x10 para emular un Issue 3
         if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
             issueMask = issue2 ? 0x18 : 0x10;
-            enabledAY = settings.getSpectrumSettings().isAYEnabled48K();
+            enabledAY = specSettings.isAYEnabled48K();
         } else {
             issueMask = 0x10; // los modelos que no son el 48k son todos Issue3
         }
         
         keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
-        
-        multiface = settings.getSpectrumSettings().isMultifaceEnabled();
-        mf128on48k = settings.getSpectrumSettings().isMf128On48K();
-        z80.setBreakpoint(0x0066, multiface);
+
+        z80.setBreakpoint(0x0066, specSettings.isMultifaceEnabled());
         
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         z80.setBreakpoint(0x04D0, saveTrap);
@@ -322,17 +319,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         z80.setBreakpoint(0x0700, connectedIF1);
         z80.setBreakpoint(0x1708, connectedIF1);
         
-        connectedLec = settings.getSpectrumSettings().isLecEnabled();
-        if (connectedLec && spectrumModel == MachineTypes.SPECTRUM48K) {
+        if (specSettings.isLecEnabled() && spectrumModel == MachineTypes.SPECTRUM48K) {
             if (memory.isLecPaged()) {
                 pageLec(memory.getPageLec());
             } else {
                 unpageLec();
             }
-        }
-        
-        emulate128kBug = settings.getSpectrumSettings().isEmulate128KBug();
-        loadingNoise = settings.getSpectrumSettings().isLoadingNoise();
+        }        
     }
 
     public synchronized void startEmulation() {
@@ -346,6 +339,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         lastChgBorder = firstBorderUpdate;
         drawFrame();
         jscr.repaint();
+        clock.setUpdateScreen(this, stepStates);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
     }
@@ -355,6 +349,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             return;
         
         taskFrame.cancel();
+        clock.setUpdateScreen(null, stepStates);
         paused = true;
         disableSound();
     }
@@ -525,7 +520,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
          * 
          * JSpeccy emulates a +2 with a corrected HAL10H8 chip.
          */
-        if (emulate128kBug && spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
+        if (specSettings.isEmulate128KBug() && spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
             int regI = z80.getRegI();
             if ((regI >= 0x40 && regI <= 0x7f)
                     || (spectrumModel == MachineTypes.SPECTRUM128K && regI > 0xbf && contendedRamPage[3])) {
@@ -571,8 +566,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
                     firstLine = repaintTable[firstLine & 0x1fff];
                     lastLine = repaintTable[lastLine & 0x1fff];
-                    screenRect.x = ((BORDER_WIDTH + leftCol * 8) * zoom) - zoom;
-                    screenRect.y = ((TOP_BORDER_HEIGHT + firstLine) * zoom) - zoom;
+                    screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
+                    screenRect.y = ((TOP_BORDER + firstLine) * zoom) - zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
                     screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
@@ -593,8 +588,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             lastLine = repaintTable[lastLine & 0x1fff];
 
             int zoom = jscr.getZoom();
-            screenRect.x = ((BORDER_WIDTH + leftCol * 8) * zoom) - zoom;
-            screenRect.y = ((TOP_BORDER_HEIGHT + firstLine) * zoom) - zoom;
+            screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
+            screenRect.y = ((TOP_BORDER + firstLine) * zoom) - zoom;
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
             screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
@@ -613,10 +608,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         rightCol = 0;
         lastChgBorder = firstBorderUpdate;
 
-        int firstState = stepStates[0];
-        stepStates[0] = NO_EVENT;
-        speedometer = System.currentTimeMillis();
         int frames = 500;
+        speedometer = System.currentTimeMillis();
         do {
             z80.setINTLine(true);
             z80.execute(spectrumModel.lengthINT);
@@ -628,12 +621,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
             if (frames-- == 0) {
                 frames = 500;
-                if (BORDER_WIDTH > 0)
+                if (LEFT_BORDER > 0)
                     updateBorder(lastBorderUpdate);
                 step = 0;
-                stepStates[0] = firstState;
                 updateScreen(spectrumModel.lastScrUpdate);
-                stepStates[0] = NO_EVENT;
 
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 jscr.repaint();
@@ -663,7 +654,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             }
         } while (tape.isTapePlaying());
         
-        stepStates[0] = firstState;
         firstLine = lastLine = rightCol = lastBorderPix = step = 0;
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
@@ -680,9 +670,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int fetchOpcode(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
-        }
-        clock.addTstates(4);
+            clock.addTstates(delayTstates[clock.tstates] + 4);
+        } else
+            clock.addTstates(4);
 
         return memory.readByte(address) & 0xff;
     }
@@ -691,9 +681,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int peek8(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
-        }
-        clock.addTstates(3);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
+        } else
+            clock.addTstates(3);
 
         return memory.readByte(address) & 0xff;
     }
@@ -702,12 +692,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public void poke8(int address, int value) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
             if (memory.isScreenByteModified(address, (byte) value)) {
                 notifyScreenWrite(address);
             }
-        }
-        clock.addTstates(3);
+        } else
+            clock.addTstates(3);
 
         memory.writeByte(address, (byte) value);
     }
@@ -716,17 +706,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int peek16(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
-        }
-        clock.addTstates(3);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
+        } else
+            clock.addTstates(3);
 
         int lsb = memory.readByte(address) & 0xff;
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
-        }
-        clock.addTstates(3);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
+        } else 
+            clock.addTstates(3);
 
         return ((memory.readByte(address) << 8) & 0xff00 | lsb);
     }
@@ -738,24 +728,24 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         byte msb = (byte) (word >>> 8);
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
             if (memory.isScreenByteModified(address, lsb)) {
                 notifyScreenWrite(address);
             }
-        }
-        clock.addTstates(3);
+        } else
+            clock.addTstates(3);
 
         memory.writeByte(address, lsb);
 
         address = (address + 1) & 0xffff;
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates]);
+            clock.addTstates(delayTstates[clock.tstates] + 3);
             if (memory.isScreenByteModified(address, msb)) {
                 notifyScreenWrite(address);
             }
-        }
-        clock.addTstates(3);
+        } else
+            clock.addTstates(3);
 
         memory.writeByte(address, msb);
     }
@@ -811,10 +801,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         }
         
         // Multiface emulation
-        if (multiface) {
+        if (specSettings.isMultifaceEnabled()) {
             switch (spectrumModel.codeModel) {
                 case SPECTRUM48K:
-                    if (mf128on48k) {
+                    if (specSettings.isMf128On48K()) {
                         // MF128 en el Spectrum 48k
                         if ((port & 0xff) == 0xbf && !memory.isMultifaceLocked()) {
                             memory.pageMultiface();
@@ -902,7 +892,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         // ULA Port
         if ((port & 0x0001) == 0) {
             earBit = tape.getEarBit();
-            if (enabledSound && loadingNoise && tape.isTapePlaying()) {
+            if (tape.isTapePlaying() && specSettings.isLoadingNoise() && enabledSound) {
                 int spkMic = (earBit == 0xbf) ? 0 : 4000;
 
                 if (spkMic != speaker) {
@@ -1008,7 +998,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
         try {
             // LEC have preference over any other device
-            if (connectedLec && (port & 0x0002) == 0 && spectrumModel == MachineTypes.SPECTRUM48K) {
+            if (specSettings.isLecEnabled() && (port & 0x0002) == 0 && spectrumModel == MachineTypes.SPECTRUM48K) {
 //                System.out.println(String.format("Port: %04X, value: %02x", port, value));
                 if ((value & 0x80) != 0) {
                     pageLec(value);
@@ -1046,7 +1036,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             }
         
             // Multiface 128/+3 ports
-            if (multiface) {
+            if (specSettings.isMultifaceEnabled()) {
                 if (memory.isMultifacePaged() && z80.getRegPC() < 0x4000) {
 //            System.out.println(String.format("OutPort: %04X [%02X]", port, value));
                     if ((port & 0x00ff) == 0x3f) {
@@ -1059,7 +1049,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             }
 
             if ((port & 0x0001) == 0) {
-                if ((portFE & 0x07) != (value & 0x07) && BORDER_WIDTH > 0) {
+                if ((portFE & 0x07) != (value & 0x07) && LEFT_BORDER > 0) {
                     updateBorder(clock.tstates);
                     borderUpdated = true;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
@@ -1208,7 +1198,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                         // Solo es necesario redibujar el borde si se modificó uno
                         // de los colores de paper de la paleta 0. (8-15)
                         // Pero hay que hacerlo *antes* de modificar la paleta.
-                        if (paletteGroup > 7 && paletteGroup < 16 && BORDER_WIDTH > 0) {
+                        if (paletteGroup > 7 && paletteGroup < 16 && LEFT_BORDER > 0) {
                             borderUpdated = true;
                             updateBorder(clock.tstates);
                         }
@@ -1303,7 +1293,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 }
                 break;
             case 0x0066: // NMI address for Multiface One/128/+3
-                if (multiface && !memory.isPlus3RamMode()) {
+                if (specSettings.isMultifaceEnabled() && !memory.isPlus3RamMode()) {
                     memory.setMultifaceLocked(false);
                     memory.pageMultiface();
                     return memory.readByte(address) & 0xff;
@@ -1548,11 +1538,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     int step = 0;
     
     // Estos miembros solo cambian cuando cambia el tamaño del borde
-    private int BORDER_WIDTH = 32;
-    private int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private int TOP_BORDER_HEIGHT = 24;
-    private int BOTTOM_BORDER_HEIGHT = 24;
-    private int SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
+    private int LEFT_BORDER = 24;
+    private int RIGHT_BORDER = 40;
+    private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
+    private int TOP_BORDER = 24;
+    private int BOTTOM_BORDER = 24;
+    private int SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
 
     static {
         // Inicialización de las tablas de Paper/Ink
@@ -1589,10 +1580,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
      *               no significa que haya que redibujarlo necesariamente.
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
-    // Constante que indica que no hay un evento próximo
-    // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
-    private final int NO_EVENT = 0x1234567;
-
     // Primera y última línea a ser actualizada
     private int firstLine, lastLine;
     private int leftCol, rightCol;
@@ -1622,7 +1609,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         lastChgBorder = 0;
         Arrays.fill(dirtyByte, true);
         screenDirty = false;
-        borderChanged = BORDER_WIDTH > 0;
+        borderChanged = LEFT_BORDER > 0;
 
         // Paletas para el soporte de ULAplus
         ULAPlusPalette = new int[4][16];
@@ -1654,8 +1641,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             scan = (address & 0x700) >>> 8;
 
             repaintTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER_HEIGHT) * SCREEN_WIDTH
-                + col * 8 + BORDER_WIDTH;
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER) * SCREEN_WIDTH
+                + col * 8 + LEFT_BORDER;
             scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
         }
 
@@ -1676,26 +1663,29 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
         switch(mode) {
            case 0: // no border
-                BORDER_WIDTH = TOP_BORDER_HEIGHT = BOTTOM_BORDER_HEIGHT = 0;
+                LEFT_BORDER = RIGHT_BORDER = TOP_BORDER = BOTTOM_BORDER = 0;
                 break;
             case 2: // Full standard border
-                BORDER_WIDTH = 48;
-                TOP_BORDER_HEIGHT = 48;
-                BOTTOM_BORDER_HEIGHT = 56;
+                LEFT_BORDER = 40;
+                RIGHT_BORDER = 48;
+                TOP_BORDER = 48;
+                BOTTOM_BORDER = 56;
                 break;
             case 3: // Huge border
-                BORDER_WIDTH = 64;
-                TOP_BORDER_HEIGHT = 56;
-                BOTTOM_BORDER_HEIGHT = 56;
+                LEFT_BORDER = 56;
+                RIGHT_BORDER = 72;
+                TOP_BORDER = 56;
+                BOTTOM_BORDER = 56;
                 break;
             default: // Standard border
-                BORDER_WIDTH = 32;
-                TOP_BORDER_HEIGHT = 24;
-                BOTTOM_BORDER_HEIGHT = 24;
+                LEFT_BORDER = 24;
+                RIGHT_BORDER = 40;
+                TOP_BORDER = 24;
+                BOTTOM_BORDER = 24;
         }
         
-        SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-        SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
+        SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
+        SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
         
         tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
             BufferedImage.TYPE_INT_RGB);
@@ -1714,8 +1704,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             int col = address & 0x1f;
             int scan = (address & 0x700) >>> 8;
 
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER_HEIGHT) * SCREEN_WIDTH
-                + col * 8 + BORDER_WIDTH;
+            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER) * SCREEN_WIDTH
+                + col * 8 + LEFT_BORDER;
         }
 
         switch(spectrumModel.codeModel) {
@@ -1759,23 +1749,23 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (64 - TOP_BORDER_HEIGHT - 1) || row > (256 + BOTTOM_BORDER_HEIGHT - 1)) {
+        if (row < (64 - TOP_BORDER - 1) || row > (256 + BOTTOM_BORDER - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (64 - TOP_BORDER_HEIGHT - 1) && col < 200 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (64 - TOP_BORDER - 1) && col < 200 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (256 + BOTTOM_BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (256 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
         // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
-        if (col > (127 + BORDER_WIDTH / 2) && col < 200 + (24 - BORDER_WIDTH / 2)) {
+        if (col > (127 + RIGHT_BORDER / 2) && col < 200 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1787,12 +1777,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
-            col -= 200 + (24 - BORDER_WIDTH / 2);
+            col -= 200 + (24 - LEFT_BORDER / 2);
         } else {
-            col += BORDER_WIDTH / 2;
+            col += RIGHT_BORDER / 2 - (RIGHT_BORDER - LEFT_BORDER) / 2;
         }
 
-        row -= (64 - TOP_BORDER_HEIGHT);
+        row -= (64 - TOP_BORDER);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1804,23 +1794,23 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (63 - TOP_BORDER_HEIGHT - 1) || row > (255 + BOTTOM_BORDER_HEIGHT - 1)) {
+        if (row < (63 - TOP_BORDER - 1) || row > (255 + BOTTOM_BORDER - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (63 - TOP_BORDER_HEIGHT - 1) && col < 204 + (24 - BORDER_WIDTH / 2)) {
+        if (row == (63 - TOP_BORDER - 1) && col < 204 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (255 + BOTTOM_BORDER_HEIGHT - 1) && col > (127 + BORDER_WIDTH / 2)) {
+        if (row == (255 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
         // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
-        if (col > (127 + BORDER_WIDTH / 2) && col < 204 + (24 - BORDER_WIDTH / 2)) {
+        if (col > (127 + RIGHT_BORDER / 2) && col < 204 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -1832,11 +1822,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
-            col -= 204 + (24 - BORDER_WIDTH / 2);
+            col -= 204 + (24 - LEFT_BORDER / 2);
         } else {
-            col += BORDER_WIDTH / 2;
+            col += RIGHT_BORDER / 2 - (RIGHT_BORDER - LEFT_BORDER) / 2;
         }
-        row -= (63 - TOP_BORDER_HEIGHT);
+
+        row -= (63 - TOP_BORDER);
 
         return row * SCREEN_WIDTH + col * 2;
     }
@@ -1967,15 +1958,15 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     }
 
     public void invalidateScreen(boolean invalidateBorder) {
-        borderChanged = BORDER_WIDTH > 0 && invalidateBorder;
+        borderChanged = LEFT_BORDER > 0 && invalidateBorder;
         Arrays.fill(dirtyByte, true);
     }
 
     private void buildScreenTables48k() {
         int col, scan;
 
-        firstBorderUpdate = ((64 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (256 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((64 - TOP_BORDER) * spectrumModel.tstatesLine) - LEFT_BORDER / 2;
+        lastBorderUpdate = (255 + BOTTOM_BORDER) * spectrumModel.tstatesLine + 128 + RIGHT_BORDER;
 
         Arrays.fill(states2scr, 0);
 
@@ -2018,14 +2009,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 delayTstates[frame++] = 0;
             }
         }
-        clock.setUpdateScreen(this, stepStates);
     }
 
     private void buildScreenTables128k() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (255 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((63 - TOP_BORDER) * spectrumModel.tstatesLine) - RIGHT_BORDER / 2;
+        lastBorderUpdate = (254 + BOTTOM_BORDER) * spectrumModel.tstatesLine + 128 + RIGHT_BORDER;
 
         Arrays.fill(states2scr, 0);
 
@@ -2069,14 +2059,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 delayTstates[frame++] = 0;
             }
         }
-        clock.setUpdateScreen(this, stepStates);
     }
 
     private void buildScreenTablesPlus3() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - TOP_BORDER_HEIGHT) * spectrumModel.tstatesLine) - BORDER_WIDTH / 2;
-        lastBorderUpdate = (255 + BOTTOM_BORDER_HEIGHT) * spectrumModel.tstatesLine;
+        firstBorderUpdate = ((63 - TOP_BORDER) * spectrumModel.tstatesLine) - RIGHT_BORDER / 2;
+        lastBorderUpdate = (254 + BOTTOM_BORDER) * spectrumModel.tstatesLine  + 128 + RIGHT_BORDER;
 
         Arrays.fill(states2scr, 0);
 
@@ -2123,7 +2112,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 delayTstates[frame++] = 2;
             }
         }
-        clock.setUpdateScreen(this, stepStates);
     }
 
     private void precompULAplusColor(int register, int color) {
@@ -2206,7 +2194,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     private void unpageLec() {
         memory.unpageLec();
         contendedRamPage[1] = contendedIOPage[1] = true;
-        z80.setBreakpoint(0x0066, multiface);
+        z80.setBreakpoint(0x0066, specSettings.isMultifaceEnabled());
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();
         z80.setBreakpoint(0x04D0, saveTrap);
         loadTrap = settings.getTapeSettings().isEnableLoadTraps();

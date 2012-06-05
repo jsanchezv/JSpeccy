@@ -24,9 +24,6 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private BufferedImage tvPalImage;
     private Graphics2D tvImageFilteredGc;
     private Graphics2D tvPalImageGc;
-//    private AffineTransform escala;
-//    private AffineTransformOp escalaOp;
-//    private RenderingHints renderHints;
     private int zoom, screenWidth, screenHeight;
     private Object interpolationMethod;
     private boolean anyFilter = false;
@@ -46,11 +43,12 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int yuV = 2;
     
     // Estos miembros solo cambian cuando cambia el tamaño del borde
-    private int BORDER_WIDTH = 32;
-    private int SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-    private int TOP_BORDER_HEIGHT = 24;
-    private int BOTTOM_BORDER_HEIGHT = 24;
-    private int SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
+    private int LEFT_BORDER = 24;
+    private int RIGHT_BORDER = 40;
+    private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
+    private int TOP_BORDER = 24;
+    private int BOTTOM_BORDER = 24;
+    private int SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
     
     private int borderMode;
 
@@ -142,26 +140,29 @@ public class JSpeccyScreen extends javax.swing.JComponent {
 
         switch(mode) {
             case 0: // no border
-                BORDER_WIDTH = TOP_BORDER_HEIGHT = BOTTOM_BORDER_HEIGHT = 0;
+                LEFT_BORDER = RIGHT_BORDER = TOP_BORDER = BOTTOM_BORDER = 0;
                 break;
             case 2: // Full standard border
-                BORDER_WIDTH = 48;
-                TOP_BORDER_HEIGHT = 48;
-                BOTTOM_BORDER_HEIGHT = 56;
+                LEFT_BORDER = 40;
+                RIGHT_BORDER = 48;
+                TOP_BORDER = 48;
+                BOTTOM_BORDER = 56;
                 break;
             case 3: // Huge border
-                BORDER_WIDTH = 64;
-                TOP_BORDER_HEIGHT = 56;
-                BOTTOM_BORDER_HEIGHT = 56;
+                LEFT_BORDER = 56;
+                RIGHT_BORDER = 72;
+                TOP_BORDER = 56;
+                BOTTOM_BORDER = 56;
                 break;
             default: // Standard border
-                BORDER_WIDTH = 32;
-                TOP_BORDER_HEIGHT = 24;
-                BOTTOM_BORDER_HEIGHT = 24;
+                LEFT_BORDER = 24;
+                RIGHT_BORDER = 40;
+                TOP_BORDER = 24;
+                BOTTOM_BORDER = 24;
         }
         
-        SCREEN_WIDTH = BORDER_WIDTH + 256 + BORDER_WIDTH;
-        SCREEN_HEIGHT = TOP_BORDER_HEIGHT + 192 + BOTTOM_BORDER_HEIGHT;
+        SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
+        SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
         
         tvPalImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         if (tvPalImageGc != null)
@@ -530,8 +531,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
         
         int idx1, idx2, idx3;
         
-        int start = TOP_BORDER_HEIGHT * SCREEN_WIDTH + BORDER_WIDTH;
-        int limit = (TOP_BORDER_HEIGHT + 192) * SCREEN_WIDTH - BORDER_WIDTH - 1;
+        int start = TOP_BORDER * SCREEN_WIDTH + LEFT_BORDER;
+        int limit = (TOP_BORDER + 192) * SCREEN_WIDTH - RIGHT_BORDER - 1;
         int pixel = 0;
         
         while (pixel < limit) {

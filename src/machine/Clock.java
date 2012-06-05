@@ -12,8 +12,8 @@ public class Clock {
     private MachineTypes spectrumModel;
     public int tstates;
     private long absTstates, frames;
-    ClockInterface listener;
-    ClockScreen updateScr;
+    ClockInterface clockListener;
+    ClockScreen screenListener;
     int timeout;
     int tstatesTable[];
     int step;
@@ -25,7 +25,7 @@ public class Clock {
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
-        listener = null;
+        clockListener = null;
     }
 
     /**
@@ -55,9 +55,9 @@ public class Clock {
     public void addTstates(int tsadd){
         tstates += tsadd;
 
-        if (tstates >= nextEvent) {
+        if (screenListener != null && tstates >= nextEvent) {
 //            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
-            updateScr.updateScreen(tstates);
+            screenListener.updateScreen(tstates);
             step++;
             while(step < tstatesTable.length && tstates > tstatesTable[step])
                 step++;
@@ -73,8 +73,8 @@ public class Clock {
         }
 
 //        System.out.println("timeout fired for class " + target.getClass().getName());
-        if (listener != null)
-            listener.clockTimeout();
+        if (clockListener != null)
+            clockListener.clockTimeout();
     }
 
     /**
@@ -109,17 +109,17 @@ public class Clock {
     }
 
     public void setTimeoutListener(ClockInterface dest) {
-        if (dest != null && listener != null) {
+        if (dest != null && clockListener != null) {
             System.err.println("Can't set a listener for timeouts!");
             return;
         }
 
-        listener = dest;
+        clockListener = dest;
         timeout = 0;
     }
 
     public void setTimeout(int tstates) {
-        if (listener == null || timeout > 0) {
+        if (clockListener == null || timeout > 0) {
             System.err.println("Can't set a timeout!");
             return;
         }
@@ -130,7 +130,7 @@ public class Clock {
     }
     
     public void setUpdateScreen(ClockScreen scr, int[] tst) {
-        updateScr = scr;
+        screenListener = scr;
         tstatesTable = tst;
-    }
+    }   
 }
