@@ -17,11 +17,6 @@ public class Clock {
     private int timeout;
     private int screenTable[];
     private int step;
-    // Constante que indica que no hay un evento próximo
-    // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
-    private final int NO_EVENT = 0x1234567;
-    // t-states del próximo evento
-    private int nextEvent = NO_EVENT;
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -51,19 +46,16 @@ public class Clock {
         absTstates = frames = step = 0;
         while(step < screenTable.length && states > screenTable[step])
                 step++;
-        nextEvent = step < screenTable.length ? screenTable[step] : NO_EVENT;
     }
     
     public void addTstates(int states){
         tstates += states;
 
-        if (screenListener != null && tstates >= nextEvent) {
+        if (screenListener != null && step < screenTable.length) {
 //            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
-            screenListener.updateScreen(tstates);
-            step++;
-            while(step < screenTable.length && tstates > screenTable[step])
-                step++;
-            nextEvent = step < screenTable.length ? screenTable[step] : NO_EVENT;
+           do {
+                screenListener.updateScreen(screenTable[step++]);
+            } while(step < screenTable.length && tstates > screenTable[step]);
         }
 
         if (clockListener == null) {
@@ -108,7 +100,6 @@ public class Clock {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
         step = 0;
-        nextEvent = screenTable[0];
     }
 
     public void setTimeoutListener(ClockInterface dest) {

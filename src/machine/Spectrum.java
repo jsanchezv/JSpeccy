@@ -624,7 +624,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 if (LEFT_BORDER > 0)
                     updateBorder(lastBorderUpdate);
                 step = 0;
-                updateScreen(spectrumModel.lastScrUpdate);
+                do {
+                    updateScreen(stepStates[step++]);
+                } while (step < stepStates.length);
 
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 jscr.repaint();
@@ -659,7 +661,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         leftCol = 31;
         lastChgBorder = firstBorderUpdate;
 
-        updateScreen(spectrumModel.lastScrUpdate);
+        do {
+            updateScreen(stepStates[step++]);
+        } while (step < stepStates.length);
+
+        step = 0;
 
         borderUpdated = true;
 
@@ -1878,63 +1884,61 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     }
 
     @Override
-    public void updateScreen(int toTstates) {
+    public void updateScreen(int tstates) {
         int fromAddr, addrBuf;
         int paper, ink;
         byte scrByte;
         int attr;
 //        System.out.println(String.format("from: %d\tto: %d", lastScreenState, toTstates));
 
-        while (step < stepStates.length && stepStates[step] <= toTstates) {
-            fromAddr = states2scr[stepStates[step++]];
+        fromAddr = states2scr[tstates];
 
-            if (!dirtyByte[fromAddr & 0x1fff]) {
-                continue;
-            }
-
-            if (firstLine == 0) {
-                firstLine = lastLine = fromAddr;
-            } else {
-                lastLine = fromAddr;
-            }
-
-            int column = fromAddr & 0x1f;
-
-            if (column < leftCol) {
-                leftCol = column;
-            }
-            if (column > rightCol) {
-                rightCol = column;
-            }
-
-            scrByte = memory.readScreenByte(fromAddr);
-            fromAddr &= 0x1fff;
-            attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
-
-            addrBuf = bufAddr[fromAddr];
-
-            if (ULAPlusActive) {
-                ink = ULAPlusPrecompPalette[attr >>> 6][attr & 0x07];
-                paper = ULAPlusPrecompPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
-            } else {
-                if (attr > 0x7f) {
-                    attr &= flash;
-                }
-                ink = Ink[attr];
-                paper = Paper[attr];
-            }
-
-            for (int mask = 0x80; mask != 0; mask >>= 1) {
-                if ((scrByte & mask) != 0) {
-                    dataInProgress[addrBuf++] = ink;
-                } else {
-                    dataInProgress[addrBuf++] = paper;
-                }
-            }
-            
-            dirtyByte[fromAddr] = false;
-            screenDirty = true;
+        if (!dirtyByte[fromAddr & 0x1fff]) {
+            return;
         }
+
+        if (firstLine == 0) {
+            firstLine = lastLine = fromAddr;
+        } else {
+            lastLine = fromAddr;
+        }
+
+        int column = fromAddr & 0x1f;
+
+        if (column < leftCol) {
+            leftCol = column;
+        }
+        if (column > rightCol) {
+            rightCol = column;
+        }
+
+        scrByte = memory.readScreenByte(fromAddr);
+        fromAddr &= 0x1fff;
+        attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
+
+        addrBuf = bufAddr[fromAddr];
+
+        if (ULAPlusActive) {
+            ink = ULAPlusPrecompPalette[attr >>> 6][attr & 0x07];
+            paper = ULAPlusPrecompPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
+        } else {
+            if (attr > 0x7f) {
+                attr &= flash;
+            }
+            ink = Ink[attr];
+            paper = Paper[attr];
+        }
+
+        for (int mask = 0x80; mask != 0; mask >>= 1) {
+            if ((scrByte & mask) != 0) {
+                dataInProgress[addrBuf++] = ink;
+            } else {
+                dataInProgress[addrBuf++] = paper;
+            }
+        }
+
+        dirtyByte[fromAddr] = false;
+        screenDirty = true;
     }
 
     private void notifyScreenWrite(int address) {
