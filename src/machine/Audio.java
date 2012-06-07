@@ -9,14 +9,10 @@
  */
 package machine;
 
+import configuration.AY8912Type;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
-import configuration.AY8912Type;
+import javax.sound.sampled.*;
 
 class Audio {
     private int samplingFrequency;

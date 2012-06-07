@@ -10,18 +10,18 @@ package machine;
  */
 public class Clock {
     private MachineTypes spectrumModel;
-    public int tstates;
+    private int tstates;
     private long absTstates, frames;
-    ClockInterface clockListener;
-    ClockScreen screenListener;
-    int timeout;
-    int tstatesTable[];
-    int step;
+    private ClockInterface clockListener;
+    private ClockScreen screenListener;
+    private int timeout;
+    private int screenTable[];
+    private int step;
     // Constante que indica que no hay un evento próximo
     // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
     private final int NO_EVENT = 0x1234567;
     // t-states del próximo evento
-    int nextEvent = NO_EVENT;
+    private int nextEvent = NO_EVENT;
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -44,37 +44,40 @@ public class Clock {
     }
 
     /**
-     * @param tstates the tstates to set
+     * @param states the tstates to set
      */
-    public void setTstates(int tstates) {
-        this.tstates = tstates;
+    public void setTstates(int states) {
+        tstates = states;
         absTstates = frames = step = 0;
-        nextEvent = tstatesTable[0];
+        while(step < screenTable.length && states > screenTable[step])
+                step++;
+        nextEvent = step < screenTable.length ? screenTable[step] : NO_EVENT;
     }
     
-    public void addTstates(int tsadd){
-        tstates += tsadd;
+    public void addTstates(int states){
+        tstates += states;
 
         if (screenListener != null && tstates >= nextEvent) {
 //            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
             screenListener.updateScreen(tstates);
             step++;
-            while(step < tstatesTable.length && tstates > tstatesTable[step])
+            while(step < screenTable.length && tstates > screenTable[step])
                 step++;
-            nextEvent = step < tstatesTable.length ? tstatesTable[step] : NO_EVENT;
+            nextEvent = step < screenTable.length ? screenTable[step] : NO_EVENT;
         }
 
-        if (timeout <= 0)
+        if (clockListener == null) {
+//            System.out.println("timeout = " + timeout);
             return;
+        }
         
-        timeout -= tsadd;
+        timeout -= states;
         if (timeout > 0) {
             return;
         }
 
-//        System.out.println("timeout fired for class " + target.getClass().getName());
-        if (clockListener != null)
-            clockListener.clockTimeout();
+//        System.out.println("timeout fired!");
+        clockListener.clockTimeout();
     }
 
     /**
@@ -105,7 +108,7 @@ public class Clock {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
         step = 0;
-        nextEvent = tstatesTable[0];
+        nextEvent = screenTable[0];
     }
 
     public void setTimeoutListener(ClockInterface dest) {
@@ -131,6 +134,6 @@ public class Clock {
     
     public void setUpdateScreen(ClockScreen scr, int[] tst) {
         screenListener = scr;
-        tstatesTable = tst;
+        screenTable = tst;
     }   
 }

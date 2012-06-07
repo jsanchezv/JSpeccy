@@ -1687,7 +1687,7 @@ public class Z80 {
      */
     public final void execute(int statesLimit) {
 
-        while (clock.tstates < statesLimit) {
+        while (clock.getTstates() < statesLimit) {
 
             // Primero se comprueba NMI
             if (activeNMI) {

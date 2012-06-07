@@ -349,9 +349,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             return;
         
         taskFrame.cancel();
-        clock.setUpdateScreen(null, stepStates);
         paused = true;
         disableSound();
+        clock.setUpdateScreen(null, stepStates);
     }
 
     public void reset() {
@@ -463,7 +463,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         do {
             // Cuando se entra desde una carga de snapshot los t-states pueden
             // no ser 0 y el frame estar a mitad (pojemplo)
-            if (clock.tstates < spectrumModel.lengthINT) {
+            if (clock.getTstates() < spectrumModel.lengthINT) {
                 z80.setINTLine(true);
                 z80.execute(spectrumModel.lengthINT);
             }
@@ -473,9 +473,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
             if (enabledSound) {
                 if (enabledAY) {
-                    ay8912.updateAY(clock.tstates);
+                    ay8912.updateAY(clock.getTstates());
                 }
-                audio.updateAudio(clock.tstates, speaker);
+                audio.updateAudio(clock.getTstates(), speaker);
                 audio.endFrame();
             }
 
@@ -670,7 +670,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int fetchOpcode(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 4);
+            clock.addTstates(delayTstates[clock.getTstates()] + 4);
         } else
             clock.addTstates(4);
 
@@ -681,7 +681,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int peek8(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
         } else
             clock.addTstates(3);
 
@@ -692,7 +692,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public void poke8(int address, int value) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, (byte) value)) {
                 notifyScreenWrite(address);
             }
@@ -706,7 +706,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     public int peek16(int address) {
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
         } else
             clock.addTstates(3);
 
@@ -714,7 +714,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
         } else 
             clock.addTstates(3);
 
@@ -728,7 +728,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         byte msb = (byte) (word >>> 8);
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, lsb)) {
                 notifyScreenWrite(address);
             }
@@ -740,7 +740,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         address = (address + 1) & 0xffff;
 
         if (contendedRamPage[address >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, msb)) {
                 notifyScreenWrite(address);
             }
@@ -755,7 +755,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (contendedRamPage[address >>> 14]
                 && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
-                clock.addTstates(delayTstates[clock.tstates] + 1);
+                clock.addTstates(delayTstates[clock.getTstates()] + 1);
             }
         } else {
             clock.addTstates(tstates);
@@ -896,7 +896,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 int spkMic = (earBit == 0xbf) ? 0 : 4000;
 
                 if (spkMic != speaker) {
-                    audio.updateAudio(clock.tstates, speaker);
+                    audio.updateAudio(clock.getTstates(), speaker);
                     speaker = spkMic;
                 }
             }
@@ -937,16 +937,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         int floatbus = 0xff;
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             int addr;
-            if (clock.tstates < spectrumModel.firstScrByte || clock.tstates > spectrumModel.lastScrUpdate) {
+            if (clock.getTstates() < spectrumModel.firstScrByte || clock.getTstates() > spectrumModel.lastScrUpdate) {
                 return 0xff;
             }
 
-            int col = (clock.tstates % spectrumModel.tstatesLine) - spectrumModel.outOffset;
+            int col = (clock.getTstates() % spectrumModel.tstatesLine) - spectrumModel.outOffset;
             if (col > 124) {
                 return 0xff;
             }
 
-            int row = clock.tstates / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
+            int row = clock.getTstates() / spectrumModel.tstatesLine - spectrumModel.upBorderWidth;
 
             switch (col % 8) {
                 case 0:
@@ -1050,7 +1050,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
             if ((port & 0x0001) == 0) {
                 if ((portFE & 0x07) != (value & 0x07) && LEFT_BORDER > 0) {
-                    updateBorder(clock.tstates);
+                    updateBorder(clock.getTstates());
                     borderUpdated = true;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
 //                    System.out.println(String.format("Frame: %d tstates: %d border: %d",
@@ -1060,7 +1060,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 if (!tape.isTapePlaying()) {
                     int spkMic = sp_volt[value >> 3 & 3];
                     if (enabledSound && spkMic != speaker) {
-                        audio.updateAudio(clock.tstates, speaker);
+                        audio.updateAudio(clock.getTstates(), speaker);
                         speaker = spkMic;
                     }
 
@@ -1155,7 +1155,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                     ay8912.setAddressLatch(value);
                 } else {
                     if (enabledSound && ay8912.getAddressLatch() < 14) {
-                        ay8912.updateAY(clock.tstates);
+                        ay8912.updateAY(clock.getTstates());
                     }
                     ay8912.writeRegister(value);
                 }
@@ -1172,7 +1172,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
                 if ((port & 0xff) == 0x5f) {
                     if (enabledSound && ay8912.getAddressLatch() < 14) {
-                        ay8912.updateAY(clock.tstates);
+                        ay8912.updateAY(clock.getTstates());
                     }
                     ay8912.writeRegister(value);
                     return;
@@ -1200,7 +1200,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                         // Pero hay que hacerlo *antes* de modificar la paleta.
                         if (paletteGroup > 7 && paletteGroup < 16 && LEFT_BORDER > 0) {
                             borderUpdated = true;
-                            updateBorder(clock.tstates);
+                            updateBorder(clock.getTstates());
                         }
                         ULAPlusPalette[paletteGroup >>> 4][paletteGroup & 0x0f] = value;
                         precompULAplusColor(paletteGroup, value);
@@ -1234,7 +1234,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     private void preIO(int port) {
 
         if (contendedIOPage[port >>> 14]) {
-            clock.addTstates(delayTstates[clock.tstates] + 1);
+            clock.addTstates(delayTstates[clock.getTstates()] + 1);
         } else {
             clock.addTstates(1);
         }
@@ -1248,23 +1248,23 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         }
 
         if (ULAPlusEnabled && (port & 0x0004) == 0) {
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
             return;
         }
 
         if ((port & 0x0001) != 0) {
             if (contendedIOPage[port >>> 14]) {
                 // A0 == 1 y es contended IO
-                clock.addTstates(delayTstates[clock.tstates] + 1);
-                clock.addTstates(delayTstates[clock.tstates] + 1);
-                clock.addTstates(delayTstates[clock.tstates] + 1);
+                clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                clock.addTstates(delayTstates[clock.getTstates()] + 1);
             } else {
                 // A0 == 1 y no es contended IO
                 clock.addTstates(3);
             }
         } else {
             // A0 == 0
-            clock.addTstates(delayTstates[clock.tstates] + 3);
+            clock.addTstates(delayTstates[clock.getTstates()] + 3);
 
         }
     }
