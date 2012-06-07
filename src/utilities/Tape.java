@@ -40,7 +40,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Tape implements machine.ClockInterface {
+public class Tape implements machine.ClockTimeoutListener {
 
     private Z80 cpu;
     private BufferedInputStream tapeFile;
@@ -1877,14 +1877,14 @@ public class Tape implements machine.ClockInterface {
         return true;
     }
 
-    public void recordPulse(long tstates, boolean micState) {
+    public void recordPulse(boolean micState) {
         if (timeLastOut == 0) {
-            timeLastOut = tstates;
+            timeLastOut = clock.getAbsTstates();
             micBit = micState;
             return;
         }
 
-        int len = (int) (tstates - timeLastOut);
+        int len = (int) (clock.getAbsTstates() - timeLastOut);
 
         if (settings.isHighSamplingFreq()) { // CSW
             cswPulses++;
@@ -1921,7 +1921,7 @@ public class Tape implements machine.ClockInterface {
             }
         }
         
-        timeLastOut = tstates;
+        timeLastOut = clock.getAbsTstates();
         micBit = micState;
     }
 

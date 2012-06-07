@@ -621,12 +621,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
             if (frames-- == 0) {
                 frames = 500;
-                if (LEFT_BORDER > 0)
+                if (LEFT_BORDER > 0) {
                     updateBorder(lastBorderUpdate);
-                step = 0;
-                do {
-                    updateScreen(stepStates[step++]);
-                } while (step < stepStates.length);
+                }
+
+                for (int idx = 0; idx < stepStates.length; idx++) {
+                    updateScreen(stepStates[idx]);
+                }
 
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 jscr.repaint();
@@ -661,11 +662,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         leftCol = 31;
         lastChgBorder = firstBorderUpdate;
 
-        do {
-            updateScreen(stepStates[step++]);
-        } while (step < stepStates.length);
-
-        step = 0;
+        for (int idx = 0; idx < stepStates.length; idx++) {
+            updateScreen(stepStates[idx]);
+        }
 
         borderUpdated = true;
 
@@ -1077,7 +1076,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 }
 
                 if (tape.isTapeRecording() && ((portFE ^ value) & 0x08) != 0) {
-                    tape.recordPulse(clock.getAbsTstates(), (portFE & 0x08) != 0);
+                    tape.recordPulse((portFE & 0x08) != 0);
                 }
                 //System.out.println(String.format("outPort: %04X %02x", port, value));
                 portFE = value;
@@ -2151,7 +2150,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (!tape.isTapeRecording())
             return false;
         
-        tape.recordPulse(clock.getAbsTstates(), (portFE & 0x08) != 0);
+        tape.recordPulse((portFE & 0x08) != 0);
         tape.stopRecording();
 
         return true;

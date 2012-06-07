@@ -8,6 +8,6 @@ package machine;
  *
  * @author jsanchez
  */
-public interface ClockInterface {
+public interface ClockTimeoutListener {
     public void clockTimeout();
 }

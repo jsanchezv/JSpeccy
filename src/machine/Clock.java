@@ -11,8 +11,8 @@ package machine;
 public class Clock {
     private MachineTypes spectrumModel;
     private int tstates;
-    private long absTstates, frames;
-    private ClockInterface clockListener;
+    private long frames;
+    private ClockTimeoutListener clockListener;
     private ClockScreen screenListener;
     private int timeout;
     private int screenTable[];
@@ -43,66 +43,55 @@ public class Clock {
      */
     public void setTstates(int states) {
         tstates = states;
-        absTstates = frames = step = 0;
-        while(step < screenTable.length && states > screenTable[step])
-                step++;
+        frames = step = 0;
+        while (step < screenTable.length && states > screenTable[step]) {
+            step++;
+        }
     }
     
-    public void addTstates(int states){
+    public void addTstates(int states) {
         tstates += states;
 
         if (screenListener != null && step < screenTable.length) {
 //            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
-           do {
+            do {
                 screenListener.updateScreen(screenTable[step++]);
-            } while(step < screenTable.length && tstates > screenTable[step]);
+            } while (step < screenTable.length && tstates > screenTable[step]);
         }
 
         if (clockListener == null) {
 //            System.out.println("timeout = " + timeout);
             return;
         }
-        
-        timeout -= states;
+
         if (timeout > 0) {
-            return;
+            timeout -= states;
+            if (timeout < 1) {
+//                System.out.println("timeout fired!");
+                clockListener.clockTimeout();
+            }
         }
-
-//        System.out.println("timeout fired!");
-        clockListener.clockTimeout();
-    }
-
-    /**
-     * @return the abststates
-     */
-    public long getAbsTstates() {
-        return absTstates + tstates;
     }
     
     public long getFrames() {
         return frames;
     }
-
-    /**
-     * @param abststates the abststates to set
-     */
-    public void setAbststates(long abststates) {
-        this.absTstates = abststates;
-    }
-    
-    public void reset() {
-        tstates = step = 0;
-        absTstates = frames = 0;
-    }
     
     public void endFrame() {
-        absTstates += spectrumModel.tstatesFrame;
         frames++;
         tstates %= spectrumModel.tstatesFrame;
         step = 0;
     }
 
-    public void setTimeoutListener(ClockInterface dest) {
+    public long getAbsTstates() {
+        return frames * spectrumModel.tstatesFrame + tstates;
+    }
+
+    public void reset() {
+        frames = tstates = step = 0;
+    }
+
+    public void setTimeoutListener(ClockTimeoutListener dest) {
         if (dest != null && clockListener != null) {
             System.err.println("Can't set a listener for timeouts!");
             return;
