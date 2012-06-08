@@ -60,7 +60,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
     /* Config vars */
-    private boolean ULAPlusEnabled, issue2, saveTrap, loadTrap, flashload;
+    private boolean issue2, saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private Interface1 if1;
 
@@ -122,8 +122,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         state.setMultiface(specSettings.isMultifaceEnabled());
 
-        state.setULAPlusEnabled(ULAPlusEnabled);
-        if (ULAPlusEnabled) {
+        state.setULAPlusEnabled(specSettings.isULAplus());
+        if (specSettings.isULAplus()) {
             state.setULAPlusActive(ULAPlusActive);
             state.setPaletteGroup(paletteGroup);
             int[] palette = new int[64];
@@ -285,7 +285,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public final void loadConfigVars() {
-        ULAPlusEnabled = specSettings.isULAplus();
         
         issue2 = settings.getKeyboardJoystickSettings().isIssue2();
         // AND con 0x18 para emular un Issue 2
@@ -951,7 +950,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
 
         // ULAplus Data Port (read/write)
-        if ((port & 0x4004) == 0x4000 && ULAPlusEnabled) {
+        if (specSettings.isULAplus() && (port & 0x4004) == 0x4000) {
             if (paletteGroup == 0x40) {
                 return ULAPlusActive ? 0x01 : 0x00;
             } else {
@@ -1208,7 +1207,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             // ULAplus ports
-            if (ULAPlusEnabled && (port & 0x0004) == 0) {
+            if (specSettings.isULAplus() && (port & 0x0004) == 0) {
                 // Control port (write only)
                 if ((port & 0x4000) == 0) {
                     if ((value & 0x40) != 0) {
@@ -1278,8 +1277,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             return;
         }
 
-        if (ULAPlusEnabled && (port & 0x0004) == 0) {
+        if (specSettings.isULAplus() && (port & 0x0004) == 0) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
+            if (clock.getTstates() >= nextEvent) {
+                updateScreen(clock.getTstates());
+            }
             return;
         }
 
@@ -1426,9 +1428,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     memory.writeByte(addr, (byte)(fIn.read() & 0xff));
                 }
 
-                ULAPlusActive = ULAPlusEnabled = false;
+                ULAPlusActive = false;
+                specSettings.setULAplus(false);
                 if (fIn.available() == 64) {
-                    ULAPlusActive = ULAPlusEnabled = true;
+                    ULAPlusActive = true;
+                    specSettings.setULAplus(true);
                     for (int palette = 0; palette < 4; palette++) {
                         for (int color = 0; color < 16; color++) {
                             int value = fIn.read() & 0xff;
@@ -1935,7 +1939,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             fromAddr = states2scr[stepStates[step++]];
 
             if (!dirtyByte[fromAddr & 0x1fff]) {
-                return;
+                continue;
             }
 
             if (firstLine == 0) {
