@@ -4,15 +4,7 @@
  */
 package snapshots;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -394,7 +386,7 @@ public class SnapshotSZX {
                         z80.setRegI(z80Regs[24]);
                         z80.setRegR(z80Regs[25]);
                         z80.setIFF1((z80Regs[26] & 0x01) != 0);
-                        z80.setIFF1((z80Regs[27] & 0x01) != 0);
+                        z80.setIFF2((z80Regs[27] & 0x01) != 0);
 
                         switch (z80Regs[28] & 0x03) {
                             case 0:
@@ -410,6 +402,20 @@ public class SnapshotSZX {
                         
                         spectrum.setTstates((int) (((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
                                 | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff)));
+
+                        // ignore the chHoldIntReqCycles z80Regs[33]
+
+                        switch (z80Regs[34]) {
+                            case ZXSTZF_EILAST:
+                                z80.setPendingEI(true);
+                                break;
+                            case ZXSTZF_HALTED:
+                                z80.setHalted(true);
+                                break;
+                            default:
+                                z80.setPendingEI(false);
+                                z80.setHalted(false);
+                        }
 
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
                             z80.setMemPtr((z80Regs[35] & 0xff) | (z80Regs[36] << 8));
@@ -1073,7 +1079,20 @@ public class SnapshotSZX {
             z80r[30] = (byte) (spectrum.getTstates() >>> 8);
             z80r[31] = (byte) (spectrum.getTstates() >>> 16);
             z80r[32] = (byte) (spectrum.getTstates() >>> 24);
-            // ignore the chHoldIntReqCycles & chFlags fields
+
+            // ignore the chHoldIntReqCycles z80r[33]
+
+            if (z80.isPendingEI()) {
+                z80r[34] = ZXSTZF_EILAST;
+            }
+
+            if (z80.isHalted()) {
+                z80r[34] = ZXSTZF_HALTED;
+            }
+
+            if (z80r[34] == 0x03) {
+                z80r[34] = 0;
+            }
             z80r[35] = (byte) z80.getMemPtr();
             z80r[36] = (byte) (z80.getMemPtr() >>> 8);
             fOut.write(z80r);
