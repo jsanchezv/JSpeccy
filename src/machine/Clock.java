@@ -13,10 +13,7 @@ public class Clock {
     private int tstates;
     private long frames;
     private ClockTimeoutListener clockListener;
-    private ClockScreen screenListener;
     private int timeout;
-    private int screenTable[];
-    private int step;
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -43,21 +40,11 @@ public class Clock {
      */
     public void setTstates(int states) {
         tstates = states;
-        frames = step = 0;
-        while (step < screenTable.length && states > screenTable[step]) {
-            step++;
-        }
+        frames = 0;
     }
     
     public void addTstates(int states) {
         tstates += states;
-
-        if (screenListener != null && step < screenTable.length) {
-//            System.out.println(String.format("updScr. step = %d, table = %d, tstates = %d", step, tstatesTable[step], tstates));
-            do {
-                screenListener.updateScreen(screenTable[step++]);
-            } while (step < screenTable.length && tstates > screenTable[step]);
-        }
 
         if (clockListener == null) {
 //            System.out.println("timeout = " + timeout);
@@ -80,7 +67,6 @@ public class Clock {
     public void endFrame() {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
-        step = 0;
     }
 
     public long getAbsTstates() {
@@ -88,7 +74,7 @@ public class Clock {
     }
 
     public void reset() {
-        frames = tstates = step = 0;
+        frames = tstates = 0;
     }
 
     public void setTimeoutListener(ClockTimeoutListener dest) {
@@ -110,10 +96,5 @@ public class Clock {
         timeout = tstates > 0 ? tstates : 1;
 
 //        System.out.println(String.format("timeout %d set for class %s", timeout, target.getClass().getName()));
-    }
-    
-    public void setUpdateScreen(ClockScreen scr, int[] tst) {
-        screenListener = scr;
-        screenTable = tst;
-    }   
+    } 
 }

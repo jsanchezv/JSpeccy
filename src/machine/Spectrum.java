@@ -30,7 +30,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScreen {
+public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     private Z80 z80;
     private Memory memory;
@@ -339,7 +339,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         lastChgBorder = firstBorderUpdate;
         drawFrame();
         jscr.repaint();
-        clock.setUpdateScreen(this, stepStates);
         taskFrame = new SpectrumTimer(this);
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
     }
@@ -351,7 +350,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         taskFrame.cancel();
         paused = true;
         disableSound();
-        clock.setUpdateScreen(null, stepStates);
     }
 
     public void reset() {
@@ -469,6 +467,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             }
             z80.setINTLine(false);
 
+            while (step < stepStates.length) {
+                z80.execute(stepStates[step]);
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
+            }
+            
             z80.execute(spectrumModel.tstatesFrame);
 
             if (enabledSound) {
@@ -482,6 +487,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             clock.endFrame();
             
             step = 0;
+            nextEvent = stepStates[0];
             
             if (!ULAPlusActive && clock.getFrames() % 16 == 0) {
                 toggleFlash();
@@ -609,6 +615,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         lastChgBorder = firstBorderUpdate;
 
         int frames = 500;
+        nextEvent = NO_EVENT;
         speedometer = System.currentTimeMillis();
         do {
             z80.setINTLine(true);
@@ -625,10 +632,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                     updateBorder(lastBorderUpdate);
                 }
 
-                for (int idx = 0; idx < stepStates.length; idx++) {
-                    updateScreen(stepStates[idx]);
-                }
-
+                step = 0;
+                updateScreen(spectrumModel.lastScrUpdate);
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 jscr.repaint();
 
@@ -656,17 +661,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 }
             }
         } while (tape.isTapePlaying());
-        
+
         firstLine = lastLine = rightCol = lastBorderPix = step = 0;
         firstBorderPix = dataInProgress.length;
         leftCol = 31;
         lastChgBorder = firstBorderUpdate;
 
-        for (int idx = 0; idx < stepStates.length; idx++) {
-            updateScreen(stepStates[idx]);
-        }
-
+        updateScreen(spectrumModel.lastScrUpdate);
         borderUpdated = true;
+
+        step = 0;
+        nextEvent = stepStates[0];
 
         startEmulation();
     }
@@ -676,6 +681,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 4);
+            if (clock.getTstates() >= nextEvent) {
+               updateScreen(clock.getTstates());
+            }
         } else
             clock.addTstates(4);
 
@@ -699,10 +707,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, (byte) value)) {
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
                 notifyScreenWrite(address);
             }
-        } else
+        } else {
             clock.addTstates(3);
+        }
 
         memory.writeByte(address, (byte) value);
     }
@@ -735,10 +747,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, lsb)) {
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
                 notifyScreenWrite(address);
             }
-        } else
+        } else {
             clock.addTstates(3);
+        }
 
         memory.writeByte(address, lsb);
 
@@ -747,10 +763,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
             if (memory.isScreenByteModified(address, msb)) {
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
                 notifyScreenWrite(address);
             }
-        } else
+        } else {
             clock.addTstates(3);
+        }
 
         memory.writeByte(address, msb);
     }
@@ -761,6 +781,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
                 && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
             }
         } else {
             clock.addTstates(tstates);
@@ -1240,6 +1263,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 
         if (contendedIOPage[port >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 1);
+            if (clock.getTstates() >= nextEvent) {
+                updateScreen(clock.getTstates());
+            }
         } else {
             clock.addTstates(1);
         }
@@ -1261,8 +1287,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
             if (contendedIOPage[port >>> 14]) {
                 // A0 == 1 y es contended IO
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
+                if (clock.getTstates() >= nextEvent) {
+                    updateScreen(clock.getTstates());
+                }
             } else {
                 // A0 == 1 y no es contended IO
                 clock.addTstates(3);
@@ -1270,7 +1305,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         } else {
             // A0 == 0
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
-
+            if (clock.getTstates() >= nextEvent) {
+                updateScreen(clock.getTstates());
+            }
         }
     }
 
@@ -1540,7 +1577,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
     private final int states2border[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
     // Secuencia de t-states que hay que ejecutar para ir actualizando la pantalla
     int stepStates[] = new int[6144];
-    int step = 0;
+    private int step;
+    // Constante que indica que no hay un evento próximo
+    // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
+    private final int NO_EVENT = 0x1234567;
+    // t-states del próximo evento
+    private int nextEvent = NO_EVENT;
     
     // Estos miembros solo cambian cuando cambia el tamaño del borde
     private int LEFT_BORDER = 24;
@@ -1882,7 +1924,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
 //                lastChgBorder, nBorderChanges));
     }
 
-    @Override
     public void updateScreen(int tstates) {
         int fromAddr, addrBuf;
         int paper, ink;
@@ -1890,54 +1931,58 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps, ClockScree
         int attr;
 //        System.out.println(String.format("from: %d\tto: %d", lastScreenState, toTstates));
 
-        fromAddr = states2scr[tstates];
+        while (step < stepStates.length && stepStates[step] <= tstates) {
+            fromAddr = states2scr[stepStates[step++]];
 
-        if (!dirtyByte[fromAddr & 0x1fff]) {
-            return;
-        }
-
-        if (firstLine == 0) {
-            firstLine = lastLine = fromAddr;
-        } else {
-            lastLine = fromAddr;
-        }
-
-        int column = fromAddr & 0x1f;
-
-        if (column < leftCol) {
-            leftCol = column;
-        }
-        if (column > rightCol) {
-            rightCol = column;
-        }
-
-        scrByte = memory.readScreenByte(fromAddr);
-        fromAddr &= 0x1fff;
-        attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
-
-        addrBuf = bufAddr[fromAddr];
-
-        if (ULAPlusActive) {
-            ink = ULAPlusPrecompPalette[attr >>> 6][attr & 0x07];
-            paper = ULAPlusPrecompPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
-        } else {
-            if (attr > 0x7f) {
-                attr &= flash;
+            if (!dirtyByte[fromAddr & 0x1fff]) {
+                return;
             }
-            ink = Ink[attr];
-            paper = Paper[attr];
-        }
 
-        for (int mask = 0x80; mask != 0; mask >>= 1) {
-            if ((scrByte & mask) != 0) {
-                dataInProgress[addrBuf++] = ink;
+            if (firstLine == 0) {
+                firstLine = lastLine = fromAddr;
             } else {
-                dataInProgress[addrBuf++] = paper;
+                lastLine = fromAddr;
             }
+
+            int column = fromAddr & 0x1f;
+
+            if (column < leftCol) {
+                leftCol = column;
+            }
+            if (column > rightCol) {
+                rightCol = column;
+            }
+
+            scrByte = memory.readScreenByte(fromAddr);
+            fromAddr &= 0x1fff;
+            attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
+
+            addrBuf = bufAddr[fromAddr];
+
+            if (ULAPlusActive) {
+                ink = ULAPlusPrecompPalette[attr >>> 6][attr & 0x07];
+                paper = ULAPlusPrecompPalette[attr >>> 6][((attr & 0x38) >>> 3) | 0x08];
+            } else {
+                if (attr > 0x7f) {
+                    attr &= flash;
+                }
+                ink = Ink[attr];
+                paper = Paper[attr];
+            }
+
+            for (int mask = 0x80; mask != 0; mask >>= 1) {
+                if ((scrByte & mask) != 0) {
+                    dataInProgress[addrBuf++] = ink;
+                } else {
+                    dataInProgress[addrBuf++] = paper;
+                }
+            }
+
+            dirtyByte[fromAddr] = false;
+            screenDirty = true;
         }
 
-        dirtyByte[fromAddr] = false;
-        screenDirty = true;
+        nextEvent = step < stepStates.length ? stepStates[step] : NO_EVENT;
     }
 
     private void notifyScreenWrite(int address) {
