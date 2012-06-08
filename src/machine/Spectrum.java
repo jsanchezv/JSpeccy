@@ -218,6 +218,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         step = 0;
         while (step < stepStates.length && stepStates[step] < state.getTstates())
             step++;
+        nextEvent = step < stepStates.length ? stepStates[step] : NO_EVENT;
 
         loadConfigVars();
 
@@ -280,6 +281,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 connectedIF1 = false;
                 break;
         }
+
+        step = 0;
+        nextEvent = stepStates[0];
 
         enableSound();
     }
@@ -484,7 +488,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             clock.endFrame();
-            
+
             step = 0;
             nextEvent = stepStates[0];
             
