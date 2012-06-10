@@ -923,14 +923,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         // ULA Port
         if ((port & 0x0001) == 0) {
             earBit = tape.getEarBit();
-            if (tape.isTapePlaying() && specSettings.isLoadingNoise() && enabledSound) {
-                int spkMic = (earBit == 0xbf) ? 0 : 4000;
-
-                if (spkMic != speaker) {
-                    audio.updateAudio(clock.getTstates(), speaker);
-                    speaker = spkMic;
-                }
-            }
             return keyboard.readKeyboardPort(port) & earBit;
         }
 
@@ -1574,7 +1566,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private final int repaintTable[] = new int[6144];
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
-    public final int scrAddr[] = new int[192];
+    private final int scrAddr[] = new int[192];
     // Tabla que indica si un byte de la pantalla ha sido modificado y habrá que
     // redibujarlo.
     private final boolean dirtyByte[] = new boolean[6144];
@@ -2263,12 +2255,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         enabledAY = settings.getSpectrumSettings().isAYEnabled48K();
     }
     
-    private class TapeChangedListener implements TapeStateListener {
+    private class TapeChangedListener implements TapeStateListener, ClockTimeoutListener {
 
         @Override
         public void stateChanged(final TapeState state) {
 //            System.out.println("Spectrum::TapeChangedListener: state = " + state + "");
-            
+
             switch (state) {
                 case PLAY:
                     if (!paused && settings.getTapeSettings().isAccelerateLoading()) {
@@ -2280,8 +2272,30 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                                 acceleratedLoading();
                             }
                         }.start();
+                        return;
+                    }
+                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()) {
+                        clock.addClockTimeoutListener(this);
                     }
                     break;
+                case STOP:
+                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()) {
+                        clock.removeClockTimeoutListener(this);
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public void clockTimeout() {
+
+            if (tape.isTapePlaying() && specSettings.isLoadingNoise() && enabledSound) {
+                int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 4000;
+
+                if (spkMic != speaker) {
+                    audio.updateAudio(clock.getTstates(), speaker);
+                    speaker = spkMic;
+                }
             }
         }
     }

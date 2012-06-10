@@ -48,7 +48,6 @@ public class Tape implements machine.ClockTimeoutListener {
     private DeflaterOutputStream dos;
     private ByteArrayInputStream bais;
     private InflaterInputStream iis;
-
     private File filename;
     private byte tapeBuffer[];
     private int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
@@ -61,11 +60,14 @@ public class Tape implements machine.ClockTimeoutListener {
     private byte byteTmp;
     private int cswPulses;
     private Clock clock;
-    
-    public enum TapeState { EJECT, INSERT, STOP, PLAY, RECORD };
+
+    public enum TapeState {
+
+        EJECT, INSERT, STOP, PLAY, RECORD
+    };
     private final ArrayList<TapeStateListener> stateListeners = new ArrayList<TapeStateListener>();
     private final ArrayList<TapeBlockListener> blockListeners = new ArrayList<TapeBlockListener>();
-    
+
     private enum State {
 
         STOP, START, LEADER, LEADER_NOCHG, SYNC, NEWBYTE,
@@ -82,7 +84,10 @@ public class Tape implements machine.ClockTimeoutListener {
     private long timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
     private boolean tzxTape, cswTape;
-    /* Tiempos en T-estados de duración de cada pulso para cada parte de la carga */
+    /*
+     * Tiempos en T-estados de duración de cada pulso para cada parte de la
+     * carga
+     */
     private final int LEADER_LENGHT = 2168;
     private final int SYNC1_LENGHT = 667;
     private final int SYNC2_LENGHT = 735;
@@ -111,10 +116,8 @@ public class Tape implements machine.ClockTimeoutListener {
     private int nCalls, callBlk;
     // Call sequence for TZX CALL block
     private short[] callSeq;
-
     private static final String tzxHeader = "ZXTape!\u001A";
     private static final String tzxCreator = "TZX created with JSpeccy v0.91";
-    
 
     public Tape(Clock clk, TapeType tapeSettings) {
         clock = clk;
@@ -149,14 +152,15 @@ public class Tape implements machine.ClockTimeoutListener {
             stateListeners.add(listener);
         }
     }
-    
+
     /**
      * Remove a new event listener from the list of event listeners.
      *
      * @param listener The event listener to remove.
      *
      * @throws NullPointerException Thrown if the listener argument is null.
-     * @throws IllegalArgumentException Thrown if the listener wasn't registered.
+     * @throws IllegalArgumentException Thrown if the listener wasn't
+     * registered.
      */
     public void removeTapeChangedListener(final TapeStateListener listener) {
 
@@ -168,13 +172,13 @@ public class Tape implements machine.ClockTimeoutListener {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
     }
-    
-    public void fireTapeStateChanged(final TapeState state) {
+
+    private void fireTapeStateChanged(final TapeState state) {
         for (final TapeStateListener listener : stateListeners) {
             listener.stateChanged(state);
         }
     }
-    
+
     /**
      * Adds a new event listener to the list of event listeners.
      *
@@ -193,14 +197,15 @@ public class Tape implements machine.ClockTimeoutListener {
             blockListeners.add(listener);
         }
     }
-    
+
     /**
      * Remove a new event listener from the list of event listeners.
      *
      * @param listener The event listener to remove.
      *
      * @throws NullPointerException Thrown if the listener argument is null.
-     * @throws IllegalArgumentException Thrown if the listener wasn't registered.
+     * @throws IllegalArgumentException Thrown if the listener wasn't
+     * registered.
      */
     public void removeTapeBlockListener(final TapeBlockListener listener) {
 
@@ -212,17 +217,17 @@ public class Tape implements machine.ClockTimeoutListener {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
     }
-    
-    public void fireTapeBlockChanged(final int block) {
+
+    private void fireTapeBlockChanged(final int block) {
         for (final TapeBlockListener listener : blockListeners) {
             listener.blockChanged(block);
         }
     }
-    
+
     public void setSpectrumModel(MachineTypes model) {
         spectrumModel = model;
     }
-    
+
     public void setZ80Cpu(Z80 z80) {
         cpu = z80;
     }
@@ -270,9 +275,10 @@ public class Tape implements machine.ClockTimeoutListener {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
-        if (block >= nOffsetBlocks)
+        if (block >= nOffsetBlocks) {
             return bundle.getString("END_OF_TAPE");
-        
+        }
+
         if (cswTape) {
             return String.format(bundle.getString("CSW_DATA"),
                     tapeBuffer[0x17], tapeBuffer[0x18]); // CSW major.minor version
@@ -372,14 +378,15 @@ public class Tape implements machine.ClockTimeoutListener {
     private String getBlockInfo(int block) {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
-        
+
         if (!tapeInserted) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
-        
-        if (block >= nOffsetBlocks)
+
+        if (block >= nOffsetBlocks) {
             return bundle.getString("END_OF_TAPE");
-        
+        }
+
         if (cswTape) {
             if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
                 return String.format(bundle.getString("CSW1_PULSES"),
@@ -481,7 +488,7 @@ public class Tape implements machine.ClockTimeoutListener {
 //                len = readInt(tapeBuffer, offset, 4);
                 if ((tapeBuffer[offset + 0x09] & 0xff) == 0x02) { // Z-RLE encoding
                     msg = String.format(bundle.getString("CSW2_ZRLE_PULSES"),
-                            readInt(tapeBuffer, offset + 0x0A , 4),
+                            readInt(tapeBuffer, offset + 0x0A, 4),
                             readInt(tapeBuffer, offset + 0x06, 3));
                 } else {
                     msg = String.format(bundle.getString("CSW2_RLE_PULSES"),
@@ -692,7 +699,7 @@ public class Tape implements machine.ClockTimeoutListener {
 //                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
 //            }
         }
-        
+
         tapeTableModel.fireTableDataChanged();
         fireTapeStateChanged(TapeState.INSERT);
         fireTapeBlockChanged(selectedBlock);
@@ -700,9 +707,10 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean eject() {
-        if (tapePlaying || tapeRecording)
+        if (tapePlaying || tapeRecording) {
             return false;
-        
+        }
+
         tapeInserted = false;
         tapeBuffer = null;
         filename = null;
@@ -731,7 +739,7 @@ public class Tape implements machine.ClockTimeoutListener {
     public boolean isTapeRunning() {
         return tapePlaying || tapeRecording;
     }
-    
+
     public boolean isTapeInserted() {
         return tapeInserted;
     }
@@ -758,12 +766,11 @@ public class Tape implements machine.ClockTimeoutListener {
         }
 
         statePlay = State.START;
-        
+
         tapePos = offsetBlocks[idxHeader];
-//        cpu.setExecDone(true);
         fireTapeStateChanged(TapeState.PLAY);
         tapePlaying = true;
-        clock.setTimeoutListener(this);
+        clock.addClockTimeoutListener(this);
         clockTimeout();
         return true;
     }
@@ -775,10 +782,31 @@ public class Tape implements machine.ClockTimeoutListener {
 
         statePlay = State.STOP;
 
-        clock.setTimeoutListener(null);
-        fireTapeStateChanged(TapeState.STOP);
         fireTapeBlockChanged(idxHeader);
         tapePlaying = false;
+//        fireTapeStateChanged(TapeState.STOP);        
+//        clock.removeClockTimeoutListener(this);
+
+        // stop method can be called from clockTimeout and this was fired by
+        // Clock.fireClockTimeout. Execute here removeClockTimeoutListener gets a
+        // ConcurrentModificationException. stop method needs to end his execution
+        // before remove the listener.
+        final Tape myself = this;
+        new Thread() {
+
+            @Override
+            public void run() {
+                try {
+                    // Give him time to finish running
+                    sleep(10);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                fireTapeStateChanged(TapeState.STOP);
+                clock.removeClockTimeoutListener(myself);
+            }
+        }.start();
     }
 
     public boolean rewind() {
@@ -798,16 +826,17 @@ public class Tape implements machine.ClockTimeoutListener {
 
         int offset = 0;
         Arrays.fill(offsetBlocks, 0);
-        
+
         while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
             if ((tapeBuffer.length - offset) < 2) {
                 return false;
             }
             int len = readInt(tapeBuffer, offset, 2);
-            
-            if (offset + len + 2 > tapeBuffer.length)
+
+            if (offset + len + 2 > tapeBuffer.length) {
                 return false;
-            
+            }
+
             offsetBlocks[nOffsetBlocks++] = offset;
             offset += len + 2;
         }
@@ -899,26 +928,30 @@ public class Tape implements machine.ClockTimeoutListener {
         int offset = 0; // saltamos la cabecera del TZX
         int len;
         Arrays.fill(offsetBlocks, 0);
-        
-        if (tapeBuffer.length == 0)
+
+        if (tapeBuffer.length == 0) {
             return true;
-        
-        if (tapeBuffer[0] != 'Z')
+        }
+
+        if (tapeBuffer[0] != 'Z') {
             return false;
-        
+        }
+
         while (offset < tapeBuffer.length && nOffsetBlocks < offsetBlocks.length) {
             offsetBlocks[nOffsetBlocks++] = offset;
 
             switch (tapeBuffer[offset] & 0xff) {
                 case 0x10: // Standard speed data block
-                    if (tapeBuffer.length - offset < 5)
+                    if (tapeBuffer.length - offset < 5) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 3, 2);
                     offset += len + 5;
                     break;
                 case 0x11: // Turbo speed data block
-                    if (tapeBuffer.length - offset < 19)
+                    if (tapeBuffer.length - offset < 19) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 16, 3);
                     offset += len + 19;
                     break;
@@ -926,27 +959,31 @@ public class Tape implements machine.ClockTimeoutListener {
                     offset += 5;
                     break;
                 case 0x13: // Pulse Sequence Block
-                    if (tapeBuffer.length - offset < 2)
+                    if (tapeBuffer.length - offset < 2) {
                         return false;
+                    }
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len * 2 + 2;
                     break;
                 case 0x14: // Pure Data Block
-                    if (tapeBuffer.length - offset < 11)
+                    if (tapeBuffer.length - offset < 11) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 8, 3);
                     offset += len + 11;
                     break;
                 case 0x15: // Direct Data Block
-                    if (tapeBuffer.length - offset < 9)
+                    if (tapeBuffer.length - offset < 9) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 6, 3);
                     offset += len + 9;
                     break;
                 case 0x18: // CSW Recording Block
                 case 0x19: // Generalized Data Block
-                    if (tapeBuffer.length - offset < 5)
+                    if (tapeBuffer.length - offset < 5) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 1, 4);
                     offset += len + 5;
                     break;
@@ -956,8 +993,9 @@ public class Tape implements machine.ClockTimeoutListener {
                     offset += 3;
                     break;
                 case 0x21: // Group Start
-                    if (tapeBuffer.length - offset < 2)
+                    if (tapeBuffer.length - offset < 2) {
                         return false;
+                    }
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len + 2;
                     break;
@@ -967,15 +1005,17 @@ public class Tape implements machine.ClockTimeoutListener {
                     offset++;
                     break;
                 case 0x26: // Call Sequence
-                    if (tapeBuffer.length - offset < 3)
+                    if (tapeBuffer.length - offset < 3) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 1, 2);
                     offset += len * 2 + 3;
                     break;
                 case 0x28: // Select Block
                 case 0x32: // Archive Info
-                    if (tapeBuffer.length - offset < 3)
+                    if (tapeBuffer.length - offset < 3) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 1, 2);
                     offset += len + 3;
                     break;
@@ -986,26 +1026,30 @@ public class Tape implements machine.ClockTimeoutListener {
                     offset += 6;
                     break;
                 case 0x30: // Text Description
-                    if (tapeBuffer.length - offset < 2)
+                    if (tapeBuffer.length - offset < 2) {
                         return false;
+                    }
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len + 2;
                     break;
                 case 0x31: // Message Block
-                    if (tapeBuffer.length - offset < 3)
+                    if (tapeBuffer.length - offset < 3) {
                         return false;
+                    }
                     len = tapeBuffer[offset + 2] & 0xff;
                     offset += len + 3;
                     break;
                 case 0x33: // Hardware Type
-                    if (tapeBuffer.length - offset < 2)
+                    if (tapeBuffer.length - offset < 2) {
                         return false;
+                    }
                     len = tapeBuffer[offset + 1] & 0xff;
                     offset += len * 3 + 2;
                     break;
                 case 0x35: // Custom Info Block
-                    if (tapeBuffer.length - offset < 21)
+                    if (tapeBuffer.length - offset < 21) {
                         return false;
+                    }
                     len = readInt(tapeBuffer, offset + 17, 4);
                     offset += len + 21;
                     break;
@@ -1016,11 +1060,12 @@ public class Tape implements machine.ClockTimeoutListener {
                     System.out.println(String.format("Block ID: %02x", tapeBuffer[offset]));
                     return false; // Error en TZX
             }
-            
-            if (offset > tapeBuffer.length)
+
+            if (offset > tapeBuffer.length) {
                 return false;
+            }
         }
-        
+
         return true;
     }
 
@@ -1334,8 +1379,8 @@ public class Tape implements machine.ClockTimeoutListener {
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
                     oneLenght = readInt(tapeBuffer, tapePos + 3, 2);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2) *
-                            (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 6, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     blockLen = readInt(tapeBuffer, tapePos + 8, 3);
                     tapePos += 11;
                     statePlay = State.NEWBYTE_NOCHG;
@@ -1344,8 +1389,8 @@ public class Tape implements machine.ClockTimeoutListener {
                     break;
                 case 0x15: // Direct Data Block
                     zeroLenght = readInt(tapeBuffer, tapePos + 1, 2);
-                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2) *
-                            (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 3, 2)
+                            * (END_BLOCK_PAUSE / 1000);
                     bitsLastByte = tapeBuffer[tapePos + 5] & 0xff;
                     blockLen = readInt(tapeBuffer, tapePos + 6, 3);
                     tapePos += 9;
@@ -1411,7 +1456,7 @@ public class Tape implements machine.ClockTimeoutListener {
                         callSeq = new short[nCalls];
 //                        System.out.print(String.format("Call sequence of %d calls: ", nCalls));
                         for (int idx = 0; idx < nCalls; idx++) {
-                            callSeq[idx] = (short)(readInt(tapeBuffer, tapePos + idx * 2 + 3, 2));
+                            callSeq[idx] = (short) (readInt(tapeBuffer, tapePos + idx * 2 + 3, 2));
 //                            System.out.print(String.format("%d ", callSeq[idx]));
                         }
 //                        System.out.println("");
@@ -1496,7 +1541,6 @@ public class Tape implements machine.ClockTimeoutListener {
 //        System.out.println(String.format("NPD: %d", npd));
 //        System.out.println(String.format("ASD: %d", asd));
 //    }
-
     private boolean playCsw() {
         int timeout;
 
@@ -1694,7 +1738,7 @@ public class Tape implements machine.ClockTimeoutListener {
         if (count < nBytes) {
             cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
         }
-        
+
         cpu.setRegIX(addr);
         cpu.setRegDE(nBytes - count);
         idxHeader++;
@@ -1706,10 +1750,11 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean saveTapeBlock(Memory memory) {
-        
-        if (!filename.canWrite())
+
+        if (!filename.canWrite()) {
             return false;
-        
+        }
+
         int addr = cpu.getRegIX();   // Start Address
         int nBytes = cpu.getRegDE(); // Lenght
         BufferedOutputStream fOut = null;
@@ -1767,7 +1812,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
         File tmp = filename;
         eject();
         insert(tmp);
@@ -1791,7 +1836,7 @@ public class Tape implements machine.ClockTimeoutListener {
         } else {
             freqSample = 79; // 44.1 Khz
         }
-        
+
         fireTapeStateChanged(TapeState.RECORD);
 
         return true;
@@ -1817,7 +1862,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 fOut.write(idTZX.length);
                 fOut.write(idTZX);
             }
-            
+
             if (settings.isHighSamplingFreq()) {
                 dos.close();
                 record.close();
@@ -1843,7 +1888,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     byteTmp <<= (8 - bitsLastByte);
                     record.write(byteTmp);
                 }
-                    
+
                 // Y ahora la cabecera de Direct Data Recording
                 fOut.write(0x15); // TZX ID: Direct Recording Block
                 fOut.write(freqSample);
@@ -1868,7 +1913,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
+
         tapeRecording = false;
         File tmp = filename;
         eject();
@@ -1889,7 +1934,7 @@ public class Tape implements machine.ClockTimeoutListener {
         if (settings.isHighSamplingFreq()) { // CSW
             cswPulses++;
             int pulses = (int) ((len / cswStatesSample) + 0.49f);
-            
+
             try {
                 if (pulses > 255) {
                     dos.write(0);
@@ -1920,7 +1965,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 bitsLastByte++;
             }
         }
-        
+
         timeLastOut = clock.getAbsTstates();
         micBit = micState;
     }
