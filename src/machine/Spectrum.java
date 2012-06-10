@@ -2263,23 +2263,25 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
             switch (state) {
                 case PLAY:
-                    if (!paused && settings.getTapeSettings().isAccelerateLoading()) {
+                    if (!paused) {
+                        if (settings.getTapeSettings().isAccelerateLoading()) {
+                            new Thread() {
 
-                        new Thread() {
-
-                            @Override
-                            public void run() {
-                                acceleratedLoading();
+                                @Override
+                                public void run() {
+                                    acceleratedLoading();
+                                }
+                            }.start();
+                        } else {
+                            if (specSettings.isLoadingNoise() && enabledSound) {
+                                clock.addClockTimeoutListener(this);
                             }
-                        }.start();
-                        return;
-                    }
-                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()) {
-                        clock.addClockTimeoutListener(this);
+                        }
                     }
                     break;
                 case STOP:
-                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()) {
+                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()
+                            && specSettings.isLoadingNoise() && enabledSound) {
                         clock.removeClockTimeoutListener(this);
                     }
                     break;
@@ -2289,13 +2291,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         @Override
         public void clockTimeout() {
 
-            if (tape.isTapePlaying() && specSettings.isLoadingNoise() && enabledSound) {
-                int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 4000;
+            int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 4000;
 
-                if (spkMic != speaker) {
-                    audio.updateAudio(clock.getTstates(), speaker);
-                    speaker = spkMic;
-                }
+            if (spkMic != speaker) {
+                audio.updateAudio(clock.getTstates(), speaker);
+                speaker = spkMic;
             }
         }
     }
