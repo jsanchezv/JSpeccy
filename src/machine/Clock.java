@@ -60,17 +60,6 @@ public class Clock {
         }
     }
     
-    private void fireClockTimeout() {
-        try {
-            for (final ClockTimeoutListener listener : clockListeners) {
-                listener.clockTimeout();
-            }
-        } catch (ConcurrentModificationException excpt) {
-            // Optimistic exception handling
-            System.out.println("ConcurrentModificationException!");
-        }
-    }
-    
     /**
      * @param spectrumModel the spectrumModel to set
      */
@@ -100,7 +89,9 @@ public class Clock {
         if (timeout > 0) {
             timeout -= states;
             if (timeout < 1) {
-                fireClockTimeout();
+                for (final ClockTimeoutListener listener : clockListeners) {
+                    listener.clockTimeout();
+                }
             }
         }
     }
