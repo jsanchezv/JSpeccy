@@ -795,10 +795,11 @@ public class Tape implements machine.ClockTimeoutListener {
 
         fireTapeBlockChanged(idxHeader);
 
-        // stop method can be called from clockTimeout and this was fired by
-        // Clock.fireClockTimeout. Execute here removeClockTimeoutListener gets a
-        // ConcurrentModificationException. stop method needs to end his execution
-        // before remove the listener.
+        // tapeStop method is called from playTap/Tzx/Csw on clockTimeout
+        // and this was fired by Clock.addTstates.
+        // Execute here removeClockTimeoutListener gets a
+        // ConcurrentModificationException. tapeStop method needs to end his
+        // execution before remove the listener.
         final Tape myself = this;
         new Thread() {
 
