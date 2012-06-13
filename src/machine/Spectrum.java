@@ -781,7 +781,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     @Override
     public void contendedStates(int address, int tstates) {
         if (contendedRamPage[address >>> 14]
-                && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
+            && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
                 if (clock.getTstates() >= nextEvent) {

@@ -5,7 +5,6 @@
 package machine;
 
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 
 /**
  *

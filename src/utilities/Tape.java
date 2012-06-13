@@ -83,7 +83,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final int EAR_MASK = 0x40;
     private long timeLastOut;
     private boolean tapeInserted, tapePlaying, tapeRecording;
-    private boolean tzxTape, cswTape;
+    private boolean tzxTape, cswTape, stopRequested;;
     /*
      * Tiempos en T-estados de duración de cada pulso para cada parte de la
      * carga
@@ -581,6 +581,10 @@ public class Tape implements machine.ClockTimeoutListener {
     @Override
     public void clockTimeout() {
 
+        if (stopRequested) {
+            statePlay = State.STOP;
+        }
+
         if (cswTape) {
             playCsw();
         }
@@ -770,6 +774,7 @@ public class Tape implements machine.ClockTimeoutListener {
         tapePos = offsetBlocks[idxHeader];
         fireTapeStateChanged(TapeState.PLAY);
         tapePlaying = true;
+        stopRequested = false;
         clock.addClockTimeoutListener(this);
         clockTimeout();
         return true;
@@ -780,12 +785,15 @@ public class Tape implements machine.ClockTimeoutListener {
             return;
         }
 
-        statePlay = State.STOP;
+        stopRequested = true;
+    }
+
+    private void tapeStop() {
+        if (!tapeInserted || !tapePlaying || tapeRecording) {
+            return;
+        }
 
         fireTapeBlockChanged(idxHeader);
-        tapePlaying = false;
-//        fireTapeStateChanged(TapeState.STOP);        
-//        clock.removeClockTimeoutListener(this);
 
         // stop method can be called from clockTimeout and this was fired by
         // Clock.fireClockTimeout. Execute here removeClockTimeoutListener gets a
@@ -805,6 +813,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
                 fireTapeStateChanged(TapeState.STOP);
                 clock.removeClockTimeoutListener(myself);
+                tapePlaying = false;
             }
         }.start();
     }
@@ -848,7 +857,7 @@ public class Tape implements machine.ClockTimeoutListener {
 //        System.out.println(String.format("Estado de la cinta: %s", statePlay.toString()));
         switch (statePlay) {
             case STOP:
-                stop();
+                tapeStop();
                 break;
             case START:
                 fireTapeBlockChanged(idxHeader);
@@ -913,7 +922,7 @@ public class Tape implements machine.ClockTimeoutListener {
             case PAUSE_STOP:
                 idxHeader++;
                 if (tapePos == tapeBuffer.length) {
-                    stop();
+                    tapeStop();
                 } else {
                     statePlay = State.START; // START
                     playTap();
@@ -1077,7 +1086,7 @@ public class Tape implements machine.ClockTimeoutListener {
             repeat = false;
             switch (statePlay) {
                 case STOP:
-                    stop();
+                    tapeStop();
                     break;
                 case START:
                     tapePos = offsetBlocks[idxHeader];
@@ -1547,7 +1556,7 @@ public class Tape implements machine.ClockTimeoutListener {
         switch (statePlay) {
             case STOP:
                 idxHeader++;
-                stop();
+                tapeStop();
                 break;
             case START:
                 if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
@@ -1573,7 +1582,7 @@ public class Tape implements machine.ClockTimeoutListener {
             // No break statement, that's correct. :)
             case CSW_RLE:
                 if (tapePos == tapeBuffer.length) {
-                    stop();
+                    tapeStop();
                     break;
                 }
                 earBit ^= EAR_MASK;
@@ -1595,7 +1604,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     if (timeout < 0) {
                         iis.close();
                         bais.close();
-                        stop();
+                        tapeStop();
                         break;
                     }
 
@@ -1615,7 +1624,7 @@ public class Tape implements machine.ClockTimeoutListener {
                         } else {
                             iis.close();
                             bais.close();
-                            stop();
+                            tapeStop();
                             break;
                         }
                     }
