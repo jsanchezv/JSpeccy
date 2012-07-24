@@ -742,6 +742,8 @@ public final class Memory {
      *     La mayoría de información acerca de los detalles no evidentes proviene de él.
      *     Thanks Woodster. :)
      *
+     *     http://www.worldofspectrum.org/forums/showthread.php?t=12294
+     *
      */
     public void pageMultiface() {
         if (multifacePaged || plus3RamMode) {
