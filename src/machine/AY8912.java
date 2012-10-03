@@ -275,6 +275,18 @@ public final class AY8912 {
                     Attack = false;
                 }
                 Continue = false;
+                
+                if (envA) {
+                    amplitudeA = volumeLevel[amplitudeEnv];
+                }
+
+                if (envB) {
+                    amplitudeB = volumeLevel[amplitudeEnv];
+                }
+
+                if (envC) {
+                    amplitudeC = volumeLevel[amplitudeEnv];
+                }
                 break;
             case IOPortA:
             case IOPortB:
