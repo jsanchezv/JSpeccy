@@ -53,28 +53,28 @@ public final class AY8912 {
     private int envelopePeriod, envelopeCounter;
 
     /* Envelope shape cycles:
-    C AtAlH
-    0 0 x x  \_______
+     C AtAlH
+     0 0 x x  \_______
 
-    0 1 x x  /|______
+     0 1 x x  /|______
 
-    1 0 0 0  \|\|\|\|
+     1 0 0 0  \|\|\|\|
 
-    1 0 0 1  \_______
+     1 0 0 1  \_______
 
-    1 0 1 0  \/\/\/\/
-    ______
-    1 0 1 1  \|
+     1 0 1 0  \/\/\/\/
+     ______
+     1 0 1 1  \|
 
-    1 1 0 0  /|/|/|/|
-    _______
-    1 1 0 1  /
+     1 1 0 0  /|/|/|/|
+     _______
+     1 1 0 1  /
 
-    1 1 1 0  /\/\/\/\
+     1 1 1 0  /\/\/\/\
 
-    1 1 1 1  /|______
+     1 1 1 1  /|______
 
-    The envelope counter on the AY-3-8910 has 16 steps.
+     The envelope counter on the AY-3-8910 has 16 steps.
      */
     private boolean Continue, Attack;
     // Envelope amplitude
@@ -98,8 +98,7 @@ public final class AY8912 {
     private int[] bufC;
     private int pbuf;
     private int FREQ;
-    private double step, stepCounter;
-    private int nSteps;
+    private double step, stepCounter, stepRate;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
@@ -127,18 +126,18 @@ public final class AY8912 {
         state.setRegAY(regs);
         return state;
     }
-    
+
     public void setAY8912State(AY8912State state) {
-        
+
         int[] ay = state.getRegAY();
         for (int reg = 0; reg < 16; reg++) {
             addressLatch = reg;
             writeRegister(ay[reg]);
         }
-        
+
         addressLatch = state.getAddressLatch();
     }
-    
+
     public void setSpectrumModel(MachineTypes model) {
         if (spectrumModel != model) {
             spectrumModel = model;
@@ -147,6 +146,7 @@ public final class AY8912 {
 
         if (samplesPerFrame != 0) {
             step = (double) spectrumModel.tstatesFrame / (double) samplesPerFrame;
+            stepRate = step / 16.0;
         }
     }
 
@@ -162,7 +162,8 @@ public final class AY8912 {
     public void setAudioFreq(int freq) {
         FREQ = freq;
         samplesPerFrame = FREQ / 50;
-        step = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
+        step = (double) spectrumModel.tstatesFrame / (double) samplesPerFrame;
+        stepRate = step / 16.0;
 //        System.out.println(String.format("step = %f", step));
     }
 
@@ -230,26 +231,29 @@ public final class AY8912 {
             case AmplitudeA:
                 regAY[AmplitudeA] = value & 0x1f;
                 envA = (value & ENVELOPE) != 0;
-                if (envA)
+                if (envA) {
                     amplitudeA = volumeLevel[amplitudeEnv];
-                else
+                } else {
                     amplitudeA = volumeLevel[value & 0x0f];
+                }
                 break;
             case AmplitudeB:
                 regAY[AmplitudeB] = value & 0x1f;
                 envB = (value & ENVELOPE) != 0;
-                if (envB)
+                if (envB) {
                     amplitudeB = volumeLevel[amplitudeEnv];
-                else
+                } else {
                     amplitudeB = volumeLevel[value & 0x0f];
+                }
                 break;
             case AmplitudeC:
                 regAY[AmplitudeC] = value & 0x1f;
                 envC = (value & ENVELOPE) != 0;
-                if (envC)
+                if (envC) {
                     amplitudeC = volumeLevel[amplitudeEnv];
-                else
+                } else {
                     amplitudeC = volumeLevel[value & 0x0f];
+                }
                 break;
             case FineEnvelope:
             case CoarseEnvelope:
@@ -275,7 +279,7 @@ public final class AY8912 {
                     Attack = false;
                 }
                 Continue = false;
-                
+
                 if (envA) {
                     amplitudeA = volumeLevel[amplitudeEnv];
                 }
@@ -395,25 +399,44 @@ public final class AY8912 {
             // es cero cuando tono == 0. Es incorrecto hacerlo oscilar
             // entre -VOL...+VOL, ya que entonces no se reproducen efectos
             // como la voz digitalizada de Robocop.
-            if ((toneA || disableToneA) && (toneN || disableNoiseA))
-                volumeA += amplitudeA;
-            
-            if ((toneB || disableToneB) && (toneN || disableNoiseB))
-                volumeB += amplitudeB;
-            
-            if ((toneC || disableToneC) && (toneN || disableNoiseC))
-                volumeC += amplitudeC;
-
-            nSteps++;
-
+            double percent = step - stepCounter;
             stepCounter += 16.0;
-            if (stepCounter >= step) {
+            if (percent > 16.0) {
+                if ((toneA || disableToneA) && (toneN || disableNoiseA)) {
+                    volumeA += amplitudeA;
+                }
+
+                if ((toneB || disableToneB) && (toneN || disableNoiseB)) {
+                    volumeB += amplitudeB;
+                }
+
+                if ((toneC || disableToneC) && (toneN || disableNoiseC)) {
+                    volumeC += amplitudeC;
+                }
+            } else {
+                percent /= 16.0;
+                int lastA = 0, lastB = 0, lastC = 0;
+                if ((toneA || disableToneA) && (toneN || disableNoiseA)) {
+                    lastA = (int) (amplitudeA * percent);
+                }
+
+                if ((toneB || disableToneB) && (toneN || disableNoiseB)) {
+                    lastB = (int) (amplitudeB * percent);
+                }
+
+                if ((toneC || disableToneC) && (toneN || disableNoiseC)) {
+                    lastC = (int) (amplitudeC * percent);
+                }
+
                 stepCounter -= step;
-                bufA[pbuf] = volumeA / nSteps;
-                bufB[pbuf] = volumeB / nSteps;
-                bufC[pbuf] = volumeC / nSteps;
+                bufA[pbuf] = (int) ((volumeA + lastA) / stepRate);
+                bufB[pbuf] = (int) ((volumeB + lastB) / stepRate);
+                bufC[pbuf] = (int) ((volumeC + lastC) / stepRate);
                 pbuf++;
-                volumeA = volumeB = volumeC = nSteps = 0;
+
+                volumeA = lastA > 0 ? amplitudeA - lastA : 0;
+                volumeB = lastB > 0 ? amplitudeB - lastB : 0;
+                volumeC = lastC > 0 ? amplitudeC - lastC : 0;
             }
         }
     }
@@ -427,7 +450,7 @@ public final class AY8912 {
         periodA = periodB = periodC = periodN = 1;
         counterA = counterB = counterC = counterN = 0;
         amplitudeA = amplitudeB = amplitudeC = amplitudeEnv = 0;
-        volumeA = volumeB = volumeC = nSteps = 0;
+        volumeA = volumeB = volumeC = 0;
         envelopePeriod = 0;
         addressLatch = 0;
         toneA = toneB = toneC = toneN = false;
@@ -441,7 +464,6 @@ public final class AY8912 {
     public void startPlay() {
         audiotstates = pbuf = 0;
         stepCounter = 0.0;
-        nSteps = 0;
 
         if (bufA != null) {
             Arrays.fill(bufA, 0);
