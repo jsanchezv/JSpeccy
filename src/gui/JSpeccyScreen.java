@@ -43,8 +43,8 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int yuV = 2;
     
     // Estos miembros solo cambian cuando cambia el tamaño del borde
-    private int LEFT_BORDER = 24;
-    private int RIGHT_BORDER = 40;
+    private int LEFT_BORDER = 32;
+    private int RIGHT_BORDER = 32;
     private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
     private int TOP_BORDER = 24;
     private int BOTTOM_BORDER = 24;
@@ -143,20 +143,20 @@ public class JSpeccyScreen extends javax.swing.JComponent {
                 LEFT_BORDER = RIGHT_BORDER = TOP_BORDER = BOTTOM_BORDER = 0;
                 break;
             case 2: // Full standard border
-                LEFT_BORDER = 40;
+                LEFT_BORDER = 48;
                 RIGHT_BORDER = 48;
                 TOP_BORDER = 48;
                 BOTTOM_BORDER = 56;
                 break;
             case 3: // Huge border
-                LEFT_BORDER = 56;
-                RIGHT_BORDER = 72;
+                LEFT_BORDER = 64;
+                RIGHT_BORDER = 64;
                 TOP_BORDER = 56;
                 BOTTOM_BORDER = 56;
                 break;
             default: // Standard border
-                LEFT_BORDER = 24;
-                RIGHT_BORDER = 40;
+                LEFT_BORDER = 32;
+                RIGHT_BORDER = 32;
                 TOP_BORDER = 24;
                 BOTTOM_BORDER = 24;
         }

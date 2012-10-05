@@ -456,8 +456,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         long counter = framesByInt;
 
-        firstLine = lastLine = rightCol = lastBorderPix = 0;
+        lastScanLine = rightCol = lastBorderPix = 0;
         firstBorderPix = dataInProgress.length;
+        firstScanLine = 191;
         leftCol = 31;
         lastChgBorder = firstBorderUpdate;
 
@@ -573,12 +574,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 if (screenDirty) {
                     screenDirty = false;
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
-                    firstLine = repaintTable[firstLine & 0x1fff];
-                    lastLine = repaintTable[lastLine & 0x1fff];
                     screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
-                    screenRect.y = ((TOP_BORDER + firstLine) * zoom) - zoom;
+                    screenRect.y = ((TOP_BORDER + firstScanLine) * zoom) - zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
-                    screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom;
+                    screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
                     jscr.repaint(borderRect.union(screenRect));
                 } else {
@@ -593,14 +592,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (screenDirty) {
             screenDirty = false;
             gcTvImage.drawImage(inProgressImage, 0, 0, null);
-            firstLine = repaintTable[firstLine & 0x1fff];
-            lastLine = repaintTable[lastLine & 0x1fff];
 
             int zoom = jscr.getZoom();
             screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
-            screenRect.y = ((TOP_BORDER + firstLine) * zoom) - zoom;
+            screenRect.y = ((TOP_BORDER + firstScanLine) * zoom) - zoom;
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
-            screenRect.height = ((lastLine - firstLine + 1) * zoom) + zoom * 2;
+            screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
             jscr.repaint(screenRect);
 
@@ -611,8 +608,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         stopEmulation();
 
-        firstLine = lastLine = lastBorderPix = 0;
+        lastScanLine = lastBorderPix = 0;
         firstBorderPix = dataInProgress.length;
+        firstScanLine = 191;
         leftCol = 31;
         rightCol = 0;
         lastChgBorder = firstBorderUpdate;
@@ -640,8 +638,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 jscr.repaint();
 
-                firstLine = lastLine = rightCol = lastBorderPix = 0;
+                lastScanLine = rightCol = lastBorderPix = 0;
                 firstBorderPix = dataInProgress.length;
+                firstScanLine = 191;
                 leftCol = 31;
                 lastChgBorder = firstBorderUpdate;
                 
@@ -665,8 +664,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
         } while (tape.isTapePlaying());
 
-        firstLine = lastLine = rightCol = lastBorderPix = step = 0;
+        lastScanLine = rightCol = lastBorderPix = step = 0;
         firstBorderPix = dataInProgress.length;
+        firstScanLine = 191;
         leftCol = 31;
         lastChgBorder = firstBorderUpdate;
 
@@ -974,7 +974,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             switch (col % 8) {
                 case 0:
                     addr = scrAddr[row] + col / 4;
-                    floatbus = memory.readScreenByte(addr);
+                    floatbus = memory.readScreenByte(addr & 0x1fff);
                     break;
                 case 1:
                     addr = scr2attr[(scrAddr[row] + col / 4) & 0x1fff];
@@ -982,7 +982,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     break;
                 case 2:
                     addr = scrAddr[row] + col / 4 + 1;
-                    floatbus = memory.readScreenByte(addr);
+                    floatbus = memory.readScreenByte(addr & 0x1fff);
                     break;
                 case 3:
                     addr = scr2attr[(scrAddr[row] + col / 4 + 1) & 0x1fff];
@@ -1489,8 +1489,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         audio.open(spectrumModel, ay8912, enabledAY,
             settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
         enabledSound = true;
-
-
     }
 
     private void disableSound() {
@@ -1554,7 +1552,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     // ya están cambiados, lo que facilita el tratamiento del FLASH.
     private static final int Paper[] = new int[256];
     private static final int Ink[] = new int[256];
-    // Tabla de correspondencia entre la dirección de pantalla y su atributo
+    // Tabla de correspondencia entre la dirección de pantalla y su atributo - 0x4000
     public final int scr2attr[] = new int[6144];
     // Tabla de correspondencia entre cada atributo y el primer byte del carácter
     // en la pantalla del Spectrum (la contraria de la anterior)
@@ -1562,8 +1560,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     // Tabla de correspondencia entre la dirección de pantalla del Spectrum
     // y la dirección que le corresponde en el BufferedImage.
     private final int bufAddr[] = new int[6144];
-    // Tabla para hacer más rápido el redibujado
-    private final int repaintTable[] = new int[6144];
+    // Tabla para hacer más rápido el redibujado. Para cada dirección de memoria del 
+    // Spectrum, almacena la línea de scan que le corresponde en la pantalla (0-191)
+    private final int scanLineTable[] = new int[6144];
     // Tabla que contiene la dirección de pantalla del primer byte de cada
     // carácter en la columna cero.
     private final int scrAddr[] = new int[192];
@@ -1585,8 +1584,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private int nextEvent = NO_EVENT;
     
     // Estos miembros solo cambian cuando cambia el tamaño del borde
-    private int LEFT_BORDER = 24;
-    private int RIGHT_BORDER = 40;
+    private int LEFT_BORDER = 32;
+    private int RIGHT_BORDER = 32;
     private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
     private int TOP_BORDER = 24;
     private int BOTTOM_BORDER = 24;
@@ -1628,7 +1627,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
     // Primera y última línea a ser actualizada
-    private int firstLine, lastLine;
+    private int firstScanLine, lastScanLine;
     private int leftCol, rightCol;
     // ULAplus support (30/08/2010)
     // Color palette
@@ -1687,10 +1686,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             col = address & 0x1f;
             scan = (address & 0x700) >>> 8;
 
-            repaintTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
+            scanLineTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
             bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER) * SCREEN_WIDTH
                 + col * 8 + LEFT_BORDER;
-            scr2attr[address & 0x1fff] = 0x5800 + row * 32 + col;
+            scr2attr[address & 0x1fff] = 0x1800 + row * 32 + col;
         }
 
         for (int address = 0x5800; address < 0x5B00; address++) {
@@ -1713,20 +1712,20 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 LEFT_BORDER = RIGHT_BORDER = TOP_BORDER = BOTTOM_BORDER = 0;
                 break;
             case 2: // Full standard border
-                LEFT_BORDER = 40;
+                LEFT_BORDER = 48;
                 RIGHT_BORDER = 48;
                 TOP_BORDER = 48;
                 BOTTOM_BORDER = 56;
                 break;
             case 3: // Huge border
-                LEFT_BORDER = 56;
-                RIGHT_BORDER = 72;
+                LEFT_BORDER = 64;
+                RIGHT_BORDER = 64;
                 TOP_BORDER = 56;
                 BOTTOM_BORDER = 56;
                 break;
             default: // Standard border
-                LEFT_BORDER = 24;
-                RIGHT_BORDER = 40;
+                LEFT_BORDER = 32;
+                RIGHT_BORDER = 32;
                 TOP_BORDER = 24;
                 BOTTOM_BORDER = 24;
         }
@@ -1770,7 +1769,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     public synchronized void toggleFlash() {
         flash = (flash == 0x7f ? 0xff : 0x7f);
 
-        for (int addrAttr = 0x5800; addrAttr < 0x5b00; addrAttr++) {
+        // 0x1800 + 0x4000 = 0x5800 (attr area)
+        for (int addrAttr = 0x1800; addrAttr < 0x1b00; addrAttr++) {
             if (memory.readScreenByte(addrAttr) < 0) {
                 notifyScreenWrite(addrAttr);
             }
@@ -1932,16 +1932,19 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 //        System.out.println(String.format("from: %d\tto: %d", lastScreenState, toTstates));
 
         while (step < stepStates.length && stepStates[step] <= tstates) {
-            fromAddr = states2scr[stepStates[step++]];
+            fromAddr = states2scr[stepStates[step++]] & 0x1fff;
 
-            if (!dirtyByte[fromAddr & 0x1fff]) {
+            if (!dirtyByte[fromAddr]) {
                 continue;
             }
 
-            if (firstLine == 0) {
-                firstLine = lastLine = fromAddr;
-            } else {
-                lastLine = fromAddr;
+            int scan = scanLineTable[fromAddr];
+            if (firstScanLine > scan) {
+                firstScanLine = scan;
+            }
+
+            if (lastScanLine < scan) {
+                lastScanLine = scan;
             }
 
             int column = fromAddr & 0x1f;
@@ -1954,9 +1957,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             scrByte = memory.readScreenByte(fromAddr);
-            fromAddr &= 0x1fff;
             attr = memory.readScreenByte(scr2attr[fromAddr]) & 0xff;
-
             addrBuf = bufAddr[fromAddr];
 
             if (ULAPlusActive) {

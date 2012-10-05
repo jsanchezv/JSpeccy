@@ -161,7 +161,7 @@ public final class Memory {
     }
     
     public byte readScreenByte(int address) {
-        return Ram[screenPage][address & 0x1fff];
+        return Ram[screenPage][address];
     }
 
     public byte readByte(int address) {
