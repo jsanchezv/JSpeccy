@@ -63,11 +63,11 @@ public final class AY8912 {
      1 0 0 1  \_______
 
      1 0 1 0  \/\/\/\/
-     ______
+                ______
      1 0 1 1  \|
 
      1 1 0 0  /|/|/|/|
-     _______
+               _______
      1 1 0 1  /
 
      1 1 1 0  /\/\/\/\
@@ -270,7 +270,6 @@ public final class AY8912 {
             case EnvelopeShapeCycle:
                 regAY[EnvelopeShapeCycle] = value & 0x0f;
 //                System.out.println(String.format("envShape: %02x", value & 0x0f));
-                envelopeCounter = 0;
                 if ((value & ATTACK) != 0) {
                     amplitudeEnv = 0;
                     Attack = true;
@@ -307,22 +306,22 @@ public final class AY8912 {
         while (audiotstates < tstates) {
             audiotstates += 16;
 
-            if (++counterA >= periodA) {
+            if (++counterA > periodA) {
                 toneA = !toneA;
                 counterA = 0;
             }
 
-            if (++counterB >= periodB) {
+            if (++counterB > periodB) {
                 toneB = !toneB;
                 counterB = 0;
             }
 
-            if (++counterC >= periodC) {
+            if (++counterC > periodC) {
                 toneC = !toneC;
                 counterC = 0;
             }
 
-            if (++counterN >= periodN) {
+            if (++counterN > periodN) {
                 counterN = 0;
                 // Changes to R6 take effect only when internal counter reaches 0
                 periodN = regAY[NoisePeriod];
@@ -353,7 +352,7 @@ public final class AY8912 {
                 // End of code borrowed from MAME sources
             }
 
-            if (++envelopeCounter >= envelopePeriod) {
+            if (++envelopeCounter > envelopePeriod) {
                 envelopeCounter = 0;
 
                 if (!Continue) {
