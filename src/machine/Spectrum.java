@@ -1482,7 +1482,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     private void enableSound() {
-        if (paused || muted || enabledSound) {
+        if (paused || muted || enabledSound || framesByInt > 1) {
             return;
         }
 
