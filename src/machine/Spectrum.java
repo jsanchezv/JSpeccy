@@ -1463,7 +1463,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         return false;
     }
 
-    static final int SPEAKER_VOLUME = 11000;
+    static final int SPEAKER_VOLUME = 6300;
     private int speaker;
     private static final int sp_volt[];
 
@@ -1523,7 +1523,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         sp_volt[0] = 0; //(int) -SPEAKER_VOLUME;
         sp_volt[1] = 0; // (int) -(SPEAKER_VOLUME * 1.4);
         sp_volt[2] = (int) SPEAKER_VOLUME;
-        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.4);
+        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.3);
     }
 
     /* Sección gráfica */

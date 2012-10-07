@@ -110,7 +110,7 @@ public final class AY8912 {
     private MachineTypes spectrumModel;
 
     AY8912() {
-        maxAmplitude = 16000;
+        maxAmplitude = 8192;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
