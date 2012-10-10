@@ -520,7 +520,6 @@ public class JSpeccy extends javax.swing.JFrame {
                 JOptionPane.OK_CANCEL_OPTION, dialogType); // NOI18N
         
         if( ret == JOptionPane.YES_OPTION ) {
-            spectrum.stopEmulation();
             if (tape.isTapeRunning()) {
                 tape.stop();
             }
