@@ -5,6 +5,7 @@
 package machine;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 
 /**
  *
@@ -15,7 +16,7 @@ public class Clock {
     private int tstates;
     private long frames;
     private int timeout;
-    private final ArrayList<ClockTimeoutListener> clockListeners = new ArrayList<ClockTimeoutListener>();    
+    private final ArrayList<ClockTimeoutListener> clockListeners = new ArrayList<ClockTimeoutListener>();
 
     public Clock() {
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -39,7 +40,7 @@ public class Clock {
             clockListeners.add(listener);
         }
     }
-    
+
     /**
      * Remove a new event listener from the list of event listeners.
      *
@@ -58,7 +59,7 @@ public class Clock {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
     }
-    
+
     /**
      * @param spectrumModel the spectrumModel to set
      */
@@ -81,7 +82,7 @@ public class Clock {
         tstates = states;
         frames = 0;
     }
-    
+
     public void addTstates(int states) {
         tstates += states;
 
@@ -94,11 +95,11 @@ public class Clock {
             }
         }
     }
-    
+
     public long getFrames() {
         return frames;
     }
-    
+
     public void endFrame() {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
@@ -114,12 +115,9 @@ public class Clock {
 
     public void setTimeout(int ntstates) {
         if (timeout > 0) {
-            System.err.println("Can't set a timeout!");
-            return;
+            throw new ConcurrentModificationException("A timeout is in progress. Can't set another timeout!");
         }
 
         timeout = ntstates > 0 ? ntstates : 1;
-
-//        System.out.println(String.format("timeout %d set for class %s", timeout, target.getClass().getName()));
     } 
 }
