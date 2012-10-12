@@ -1229,14 +1229,12 @@ public class Tape implements machine.ClockTimeoutListener {
                             tapePos++;
                             if (--blockLen == 0) {
                                 statePlay = State.LAST_PULSE;
-                                clock.setTimeout(timeout);
                                 break;
                             }
                         } else {
                             if (blockLen == 1 && bitsLastByte < 8) {
                                 if (mask == (0x80 >>> bitsLastByte)) {
                                     statePlay = State.LAST_PULSE;
-                                    clock.setTimeout(timeout);
                                     tapePos++;
                                     break;
                                 }
