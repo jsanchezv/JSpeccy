@@ -89,7 +89,16 @@ class Audio {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
+            switch (soundMode) {
+                case 2: // Stereo ACB
+                    ay8912.setBufferChannels(ayBufA, ayBufC, ayBufB);
+                    break;
+                case 3: // Stereo BAC
+                    ay8912.setBufferChannels(ayBufB, ayBufA, ayBufC);
+                    break;
+                default: // Stereo ABC or Mono
+                    ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
+            }
             ay8912.setAudioFreq(samplingFrequency);
             ay8912.startPlay();
             ay = ay8912;
@@ -171,22 +180,11 @@ class Audio {
             ay.endFrame();
         }
 
-        switch (soundMode) {
-            case 1: // Stereo ABC
-//                System.out.println("ABC");
-                ptr = endFrameStereoABC();
-                break;
-            case 2: // Stereo ACB
-//                System.out.println("ACB");
-                ptr = endFrameStereoACB();
-                break;
-            case 3:
-//                System.out.println("BAC");
-                ptr = endFrameStereoBAC();
-                break;
-            default:
-//                System.out.println("Mono");
-                ptr = endFrameMono();
+        if (soundMode == 0) {
+            ptr = endFrameMono();
+        }
+        else {
+            ptr = endFrameStereo();
         }
 
         flushBuffer(ptr);
@@ -219,7 +217,7 @@ class Audio {
         return ptr;
     }
 
-    private int endFrameStereoABC() {
+    private int endFrameStereo() {
 
         int ptr = 0;
 //        int ayCnt = ay.getSampleCount();
@@ -234,74 +232,6 @@ class Audio {
                 center = (int)(ayBufB[idx] * 0.7);
                 sampleL = beeper[idx] + ayBufA[idx] + center + ayBufC[idx] / 3;
                 sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufC[idx];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
-            }
-        } else {
-            byte lsb, msb;
-            for (int idx = 0; idx < bufp; idx++) {
-                lsb = (byte) beeper[idx];
-                msb = (byte) (beeper[idx] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-            }
-        }
-        return ptr;
-    }
-
-    private int endFrameStereoACB() {
-
-        int ptr = 0;
-//        int ayCnt = ay.getSampleCount();
-//        System.out.println(String.format("BeeperChg %d", beeperChg));
-
-        // El código está repetido, lo que es correcto. Si no se hace así habría
-        // que meter la comprobación de enabledAY dentro del bucle, lo que
-        // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        if (enabledAY) {
-            int sampleL, sampleR, center;
-            for (int idx = 0; idx < bufp; idx++) {
-                center = (int)(ayBufC[idx] * 0.7);
-                sampleL = beeper[idx] + ayBufA[idx] + center + ayBufB[idx] / 3;
-                sampleR = beeper[idx] + ayBufA[idx] / 3 + center + ayBufB[idx];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
-            }
-        } else {
-            byte lsb, msb;
-            for (int idx = 0; idx < bufp; idx++) {
-                lsb = (byte) beeper[idx];
-                msb = (byte) (beeper[idx] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-            }
-        }
-        return ptr;
-    }
-
-    private int endFrameStereoBAC() {
-
-        int ptr = 0;
-//        int ayCnt = ay.getSampleCount();
-//        System.out.println(String.format("BeeperChg %d", beeperChg));
-
-        // El código está repetido, lo que es correcto. Si no se hace así habría
-        // que meter la comprobación de enabledAY dentro del bucle, lo que
-        // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        if (enabledAY) {
-            int sampleL, sampleR, center;
-            for (int idx = 0; idx < bufp; idx++) {
-                center = (int)(ayBufA[idx] * 0.7);
-                sampleL = beeper[idx] + ayBufB[idx] + center + ayBufC[idx] / 3;
-                sampleR = beeper[idx] + ayBufB[idx] / 3 + center + ayBufC[idx];
                 buf[ptr++] = (byte) sampleL;
                 buf[ptr++] = (byte)(sampleL >>> 8);
                 buf[ptr++] = (byte) sampleR;
