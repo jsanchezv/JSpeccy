@@ -25,6 +25,7 @@ public class Keyboard implements KeyListener {
     private KeyEvent keyEventPending[] = new KeyEvent[8];
     private int kempston, fuller;
     private Joystick joystick;
+    private int capsShiftCounter = 0;
 
     /*
      * Spectrum Keyboard Map
@@ -70,7 +71,7 @@ public class Keyboard implements KeyListener {
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
         shiftPressed = false;
-        kempston = 0;
+        kempston = capsShiftCounter = 0;
         fuller = 0xff;
         Arrays.fill(keyEventPending, null);
     }
@@ -335,6 +336,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
+                capsShiftCounter++;
                 rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
                 rowKey[4] &= KEY_PRESSED_BIT0; // 0
                 break;
@@ -369,10 +371,12 @@ public class Keyboard implements KeyListener {
                 rowKey[5] &= KEY_PRESSED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
+                capsShiftCounter++;
                 rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
                 rowKey[3] &= KEY_PRESSED_BIT1; // 2  -- Caps Lock
                 break;
             case KeyEvent.VK_ESCAPE:
+                capsShiftCounter++;
                 rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 rowKey[7] &= KEY_PRESSED_BIT0; // Space
                 break;
@@ -381,6 +385,7 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
+                        capsShiftCounter++;
                     case CURSOR:
                         rowKey[3] &= KEY_PRESSED_BIT4; // 5  -- Left arrow
                         break;
@@ -402,6 +407,7 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
+                        capsShiftCounter++;
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT4; // 6  -- Down arrow
                         break;
@@ -423,6 +429,7 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
+                        capsShiftCounter++;
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT3; // 7  -- Up arrow
                         break;
@@ -444,6 +451,7 @@ public class Keyboard implements KeyListener {
                 switch (joystick) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
+                        capsShiftCounter++;
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT2; // 8  -- Right arrow
                         break;
@@ -661,7 +669,10 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                if (--capsShiftCounter < 1) {
+                    capsShiftCounter = 0;
+                    rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                }
                 rowKey[4] |= KEY_RELEASED_BIT0; // 0
                 break;
             case KeyEvent.VK_COMMA:
@@ -695,18 +706,27 @@ public class Keyboard implements KeyListener {
                 rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                if (--capsShiftCounter < 1) {
+                    capsShiftCounter = 0;
+                    rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                }
                 rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case KeyEvent.VK_ESCAPE:
-                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+                if (--capsShiftCounter < 1) {
+                    capsShiftCounter = 0;
+                    rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                }
                 rowKey[7] |= KEY_RELEASED_BIT0; // Space
                 break;
             // Joystick emulation
             case KeyEvent.VK_LEFT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        if (--capsShiftCounter < 1) {
+                            capsShiftCounter = 0;
+                            rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        }
                     case CURSOR:
                         rowKey[3] |= KEY_RELEASED_BIT4; // 5 -- Left arrow
                         break;
@@ -727,7 +747,10 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_DOWN:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        if (--capsShiftCounter < 1) {
+                            capsShiftCounter = 0;
+                            rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        }
                     case CURSOR:
                         rowKey[4] |= KEY_RELEASED_BIT4; // 6 -- Down arrow
                         break;
@@ -748,7 +771,10 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_UP:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        if (--capsShiftCounter < 1) {
+                            capsShiftCounter = 0;
+                            rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        }
                     case CURSOR:
                         rowKey[4] |= KEY_RELEASED_BIT3; // 7  -- Up arrow
                         break;
@@ -769,7 +795,10 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_RIGHT:
                 switch (joystick) {
                     case NONE:
-                        rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        if (--capsShiftCounter < 1) {
+                            capsShiftCounter = 0;
+                            rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
+                        }
                     case CURSOR:
                         rowKey[4] |= KEY_RELEASED_BIT2; // 8 -- Right arrow
                         break;
