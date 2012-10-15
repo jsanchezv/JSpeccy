@@ -2292,7 +2292,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         @Override
         public void clockTimeout() {
 
-            int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 4000;
+            int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 2000;
 
             if (spkMic != speaker) {
                 audio.updateAudio(clock.getTstates(), speaker);
