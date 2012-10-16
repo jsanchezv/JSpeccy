@@ -652,7 +652,8 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
+                if (capsShiftCounter == 0)
+                    rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 shiftPressed = false;
                 break;
             case KeyEvent.VK_Z:
@@ -669,7 +670,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                if (--capsShiftCounter < 1) {
+                if (--capsShiftCounter < 1 && !shiftPressed) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
@@ -706,14 +707,14 @@ public class Keyboard implements KeyListener {
                 rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                if (--capsShiftCounter < 1) {
+                if (--capsShiftCounter < 1 && !shiftPressed) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
                 rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case KeyEvent.VK_ESCAPE:
-                if (--capsShiftCounter < 1) {
+                if (--capsShiftCounter < 1 && !shiftPressed) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
@@ -723,7 +724,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_LEFT:
                 switch (joystick) {
                     case NONE:
-                        if (--capsShiftCounter < 1) {
+                        if (--capsShiftCounter < 1 && !shiftPressed) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -747,7 +748,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_DOWN:
                 switch (joystick) {
                     case NONE:
-                        if (--capsShiftCounter < 1) {
+                        if (--capsShiftCounter < 1 && !shiftPressed) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -771,7 +772,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_UP:
                 switch (joystick) {
                     case NONE:
-                        if (--capsShiftCounter < 1) {
+                        if (--capsShiftCounter < 1 && !shiftPressed) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -795,7 +796,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_RIGHT:
                 switch (joystick) {
                     case NONE:
-                        if (--capsShiftCounter < 1) {
+                        if (--capsShiftCounter < 1 && !shiftPressed) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
