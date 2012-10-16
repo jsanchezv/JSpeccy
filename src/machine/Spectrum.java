@@ -2258,6 +2258,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     
     private class TapeChangedListener implements TapeStateListener, ClockTimeoutListener {
 
+        boolean listenerInstalled = false;
         @Override
         public void stateChanged(final TapeState state) {
 //            System.out.println("Spectrum::TapeChangedListener: state = " + state + "");
@@ -2275,15 +2276,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                             }.start();
                         } else {
                             if (specSettings.isLoadingNoise() && enabledSound) {
+                                listenerInstalled = true;
                                 clock.addClockTimeoutListener(this);
                             }
                         }
                     }
                     break;
                 case STOP:
-                    if (!paused && !settings.getTapeSettings().isAccelerateLoading()
-                            && specSettings.isLoadingNoise() && enabledSound) {
+                    if (listenerInstalled) {
                         clock.removeClockTimeoutListener(this);
+                        listenerInstalled = false;
                     }
                     break;
             }
