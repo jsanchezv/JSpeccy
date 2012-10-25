@@ -36,7 +36,6 @@ import utilities.TapeStateListener;
  * @author  jsanchez
  */
 public class JSpeccy extends javax.swing.JFrame {
-    Clock clock;
     Spectrum spectrum;
     Tape tape;
     JSpeccyScreen jscr;
@@ -285,10 +284,8 @@ public class JSpeccy extends javax.swing.JFrame {
     private void initEmulator() {
 
         readSettingsFile();
-
-        clock = new Clock();
         
-        spectrum = new Spectrum(clock, settings);
+        spectrum = new Spectrum(settings);
 
         spectrum.selectHardwareModel(settings.getSpectrumSettings().getDefaultModel());
         
@@ -298,7 +295,7 @@ public class JSpeccy extends javax.swing.JFrame {
         
         spectrum.loadConfigVars();
         
-        tape = new Tape(clock, settings.getTapeSettings());
+        tape = new Tape(settings.getTapeSettings());
         spectrum.setTape(tape);
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);

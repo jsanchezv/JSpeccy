@@ -72,9 +72,9 @@ public class Microdrive {
     private Clock clock;
     private long startGap;
 
-    public Microdrive(Clock clock) {
+    public Microdrive() {
         
-        this.clock = clock;
+        clock = Clock.getInstance();
         isCartridge = mdrFile = false;
         writeProtected = true;
         cartridgePos = 0;

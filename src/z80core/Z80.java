@@ -279,8 +279,8 @@ public class Z80 {
     private boolean breakpointAt[] = new boolean[65536];
     
     // Constructor de la clase
-    public Z80(Clock clock, MemIoOps memory, NotifyOps notify) {
-        this.clock = clock;
+    public Z80(MemIoOps memory, NotifyOps notify) {
+        this.clock = Clock.getInstance();
         MemIoImpl = memory;
         NotifyImpl = notify;
         execDone = false;

@@ -64,11 +64,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private boolean connectedIF1;
     private Interface1 if1;
 
-    public Spectrum(Clock clk, JSpeccySettingsType config) {
-        clock = clk;
+    public Spectrum(JSpeccySettingsType config) {
+        clock = Clock.getInstance();
         settings = config;
         specSettings = settings.getSpectrumSettings();
-        z80 = new Z80(clock, this, this);
+        z80 = new Z80(this, this);
         memory = new Memory(settings);
         initGFX();
         speedometer = 0;
@@ -81,7 +81,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         enabledSound = false;
         paused = true;
         borderMode = 1;
-        if1 = new Interface1(clock, settings.getInterface1Settings());
+        if1 = new Interface1(settings.getInterface1Settings());
 
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
 

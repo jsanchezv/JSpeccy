@@ -12,16 +12,20 @@ import java.util.ConcurrentModificationException;
  * @author jsanchez
  */
 public class Clock {
-    private MachineTypes spectrumModel;
+    private static Clock instance = new Clock();
+    private MachineTypes spectrumModel = MachineTypes.SPECTRUM48K;
     private int tstates;
     private long frames;
     private int timeout;
     private final ArrayList<ClockTimeoutListener> clockListeners = new ArrayList<ClockTimeoutListener>();
 
-    public Clock() {
-        spectrumModel = MachineTypes.SPECTRUM48K;
+    // Clock class implements a Singleton pattern.
+    private Clock() {
     }
 
+    public static Clock getInstance() {
+        return instance;
+    }
     /**
      * Adds a new event listener to the list of event listeners.
      *

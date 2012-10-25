@@ -119,8 +119,8 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final String tzxHeader = "ZXTape!\u001A";
     private static final String tzxCreator = "TZX created with JSpeccy v0.92";
 
-    public Tape(Clock clk, TapeType tapeSettings) {
-        clock = clk;
+    public Tape(TapeType tapeSettings) {
+        clock = Clock.getInstance();
         settings = tapeSettings;
         statePlay = State.STOP;
         tapeInserted = tapePlaying = tapeRecording = false;

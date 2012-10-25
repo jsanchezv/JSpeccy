@@ -45,8 +45,8 @@ public class Interface1 {
     
     private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<Interface1DriveListener>();
     
-    public Interface1(Clock clk, Interface1Type if1settings) {
-        clock = clk;
+    public Interface1(Interface1Type if1settings) {
+        clock = Clock.getInstance();
         settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
@@ -54,7 +54,7 @@ public class Interface1 {
         
         microdrive = new Microdrive[8];
         for (int mdr = 0; mdr < 8; mdr++)
-            microdrive[mdr] = new Microdrive(clock);
+            microdrive[mdr] = new Microdrive();
         
         commsClk = false;
         lan = 0;
