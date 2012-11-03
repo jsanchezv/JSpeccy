@@ -133,7 +133,7 @@ public enum MachineTypes {
                 this.firstScrByte = 14364;
                 this.lastScrUpdate = 58044;
                 this.outOffset = 1;
-                this.outBorderOffset = 3;
+                this.outBorderOffset = -1;
                 this.hasAY8912 = true;
                 this.hasDisk = true;
                 this.codeModel = CodeModel.SPECTRUMPLUS3;
