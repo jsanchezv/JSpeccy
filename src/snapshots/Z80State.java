@@ -15,6 +15,8 @@ public class Z80State {
     private int regA, regB, regC, regD, regE, regH, regL;
     // Flags sIGN, zERO, 5, hALFCARRY, 3, pARITY y ADDSUB (n), carryFlag
     private int regF;
+    // La última instrucción modificó los flags
+    private boolean flagQ;
     // Acumulador alternativo y flags -- 8 bits
     private int regAx;
     private int regFx;
@@ -398,5 +400,19 @@ public class Z80State {
     
     public final void setPendingEI(boolean state) {
         pendingEI = state;
+    }
+
+    /**
+     * @return the flagQ
+     */
+    public boolean isFlagQ() {
+        return flagQ;
+    }
+
+    /**
+     * @param flagQ the flagQ to set
+     */
+    public void setFlagQ(boolean flagQ) {
+        this.flagQ = flagQ;
     }
 }

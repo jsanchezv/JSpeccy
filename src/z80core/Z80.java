@@ -219,7 +219,7 @@ public class Z80 {
     private boolean halted = false;
     // pinReset == true, se ha producido un reset a través de la patilla
     private boolean pinReset = false;
-    /**
+    /*
      * Registro interno que usa la CPU de la siguiente forma
      *
      * ADD HL,xx      = Valor del registro H antes de la suma
@@ -859,6 +859,7 @@ public class Z80 {
         state.setINTLine(activeINT);
         state.setPendingEI(pendingEI);
         state.setNMI(activeNMI);
+        state.setFlagQ(regQ != 0);
         return state;
     }
     
@@ -893,6 +894,8 @@ public class Z80 {
         activeINT = state.isINTLine();
         pendingEI = state.isPendingEI();
         activeNMI = state.isNMI();
+        flagQ = false;
+        regQ = state.isFlagQ() ? sz5h3pnFlags : 0;
     }
     
     // Reset
@@ -1770,9 +1773,14 @@ public class Z80 {
             
             regPC = (regPC + 1) & 0xffff;
 
-            flagQ = false;
             decodeOpcode(opCode);
-            regQ = flagQ ? sz5h3pnFlags : 0;
+            
+            if (flagQ) {
+                regQ = sz5h3pnFlags;
+                flagQ = false;
+            } else {
+                regQ = 0;
+            }
 
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
@@ -1847,8 +1855,7 @@ public class Z80 {
             }
             case 0x0A: {     /* LD A,(BC) */
                 memptr = getRegBC();
-                regA = MemIoImpl.peek8(memptr);
-                memptr++;
+                regA = MemIoImpl.peek8(memptr++);
                 break;
             }
             case 0x0B: {     /* DEC BC */
@@ -1944,8 +1951,7 @@ public class Z80 {
             }
             case 0x1A: {     /* LD A,(DE) */
                 memptr = getRegDE();
-                regA = MemIoImpl.peek8(memptr);
-                memptr++;
+                regA = MemIoImpl.peek8(memptr++);
                 break;
             }
             case 0x1B: {     /* DEC DE */
@@ -4278,8 +4284,7 @@ public class Z80 {
             }
             case 0x22: {     /* LD (nn),IX */
                 memptr = MemIoImpl.peek16(regPC);
-                MemIoImpl.poke16(memptr, regIXY);
-                memptr++;
+                MemIoImpl.poke16(memptr++, regIXY);
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -4308,8 +4313,7 @@ public class Z80 {
             }
             case 0x2A: {     /* LD IX,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
-                regIXY = MemIoImpl.peek16(memptr);
-                memptr++;
+                regIXY = MemIoImpl.peek16(memptr++);
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -6025,14 +6029,14 @@ public class Z80 {
         switch (opCode) {
             case 0x40: {     /* IN B,(C) */
                 memptr = getRegBC();
-                regB = MemIoImpl.inPort(memptr);
+                regB = MemIoImpl.inPort(memptr++);
                 sz5h3pnFlags = sz53pn_addTable[regB];
                 flagQ = true;
                 break;
             }
             case 0x41: {     /* OUT (C),B */
                 memptr = getRegBC();
-                MemIoImpl.outPort(memptr, regB);
+                MemIoImpl.outPort(memptr++, regB);
                 break;
             }
             case 0x42: {     /* SBC HL,BC */
@@ -6042,8 +6046,7 @@ public class Z80 {
             }
             case 0x43: {     /* LD (nn),BC */
                 memptr = MemIoImpl.peek16(regPC);
-                MemIoImpl.poke16(memptr, getRegBC());
-                memptr++;
+                MemIoImpl.poke16(memptr++, getRegBC());
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
@@ -6156,7 +6159,7 @@ public class Z80 {
             }
             case 0x58: {     /* IN E,(C) */
                 memptr = getRegBC();
-                regE = MemIoImpl.inPort(memptr);
+                regE = MemIoImpl.inPort(memptr++);
                 sz5h3pnFlags = sz53pn_addTable[regE];
                 flagQ = true;
                 break;
@@ -6265,8 +6268,7 @@ public class Z80 {
             }
             case 0x73: {     /* LD (nn),SP */
                 memptr = MemIoImpl.peek16(regPC);
-                MemIoImpl.poke16(memptr, regSP);
-                memptr++;
+                MemIoImpl.poke16(memptr++, regSP);
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
