@@ -192,8 +192,8 @@ public class Z80 {
     // Estado de la línea NMI
     private boolean activeNMI = false;
     // Si está activa la línea INT
-    // En el 48 la línea INT se activa durante 32 ciclos de reloj
-    // En el 128 y superiores, se activa 36 ciclos de reloj
+    // En el 48 y los +2a/+3 la línea INT se activa durante 32 ciclos de reloj
+    // En el 128 y +2, se activa 36 ciclos de reloj
     private boolean activeINT = false;
     // Modos de interrupción
     public enum IntMode { IM0, IM1, IM2 };
@@ -1728,35 +1728,39 @@ public class Z80 {
     }
 
     private void decodeOpcode(int opCode) {
-        int work8, work16;
-        byte offset;
 
         switch (opCode) {
 //            case 0x00:       /* NOP */
 //                break;
-            case 0x01:       /*LD BC,nn*/
+            case 0x01: {     /* LD BC,nn */
                 setRegBC(MemIoImpl.peek16(regPC));
                 regPC = (regPC + 2) & 0xffff;
                 break;
-            case 0x02:       /* LD (BC),A */
+            }
+            case 0x02: {     /* LD (BC),A */
                 MemIoImpl.poke8(getRegBC(), regA);
                 memptr = (regA << 8) | ((regC + 1) & 0xff);
                 break;
-            case 0x03:       /* INC BC */
+            }
+            case 0x03: {     /* INC BC */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 incRegBC();
                 break;
-            case 0x04:       /* INC B */
+            }
+            case 0x04: {     /* INC B */
                 regB = inc8(regB);
                 break;
-            case 0x05:       /* DEC B */
+            }
+            case 0x05: {     /* DEC B */
                 regB = dec8(regB);
                 break;
-            case 0x06:       /* LD B,n */
+            }
+            case 0x06: {     /* LD B,n */
                 regB = MemIoImpl.peek8(regPC);
                 regPC = (regPC + 1) & 0xffff;
                 break;
-            case 0x07:       /* RLCA */
+            }
+            case 0x07: {     /* RLCA */
                 carryFlag = (regA > 0x7f);
                 regA = (regA << 1) & 0xff;
                 if (carryFlag) {
@@ -1764,8 +1768,9 @@ public class Z80 {
                 }
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | (regA & FLAG_53_MASK);
                 break;
-            case 0x08:       /* EX AF,AF' */
-                work8 = regA;
+            }
+            case 0x08: {      /* EX AF,AF' */
+                int work8 = regA;
                 regA = regAx;
                 regAx = work8;
 
@@ -1773,30 +1778,37 @@ public class Z80 {
                 setFlags(regFx);
                 regFx = work8;
                 break;
-            case 0x09:       /* ADD HL,BC */
+            }
+            case 0x09: {     /* ADD HL,BC */
                 MemIoImpl.contendedStates(getPairIR(), 7);
                 setRegHL(add16(getRegHL(), getRegBC()));
                 break;
-            case 0x0A:       /* LD A,(BC) */
+            }
+            case 0x0A: {     /* LD A,(BC) */
                 memptr = getRegBC();
                 regA = MemIoImpl.peek8(memptr);
                 memptr++;
                 break;
-            case 0x0B:       /* DEC BC */
+            }
+            case 0x0B: {     /* DEC BC */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 decRegBC();
                 break;
-            case 0x0C:       /* INC C */
+            }
+            case 0x0C: {     /* INC C */
                 regC = inc8(regC);
                 break;
-            case 0x0D:       /* DEC C */
+            }
+            case 0x0D: {     /* DEC C */
                 regC = dec8(regC);
                 break;
-            case 0x0E:       /* LD C,n */
+            }
+            case 0x0E: {     /* LD C,n */
                 regC = MemIoImpl.peek8(regPC);
                 regPC = (regPC + 1) & 0xffff;
                 break;
-            case 0x0F:       /* RRCA */
+            }
+            case 0x0F: {     /* RRCA */
                 carryFlag = (regA & CARRY_MASK) != 0;
                 regA >>>= 1;
                 if (carryFlag) {
@@ -1804,9 +1816,10 @@ public class Z80 {
                 }
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | (regA & FLAG_53_MASK);
                 break;
-            case 0x10:       /* DJNZ e */
+            }
+            case 0x10: {     /* DJNZ e */
                 MemIoImpl.contendedStates(getPairIR(), 1);
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 regB--;
                 if (regB != 0) {
                     regB &= 0xff;
@@ -1816,15 +1829,18 @@ public class Z80 {
                     regPC = (regPC + 1) & 0xffff;
                 }
                 break;
-            case 0x11:       /* LD DE,nn */
+            }
+            case 0x11: {     /* LD DE,nn */
                 setRegDE(MemIoImpl.peek16(regPC));
                 regPC = (regPC + 2) & 0xffff;
                 break;
-            case 0x12:       /* LD (DE),A */
+            }
+            case 0x12: {     /* LD (DE),A */
                 MemIoImpl.poke8(getRegDE(), regA);
                 memptr = (regA << 8) | ((regE + 1) & 0xff);
                 break;
-            case 0x13: {     /*INC DE*/
+            }
+            case 0x13: {     /* INC DE */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 incRegDE();
                 break;
@@ -1853,7 +1869,7 @@ public class Z80 {
                 break;
             }
             case 0x18: {     /* JR e */
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 MemIoImpl.contendedStates(regPC, 5);
                 regPC = memptr = (regPC + offset + 1) & 0xffff;
                 break;
@@ -1898,7 +1914,7 @@ public class Z80 {
                 break;
             }
             case 0x20: {     /* JR NZ,e */
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 if ((sz5h3pnFlags & ZERO_MASK) == 0) {
                     MemIoImpl.contendedStates(regPC, 5);
                     regPC += offset;
@@ -1941,7 +1957,7 @@ public class Z80 {
                 break;
             }
             case 0x28: {     /* JR Z,e */
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 if ((sz5h3pnFlags & ZERO_MASK) != 0) {
                     MemIoImpl.contendedStates(regPC, 5);
                     regPC += offset;
@@ -1951,7 +1967,7 @@ public class Z80 {
             }
             case 0x29: {     /* ADD HL,HL */
                 MemIoImpl.contendedStates(getPairIR(), 7);
-                work16 = getRegHL();
+                int work16 = getRegHL();
                 setRegHL(add16(work16, work16));
                 break;
             }
@@ -1987,7 +2003,7 @@ public class Z80 {
                 break;
             }
             case 0x30: {     /* JR NC,e */
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 if (!carryFlag) {
                     MemIoImpl.contendedStates(regPC, 5);
                     regPC += offset;
@@ -2013,15 +2029,15 @@ public class Z80 {
                 break;
             }
             case 0x34: {     /* INC (HL) */
-                work16 = getRegHL();
-                work8 = inc8(MemIoImpl.peek8(work16));
+                int work16 = getRegHL();
+                int work8 = inc8(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
             case 0x35: {     /* DEC (HL) */
-                work16 = getRegHL();
-                work8 = dec8(MemIoImpl.peek8(work16));
+                int work16 = getRegHL();
+                int work8 = dec8(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
@@ -2037,7 +2053,7 @@ public class Z80 {
                 break;
             }
             case 0x38: {     /* JR C,e */
-                offset = (byte) MemIoImpl.peek8(regPC);
+                byte offset = (byte) MemIoImpl.peek8(regPC);
                 if (carryFlag) {
                     MemIoImpl.contendedStates(regPC, 5);
                     regPC += offset;
@@ -2714,7 +2730,7 @@ public class Z80 {
                 break;
             }
             case 0xD3: {     /* OUT (n),A */
-                work8 = MemIoImpl.peek8(regPC);
+                int work8 = MemIoImpl.peek8(regPC);
                 memptr = regA << 8;
                 MemIoImpl.outPort(memptr | work8, regA);
                 memptr |= ((work8 + 1) & 0xff);
@@ -2756,7 +2772,7 @@ public class Z80 {
                 break;
             }
             case 0xD9: {     /* EXX */
-                work8 = regB;
+                int work8 = regB;
                 regB = regBx;
                 regBx = work8;
 
@@ -2840,10 +2856,10 @@ public class Z80 {
                 }
                 regPC = (regPC + 2) & 0xffff;
                 break;
-            case 0xE3:       /* EX (SP),HL */
+            case 0xE3: {     /* EX (SP),HL */
                 // Instrucción de ejecución sutil.
-                work16 = regH;
-                work8 = regL;
+                int work16 = regH;
+                int work8 = regL;
                 setRegHL(MemIoImpl.peek16(regSP));
                 MemIoImpl.contendedStates((regSP + 1) & 0xffff, 1);
                 // No se usa poke16 porque el Z80 escribe los bytes AL REVES
@@ -2852,6 +2868,7 @@ public class Z80 {
                 MemIoImpl.contendedStates(regSP, 2);
                 memptr = getRegHL();
                 break;
+            }
             case 0xE4:       /* CALL PO,nn */
                 memptr = MemIoImpl.peek16(regPC);
                 if ((sz5h3pnFlags & PARITY_MASK) == 0) {
@@ -2892,8 +2909,8 @@ public class Z80 {
                 }
                 regPC = (regPC + 2) & 0xffff;
                 break;
-            case 0xEB:       /* EX DE,HL */
-                work8 = regH;
+            case 0xEB: {     /* EX DE,HL */
+                int work8 = regH;
                 regH = regD;
                 regD = work8;
 
@@ -2901,6 +2918,7 @@ public class Z80 {
                 regL = regE;
                 regE = work8;
                 break;
+            }
             case 0xEC:       /* CALL PE,nn */
                 memptr = MemIoImpl.peek16(regPC);
                 if ((sz5h3pnFlags & PARITY_MASK) != 0) {
@@ -3014,131 +3032,130 @@ public class Z80 {
 
     //Subconjunto de instrucciones 0xCB
     private void decodeCB() {
-        int work8, work16;
 
         regR++;
         opCode = MemIoImpl.fetchOpcode(regPC);
         regPC = (regPC + 1) & 0xffff;
 
         switch (opCode) {
-            case 0x00: {     /*RLC B*/
+            case 0x00: {     /* RLC B */
                 regB = rlc(regB);
                 break;
             }
-            case 0x01: {     /*RLC C*/
+            case 0x01: {     /* RLC C */
                 regC = rlc(regC);
                 break;
             }
-            case 0x02: {     /*RLC D*/
+            case 0x02: {     /* RLC D */
                 regD = rlc(regD);
                 break;
             }
-            case 0x03: {     /*RLC E*/
+            case 0x03: {     /* RLC E */
                 regE = rlc(regE);
                 break;
             }
-            case 0x04: {     /*RLC H*/
+            case 0x04: {     /* RLC H */
                 regH = rlc(regH);
                 break;
             }
-            case 0x05: {     /*RLC L*/
+            case 0x05: {     /* RLC L */
                 regL = rlc(regL);
                 break;
             }
-            case 0x06: {     /*RLC (HL)*/
-                work16 = getRegHL();
-                work8 = rlc(MemIoImpl.peek8(work16));
+            case 0x06: {     /* RLC (HL) */
+                int work16 = getRegHL();
+                int work8 = rlc(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x07: {     /*RLC A*/
+            case 0x07: {     /* RLC A */
                 regA = rlc(regA);
                 break;
             }
-            case 0x08: {     /*RRC B*/
+            case 0x08: {     /* RRC B */
                 regB = rrc(regB);
                 break;
             }
-            case 0x09: {     /*RRC C*/
+            case 0x09: {     /* RRC C */
                 regC = rrc(regC);
                 break;
             }
-            case 0x0A: {     /*RRC D*/
+            case 0x0A: {     /* RRC D */
                 regD = rrc(regD);
                 break;
             }
-            case 0x0B: {     /*RRC E*/
+            case 0x0B: {     /* RRC E */
                 regE = rrc(regE);
                 break;
             }
-            case 0x0C: {     /*RRC H*/
+            case 0x0C: {     /* RRC H */
                 regH = rrc(regH);
                 break;
             }
-            case 0x0D: {     /*RRC L*/
+            case 0x0D: {     /* RRC L */
                 regL = rrc(regL);
                 break;
             }
-            case 0x0E: {     /*RRC (HL)*/
-                work16 = getRegHL();
-                work8 = rrc(MemIoImpl.peek8(work16));
+            case 0x0E: {     /* RRC (HL) */
+                int work16 = getRegHL();
+                int work8 = rrc(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x0F: {     /*RRC A*/
+            case 0x0F: {     /* RRC A */
                 regA = rrc(regA);
                 break;
             }
-            case 0x10: {     /*RL B*/
+            case 0x10: {     /* RL B */
                 regB = rl(regB);
                 break;
             }
-            case 0x11: {     /*RL C*/
+            case 0x11: {     /* RL C */
                 regC = rl(regC);
                 break;
             }
-            case 0x12: {     /*RL D*/
+            case 0x12: {     /* RL D */
                 regD = rl(regD);
                 break;
             }
-            case 0x13: {     /*RL E*/
+            case 0x13: {     /* RL E */
                 regE = rl(regE);
                 break;
             }
-            case 0x14: {     /*RL H*/
+            case 0x14: {     /* RL H */
                 regH = rl(regH);
                 break;
             }
-            case 0x15: {     /*RL L*/
+            case 0x15: {     /* RL L */
                 regL = rl(regL);
                 break;
             }
-            case 0x16: {     /*RL (HL)*/
-                work16 = getRegHL();
-                work8 = rl(MemIoImpl.peek8(work16));
+            case 0x16: {     /* RL (HL) */
+                int work16 = getRegHL();
+                int work8 = rl(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x17: {     /*RL A*/
+            case 0x17: {     /* RL A */
                 regA = rl(regA);
                 break;
             }
-            case 0x18: {     /*RR B*/
+            case 0x18: {     /* RR B */
                 regB = rr(regB);
                 break;
             }
-            case 0x19: {     /*RR C*/
+            case 0x19: {     /* RR C */
                 regC = rr(regC);
                 break;
             }
-            case 0x1A: {     /*RR D*/
+            case 0x1A: {     /* RR D */
                 regD = rr(regD);
                 break;
             }
-            case 0x1B: {     /*RR E*/
+            case 0x1B: {     /* RR E */
                 regE = rr(regE);
                 break;
             }
@@ -3146,1006 +3163,1006 @@ public class Z80 {
                 regH = rr(regH);
                 break;
             }
-            case 0x1D: {     /*RR L*/
+            case 0x1D: {     /* RR L */
                 regL = rr(regL);
                 break;
             }
-            case 0x1E: {     /*RR (HL)*/
-                work16 = getRegHL();
-                work8 = rr(MemIoImpl.peek8(work16));
+            case 0x1E: {     /* RR (HL) */
+                int work16 = getRegHL();
+                int work8 = rr(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x1F: {     /*RR A*/
+            case 0x1F: {     /* RR A */
                 regA = rr(regA);
                 break;
             }
-            case 0x20: {     /*SLA B*/
+            case 0x20: {     /* SLA B */
                 regB = sla(regB);
                 break;
             }
-            case 0x21: {     /*SLA C*/
+            case 0x21: {     /* SLA C */
                 regC = sla(regC);
                 break;
             }
-            case 0x22: {     /*SLA D*/
+            case 0x22: {     /* SLA D */
                 regD = sla(regD);
                 break;
             }
-            case 0x23: {     /*SLA E*/
+            case 0x23: {     /* SLA E */
                 regE = sla(regE);
                 break;
             }
-            case 0x24: {     /*SLA H*/
+            case 0x24: {     /* SLA H */
                 regH = sla(regH);
                 break;
             }
-            case 0x25: {     /*SLA L*/
+            case 0x25: {     /* SLA L */
                 regL = sla(regL);
                 break;
             }
-            case 0x26: {     /*SLA (HL)*/
-                work16 = getRegHL();
-                work8 = sla(MemIoImpl.peek8(work16));
+            case 0x26: {     /* SLA (HL) */
+                int work16 = getRegHL();
+                int work8 = sla(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x27: {     /*SLA A*/
+            case 0x27: {     /* SLA A */
                 regA = sla(regA);
                 break;
             }
-            case 0x28: {     /*SRA B*/
+            case 0x28: {     /* SRA B */
                 regB = sra(regB);
                 break;
             }
-            case 0x29: {     /*SRA C*/
+            case 0x29: {     /* SRA C */
                 regC = sra(regC);
                 break;
             }
-            case 0x2A: {     /*SRA D*/
+            case 0x2A: {     /* SRA D */
                 regD = sra(regD);
                 break;
             }
-            case 0x2B: {     /*SRA E*/
+            case 0x2B: {     /* SRA E */
                 regE = sra(regE);
                 break;
             }
-            case 0x2C: {     /*SRA H*/
+            case 0x2C: {     /* SRA H */
                 regH = sra(regH);
                 break;
             }
-            case 0x2D: {     /*SRA L*/
+            case 0x2D: {     /* SRA L */
                 regL = sra(regL);
                 break;
             }
-            case 0x2E: {     /*SRA (HL)*/
-                work16 = getRegHL();
-                work8 = sra(MemIoImpl.peek8(work16));
+            case 0x2E: {     /* SRA (HL) */
+                int work16 = getRegHL();
+                int work8 = sra(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x2F: {     /*SRA A*/
+            case 0x2F: {     /* SRA A */
                 regA = sra(regA);
                 break;
             }
-            case 0x30: {     /*SLL B*/
+            case 0x30: {     /* SLL B */
                 regB = sll(regB);
                 break;
             }
-            case 0x31: {     /*SLL C*/
+            case 0x31: {     /* SLL C */
                 regC = sll(regC);
                 break;
             }
-            case 0x32: {     /*SLL D*/
+            case 0x32: {     /* SLL D */
                 regD = sll(regD);
                 break;
             }
-            case 0x33: {     /*SLL E*/
+            case 0x33: {     /* SLL E */
                 regE = sll(regE);
                 break;
             }
-            case 0x34: {     /*SLL H*/
+            case 0x34: {     /* SLL H */
                 regH = sll(regH);
                 break;
             }
-            case 0x35: {     /*SLL L*/
+            case 0x35: {     /* SLL L */
                 regL = sll(regL);
                 break;
             }
-            case 0x36: {     /*SLL (HL)*/
-                work16 = getRegHL();
-                work8 = sll(MemIoImpl.peek8(work16));
+            case 0x36: {     /* SLL (HL) */
+                int work16 = getRegHL();
+                int work8 = sll(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x37: {     /*SLL A*/
+            case 0x37: {     /* SLL A */
                 regA = sll(regA);
                 break;
             }
-            case 0x38: {     /*SRL B*/
+            case 0x38: {     /* SRL B */
                 regB = srl(regB);
                 break;
             }
-            case 0x39: {     /*SRL C*/
+            case 0x39: {     /* SRL C */
                 regC = srl(regC);
                 break;
             }
-            case 0x3A: {     /*SRL D*/
+            case 0x3A: {     /* SRL D */
                 regD = srl(regD);
                 break;
             }
-            case 0x3B: {     /*SRL E*/
+            case 0x3B: {     /* SRL E */
                 regE = srl(regE);
                 break;
             }
-            case 0x3C: {     /*SRL H*/
+            case 0x3C: {     /* SRL H */
                 regH = srl(regH);
                 break;
             }
-            case 0x3D: {     /*SRL L*/
+            case 0x3D: {     /* SRL L */
                 regL = srl(regL);
                 break;
             }
-            case 0x3E: {     /*SRL (HL)*/
-                work16 = getRegHL();
-                work8 = srl(MemIoImpl.peek8(work16));
+            case 0x3E: {     /* SRL (HL) */
+                int work16 = getRegHL();
+                int work8 = srl(MemIoImpl.peek8(work16));
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x3F: {     /*SRL A*/
+            case 0x3F: {     /* SRL A */
                 regA = srl(regA);
                 break;
             }
-            case 0x40: {     /*BIT 0,B*/
+            case 0x40: {     /* BIT 0,B */
                 bit(0x01, regB);
                 break;
             }
-            case 0x41: {     /*BIT 0,C*/
+            case 0x41: {     /* BIT 0,C */
                 bit(0x01, regC);
                 break;
             }
-            case 0x42: {     /*BIT 0,D*/
+            case 0x42: {     /* BIT 0,D */
                 bit(0x01, regD);
                 break;
             }
-            case 0x43: {     /*BIT 0,E*/
+            case 0x43: {     /* BIT 0,E */
                 bit(0x01, regE);
                 break;
             }
-            case 0x44: {     /*BIT 0,H*/
+            case 0x44: {     /* BIT 0,H */
                 bit(0x01, regH);
                 break;
             }
-            case 0x45: {     /*BIT 0,L*/
+            case 0x45: {     /* BIT 0,L */
                 bit(0x01, regL);
                 break;
             }
-            case 0x46: {     /*BIT 0,(HL)*/
-                work16 = getRegHL();
+            case 0x46: {     /* BIT 0,(HL) */
+                int work16 = getRegHL();
                 bit(0x01, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x47: {     /*BIT 0,A*/
+            case 0x47: {     /* BIT 0,A */
                 bit(0x01, regA);
                 break;
             }
-            case 0x48: {     /*BIT 1,B*/
+            case 0x48: {     /* BIT 1,B */
                 bit(0x02, regB);
                 break;
             }
-            case 0x49: {     /*BIT 1,C*/
+            case 0x49: {     /* BIT 1,C */
                 bit(0x02, regC);
                 break;
             }
-            case 0x4A: {     /*BIT 1,D*/
+            case 0x4A: {     /* BIT 1,D */
                 bit(0x02, regD);
                 break;
             }
-            case 0x4B: {     /*BIT 1,E*/
+            case 0x4B: {     /* BIT 1,E */
                 bit(0x02, regE);
                 break;
             }
-            case 0x4C: {     /*BIT 1,H*/
+            case 0x4C: {     /* BIT 1,H */
                 bit(0x02, regH);
                 break;
             }
-            case 0x4D: {     /*BIT 1,L*/
+            case 0x4D: {     /* BIT 1,L */
                 bit(0x02, regL);
                 break;
             }
-            case 0x4E: {     /*BIT 1,(HL)*/
-                work16 = getRegHL();
+            case 0x4E: {     /* BIT 1,(HL) */
+                int work16 = getRegHL();
                 bit(0x02, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x4F: {     /*BIT 1,A*/
+            case 0x4F: {     /* BIT 1,A */
                 bit(0x02, regA);
                 break;
             }
-            case 0x50: {     /*BIT 2,B*/
+            case 0x50: {     /* BIT 2,B */
                 bit(0x04, regB);
                 break;
             }
-            case 0x51: {     /*BIT 2,C*/
+            case 0x51: {     /* BIT 2,C */
                 bit(0x04, regC);
                 break;
             }
-            case 0x52: {     /*BIT 2,D*/
+            case 0x52: {     /* BIT 2,D */
                 bit(0x04, regD);
                 break;
             }
-            case 0x53: {     /*BIT 2,E*/
+            case 0x53: {     /* BIT 2,E */
                 bit(0x04, regE);
                 break;
             }
-            case 0x54: {     /*BIT 2,H*/
+            case 0x54: {     /* BIT 2,H */
                 bit(0x04, regH);
                 break;
             }
-            case 0x55: {     /*BIT 2,L*/
+            case 0x55: {     /* BIT 2,L */
                 bit(0x04, regL);
                 break;
             }
-            case 0x56: {     /*BIT 2,(HL)*/
-                work16 = getRegHL();
+            case 0x56: {     /* BIT 2,(HL) */
+                int work16 = getRegHL();
                 bit(0x04, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x57: {     /*BIT 2,A*/
+            case 0x57: {     /* BIT 2,A */
                 bit(0x04, regA);
                 break;
             }
-            case 0x58: {     /*BIT 3,B*/
+            case 0x58: {     /* BIT 3,B */
                 bit(0x08, regB);
                 break;
             }
-            case 0x59: {     /*BIT 3,C*/
+            case 0x59: {     /* BIT 3,C */
                 bit(0x08, regC);
                 break;
             }
-            case 0x5A: {     /*BIT 3,D*/
+            case 0x5A: {     /* BIT 3,D */
                 bit(0x08, regD);
                 break;
             }
-            case 0x5B: {     /*BIT 3,E*/
+            case 0x5B: {     /* BIT 3,E */
                 bit(0x08, regE);
                 break;
             }
-            case 0x5C: {     /*BIT 3,H*/
+            case 0x5C: {     /* BIT 3,H */
                 bit(0x08, regH);
                 break;
             }
-            case 0x5D: {     /*BIT 3,L*/
+            case 0x5D: {     /* BIT 3,L */
                 bit(0x08, regL);
                 break;
             }
-            case 0x5E: {     /*BIT 3,(HL)*/
-                work16 = getRegHL();
+            case 0x5E: {     /* BIT 3,(HL) */
+                int work16 = getRegHL();
                 bit(0x08, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x5F: {     /*BIT 3,A*/
+            case 0x5F: {     /* BIT 3,A */
                 bit(0x08, regA);
                 break;
             }
-            case 0x60: {     /*BIT 4,B*/
+            case 0x60: {     /* BIT 4,B */
                 bit(0x10, regB);
                 break;
             }
-            case 0x61: {     /*BIT 4,C*/
+            case 0x61: {     /* BIT 4,C */
                 bit(0x10, regC);
                 break;
             }
-            case 0x62: {     /*BIT 4,D*/
+            case 0x62: {     /* BIT 4,D */
                 bit(0x10, regD);
                 break;
             }
-            case 0x63: {     /*BIT 4,E*/
+            case 0x63: {     /* BIT 4,E */
                 bit(0x10, regE);
                 break;
             }
-            case 0x64: {     /*BIT 4,H*/
+            case 0x64: {     /* BIT 4,H */
                 bit(0x10, regH);
                 break;
             }
-            case 0x65: {     /*BIT 4,L*/
+            case 0x65: {     /* BIT 4,L */
                 bit(0x10, regL);
                 break;
             }
-            case 0x66: {     /*BIT 4,(HL)*/
-                work16 = getRegHL();
+            case 0x66: {     /* BIT 4,(HL) */
+                int work16 = getRegHL();
                 bit(0x10, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x67: {     /*BIT 4,A*/
+            case 0x67: {     /* BIT 4,A */
                 bit(0x10, regA);
                 break;
             }
-            case 0x68: {     /*BIT 5,B*/
+            case 0x68: {     /* BIT 5,B */
                 bit(0x20, regB);
                 break;
             }
-            case 0x69: {     /*BIT 5,C*/
+            case 0x69: {     /* BIT 5,C */
                 bit(0x20, regC);
                 break;
             }
-            case 0x6A: {     /*BIT 5,D*/
+            case 0x6A: {     /* BIT 5,D */
                 bit(0x20, regD);
                 break;
             }
-            case 0x6B: {     /*BIT 5,E*/
+            case 0x6B: {     /* BIT 5,E */
                 bit(0x20, regE);
                 break;
             }
-            case 0x6C: {     /*BIT 5,H*/
+            case 0x6C: {     /* BIT 5,H */
                 bit(0x20, regH);
                 break;
             }
-            case 0x6D: {     /*BIT 5,L*/
+            case 0x6D: {     /* BIT 5,L */
                 bit(0x20, regL);
                 break;
             }
-            case 0x6E: {     /*BIT 5,(HL)*/
-                work16 = getRegHL();
+            case 0x6E: {     /* BIT 5,(HL) */
+                int work16 = getRegHL();
                 bit(0x20, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x6F: {     /*BIT 5,A*/
+            case 0x6F: {     /* BIT 5,A */
                 bit(0x20, regA);
                 break;
             }
-            case 0x70: {     /*BIT 6,B*/
+            case 0x70: {     /* BIT 6,B */
                 bit(0x40, regB);
                 break;
             }
-            case 0x71: {     /*BIT 6,C*/
+            case 0x71: {     /* BIT 6,C */
                 bit(0x40, regC);
                 break;
             }
-            case 0x72: {     /*BIT 6,D*/
+            case 0x72: {     /* BIT 6,D */
                 bit(0x40, regD);
                 break;
             }
-            case 0x73: {     /*BIT 6,E*/
+            case 0x73: {     /* BIT 6,E */
                 bit(0x40, regE);
                 break;
             }
-            case 0x74: {     /*BIT 6,H*/
+            case 0x74: {     /* BIT 6,H */
                 bit(0x40, regH);
                 break;
             }
-            case 0x75: {     /*BIT 6,L*/
+            case 0x75: {     /* BIT 6,L */
                 bit(0x40, regL);
                 break;
             }
-            case 0x76: {     /*BIT 6,(HL)*/
-                work16 = getRegHL();
+            case 0x76: {     /* BIT 6,(HL) */
+                int work16 = getRegHL();
                 bit(0x40, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x77: {     /*BIT 6,A*/
+            case 0x77: {     /* BIT 6,A */
                 bit(0x40, regA);
                 break;
             }
-            case 0x78: {     /*BIT 7,B*/
+            case 0x78: {     /* BIT 7,B */
                 bit(0x80, regB);
                 break;
             }
-            case 0x79: {     /*BIT 7,C*/
+            case 0x79: {     /* BIT 7,C */
                 bit(0x80, regC);
                 break;
             }
-            case 0x7A: {     /*BIT 7,D*/
+            case 0x7A: {     /* BIT 7,D */
                 bit(0x80, regD);
                 break;
             }
-            case 0x7B: {     /*BIT 7,E*/
+            case 0x7B: {     /* BIT 7,E */
                 bit(0x80, regE);
                 break;
             }
-            case 0x7C: {     /*BIT 7,H*/
+            case 0x7C: {     /* BIT 7,H */
                 bit(0x80, regH);
                 break;
             }
-            case 0x7D: {     /*BIT 7,L*/
+            case 0x7D: {     /* BIT 7,L */
                 bit(0x80, regL);
                 break;
             }
-            case 0x7E: {     /*BIT 7,(HL)*/
-                work16 = getRegHL();
+            case 0x7E: {     /* BIT 7,(HL) */
+                int work16 = getRegHL();
                 bit(0x80, MemIoImpl.peek8(work16));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((memptr >>> 8) & FLAG_53_MASK);
                 MemIoImpl.contendedStates(work16, 1);
                 break;
             }
-            case 0x7F: {     /*BIT 7,A*/
+            case 0x7F: {     /* BIT 7,A */
                 bit(0x80, regA);
                 break;
             }
-            case 0x80: {     /*RES 0,B*/
+            case 0x80: {     /* RES 0,B */
                 regB &= 0xFE;
                 break;
             }
-            case 0x81: {     /*RES 0,C*/
+            case 0x81: {     /* RES 0,C */
                 regC &= 0xFE;
                 break;
             }
-            case 0x82: {     /*RES 0,D*/
+            case 0x82: {     /* RES 0,D */
                 regD &= 0xFE;
                 break;
             }
-            case 0x83: {     /*RES 0,E*/
+            case 0x83: {     /* RES 0,E */
                 regE &= 0xFE;
                 break;
             }
-            case 0x84: {     /*RES 0,H*/
+            case 0x84: {     /* RES 0,H */
                 regH &= 0xFE;
                 break;
             }
-            case 0x85: {     /*RES 0,L*/
+            case 0x85: {     /* RES 0,L */
                 regL &= 0xFE;
                 break;
             }
-            case 0x86: {     /*RES 0,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xFE;
+            case 0x86: {     /* RES 0,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xFE;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x87: {     /*RES 0,A*/
+            case 0x87: {     /* RES 0,A */
                 regA &= 0xFE;
                 break;
             }
-            case 0x88: {     /*RES 1,B*/
+            case 0x88: {     /* RES 1,B */
                 regB &= 0xFD;
                 break;
             }
-            case 0x89: {     /*RES 1,C*/
+            case 0x89: {     /* RES 1,C */
                 regC &= 0xFD;
                 break;
             }
-            case 0x8A: {     /*RES 1,D*/
+            case 0x8A: {     /* RES 1,D */
                 regD &= 0xFD;
                 break;
             }
-            case 0x8B: {     /*RES 1,E*/
+            case 0x8B: {     /* RES 1,E */
                 regE &= 0xFD;
                 break;
             }
-            case 0x8C: {     /*RES 1,H*/
+            case 0x8C: {     /* RES 1,H */
                 regH &= 0xFD;
                 break;
             }
-            case 0x8D: {     /*RES 1,L*/
+            case 0x8D: {     /* RES 1,L */
                 regL &= 0xFD;
                 break;
             }
-            case 0x8E: {     /*RES 1,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xFD;
+            case 0x8E: {     /* RES 1,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xFD;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x8F: {     /*RES 1,A*/
+            case 0x8F: {     /* RES 1,A */
                 regA &= 0xFD;
                 break;
             }
-            case 0x90: {     /*RES 2,B*/
+            case 0x90: {     /* RES 2,B */
                 regB &= 0xFB;
                 break;
             }
-            case 0x91: {     /*RES 2,C*/
+            case 0x91: {     /* RES 2,C */
                 regC &= 0xFB;
                 break;
             }
-            case 0x92: {     /*RES 2,D*/
+            case 0x92: {     /* RES 2,D */
                 regD &= 0xFB;
                 break;
             }
-            case 0x93: {     /*RES 2,E*/
+            case 0x93: {     /* RES 2,E */
                 regE &= 0xFB;
                 break;
             }
-            case 0x94: {     /*RES 2,H*/
+            case 0x94: {     /* RES 2,H */
                 regH &= 0xFB;
                 break;
             }
-            case 0x95: {     /*RES 2,L*/
+            case 0x95: {     /* RES 2,L */
                 regL &= 0xFB;
                 break;
             }
-            case 0x96: {     /*RES 2,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xFB;
+            case 0x96: {     /* RES 2,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xFB;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x97: {     /*RES 2,A*/
+            case 0x97: {     /* RES 2,A */
                 regA &= 0xFB;
                 break;
             }
-            case 0x98: {     /*RES 3,B*/
+            case 0x98: {     /* RES 3,B */
                 regB &= 0xF7;
                 break;
             }
-            case 0x99: {     /*RES 3,C*/
+            case 0x99: {     /* RES 3,C */
                 regC &= 0xF7;
                 break;
             }
-            case 0x9A: {     /*RES 3,D*/
+            case 0x9A: {     /* RES 3,D */
                 regD &= 0xF7;
                 break;
             }
-            case 0x9B: {     /*RES 3,E*/
+            case 0x9B: {     /* RES 3,E */
                 regE &= 0xF7;
                 break;
             }
-            case 0x9C: {     /*RES 3,H*/
+            case 0x9C: {     /* RES 3,H */
                 regH &= 0xF7;
                 break;
             }
-            case 0x9D: {     /*RES 3,L*/
+            case 0x9D: {     /* RES 3,L */
                 regL &= 0xF7;
                 break;
             }
-            case 0x9E: {     /*RES 3,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xF7;
+            case 0x9E: {     /* RES 3,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xF7;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0x9F: {     /*RES 3,A*/
+            case 0x9F: {     /* RES 3,A */
                 regA &= 0xF7;
                 break;
             }
-            case 0xA0: {     /*RES 4,B*/
+            case 0xA0: {     /* RES 4,B */
                 regB &= 0xEF;
                 break;
             }
-            case 0xA1: {     /*RES 4,C*/
+            case 0xA1: {     /* RES 4,C */
                 regC &= 0xEF;
                 break;
             }
-            case 0xA2: {     /*RES 4,D*/
+            case 0xA2: {     /* RES 4,D */
                 regD &= 0xEF;
                 break;
             }
-            case 0xA3: {     /*RES 4,E*/
+            case 0xA3: {     /* RES 4,E */
                 regE &= 0xEF;
                 break;
             }
-            case 0xA4: {     /*RES 4,H*/
+            case 0xA4: {     /* RES 4,H */
                 regH &= 0xEF;
                 break;
             }
-            case 0xA5: {     /*RES 4,L*/
+            case 0xA5: {     /* RES 4,L */
                 regL &= 0xEF;
                 break;
             }
-            case 0xA6: {     /*RES 4,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xEF;
+            case 0xA6: {     /* RES 4,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xEF;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xA7: {     /*RES 4,A*/
+            case 0xA7: {     /* RES 4,A */
                 regA &= 0xEF;
                 break;
             }
-            case 0xA8: {     /*RES 5,B*/
+            case 0xA8: {     /* RES 5,B */
                 regB &= 0xDF;
                 break;
             }
-            case 0xA9: {     /*RES 5,C*/
+            case 0xA9: {     /* RES 5,C */
                 regC &= 0xDF;
                 break;
             }
-            case 0xAA: {     /*RES 5,D*/
+            case 0xAA: {     /* RES 5,D */
                 regD &= 0xDF;
                 break;
             }
-            case 0xAB: {     /*RES 5,E*/
+            case 0xAB: {     /* RES 5,E */
                 regE &= 0xDF;
                 break;
             }
-            case 0xAC: {     /*RES 5,H*/
+            case 0xAC: {     /* RES 5,H */
                 regH &= 0xDF;
                 break;
             }
-            case 0xAD: {     /*RES 5,L*/
+            case 0xAD: {     /* RES 5,L */
                 regL &= 0xDF;
                 break;
             }
-            case 0xAE: {     /*RES 5,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xDF;
+            case 0xAE: {     /* RES 5,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xDF;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xAF: {     /*RES 5,A*/
+            case 0xAF: {     /* RES 5,A */
                 regA &= 0xDF;
                 break;
             }
-            case 0xB0: {     /*RES 6,B*/
+            case 0xB0: {     /* RES 6,B */
                 regB &= 0xBF;
                 break;
             }
-            case 0xB1: {     /*RES 6,C*/
+            case 0xB1: {     /* RES 6,C */
                 regC &= 0xBF;
                 break;
             }
-            case 0xB2: {     /*RES 6,D*/
+            case 0xB2: {     /* RES 6,D */
                 regD &= 0xBF;
                 break;
             }
-            case 0xB3: {     /*RES 6,E*/
+            case 0xB3: {     /* RES 6,E */
                 regE &= 0xBF;
                 break;
             }
-            case 0xB4: {     /*RES 6,H*/
+            case 0xB4: {     /* RES 6,H */
                 regH &= 0xBF;
                 break;
             }
-            case 0xB5: {     /*RES 6,L*/
+            case 0xB5: {     /* RES 6,L */
                 regL &= 0xBF;
                 break;
             }
-            case 0xB6: {     /*RES 6,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0xBF;
+            case 0xB6: {     /* RES 6,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0xBF;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xB7: {     /*RES 6,A*/
+            case 0xB7: {     /* RES 6,A */
                 regA &= 0xBF;
                 break;
             }
-            case 0xB8: {     /*RES 7,B*/
+            case 0xB8: {     /* RES 7,B */
                 regB &= 0x7F;
                 break;
             }
-            case 0xB9: {     /*RES 7,C*/
+            case 0xB9: {     /* RES 7,C */
                 regC &= 0x7F;
                 break;
             }
-            case 0xBA: {     /*RES 7,D*/
+            case 0xBA: {     /* RES 7,D */
                 regD &= 0x7F;
                 break;
             }
-            case 0xBB: {     /*RES 7,E*/
+            case 0xBB: {     /* RES 7,E */
                 regE &= 0x7F;
                 break;
             }
-            case 0xBC: {     /*RES 7,H*/
+            case 0xBC: {     /* RES 7,H */
                 regH &= 0x7F;
                 break;
             }
-            case 0xBD: {     /*RES 7,L*/
+            case 0xBD: {     /* RES 7,L */
                 regL &= 0x7F;
                 break;
             }
-            case 0xBE: {     /*RES 7,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) & 0x7F;
+            case 0xBE: {     /* RES 7,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) & 0x7F;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xBF: {     /*RES 7,A*/
+            case 0xBF: {     /* RES 7,A */
                 regA &= 0x7F;
                 break;
             }
-            case 0xC0: {     /*SET 0,B*/
+            case 0xC0: {     /* SET 0,B */
                 regB |= 0x01;
                 break;
             }
-            case 0xC1: {     /*SET 0,C*/
+            case 0xC1: {     /* SET 0,C */
                 regC |= 0x01;
                 break;
             }
-            case 0xC2: {     /*SET 0,D*/
+            case 0xC2: {     /* SET 0,D */
                 regD |= 0x01;
                 break;
             }
-            case 0xC3: {     /*SET 0,E*/
+            case 0xC3: {     /* SET 0,E */
                 regE |= 0x01;
                 break;
             }
-            case 0xC4: {     /*SET 0,H*/
+            case 0xC4: {     /* SET 0,H */
                 regH |= 0x01;
                 break;
             }
-            case 0xC5: {     /*SET 0,L*/
+            case 0xC5: {     /* SET 0,L */
                 regL |= 0x01;
                 break;
             }
-            case 0xC6: {     /*SET 0,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x01;
+            case 0xC6: {     /* SET 0,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x01;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xC7: {     /*SET 0,A*/
+            case 0xC7: {     /* SET 0,A */
                 regA |= 0x01;
                 break;
             }
-            case 0xC8: {     /*SET 1,B*/
+            case 0xC8: {     /* SET 1,B */
                 regB |= 0x02;
                 break;
             }
-            case 0xC9: {     /*SET 1,C*/
+            case 0xC9: {     /* SET 1,C */
                 regC |= 0x02;
                 break;
             }
-            case 0xCA: {     /*SET 1,D*/
+            case 0xCA: {     /* SET 1,D */
                 regD |= 0x02;
                 break;
             }
-            case 0xCB: {     /*SET 1,E*/
+            case 0xCB: {     /* SET 1,E */
                 regE |= 0x02;
                 break;
             }
-            case 0xCC: {     /*SET 1,H*/
+            case 0xCC: {     /* SET 1,H */
                 regH |= 0x02;
                 break;
             }
-            case 0xCD: {     /*SET 1,L*/
+            case 0xCD: {     /* SET 1,L */
                 regL |= 0x02;
                 break;
             }
-            case 0xCE: {     /*SET 1,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x02;
+            case 0xCE: {     /* SET 1,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x02;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xCF: {     /*SET 1,A*/
+            case 0xCF: {     /* SET 1,A */
                 regA |= 0x02;
                 break;
             }
-            case 0xD0: {     /*SET 2,B*/
+            case 0xD0: {     /* SET 2,B */
                 regB |= 0x04;
                 break;
             }
-            case 0xD1: {     /*SET 2,C*/
+            case 0xD1: {     /* SET 2,C */
                 regC |= 0x04;
                 break;
             }
-            case 0xD2: {     /*SET 2,D*/
+            case 0xD2: {     /* SET 2,D */
                 regD |= 0x04;
                 break;
             }
-            case 0xD3: {     /*SET 2,E*/
+            case 0xD3: {     /* SET 2,E */
                 regE |= 0x04;
                 break;
             }
-            case 0xD4: {     /*SET 2,H*/
+            case 0xD4: {     /* SET 2,H */
                 regH |= 0x04;
                 break;
             }
-            case 0xD5: {     /*SET 2,L*/
+            case 0xD5: {     /* SET 2,L */
                 regL |= 0x04;
                 break;
             }
-            case 0xD6: {     /*SET 2,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x04;
+            case 0xD6: {     /* SET 2,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x04;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xD7: {     /*SET 2,A*/
+            case 0xD7: {     /* SET 2,A */
                 regA |= 0x04;
                 break;
             }
-            case 0xD8: {     /*SET 3,B*/
+            case 0xD8: {     /* SET 3,B */
                 regB |= 0x08;
                 break;
             }
-            case 0xD9: {     /*SET 3,C*/
+            case 0xD9: {     /* SET 3,C */
                 regC |= 0x08;
                 break;
             }
-            case 0xDA: {     /*SET 3,D*/
+            case 0xDA: {     /* SET 3,D */
                 regD |= 0x08;
                 break;
             }
-            case 0xDB: {     /*SET 3,E*/
+            case 0xDB: {     /* SET 3,E */
                 regE |= 0x08;
                 break;
             }
-            case 0xDC: {     /*SET 3,H*/
+            case 0xDC: {     /* SET 3,H */
                 regH |= 0x08;
                 break;
             }
-            case 0xDD: {     /*SET 3,L*/
+            case 0xDD: {     /* SET 3,L */
                 regL |= 0x08;
                 break;
             }
-            case 0xDE: {     /*SET 3,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x08;
+            case 0xDE: {     /* SET 3,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x08;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xDF: {     /*SET 3,A*/
+            case 0xDF: {     /* SET 3,A */
                 regA |= 0x08;
                 break;
             }
-            case 0xE0: {     /*SET 4,B*/
+            case 0xE0: {     /* SET 4,B */
                 regB |= 0x10;
                 break;
             }
-            case 0xE1: {     /*SET 4,C*/
+            case 0xE1: {     /* SET 4,C */
                 regC |= 0x10;
                 break;
             }
-            case 0xE2: {     /*SET 4,D*/
+            case 0xE2: {     /* SET 4,D */
                 regD |= 0x10;
                 break;
             }
-            case 0xE3: {     /*SET 4,E*/
+            case 0xE3: {     /* SET 4,E */
                 regE |= 0x10;
                 break;
             }
-            case 0xE4: {     /*SET 4,H*/
+            case 0xE4: {     /* SET 4,H */
                 regH |= 0x10;
                 break;
             }
-            case 0xE5: {     /*SET 4,L*/
+            case 0xE5: {     /* SET 4,L */
                 regL |= 0x10;
                 break;
             }
-            case 0xE6: {     /*SET 4,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x10;
+            case 0xE6: {     /* SET 4,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x10;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xE7: {     /*SET 4,A*/
+            case 0xE7: {     /* SET 4,A */
                 regA |= 0x10;
                 break;
             }
-            case 0xE8: {     /*SET 5,B*/
+            case 0xE8: {     /* SET 5,B */
                 regB |= 0x20;
                 break;
             }
-            case 0xE9: {     /*SET 5,C*/
+            case 0xE9: {     /* SET 5,C */
                 regC |= 0x20;
                 break;
             }
-            case 0xEA: {     /*SET 5,D*/
+            case 0xEA: {     /* SET 5,D */
                 regD |= 0x20;
                 break;
             }
-            case 0xEB: {     /*SET 5,E*/
+            case 0xEB: {     /* SET 5,E */
                 regE |= 0x20;
                 break;
             }
-            case 0xEC: {     /*SET 5,H*/
+            case 0xEC: {     /* SET 5,H */
                 regH |= 0x20;
                 break;
             }
-            case 0xED: {     /*SET 5,L*/
+            case 0xED: {     /* SET 5,L */
                 regL |= 0x20;
                 break;
             }
-            case 0xEE: {     /*SET 5,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x20;
+            case 0xEE: {     /* SET 5,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x20;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xEF: {     /*SET 5,A*/
+            case 0xEF: {     /* SET 5,A */
                 regA |= 0x20;
                 break;
             }
-            case 0xF0: {     /*SET 6,B*/
+            case 0xF0: {     /* SET 6,B */
                 regB |= 0x40;
                 break;
             }
-            case 0xF1: {     /*SET 6,C*/
+            case 0xF1: {     /* SET 6,C */
                 regC |= 0x40;
                 break;
             }
-            case 0xF2: {     /*SET 6,D*/
+            case 0xF2: {     /* SET 6,D */
                 regD |= 0x40;
                 break;
             }
-            case 0xF3: {     /*SET 6,E*/
+            case 0xF3: {     /* SET 6,E */
                 regE |= 0x40;
                 break;
             }
-            case 0xF4: {     /*SET 6,H*/
+            case 0xF4: {     /* SET 6,H */
                 regH |= 0x40;
                 break;
             }
-            case 0xF5: {     /*SET 6,L*/
+            case 0xF5: {     /* SET 6,L */
                 regL |= 0x40;
                 break;
             }
-            case 0xF6: {     /*SET 6,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x40;
+            case 0xF6: {     /* SET 6,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x40;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xF7: {     /*SET 6,A*/
+            case 0xF7: {     /* SET 6,A */
                 regA |= 0x40;
                 break;
             }
-            case 0xF8: {     /*SET 7,B*/
+            case 0xF8: {     /* SET 7,B */
                 regB |= 0x80;
                 break;
             }
-            case 0xF9: {     /*SET 7,C*/
+            case 0xF9: {     /* SET 7,C */
                 regC |= 0x80;
                 break;
             }
-            case 0xFA: {     /*SET 7,D*/
+            case 0xFA: {     /* SET 7,D */
                 regD |= 0x80;
                 break;
             }
-            case 0xFB: {     /*SET 7,E*/
+            case 0xFB: {     /* SET 7,E */
                 regE |= 0x80;
                 break;
             }
-            case 0xFC: {     /*SET 7,H*/
+            case 0xFC: {     /* SET 7,H */
                 regH |= 0x80;
                 break;
             }
-            case 0xFD: {     /*SET 7,L*/
+            case 0xFD: {     /* SET 7,L */
                 regL |= 0x80;
                 break;
             }
-            case 0xFE: {     /*SET 7,(HL)*/
-                work16 = getRegHL();
-                work8 = MemIoImpl.peek8(work16) | 0x80;
+            case 0xFE: {     /* SET 7,(HL) */
+                int work16 = getRegHL();
+                int work8 = MemIoImpl.peek8(work16) | 0x80;
                 MemIoImpl.contendedStates(work16, 1);
                 MemIoImpl.poke8(work16, work8);
                 break;
             }
-            case 0xFF: {     /*SET 7,A*/
+            case 0xFF: {     /* SET 7,A */
                 regA |= 0x80;
                 break;
             }
@@ -4171,7 +4188,6 @@ public class Z80 {
      * interrupciones entre cada prefijo.
      */
     private int decodeDDFD(int regIXY) {
-        int work8;
 
         regR++;
         opCode = MemIoImpl.fetchOpcode(regPC);
@@ -4188,410 +4204,411 @@ public class Z80 {
                 regIXY = add16(regIXY, getRegDE());
                 break;
             }
-            case 0x21: {     /*LD IX,nn*/
+            case 0x21: {     /* LD IX,nn */
                 regIXY = MemIoImpl.peek16(regPC);
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
-            case 0x22: {     /*LD (nn),IX*/
+            case 0x22: {     /* LD (nn),IX */
                 memptr = MemIoImpl.peek16(regPC);
                 MemIoImpl.poke16(memptr, regIXY);
                 memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
-            case 0x23: {     /*INC IX*/
+            case 0x23: {     /* INC IX */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 regIXY = (regIXY + 1) & 0xffff;
                 break;
             }
-            case 0x24: {     /*INC IXh*/
+            case 0x24: {     /* INC IXh */
                 regIXY = (inc8(regIXY >>> 8) << 8) | (regIXY & 0xff);
                 break;
             }
-            case 0x25: {     /*DEC IXh*/
+            case 0x25: {     /* DEC IXh */
                 regIXY = (dec8(regIXY >>> 8) << 8) | (regIXY & 0xff);
                 break;
             }
-            case 0x26: {     /*LD IXh,n*/
+            case 0x26: {     /* LD IXh,n */
                 regIXY = (MemIoImpl.peek8(regPC) << 8) | (regIXY & 0xff);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x29: {     /*ADD IX,IX*/
+            case 0x29: {     /* ADD IX,IX */
                 MemIoImpl.contendedStates(getPairIR(), 7);
                 regIXY = add16(regIXY, regIXY);
                 break;
             }
-            case 0x2A: {     /*LD IX,(nn)*/
+            case 0x2A: {     /* LD IX,(nn) */
                 memptr = MemIoImpl.peek16(regPC);
                 regIXY = MemIoImpl.peek16(memptr);
                 memptr++;
                 regPC = (regPC + 2) & 0xffff;
                 break;
             }
-            case 0x2B: {     /*DEC IX*/
+            case 0x2B: {     /* DEC IX */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 regIXY = (regIXY - 1) & 0xffff;
                 break;
             }
-            case 0x2C: {     /*INC IXl*/
+            case 0x2C: {     /* INC IXl */
                 regIXY = (regIXY & 0xff00) | inc8(regIXY & 0xff);
                 break;
             }
-            case 0x2D: {     /*DEC IXl*/
+            case 0x2D: {     /* DEC IXl */
                 regIXY = (regIXY & 0xff00) | dec8(regIXY & 0xff);
                 break;
             }
-            case 0x2E: {     /*LD IXl,n*/
+            case 0x2E: {     /* LD IXl,n */
                 regIXY = (regIXY & 0xff00) | MemIoImpl.peek8(regPC);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x34:       /*INC (IX+d)*/
+            case 0x34: {     /* INC (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
-                work8 = MemIoImpl.peek8(memptr);
+                int work8 = MemIoImpl.peek8(memptr);
                 MemIoImpl.contendedStates(memptr, 1);
                 MemIoImpl.poke8(memptr, inc8(work8));
                 regPC = (regPC + 1) & 0xffff;
                 break;
-            case 0x35: {     /*DEC (IX+d)*/
+            }
+            case 0x35: {     /* DEC (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
-                work8 = MemIoImpl.peek8(memptr);
+                int work8 = MemIoImpl.peek8(memptr);
                 MemIoImpl.contendedStates(memptr, 1);
                 MemIoImpl.poke8(memptr, dec8(work8));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x36: {     /*LD (IX+d),n*/
+            case 0x36: {     /* LD (IX+d),n */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC = (regPC + 1) & 0xffff;
-                work8 = MemIoImpl.peek8(regPC);
+                int work8 = MemIoImpl.peek8(regPC);
                 MemIoImpl.contendedStates(regPC, 2);
                 regPC = (regPC + 1) & 0xffff;
                 MemIoImpl.poke8(memptr, work8);
                 break;
             }
-            case 0x39: {     /*ADD IX,SP*/
+            case 0x39: {     /* ADD IX,SP */
                 MemIoImpl.contendedStates(getPairIR(), 7);
                 regIXY = add16(regIXY, regSP);
                 break;
             }
-            case 0x44: {     /*LD B,IXh*/
+            case 0x44: {     /* LD B,IXh */
                 regB = regIXY >>> 8;
                 break;
             }
-            case 0x45: {     /*LD B,IXl*/
+            case 0x45: {     /* LD B,IXl */
                 regB = regIXY & 0xff;
                 break;
             }
-            case 0x46: {     /*LD B,(IX+d)*/
+            case 0x46: {     /* LD B,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regB = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x4C: {     /*LD C,IXh*/
+            case 0x4C: {     /* LD C,IXh */
                 regC = regIXY >>> 8;
                 break;
             }
-            case 0x4D: {     /*LD C,IXl*/
+            case 0x4D: {     /* LD C,IXl */
                 regC = regIXY & 0xff;
                 break;
             }
-            case 0x4E: {     /*LD C,(IX+d)*/
+            case 0x4E: {     /* LD C,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regC = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x54: {     /*LD D,IXh*/
+            case 0x54: {     /* LD D,IXh */
                 regD = regIXY >>> 8;
                 break;
             }
-            case 0x55: {     /*LD D,IXl*/
+            case 0x55: {     /* LD D,IXl */
                 regD = regIXY & 0xff;
                 break;
             }
-            case 0x56: {     /*LD D,(IX+d)*/
+            case 0x56: {     /* LD D,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regD = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x5C: {     /*LD E,IXh*/
+            case 0x5C: {     /* LD E,IXh */
                 regE = regIXY >>> 8;
                 break;
             }
-            case 0x5D: {     /*LD E,IXl*/
+            case 0x5D: {     /* LD E,IXl */
                 regE = regIXY & 0xff;
                 break;
             }
-            case 0x5E: {     /*LD E,(IX+d)*/
+            case 0x5E: {     /* LD E,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regE = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x60: {     /*LD IXh,B*/
+            case 0x60: {     /* LD IXh,B */
                 regIXY = (regIXY & 0x00ff) | (regB << 8);
                 break;
             }
-            case 0x61: {     /*LD IXh,C*/
+            case 0x61: {     /* LD IXh,C */
                 regIXY = (regIXY & 0x00ff) | (regC << 8);
                 break;
             }
-            case 0x62: {     /*LD IXh,D*/
+            case 0x62: {     /* LD IXh,D */
                 regIXY = (regIXY & 0x00ff) | (regD << 8);
                 break;
             }
-            case 0x63: {     /*LD IXh,E*/
+            case 0x63: {     /* LD IXh,E */
                 regIXY = (regIXY & 0x00ff) | (regE << 8);
                 break;
             }
-            case 0x64: {     /*LD IXh,IXh*/
+            case 0x64: {     /* LD IXh,IXh */
                 break;
             }
-            case 0x65: {     /*LD IXh,IXl*/
+            case 0x65: {     /* LD IXh,IXl */
                 regIXY = (regIXY & 0x00ff) | ((regIXY & 0xff) << 8);
                 break;
             }
-            case 0x66: {     /*LD H,(IX+d)*/
+            case 0x66: {     /* LD H,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regH = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x67: {     /*LD IXh,A*/
+            case 0x67: {     /* LD IXh,A */
                 regIXY = (regIXY & 0x00ff) | (regA << 8);
                 break;
             }
-            case 0x68: {     /*LD IXl,B*/
+            case 0x68: {     /* LD IXl,B */
                 regIXY = (regIXY & 0xff00) | regB;
                 break;
             }
-            case 0x69: {     /*LD IXl,C*/
+            case 0x69: {     /* LD IXl,C */
                 regIXY = (regIXY & 0xff00) | regC;
                 break;
             }
-            case 0x6A: {     /*LD IXl,D*/
+            case 0x6A: {     /* LD IXl,D */
                 regIXY = (regIXY & 0xff00) | regD;
                 break;
             }
-            case 0x6B: {     /*LD IXl,E*/
+            case 0x6B: {     /* LD IXl,E */
                 regIXY = (regIXY & 0xff00) | regE;
                 break;
             }
-            case 0x6C: {     /*LD IXl,IXh*/
+            case 0x6C: {     /* LD IXl,IXh */
                 regIXY = (regIXY & 0xff00) | (regIXY >>> 8);
                 break;
             }
-            case 0x6D: {     /*LD IXl,IXl*/
+            case 0x6D: {     /* LD IXl,IXl */
                 break;
             }
-            case 0x6E: {     /*LD L,(IX+d)*/
+            case 0x6E: {     /* LD L,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regL = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x6F: {     /*LD IXl,A*/
+            case 0x6F: {     /* LD IXl,A */
                 regIXY = (regIXY & 0xff00) | regA;
                 break;
             }
-            case 0x70: {     /*LD (IX+d),B*/
+            case 0x70: {     /* LD (IX+d),B */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regB);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x71: {     /*LD (IX+d),C*/
+            case 0x71: {     /* LD (IX+d),C */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regC);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x72: {     /*LD (IX+d),D*/
+            case 0x72: {     /* LD (IX+d),D */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regD);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x73: {     /*LD (IX+d),E*/
+            case 0x73: {     /* LD (IX+d),E */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regE);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x74: {     /*LD (IX+d),H*/
+            case 0x74: {     /* LD (IX+d),H */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regH);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x75: {     /*LD (IX+d),L*/
+            case 0x75: {     /* LD (IX+d),L */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regL);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x77: {     /*LD (IX+d),A*/
+            case 0x77: {     /* LD (IX+d),A */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 MemIoImpl.poke8(memptr, regA);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x7C: {     /*LD A,IXh*/
+            case 0x7C: {     /* LD A,IXh */
                 regA = regIXY >>> 8;
                 break;
             }
-            case 0x7D: {     /*LD A,IXl*/
+            case 0x7D: {     /* LD A,IXl */
                 regA = regIXY & 0xff;
                 break;
             }
-            case 0x7E: {     /*LD A,(IX+d)*/
+            case 0x7E: {     /* LD A,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 regA = MemIoImpl.peek8(memptr);
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x84: {     /*ADD A,IXh*/
+            case 0x84: {     /* ADD A,IXh */
                 add(regIXY >>> 8);
                 break;
             }
-            case 0x85: {     /*ADD A,IXl*/
+            case 0x85: {     /* ADD A,IXl */
                 add(regIXY & 0xff);
                 break;
             }
-            case 0x86: {     /*ADD A,(IX+d)*/
+            case 0x86: {     /* ADD A,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 add(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x8C: {     /*ADC A,IXh*/
+            case 0x8C: {     /* ADC A,IXh */
                 adc(regIXY >>> 8);
                 break;
             }
-            case 0x8D: {     /*ADC A,IXl*/
+            case 0x8D: {     /* ADC A,IXl */
                 adc(regIXY & 0xff);
                 break;
             }
-            case 0x8E: {     /*ADC A,(IX+d)*/
+            case 0x8E: {     /* ADC A,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 adc(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x94: {     /*SUB IXh*/
+            case 0x94: {     /* SUB IXh */
                 sub(regIXY >>> 8);
                 break;
             }
-            case 0x95: {     /*SUB IXl*/
+            case 0x95: {     /* SUB IXl */
                 sub(regIXY & 0xff);
                 break;
             }
-            case 0x96: {     /*SUB (IX+d)*/
+            case 0x96: {     /* SUB (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 sub(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0x9C: {     /*SBC A,IXh*/
+            case 0x9C: {     /* SBC A,IXh */
                 sbc(regIXY >>> 8);
                 break;
             }
-            case 0x9D: {     /*SBC A,IXl*/
+            case 0x9D: {     /* SBC A,IXl */
                 sbc(regIXY & 0xff);
                 break;
             }
-            case 0x9E: {     /*SBC A,(IX+d)*/
+            case 0x9E: {     /* SBC A,(IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 sbc(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0xA4: {     /*AND IXh*/
+            case 0xA4: {     /* AND IXh */
                 and(regIXY >>> 8);
                 break;
             }
-            case 0xA5: {     /*AND IXl*/
+            case 0xA5: {     /* AND IXl */
                 and(regIXY & 0xff);
                 break;
             }
-            case 0xA6: {     /*AND (IX+d)*/
+            case 0xA6: {     /* AND (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 and(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0xAC: {     /*XOR IXh*/
+            case 0xAC: {     /* XOR IXh */
                 xor(regIXY >>> 8);
                 break;
             }
-            case 0xAD: {     /*XOR IXl*/
+            case 0xAD: {     /* XOR IXl */
                 xor(regIXY & 0xff);
                 break;
             }
-            case 0xAE: {     /*XOR (IX+d)*/
+            case 0xAE: {     /* XOR (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 xor(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0xB4: {     /*OR IXh*/
+            case 0xB4: {     /* OR IXh */
                 or(regIXY >>> 8);
                 break;
             }
-            case 0xB5: {     /*OR IXl*/
+            case 0xB5: {     /* OR IXl */
                 or(regIXY & 0xff);
                 break;
             }
-            case 0xB6: {     /*OR (IX+d)*/
+            case 0xB6: {     /* OR (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 or(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0xBC: {     /*CP IXh*/
+            case 0xBC: {     /* CP IXh */
                 cp(regIXY >>> 8);
                 break;
             }
-            case 0xBD: {     /*CP IXl*/
+            case 0xBD: {     /* CP IXl */
                 cp(regIXY & 0xff);
                 break;
             }
-            case 0xBE: {     /*CP (IX+d)*/
+            case 0xBE: {     /* CP (IX+d) */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 MemIoImpl.contendedStates(regPC, 5);
                 cp(MemIoImpl.peek8(memptr));
                 regPC = (regPC + 1) & 0xffff;
                 break;
             }
-            case 0xCB: {     /*Subconjunto de instrucciones*/
+            case 0xCB: {     /* Subconjunto de instrucciones */
                 memptr = (regIXY + (byte) MemIoImpl.peek8(regPC)) & 0xffff;
                 regPC = (regPC + 1) & 0xffff;
                 opCode = MemIoImpl.peek8(regPC);
@@ -4604,11 +4621,11 @@ public class Z80 {
                 }
                 break;
             }
-            case 0xE1: {     /*POP IX*/
+            case 0xE1: {     /* POP IX */
                 regIXY = pop();
                 break;
             }
-            case 0xE3: {     /*EX (SP),IX*/
+            case 0xE3: {     /* EX (SP),IX */
                 // Instrucción de ejecución sutil como pocas... atento al dato.
                 int work16 = regIXY;
                 regIXY = MemIoImpl.peek16(regSP);
@@ -4619,16 +4636,16 @@ public class Z80 {
                 memptr = regIXY;
                 break;
             }
-            case 0xE5: {     /*PUSH IX*/
+            case 0xE5: {     /* PUSH IX */
                 MemIoImpl.contendedStates(getPairIR(), 1);
                 push(regIXY);
                 break;
             }
-            case 0xE9: {     /*JP (IX)*/
+            case 0xE9: {     /* JP (IX) */
                 regPC = regIXY;
                 break;
             }
-            case 0xF9: {     /*LD SP,IX*/
+            case 0xF9: {     /* LD SP,IX */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 regSP = regIXY;
                 break;
@@ -4653,389 +4670,389 @@ public class Z80 {
         return regIXY;
     }
 
-    //Subconjunto de instrucciones 0xDDCB desde el código 0x00 hasta el 0x7F
+    // Subconjunto de instrucciones 0xDDCB desde el código 0x00 hasta el 0x7F
     private void decodeDDFDCBto7F(int opCode, int address) {
-        int work8;
+
         switch (opCode) {
-            case 0x00: {     /*RLC (IX+d),B*/
+            case 0x00: {     /* RLC (IX+d),B */
                 regB = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x01: {     /*RLC (IX+d),C*/
+            case 0x01: {     /* RLC (IX+d),C */
                 regC = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x02: {     /*RLC (IX+d),D*/
+            case 0x02: {     /* RLC (IX+d),D */
                 regD = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x03: {     /*RLC (IX+d),E*/
+            case 0x03: {     /* RLC (IX+d),E */
                 regE = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x04: {     /*RLC (IX+d),H*/
+            case 0x04: {     /* RLC (IX+d),H */
                 regH = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x05: {     /*RLC (IX+d),L*/
+            case 0x05: {     /* RLC (IX+d),L */
                 regL = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x06: {     /*RLC (IX+d)*/
-                work8 = rlc(MemIoImpl.peek8(address));
+            case 0x06: {     /* RLC (IX+d) */
+                int work8 = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x07: {     /*RLC (IX+d),A*/
+            case 0x07: {     /* RLC (IX+d),A */
                 regA = rlc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x08: {     /*RRC (IX+d),B*/
+            case 0x08: {     /* RRC (IX+d),B */
                 regB = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x09: {     /*RRC (IX+d),C*/
+            case 0x09: {     /* RRC (IX+d),C */
                 regC = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x0A: {     /*RRC (IX+d),D*/
+            case 0x0A: {     /* RRC (IX+d),D */
                 regD = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x0B: {     /*RRC (IX+d),E*/
+            case 0x0B: {     /* RRC (IX+d),E */
                 regE = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x0C: {     /*RRC (IX+d),H*/
+            case 0x0C: {     /* RRC (IX+d),H */
                 regH = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x0D: {     /*RRC (IX+d),L*/
+            case 0x0D: {     /* RRC (IX+d),L */
                 regL = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x0E: {     /*RRC (IX+d)*/
-                work8 = rrc(MemIoImpl.peek8(address));
+            case 0x0E: {     /* RRC (IX+d) */
+                int work8 = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x0F: {     /*RRC (IX+d),A*/
+            case 0x0F: {     /* RRC (IX+d),A */
                 regA = rrc(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x10: {     /*RL (IX+d),B*/
+            case 0x10: {     /* RL (IX+d),B */
                 regB = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x11: {     /*RL (IX+d),C*/
+            case 0x11: {     /* RL (IX+d),C */
                 regC = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x12: {     /*RL (IX+d),D*/
+            case 0x12: {     /* RL (IX+d),D */
                 regD = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x13: {     /*RL (IX+d),E*/
+            case 0x13: {     /* RL (IX+d),E */
                 regE = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x14: {     /*RL (IX+d),H*/
+            case 0x14: {     /* RL (IX+d),H */
                 regH = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x15: {     /*RL (IX+d),L*/
+            case 0x15: {     /* RL (IX+d),L */
                 regL = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x16: {     /*RL (IX+d)*/
-                work8 = rl(MemIoImpl.peek8(address));
+            case 0x16: {     /* RL (IX+d) */
+                int work8 = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x17: {     /*RL (IX+d),A*/
+            case 0x17: {     /* RL (IX+d),A */
                 regA = rl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x18: {     /*RR (IX+d),B*/
+            case 0x18: {     /* RR (IX+d),B */
                 regB = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x19: {     /*RR (IX+d),C*/
+            case 0x19: {     /* RR (IX+d),C */
                 regC = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x1A: {     /*RR (IX+d),D*/
+            case 0x1A: {     /* RR (IX+d),D */
                 regD = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x1B: {     /*RR (IX+d),E*/
+            case 0x1B: {     /* RR (IX+d),E */
                 regE = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x1C: {     /*RR (IX+d),H*/
+            case 0x1C: {     /* RR (IX+d),H */
                 regH = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x1D: {     /*RR (IX+d),L*/
+            case 0x1D: {     /* RR (IX+d),L */
                 regL = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x1E: {     /*RR (IX+d)*/
-                work8 = rr(MemIoImpl.peek8(address));
+            case 0x1E: {     /* RR (IX+d) */
+                int work8 = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x1F: {     /*RR (IX+d),A*/
+            case 0x1F: {     /* RR (IX+d),A */
                 regA = rr(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x20: {     /*SLA (IX+d),B*/
+            case 0x20: {     /* SLA (IX+d),B */
                 regB = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x21: {     /*SLA (IX+d),C*/
+            case 0x21: {     /* SLA (IX+d),C */
                 regC = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x22: {     /*SLA (IX+d),D*/
+            case 0x22: {     /* SLA (IX+d),D */
                 regD = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x23: {     /*SLA (IX+d),E*/
+            case 0x23: {     /* SLA (IX+d),E */
                 regE = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x24: {     /*SLA (IX+d),H*/
+            case 0x24: {     /* SLA (IX+d),H */
                 regH = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x25: {     /*SLA (IX+d),L*/
+            case 0x25: {     /* SLA (IX+d),L */
                 regL = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x26: {     /*SLA (IX+d)*/
-                work8 = sla(MemIoImpl.peek8(address));
+            case 0x26: {     /* SLA (IX+d) */
+                int work8 = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x27: {     /*SLA (IX+d),A*/
+            case 0x27: {     /* SLA (IX+d),A */
                 regA = sla(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x28: {     /*SRA (IX+d),B*/
+            case 0x28: {     /* SRA (IX+d),B */
                 regB = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x29: {     /*SRA (IX+d),C*/
+            case 0x29: {     /* SRA (IX+d),C */
                 regC = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x2A: {     /*SRA (IX+d),D*/
+            case 0x2A: {     /* SRA (IX+d),D */
                 regD = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x2B: {     /*SRA (IX+d),E*/
+            case 0x2B: {     /* SRA (IX+d),E */
                 regE = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x2C: {     /*SRA (IX+d),H*/
+            case 0x2C: {     /* SRA (IX+d),H */
                 regH = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x2D: {     /*SRA (IX+d),L*/
+            case 0x2D: {     /* SRA (IX+d),L */
                 regL = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x2E: {     /*SRA (IX+d)*/
-                work8 = sra(MemIoImpl.peek8(address));
+            case 0x2E: {     /* SRA (IX+d) */
+                int work8 = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x2F: {     /*SRA (IX+d),A*/
+            case 0x2F: {     /* SRA (IX+d),A */
                 regA = sra(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x30: {     /*SLL (IX+d),B*/
+            case 0x30: {     /* SLL (IX+d),B */
                 regB = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x31: {     /*SLL (IX+d),C*/
+            case 0x31: {     /* SLL (IX+d),C */
                 regC = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x32: {     /*SLL (IX+d),D*/
+            case 0x32: {     /* SLL (IX+d),D */
                 regD = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x33: {     /*SLL (IX+d),E*/
+            case 0x33: {     /* SLL (IX+d),E */
                 regE = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x34: {     /*SLL (IX+d),H*/
+            case 0x34: {     /* SLL (IX+d),H */
                 regH = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x35: {     /*SLL (IX+d),L*/
+            case 0x35: {     /* SLL (IX+d),L */
                 regL = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x36: {     /*SLL (IX+d)*/
-                work8 = sll(MemIoImpl.peek8(address));
+            case 0x36: {     /* SLL (IX+d) */
+                int work8 = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x37: {     /*SLL (IX+d),A*/
+            case 0x37: {     /* SLL (IX+d),A */
                 regA = sll(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x38: {     /*SRL (IX+d),B*/
+            case 0x38: {     /* SRL (IX+d),B */
                 regB = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x39: {     /*SRL (IX+d),C*/
+            case 0x39: {     /* SRL (IX+d),C */
                 regC = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x3A: {     /*SRL (IX+d),D*/
+            case 0x3A: {     /* SRL (IX+d),D */
                 regD = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x3B: {     /*SRL (IX+d),E*/
+            case 0x3B: {     /* SRL (IX+d),E */
                 regE = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x3C: {     /*SRL (IX+d),H*/
+            case 0x3C: {     /* SRL (IX+d),H */
                 regH = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x3D: {     /*SRL (IX+d),L*/
+            case 0x3D: {     /* SRL (IX+d),L */
                 regL = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x3E: {     /*SRL (IX+d)*/
-                work8 = srl(MemIoImpl.peek8(address));
+            case 0x3E: {     /* SRL (IX+d) */
+                int work8 = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x3F: {     /*SRL (IX+d),A*/
+            case 0x3F: {     /* SRL (IX+d),A */
                 regA = srl(MemIoImpl.peek8(address));
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
@@ -5048,7 +5065,7 @@ public class Z80 {
             case 0x44:
             case 0x45:
             case 0x46:
-            case 0x47: {     /*BIT 0,(IX+d)*/
+            case 0x47: {     /* BIT 0,(IX+d) */
                 bit(0x01, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5062,7 +5079,7 @@ public class Z80 {
             case 0x4C:
             case 0x4D:
             case 0x4E:
-            case 0x4F: {     /*BIT 1,(IX+d)*/
+            case 0x4F: {     /* BIT 1,(IX+d) */
                 bit(0x02, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5076,7 +5093,7 @@ public class Z80 {
             case 0x54:
             case 0x55:
             case 0x56:
-            case 0x57: {     /*BIT 2,(IX+d)*/
+            case 0x57: {     /* BIT 2,(IX+d) */
                 bit(0x04, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5090,7 +5107,7 @@ public class Z80 {
             case 0x5C:
             case 0x5D:
             case 0x5E:
-            case 0x5F: {     /*BIT 3,(IX+d)*/
+            case 0x5F: {     /* BIT 3,(IX+d) */
                 bit(0x08, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5104,7 +5121,7 @@ public class Z80 {
             case 0x64:
             case 0x65:
             case 0x66:
-            case 0x67: {     /*BIT 4,(IX+d)*/
+            case 0x67: {     /* BIT 4,(IX+d) */
                 bit(0x10, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5118,7 +5135,7 @@ public class Z80 {
             case 0x6C:
             case 0x6D:
             case 0x6E:
-            case 0x6F: {     /*BIT 5,(IX+d)*/
+            case 0x6F: {     /* BIT 5,(IX+d) */
                 bit(0x20, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5132,7 +5149,7 @@ public class Z80 {
             case 0x74:
             case 0x75:
             case 0x76:
-            case 0x77: {     /*BIT 6,(IX+d)*/
+            case 0x77: {     /* BIT 6,(IX+d) */
                 bit(0x40, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5146,7 +5163,7 @@ public class Z80 {
             case 0x7C:
             case 0x7D:
             case 0x7E:
-            case 0x7F: {     /*BIT 7,(IX+d)*/
+            case 0x7F: {     /* BIT 7,(IX+d) */
                 bit(0x80, MemIoImpl.peek8(address));
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZHP_MASK)
                     | ((address >>> 8) & FLAG_53_MASK);
@@ -5156,773 +5173,773 @@ public class Z80 {
         }
     }
 
-    //Subconjunto de instrucciones 0xDDCB desde el código 0x80 hasta el 0xFF
+    // Subconjunto de instrucciones 0xDDCB desde el código 0x80 hasta el 0xFF
     private void decodeDDFDCBtoFF(int opCode, int address) {
-        int work8;
+
         switch (opCode) {
-            case 0x80: {     /*RES 0,(IX+d),B*/
+            case 0x80: {     /* RES 0,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x81: {     /*RES 0,(IX+d),C*/
+            case 0x81: {     /* RES 0,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x82: {     /*RES 0,(IX+d),D*/
+            case 0x82: {     /* RES 0,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x83: {     /*RES 0,(IX+d),E*/
+            case 0x83: {     /* RES 0,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x84: {     /*RES 0,(IX+d),H*/
+            case 0x84: {     /* RES 0,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x85: {     /*RES 0,(IX+d),L*/
+            case 0x85: {     /* RES 0,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x86: {     /*RES 0,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xFE;
+            case 0x86: {     /* RES 0,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x87: {     /*RES 0,(IX+d),A*/
+            case 0x87: {     /* RES 0,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xFE;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x88: {     /*RES 1,(IX+d),B*/
+            case 0x88: {     /* RES 1,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x89: {     /*RES 1,(IX+d),C*/
+            case 0x89: {     /* RES 1,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x8A: {     /*RES 1,(IX+d),D*/
+            case 0x8A: {     /* RES 1,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x8B: {     /*RES 1,(IX+d),E*/
+            case 0x8B: {     /* RES 1,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x8C: {     /*RES 1,(IX+d),H*/
+            case 0x8C: {     /* RES 1,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x8D: {     /*RES 1,(IX+d),L*/
+            case 0x8D: {     /* RES 1,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x8E: {     /*RES 1,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xFD;
+            case 0x8E: {     /* RES 1,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x8F: {     /*RES 1,(IX+d),A*/
+            case 0x8F: {     /* RES 1,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xFD;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x90: {     /*RES 2,(IX+d),B*/
+            case 0x90: {     /* RES 2,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x91: {     /*RES 2,(IX+d),C*/
+            case 0x91: {     /* RES 2,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x92: {     /*RES 2,(IX+d),D*/
+            case 0x92: {     /* RES 2,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x93: {     /*RES 2,(IX+d),E*/
+            case 0x93: {     /* RES 2,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x94: {     /*RES 2,(IX+d),H*/
+            case 0x94: {     /* RES 2,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x95: {     /*RES 2,(IX+d),L*/
+            case 0x95: {     /* RES 2,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x96: {     /*RES 2,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xFB;
+            case 0x96: {     /* RES 2,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x97: {     /*RES 2,(IX+d),A*/
+            case 0x97: {     /* RES 2,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xFB;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0x98: {     /*RES 3,(IX+d),B*/
+            case 0x98: {     /* RES 3,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0x99: {     /*RES 3,(IX+d),C*/
+            case 0x99: {     /* RES 3,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0x9A: {     /*RES 3,(IX+d),D*/
+            case 0x9A: {     /* RES 3,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0x9B: {     /*RES 3,(IX+d),E*/
+            case 0x9B: {     /* RES 3,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0x9C: {     /*RES 3,(IX+d),H*/
+            case 0x9C: {     /* RES 3,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0x9D: {     /*RES 3,(IX+d),L*/
+            case 0x9D: {     /* RES 3,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0x9E: {     /*RES 3,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xF7;
+            case 0x9E: {     /* RES 3,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0x9F: {     /*RES 3,(IX+d),A*/
+            case 0x9F: {     /* RES 3,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xF7;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xA0: {     /*RES 4,(IX+d),B*/
+            case 0xA0: {     /* RES 4,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xA1: {     /*RES 4,(IX+d),C*/
+            case 0xA1: {     /* RES 4,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xA2: {     /*RES 4,(IX+d),D*/
+            case 0xA2: {     /* RES 4,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xA3: {     /*RES 4,(IX+d),E*/
+            case 0xA3: {     /* RES 4,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xA4: {     /*RES 4,(IX+d),H*/
+            case 0xA4: {     /* RES 4,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xA5: {     /*RES 4,(IX+d),L*/
+            case 0xA5: {     /* RES 4,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xA6: {     /*RES 4,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xEF;
+            case 0xA6: {     /* RES 4,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xA7: {     /*RES 4,(IX+d),A*/
+            case 0xA7: {     /* RES 4,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xEF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xA8: {     /*RES 5,(IX+d),B*/
+            case 0xA8: {     /* RES 5,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xA9: {     /*RES 5,(IX+d),C*/
+            case 0xA9: {     /* RES 5,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xAA: {     /*RES 5,(IX+d),D*/
+            case 0xAA: {     /* RES 5,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xAB: {     /*RES 5,(IX+d),E*/
+            case 0xAB: {     /* RES 5,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xAC: {     /*RES 5,(IX+d),H*/
+            case 0xAC: {     /* RES 5,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xAD: {     /*RES 5,(IX+d),L*/
+            case 0xAD: {     /* RES 5,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xAE: {     /*RES 5,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xDF;
+            case 0xAE: {     /* RES 5,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xAF: {     /*RES 5,(IX+d),A*/
+            case 0xAF: {     /* RES 5,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xDF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xB0: {     /*RES 6,(IX+d),B*/
+            case 0xB0: {     /* RES 6,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xB1: {     /*RES 6,(IX+d),C*/
+            case 0xB1: {     /* RES 6,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xB2: {     /*RES 6,(IX+d),D*/
+            case 0xB2: {     /* RES 6,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xB3: {     /*RES 6,(IX+d),E*/
+            case 0xB3: {     /* RES 6,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xB4: {     /*RES 6,(IX+d),H*/
+            case 0xB4: {     /* RES 6,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xB5: {     /*RES 6,(IX+d),L*/
+            case 0xB5: {     /* RES 6,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xB6: {     /*RES 6,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0xBF;
+            case 0xB6: {     /* RES 6,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xB7: {     /*RES 6,(IX+d),A*/
+            case 0xB7: {     /* RES 6,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0xBF;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xB8: {     /*RES 7,(IX+d),B*/
+            case 0xB8: {     /* RES 7,(IX+d),B */
                 regB = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xB9: {     /*RES 7,(IX+d),C*/
+            case 0xB9: {     /* RES 7,(IX+d),C */
                 regC = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xBA: {     /*RES 7,(IX+d),D*/
+            case 0xBA: {     /* RES 7,(IX+d),D */
                 regD = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xBB: {     /*RES 7,(IX+d),E*/
+            case 0xBB: {     /* RES 7,(IX+d),E */
                 regE = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xBC: {     /*RES 7,(IX+d),H*/
+            case 0xBC: {     /* RES 7,(IX+d),H */
                 regH = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xBD: {     /*RES 7,(IX+d),L*/
+            case 0xBD: {     /* RES 7,(IX+d),L */
                 regL = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xBE: {     /*RES 7,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) & 0x7F;
+            case 0xBE: {     /* RES 7,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xBF: {     /*RES 7,(IX+d),A*/
+            case 0xBF: {     /* RES 7,(IX+d),A */
                 regA = MemIoImpl.peek8(address) & 0x7F;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xC0: {     /*SET 0,(IX+d),B*/
+            case 0xC0: {     /* SET 0,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xC1: {     /*SET 0,(IX+d),C*/
+            case 0xC1: {     /* SET 0,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xC2: {     /*SET 0,(IX+d),D*/
+            case 0xC2: {     /* SET 0,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xC3: {     /*SET 0,(IX+d),E*/
+            case 0xC3: {     /* SET 0,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xC4: {     /*SET 0,(IX+d),H*/
+            case 0xC4: {     /* SET 0,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xC5: {     /*SET 0,(IX+d),L*/
+            case 0xC5: {     /* SET 0,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xC6: {     /*SET 0,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x01;
+            case 0xC6: {     /* SET 0,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xC7: {     /*SET 0,(IX+d),A*/
+            case 0xC7: {     /* SET 0,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x01;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xC8: {     /*SET 1,(IX+d),B*/
+            case 0xC8: {     /* SET 1,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xC9: {     /*SET 1,(IX+d),C*/
+            case 0xC9: {     /* SET 1,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xCA: {     /*SET 1,(IX+d),D*/
+            case 0xCA: {     /* SET 1,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xCB: {     /*SET 1,(IX+d),E*/
+            case 0xCB: {     /* SET 1,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xCC: {     /*SET 1,(IX+d),H*/
+            case 0xCC: {     /* SET 1,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xCD: {     /*SET 1,(IX+d),L*/
+            case 0xCD: {     /* SET 1,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xCE: {     /*SET 1,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x02;
+            case 0xCE: {     /* SET 1,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xCF: {     /*SET 1,(IX+d),A*/
+            case 0xCF: {     /* SET 1,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x02;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xD0: {     /*SET 2,(IX+d),B*/
+            case 0xD0: {     /* SET 2,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xD1: {     /*SET 2,(IX+d),C*/
+            case 0xD1: {     /* SET 2,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xD2: {     /*SET 2,(IX+d),D*/
+            case 0xD2: {     /* SET 2,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xD3: {     /*SET 2,(IX+d),E*/
+            case 0xD3: {     /* SET 2,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xD4: {     /*SET 2,(IX+d),H*/
+            case 0xD4: {     /* SET 2,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xD5: {     /*SET 2,(IX+d),L*/
+            case 0xD5: {     /* SET 2,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xD6: {     /*SET 2,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x04;
+            case 0xD6: {     /* SET 2,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xD7: {     /*SET 2,(IX+d),A*/
+            case 0xD7: {     /* SET 2,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x04;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xD8: {     /*SET 3,(IX+d),B*/
+            case 0xD8: {     /* SET 3,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xD9: {     /*SET 3,(IX+d),C*/
+            case 0xD9: {     /* SET 3,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xDA: {     /*SET 3,(IX+d),D*/
+            case 0xDA: {     /* SET 3,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xDB: {     /*SET 3,(IX+d),E*/
+            case 0xDB: {     /* SET 3,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xDC: {     /*SET 3,(IX+d),H*/
+            case 0xDC: {     /* SET 3,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xDD: {     /*SET 3,(IX+d),L*/
+            case 0xDD: {     /* SET 3,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xDE: {     /*SET 3,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x08;
+            case 0xDE: {     /* SET 3,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xDF: {     /*SET 3,(IX+d),A*/
+            case 0xDF: {     /* SET 3,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x08;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xE0: {     /*SET 4,(IX+d),B*/
+            case 0xE0: {     /* SET 4,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xE1: {     /*SET 4,(IX+d),C*/
+            case 0xE1: {     /* SET 4,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xE2: {     /*SET 4,(IX+d),D*/
+            case 0xE2: {     /* SET 4,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xE3: {     /*SET 4,(IX+d),E*/
+            case 0xE3: {     /* SET 4,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xE4: {     /*SET 4,(IX+d),H*/
+            case 0xE4: {     /* SET 4,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xE5: {     /*SET 4,(IX+d),L*/
+            case 0xE5: {     /* SET 4,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xE6: {     /*SET 4,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x10;
+            case 0xE6: {     /* SET 4,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xE7: {     /*SET 4,(IX+d),A*/
+            case 0xE7: {     /* SET 4,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x10;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xE8: {     /*SET 5,(IX+d),B*/
+            case 0xE8: {     /* SET 5,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xE9: {     /*SET 5,(IX+d),C*/
+            case 0xE9: {     /* SET 5,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xEA: {     /*SET 5,(IX+d),D*/
+            case 0xEA: {     /* SET 5,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xEB: {     /*SET 5,(IX+d),E*/
+            case 0xEB: {     /* SET 5,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xEC: {     /*SET 5,(IX+d),H*/
+            case 0xEC: {     /* SET 5,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xED: {     /*SET 5,(IX+d),L*/
+            case 0xED: {     /* SET 5,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xEE: {     /*SET 5,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x20;
+            case 0xEE: {     /* SET 5,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xEF: {     /*SET 5,(IX+d),A*/
+            case 0xEF: {     /* SET 5,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x20;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xF0: {     /*SET 6,(IX+d),B*/
+            case 0xF0: {     /* SET 6,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xF1: {     /*SET 6,(IX+d),C*/
+            case 0xF1: {     /* SET 6,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xF2: {     /*SET 6,(IX+d),D*/
+            case 0xF2: {     /* SET 6,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xF3: {     /*SET 6,(IX+d),E*/
+            case 0xF3: {     /* SET 6,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xF4: {     /*SET 6,(IX+d),H*/
+            case 0xF4: {     /* SET 6,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xF5: {     /*SET 6,(IX+d),L*/
+            case 0xF5: {     /* SET 6,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xF6: {     /*SET 6,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x40;
+            case 0xF6: {     /* SET 6,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xF7: {     /*SET 6,(IX+d),A*/
+            case 0xF7: {     /* SET 6,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x40;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
                 break;
             }
-            case 0xF8: {     /*SET 7,(IX+d),B*/
+            case 0xF8: {     /* SET 7,(IX+d),B */
                 regB = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regB);
                 break;
             }
-            case 0xF9: {     /*SET 7,(IX+d),C*/
+            case 0xF9: {     /* SET 7,(IX+d),C */
                 regC = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regC);
                 break;
             }
-            case 0xFA: {     /*SET 7,(IX+d),D*/
+            case 0xFA: {     /* SET 7,(IX+d),D */
                 regD = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regD);
                 break;
             }
-            case 0xFB: {     /*SET 7,(IX+d),E*/
+            case 0xFB: {     /* SET 7,(IX+d),E */
                 regE = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regE);
                 break;
             }
-            case 0xFC: {     /*SET 7,(IX+d),H*/
+            case 0xFC: {     /* SET 7,(IX+d),H */
                 regH = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regH);
                 break;
             }
-            case 0xFD: {     /*SET 7,(IX+d),L*/
+            case 0xFD: {     /* SET 7,(IX+d),L */
                 regL = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regL);
                 break;
             }
-            case 0xFE: {     /*SET 7,(IX+d)*/
-                work8 = MemIoImpl.peek8(address) | 0x80;
+            case 0xFE: {     /* SET 7,(IX+d) */
+                int work8 = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, work8);
                 break;
             }
-            case 0xFF: {     /*SET 7,(IX+d),A*/
+            case 0xFF: {     /* SET 7,(IX+d),A */
                 regA = MemIoImpl.peek8(address) | 0x80;
                 MemIoImpl.contendedStates(address, 1);
                 MemIoImpl.poke8(address, regA);
