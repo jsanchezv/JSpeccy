@@ -168,8 +168,9 @@ public class Z80 {
     private int sz5h3pnFlags;
     // El flag Carry es el único que se trata aparte
     private boolean carryFlag;
-    /* Registro interno Q y flag para indicar el uso del registro
-     * Son necesarias para emular el comportamiento de los bits 3 y 5 del
+    /* Flags para indicar la modificación del registro F en la instrucción actual
+     * y en la anterior.
+     * Son necesarios para emular el comportamiento de los bits 3 y 5 del
      * registro F con las instrucciones CCF/SCF.
      * 
      * http://www.worldofspectrum.org/forums/showthread.php?t=41834
@@ -177,8 +178,7 @@ public class Z80 {
      * 
      * Thanks to Patrik Rak for his tests and investigations.
      */
-    private int regQ;
-    private boolean flagQ;
+    private boolean flagQ, lastFlagQ;
     // Acumulador alternativo y flags -- 8 bits
     private int regAx;
     private int regFx;
@@ -859,7 +859,7 @@ public class Z80 {
         state.setINTLine(activeINT);
         state.setPendingEI(pendingEI);
         state.setNMI(activeNMI);
-        state.setFlagQ(regQ != 0);
+        state.setFlagQ(lastFlagQ);
         return state;
     }
     
@@ -895,7 +895,7 @@ public class Z80 {
         pendingEI = state.isPendingEI();
         activeNMI = state.isNMI();
         flagQ = false;
-        regQ = state.isFlagQ() ? sz5h3pnFlags : 0;
+        lastFlagQ = state.isFlagQ();
     }
     
     // Reset
@@ -944,8 +944,7 @@ public class Z80 {
         activeINT = false;
         halted = false;
         setIM(IntMode.IM0);
-        regQ = 0;
-        flagQ = false;
+        lastFlagQ = false;
     }
 
     // Rota a la izquierda el valor del argumento
@@ -1748,8 +1747,7 @@ public class Z80 {
             // Primero se comprueba NMI
             if (activeNMI) {
                 activeNMI = false;
-                flagQ = false;
-                regQ = 0;
+                lastFlagQ = false;
                 nmi();
                 continue;
             }
@@ -1758,8 +1756,7 @@ public class Z80 {
             // encontró una interrupción enmascarable y, de ser así, se procesa.
             if (activeINT) {
                 if (ffIFF1 && !pendingEI) {
-                    flagQ = false;
-                    regQ = 0;
+                    lastFlagQ = false;
                     interruption();
                 }
             }
@@ -1773,14 +1770,11 @@ public class Z80 {
             
             regPC = (regPC + 1) & 0xffff;
 
+            flagQ = false;
+            
             decodeOpcode(opCode);
             
-            if (flagQ) {
-                regQ = sz5h3pnFlags;
-                flagQ = false;
-            } else {
-                regQ = 0;
-            }
+            lastFlagQ = flagQ;
 
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
@@ -2120,6 +2114,7 @@ public class Z80 {
                 break;
             }
             case 0x37: {     /* SCF */
+                int regQ = lastFlagQ ? sz5h3pnFlags : 0;
                 carryFlag = true;
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | (((regQ ^ sz5h3pnFlags) | regA) & FLAG_53_MASK);
                 flagQ = true;
@@ -2165,6 +2160,7 @@ public class Z80 {
                 break;
             }
             case 0x3F: {     /* CCF */
+                int regQ = lastFlagQ ? sz5h3pnFlags : 0;
                 sz5h3pnFlags = (sz5h3pnFlags & FLAG_SZP_MASK) | (((regQ ^ sz5h3pnFlags) | regA) & FLAG_53_MASK);
                 if (carryFlag) {
                     sz5h3pnFlags |= HALFCARRY_MASK;
