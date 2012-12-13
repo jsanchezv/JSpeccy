@@ -138,6 +138,7 @@ public class SnapshotSZX {
     private static final int ZXSTBID_Z80REGS = 0x5230385A;   // Z80R
     private static final int ZXSTZF_EILAST = 1;
     private static final int ZXSTZF_HALTED = 2;
+    private static final int ZXSTZF_FSET = 4;  // new flag for v1.5 spec.
     // This definition isn't in Spectaculator documentation page.
     // http://scratchpad.wikia.com/wiki/ZX_Spectrum_64_Colour_Mode
     private static final int ZXSTBID_PALETTE = 0x54544C50;    // PLTT
@@ -161,11 +162,23 @@ public class SnapshotSZX {
     private static final int ZXSTOPDF_COMPRESSED = 2;
     private static final int ZXSTOPDF_WRITEPROTECT = 4;
     
-    // LEC RAM Extension
+    // LEC RAM Extension (v1.5 SZX Spec)
     private static final int ZXSTBID_LEC = 0x0043454C;      // LEC\0
     private static final int ZXSTLECF_PAGED = 0x01;
     private static final int ZXSTBID_LECRAMPAGE = 0x5052434C;  // LCRP
     private static final int ZXSTLCRPF_COMPRESSED = 0x01;
+    
+    // SpectraNET blocks (v1.5 SZX Spec)
+    private static final int ZXSTBID_SPECTRANET = 0x54454E53; // SNET
+    private static final int ZXSTSNETF_PAGED = 0x0001;
+    private static final int ZXSTSNETF_PAGED_VIA_IO = 0x0002;
+    private static final int ZXSTSNETF_PROGRAMMABLE_TRAP_ACTIVE = 0x0004;
+    private static final int ZXSTSNETF_PROGRAMMABLE_TRAP_MSB = 0x0008;
+    private static final int ZXSTSNETF_ALL_DISABLED = 0x0010;
+    private static final int ZXSTSNETF_RST8_DISABLED = 0x0020;
+    private static final int ZXSTSNETF_DENY_DOWNSTREAM_A15 = 0x0040;
+    private static final int ZXSTSNETF_FLASH_COMPRESSED = 0x0080;
+    private static final int ZXSTSNETF_RAM_COMPRESSED = 0x0100;
 
     /**
      * @return the tapeEmbedded
@@ -420,6 +433,10 @@ public class SnapshotSZX {
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
                             z80.setMemPtr((z80Regs[35] & 0xff) | (z80Regs[36] << 8));
                         }
+                        
+                        if (szxMajorVer == 1 && szxMinorVer > 4) {
+                            z80.setFlagQ((z80Regs[34] & ZXSTZF_FSET) != 0);
+                        }
                         break;
                     case ZXSTBID_SPECREGS:
                         if (szxLen != 8) {
@@ -582,10 +599,11 @@ public class SnapshotSZX {
 
                         // MF RAM not commpressed
                         if ((mf[1] & ZXSTMF_COMPRESSED) == 0) {
-                            if (chData.length == 8192)
+                            if (chData.length == 8192) {
                                 memory.setMultifaceRam(chData);
-                            else
+                            } else {
                                 spectrum.setMultiface(false);
+                            }
                             break;
                         }
                         
@@ -874,8 +892,9 @@ public class SnapshotSZX {
                         
                         spectrum.setConnectedLec(true);
                         memory.setLecPaged((lecHeader[0] & ZXSTLECF_PAGED) != 0);
-                        if (memory.isLecPaged())
+                        if (memory.isLecPaged()) {
                             memory.setPageLec(lecHeader[2] & 0x0f);
+                        }
                         break;
                     case ZXSTBID_LECRAMPAGE:
                         if (memory == null) {
@@ -945,6 +964,7 @@ public class SnapshotSZX {
                     case ZXSTBID_ZXPRINTER:
                     case ZXSTBID_OPUS:
                     case ZXSTBID_ODSK:
+                    case ZXSTBID_SPECTRANET:
 //                        chData = new byte[szxLen];
                         while (szxLen > 0) {
                             szxLen -= fIn.skip(szxLen);
@@ -966,8 +986,9 @@ public class SnapshotSZX {
             throw new SnapshotException("FILE_READ_ERROR");
         } finally {
             try {
-                if (fIn != null)
+                if (fIn != null) {
                     fIn.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(SnapshotSZX.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -993,7 +1014,7 @@ public class SnapshotSZX {
             String blockID = "ZXST";
             fOut.write(blockID.getBytes("US-ASCII"));
             fOut.write(0x01); // SZX major version
-            fOut.write(0x04); // SZX minor version
+            fOut.write(0x05); // SZX minor version
             switch (spectrum.getSpectrumModel()) {
                 case SPECTRUM16K:
                     fOut.write(ZXSTMID_16K);
@@ -1090,9 +1111,10 @@ public class SnapshotSZX {
                 z80r[34] = ZXSTZF_HALTED;
             }
 
-            if (z80r[34] == 0x03) {
-                z80r[34] = 0;
+            if (z80.isFlagQ()) {
+                z80r[34] |= ZXSTZF_FSET;
             }
+
             z80r[35] = (byte) z80.getMemPtr();
             z80r[36] = (byte) (z80.getMemPtr() >>> 8);
             fOut.write(z80r);
@@ -1426,8 +1448,9 @@ public class SnapshotSZX {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
         } finally {
             try {
-                if (fOut != null)
+                if (fOut != null) {
                     fOut.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(SnapshotSZX.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
