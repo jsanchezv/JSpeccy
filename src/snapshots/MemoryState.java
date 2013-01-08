@@ -12,9 +12,9 @@ public class MemoryState {
     private byte ram[][] = new byte[8][];
     private byte IF2Rom[];
     private byte mfRam[];
-    private byte lecRam[][] = new byte[15][];
-    private int pageLec;
-    private boolean IF1RomPaged, IF2RomPaged, lecPaged;
+    private byte lecRam[][] = new byte[16][];
+    private int portFD;
+    private boolean IF1RomPaged, IF2RomPaged;
     private boolean multifacePaged, multifaceLocked, mf128on48k;
     
     public MemoryState () {
@@ -122,34 +122,28 @@ public class MemoryState {
     /**
      * @return the pageLEC
      */
-    public int getPageLec() {
-        return pageLec;
+    public int getPortFD() {
+        return portFD;
     }
 
     /**
      * @param pageLEC the pageLEC to set
      */
-    public void setPageLec(int pageLEC) {
-        this.pageLec = pageLEC;
+    public void setPortFD(int pageLEC) {
+        this.portFD = pageLEC;
     }
 
     /**
      * @return the lecPaged
      */
     public boolean isLecPaged() {
-        return lecPaged;
-    }
-
-    /**
-     * @param lecPaged the lecPaged to set
-     */
-    public void setLecPaged(boolean lecPaged) {
-        this.lecPaged = lecPaged;
+        return (portFD & 0x80) != 0;
     }
     
     public byte[] getLecPageRam(int page) {
-        if (lecRam[page] == null)
+        if (lecRam[page] == null) {
             return null;
+        }
         
         return lecRam[page];
     }

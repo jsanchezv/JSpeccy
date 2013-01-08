@@ -16,7 +16,7 @@ public class SpectrumState {
     private Z80State z80;
     private MemoryState memory;
     private AY8912State ay8912;
-    private int tstates, portFE, earBit, port7ffd, port1ffd;
+    private int tstates, portFE, earBit, port7ffd, port1ffd, portFD;
     private byte numMicrodrives = 1;
     private boolean ULAPlusEnabled, ULAPlusActive, issue2, multiface, connectedLec;
     private boolean connectedIF1, enabledAY, enabledAYon48k;
@@ -339,5 +339,19 @@ public class SpectrumState {
      */
     public void setConnectedLec(boolean connectedLec) {
         this.connectedLec = connectedLec;
+    }
+
+    /**
+     * @return the portFD
+     */
+    public int getPortFD() {
+        return portFD;
+    }
+
+    /**
+     * @param portFD the portFD to set
+     */
+    public void setPortFD(int portFD) {
+        this.portFD = portFD;
     }
 }

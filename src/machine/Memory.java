@@ -50,11 +50,10 @@ public final class Memory {
     private byte[][] lecRam;
     // Número de página de RAM de donde sale la pantalla activa
     private int screenPage;
-    private int highPage, bankM, bankP, pageLEC;
+    private int highPage, bankM, bankP, portFD, activePageLEC;
     private boolean IF1RomPaged, IF2RomPaged;
     private boolean model128k, pagingLocked, plus3RamMode;
     private boolean multifacePaged, multifaceLocked;
-    private boolean lecPaged;
     private MachineTypes spectrumModel;
     private JSpeccySettingsType settings;
     private Random random;
@@ -84,9 +83,8 @@ public final class Memory {
                 state.setPageRam(2, savePage(2));
                 state.setPageRam(0, savePage(0));
                 if (lecRam != null) {
-                    state.setLecPaged(lecPaged);
-                    state.setPageLec(pageLEC);
-                    for (int page = 0; page < 15; page++) {
+                    state.setPortFD(portFD);
+                    for (int page = 0; page < 16; page++) {
                         state.setLecPageRam(page, savePageLec(page));
                     }
                 }
@@ -127,9 +125,12 @@ public final class Memory {
                 loadPage(2, state.getPageRam(2));
                 loadPage(0, state.getPageRam(0));
                 if (state.getLecPageRam(0) != null) {
-                    for (int page = 0; page < 15; page++) {
+                    setConnectedLEC(true);
+                    for (int page = 0; page < 16; page++) {
                         loadPageLec(page, state.getLecPageRam(page));
-                    }
+                 }
+                } else {
+                    setConnectedLEC(false);
                 }
                 break;
             default:
@@ -229,43 +230,29 @@ public final class Memory {
 
     public void loadPageLec(int page, byte[] ram) {
         if (lecRam == null) {
-            lecRam = new byte[60][PAGE_SIZE];
+            throw new NullPointerException("No reserved LEC ram pages!");
         }
-        
-        if (pageLEC != 15) {
-            page <<= 2;
-            System.arraycopy(ram, 0, lecRam[page], 0, lecRam[0].length);
-            System.arraycopy(ram, 0x2000, lecRam[page + 1], 0, lecRam[0].length);
-            System.arraycopy(ram, 0x4000, lecRam[page + 2], 0, lecRam[0].length);
-            System.arraycopy(ram, 0x6000, lecRam[page + 3], 0, lecRam[0].length);
-        } else {
-            System.arraycopy(ram, 0, Ram[4], 0, Ram[4].length);
-            System.arraycopy(ram, 0x2000, Ram[5], 0, Ram[5].length);
-            System.arraycopy(ram, 0x4000, Ram[0], 0, Ram[0].length);
-            System.arraycopy(ram, 0x6000, Ram[1], 0, Ram[1].length);
-        }
+
+        page <<= 2;
+        System.arraycopy(ram, 0, lecRam[page], 0, lecRam[0].length);
+        System.arraycopy(ram, 0x2000, lecRam[page + 1], 0, lecRam[0].length);
+        System.arraycopy(ram, 0x4000, lecRam[page + 2], 0, lecRam[0].length);
+        System.arraycopy(ram, 0x6000, lecRam[page + 3], 0, lecRam[0].length);
     }
-    
+
     public byte[] savePageLec(int page) {
         if (lecRam == null) {
-            lecRam = new byte[60][PAGE_SIZE];
+            throw new NullPointerException("No reserved LEC ram pages!");
         }
-        
+
         byte[] ram = new byte[0x8000];
-        
-        if (pageLEC != 15) {
-            page <<= 2;
-            System.arraycopy(lecRam[page], 0, ram, 0, lecRam[0].length);
-            System.arraycopy(lecRam[page + 1], 0, ram, 0x2000, lecRam[0].length);
-            System.arraycopy(lecRam[page + 2], 0, ram, 0x4000, lecRam[0].length);
-            System.arraycopy(lecRam[page + 3], 0, ram, 0x6000, lecRam[0].length);
-        } else {
-            System.arraycopy(Ram[4], 0, ram, 0, lecRam[0].length);
-            System.arraycopy(Ram[5], 0, ram, 0x2000, lecRam[0].length);
-            System.arraycopy(Ram[0], 0, ram, 0x4000, lecRam[0].length);
-            System.arraycopy(Ram[1], 0, ram, 0x6000, lecRam[0].length);
-        }
-        
+
+        page <<= 2;
+        System.arraycopy(lecRam[page], 0, ram, 0, lecRam[0].length);
+        System.arraycopy(lecRam[page + 1], 0, ram, 0x2000, lecRam[0].length);
+        System.arraycopy(lecRam[page + 2], 0, ram, 0x4000, lecRam[0].length);
+        System.arraycopy(lecRam[page + 3], 0, ram, 0x6000, lecRam[0].length);
+
         return ram;
     }
 
@@ -585,7 +572,7 @@ public final class Memory {
         boolean res = false;
         switch (spectrumModel.codeModel) {
             case SPECTRUM48K:
-                res = true;
+                res = !isLecPaged();
                 break;
             case SPECTRUM128K:
                 res = (bankM & 0x10) != 0;
@@ -641,7 +628,7 @@ public final class Memory {
         IF1RomPaged = false;
         multifaceLocked = true;
         pagingLocked = plus3RamMode = false;
-        lecPaged = false;
+        portFD = activePageLEC = 0;
 
         if (spectrumModel != model) {
             spectrumModel = model;
@@ -939,67 +926,81 @@ public final class Memory {
         return IF1RomPaged;
     }
     
-    public void pageLec(int page) {
-        if (lecRam == null) {
-            lecRam = new byte[60][PAGE_SIZE];
+    public void setConnectedLEC(boolean state) {
+        if (state && lecRam != null) {
+            return;
         }
+        
+        if (state) {
+            lecRam = new byte[64][];
+                for (int page = 0; page < 60; page++) {
+                    lecRam[page] = new byte[PAGE_SIZE];
+                }
 
-        page &= 0x78;
-        
-        // The page is in b3b6b5b4
-        page = (((page & 0x70) >>> 4) | (page & 0x08)) & 0x0f;
-        pageLEC = page;
-//        System.out.println("LEC page " + pageLEC);
-        
-        if (pageLEC < 15) {
-            pageLEC <<= 2;
-            readPages[0] = writePages[0] = lecRam[pageLEC];
-            readPages[1] = writePages[1] = lecRam[pageLEC + 1];
-            readPages[2] = writePages[2] = lecRam[pageLEC + 2];
-            readPages[3] = writePages[3] = lecRam[pageLEC + 3];
+                lecRam[60] = Ram[4]; // Page 2
+                lecRam[61] = Ram[5];
+                lecRam[62] = Ram[0]; // Page 0
+                lecRam[63] = Ram[1];
         } else {
-            readPages[0] = writePages[0] = Ram[4];  // Página 2
-            readPages[1] = writePages[1] = Ram[5];
-            readPages[2] = writePages[2] = Ram[0];  // Página 0
-            readPages[3] = writePages[3] = Ram[1];
+            lecRam = null;
         }
-
-        lecPaged = true;
     }
     
-    // LEC have preference over any other device
-    public void unpageLec() {
-        if (!lecPaged) {
+    public boolean isConnectedLEC() {
+        return lecRam != null;
+    }
+
+    public void setPortFD(int value) {
+        if (lecRam == null) {
             return;
         }
 
-        setMemoryMap48k();
+        portFD = value;
+        if ((value & 0x80) == 0) {
+//            System.out.println("LEC unpaged!");
 
-        if (IF1RomPaged) {
-            IF1RomPaged = false;
-            pageIF1Rom();
+            activePageLEC = 0;
+
+            setMemoryMap48k();
+
+            if (IF1RomPaged) {
+                IF1RomPaged = false;
+                pageIF1Rom();
+            }
+
+            if (multifacePaged) {
+                multifacePaged = false;
+                pageMultiface();
+            }
+        } else {
+
+            value &= 0x78;
+
+            // The page # is in b3b6b5b4
+            activePageLEC = (((value & 0x70) >>> 4) | (value & 0x08)) & 0x0f;
+
+//            System.out.println("LEC page " + activePageLEC);
+
+            value = activePageLEC <<= 2;
+            readPages[0] = writePages[0] = lecRam[value++];
+            readPages[1] = writePages[1] = lecRam[value++];
+            readPages[2] = writePages[2] = lecRam[value++];
+            readPages[3] = writePages[3] = lecRam[value];
         }
-
-        if (multifacePaged) {
-            multifacePaged = false;
-            pageMultiface();
-        }
-
-        lecPaged = false;
     }
 
     /**
      * @return the lecPaged
      */
     public boolean isLecPaged() {
-        return lecPaged;
+        return (portFD & 0x80) != 0;
     }
 
     /**
      * @return the pageLEC selected
      */
-    public int getPageLec() {
-        return pageLEC;
+    public int getPortFD() {
+        return portFD;
     }
 
     public void loadRoms() {
@@ -1220,9 +1221,10 @@ public final class Memory {
     private MemoryDataProvider memoryDataProvider;
     public MemoryDataProvider getMemoryDataProvider() {
         
-        if (memoryDataProvider == null)
+        if (memoryDataProvider == null) {
             memoryDataProvider =  new MemoryDataProvider();
-        
+        }
+
         return memoryDataProvider;
     }
 

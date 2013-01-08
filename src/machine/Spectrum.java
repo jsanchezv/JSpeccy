@@ -113,12 +113,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
 
         state.setEnabledAY(enabledAY);
-        if (enabledAY)
+        if (enabledAY) {
             state.setAY8912State(ay8912.getAY8912State());
+        }
 
         state.setConnectedIF1(connectedIF1);
-        if (connectedIF1)
+        if (connectedIF1) {
             state.setNumMicrodrives(settings.getInterface1Settings().getMicrodriveUnits());
+        }
 
         state.setMultiface(specSettings.isMultifaceEnabled());
 
@@ -216,14 +218,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         clock.setTstates(state.getTstates());
         step = 0;
-        while (step < stepStates.length && stepStates[step] < state.getTstates())
+        while (step < stepStates.length && stepStates[step] < state.getTstates()) {
             step++;
+        }
         nextEvent = step < stepStates.length ? stepStates[step] : NO_EVENT;
 
         loadConfigVars();
 
-        if (memory.getMemoryState().isLecPaged())
-           pageLec(state.getMemoryState().getPageLec());
+        if (memory.isConnectedLEC()) {
+           pageLec(state.getMemoryState().getPortFD());
+        }
     }
 
     public void selectHardwareModel(int model) {
@@ -255,8 +259,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         clock.setSpectrumModel(spectrumModel);
         memory.reset(spectrumModel);
         
-        if (tape != null)
+        if (tape != null) {
             tape.setSpectrumModel(spectrumModel);
+        }
 
         contendedRamPage[0] = contendedIOPage[0] = false;
         contendedRamPage[1] = contendedIOPage[1] = true;
@@ -323,17 +328,21 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         z80.setBreakpoint(0x1708, connectedIF1);
         
         if (specSettings.isLecEnabled() && spectrumModel == MachineTypes.SPECTRUM48K) {
+            memory.setConnectedLEC(true);
             if (memory.isLecPaged()) {
-                pageLec(memory.getPageLec());
+                pageLec(memory.getPortFD());
             } else {
                 unpageLec();
             }
-        }        
+        } else {
+            memory.setConnectedLEC(false);
+        }
     }
 
     public synchronized void startEmulation() {
-        if (!paused)
+        if (!paused) {
             return;
+        }
         
         paused = false;
         audio.reset();
@@ -347,8 +356,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public synchronized void stopEmulation() {
-        if (paused)
+        if (paused) {
             return;
+        }
         
         taskFrame.cancel();
         paused = true;
@@ -364,14 +374,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         tape.stop();
         clock.reset();
         z80.reset();
-        if (memory.isLecPaged())
+        if (memory.isLecPaged()) {
             unpageLec();
+        }
         memory.reset(spectrumModel);
         ay8912.reset();
         audio.reset();
         keyboard.reset();
-        if (connectedIF1)
+        if (connectedIF1) {
             if1.reset();
+        }
         portFE = port7ffd = port1ffd = 0;
         ULAPlusActive = false;
         step  = paletteGroup = 0;
@@ -687,8 +699,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             if (clock.getTstates() >= nextEvent) {
                updateScreen(clock.getTstates());
             }
-        } else
+        } else {
             clock.addTstates(4);
+        }
 
         return memory.readByte(address) & 0xff;
     }
@@ -698,8 +711,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
-        } else
+        } else {
             clock.addTstates(3);
+        }
 
         return memory.readByte(address) & 0xff;
     }
@@ -727,16 +741,18 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
-        } else
+        } else {
             clock.addTstates(3);
+        }
 
         int lsb = memory.readByte(address) & 0xff;
 
         address = (address + 1) & 0xffff;
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 3);
-        } else 
+        } else {
             clock.addTstates(3);
+        }
 
         return ((memory.readByte(address) << 8) & 0xff00 | lsb);
     }
@@ -1389,8 +1405,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
             } finally {
                 try {
-                    if (fOut != null)
+                    if (fOut != null) {
                         fOut.close();
+                    }
                 } catch (IOException ex) {
                     Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -1453,8 +1470,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
             } finally {
                 try {
-                    if (fIn != null)
+                    if (fIn != null) {
                         fIn.close();
+                    }
                 } catch (IOException ex) {
                     Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -1702,8 +1720,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
     
     public void setBorderMode(int mode) {
-        if (borderMode == mode)
+        if (borderMode == mode) {
             return;
+        }
 
         borderMode = mode;
 
@@ -1735,8 +1754,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
         tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
             BufferedImage.TYPE_INT_RGB);
-        if (gcTvImage != null)
+        if (gcTvImage != null) {
             gcTvImage.dispose();
+        }
         gcTvImage = tvImage.createGraphics();
 
         inProgressImage =
@@ -1914,8 +1934,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             dataInProgress[idxColor + 6] = nowColor;
             dataInProgress[idxColor + 7] = nowColor;
             borderDirty = true;
-            if (firstBorderPix > idxColor)
+            if (firstBorderPix > idxColor) {
                 firstBorderPix = idxColor;
+            }
             lastBorderPix = idxColor;
         }
         
@@ -2193,8 +2214,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public synchronized boolean stopRecording() {
-        if (!tape.isTapeRecording())
+        if (!tape.isTapeRecording()) {
             return false;
+        }
         
         tape.recordPulse((portFE & 0x08) != 0);
         tape.stopRecording();
@@ -2237,11 +2259,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
             loadTrap = saveTrap = enabledAY = false;
         }
-        memory.pageLec(value);
+        memory.setPortFD(value);
     }
 
     private void unpageLec() {
-        memory.unpageLec();
+        memory.setPortFD(0);
         contendedRamPage[1] = contendedIOPage[1] = true;
         z80.setBreakpoint(0x0066, specSettings.isMultifaceEnabled());
         saveTrap = settings.getTapeSettings().isEnableSaveTraps();

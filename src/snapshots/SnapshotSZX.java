@@ -164,7 +164,6 @@ public class SnapshotSZX {
     
     // LEC RAM Extension (v1.5 SZX Spec)
     private static final int ZXSTBID_LEC = 0x0043454C;      // LEC\0
-    private static final int ZXSTLECF_PAGED = 0x01;
     private static final int ZXSTBID_LECRAMPAGE = 0x5052434C;  // LCRP
     private static final int ZXSTLCRPF_COMPRESSED = 0x01;
     
@@ -884,17 +883,14 @@ public class SnapshotSZX {
                             spectrum.setMemoryState(memory);
                         }
                         
-                        byte[] lecHeader = new byte[4];
+                        byte[] lecHeader = new byte[2];
                         readed = fIn.read(lecHeader);
                         if (readed != lecHeader.length) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
                         
                         spectrum.setConnectedLec(true);
-                        memory.setLecPaged((lecHeader[0] & ZXSTLECF_PAGED) != 0);
-                        if (memory.isLecPaged()) {
-                            memory.setPageLec(lecHeader[2] & 0x0f);
-                        }
+                        memory.setPortFD(lecHeader[0]);
                         break;
                     case ZXSTBID_LECRAMPAGE:
                         if (memory == null) {
@@ -1408,21 +1404,18 @@ public class SnapshotSZX {
             if (spectrum.isConnectedLec() && spectrum.getSpectrumModel() == MachineTypes.SPECTRUM48K) {
                 blockID = "LEC\0";
                 fOut.write(blockID.getBytes("US-ASCII"));
-                fOut.write(0x04);
+                fOut.write(0x02);
                 fOut.write(0x00);
                 fOut.write(0x00);
-                fOut.write(0x00); // LEC block size (4 bytes)
+                fOut.write(0x00); // LEC block size (2 bytes)
                 
-                fOut.write(memory.isLecPaged() == true ? 0x01 : 0x00);
-                fOut.write(0x00); // Flags
-                
-                fOut.write(memory.getPageLec()); // active page
+                fOut.write(memory.getPortFD()); // active page
                 
                 fOut.write(0x10); // 16 Ram pages
                 
-                // LEC RAM Pages (0 to 14, 15 is at the upper 32 KB Spectrum RAM)
+                // LEC RAM Pages (0 to 15)
                 blockID = "LCRP";
-                for (int page = 0; page < 15; page++) {
+                for (int page = 0; page < 16; page++) {
                     if (spectrum.getMemoryState().getLecPageRam(page) != null) {
                         ram = memory.getLecPageRam(page);
                         baos = new ByteArrayOutputStream();
