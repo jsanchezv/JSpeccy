@@ -501,6 +501,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             clock.endFrame();
+            if (tape.isTapePlaying()) {
+                tape.tapeNotify();
+            }
 
             step = 0;
             nextEvent = stepStates[0];
@@ -938,6 +941,17 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         // ULA Port
         if ((port & 0x0001) == 0) {
+            if (tape.isTapePlaying()) {
+                tape.tapeNotify();
+                if (specSettings.isLoadingNoise() && enabledSound) {
+                    int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 2000;
+
+                    if (spkMic != speaker) {
+                        audio.updateAudio(clock.getTstates(), speaker);
+                        speaker = spkMic;
+                    }
+                }
+            }
             earBit = tape.getEarBit();
             return keyboard.readKeyboardPort(port) & earBit;
         }
@@ -2278,9 +2292,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         enabledAY = settings.getSpectrumSettings().isAYEnabled48K();
     }
     
-    private class TapeChangedListener implements TapeStateListener, ClockTimeoutListener {
+    private class TapeChangedListener implements TapeStateListener {
 
-        boolean listenerInstalled = false;
         @Override
         public void stateChanged(final TapeState state) {
 //            System.out.println("Spectrum::TapeChangedListener: state = " + state + "");
@@ -2296,31 +2309,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                                     acceleratedLoading();
                                 }
                             }.start();
-                        } else {
-                            if (specSettings.isLoadingNoise() && enabledSound) {
-                                listenerInstalled = true;
-                                clock.addClockTimeoutListener(this);
-                            }
                         }
                     }
                     break;
                 case STOP:
-                    if (listenerInstalled) {
-                        clock.removeClockTimeoutListener(this);
-                        listenerInstalled = false;
-                    }
                     break;
-            }
-        }
-
-        @Override
-        public void clockTimeout() {
-
-            int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 2000;
-
-            if (spkMic != speaker) {
-                audio.updateAudio(clock.getTstates(), speaker);
-                speaker = spkMic;
             }
         }
     }
