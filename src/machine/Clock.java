@@ -4,8 +4,8 @@
  */
 package machine;
 
-import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *
@@ -17,7 +17,7 @@ public class Clock {
     private int tstates;
     private long frames;
     private int timeout;
-    private final ArrayList<ClockTimeoutListener> clockListeners = new ArrayList<ClockTimeoutListener>();
+    private final CopyOnWriteArrayList<ClockTimeoutListener> clockListeners = new CopyOnWriteArrayList<ClockTimeoutListener>();
 
     // Clock class implements a Singleton pattern.
     private Clock() {

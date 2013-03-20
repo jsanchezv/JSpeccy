@@ -581,16 +581,14 @@ public class Tape implements machine.ClockTimeoutListener {
     @Override
     public void clockTimeout() {
 
-        if (tapePlaying) {
-            if (cswTape) {
-                playCsw();
-            }
+        if (cswTape) {
+            playCsw();
+        }
 
-            if (tzxTape) {
-                playTzx();
-            } else {
-                playTap();
-            }
+        if (tzxTape) {
+            playTzx();
+        } else {
+            playTap();
         }
     }
 
@@ -786,28 +784,8 @@ public class Tape implements machine.ClockTimeoutListener {
         statePlay = State.STOP;
 
         fireTapeBlockChanged(idxHeader);
-
-        // tapeStop method is called from playTap/Tzx/Csw on clockTimeout
-        // and this was fired by Clock.addTstates.
-        // Execute here removeClockTimeoutListener gets a
-        // ConcurrentModificationException. tapeStop method needs to end his
-        // execution before remove the listener.
-        final Tape myself = this;
-        new Thread() {
-
-            @Override
-            public void run() {
-                try {
-                    // Give him time to finish running
-                    sleep(20);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-                fireTapeStateChanged(TapeState.STOP);
-                clock.removeClockTimeoutListener(myself);
-    }
-        }.start();
+        fireTapeStateChanged(TapeState.STOP);
+        clock.removeClockTimeoutListener(this);
     }
 
     public boolean rewind() {
