@@ -627,52 +627,48 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         rightCol = 0;
         lastChgBorder = firstBorderUpdate;
 
-        int frames = 500;
         nextEvent = NO_EVENT;
-        speedometer = System.currentTimeMillis();
         do {
-            z80.setINTLine(true);
-            z80.execute(spectrumModel.lengthINT);
-            z80.setINTLine(false);
+            long startFrame = clock.getFrames();
+            long end = System.currentTimeMillis() + 200;
+            do {
+                z80.setINTLine(true);
+                z80.execute(spectrumModel.lengthINT);
+                z80.setINTLine(false);
 
-            z80.execute(spectrumModel.tstatesFrame);
-            
-            clock.endFrame();
+                z80.execute(spectrumModel.tstatesFrame);
 
-            if (frames-- == 0) {
-                frames = 500;
-                if (LEFT_BORDER > 0) {
-                    updateBorder(lastBorderUpdate);
-                }
+                clock.endFrame();
+            } while (tape.isTapePlaying() && System.currentTimeMillis() <= end);
 
-                step = 0;
-                updateScreen(spectrumModel.lastScrUpdate);
-                gcTvImage.drawImage(inProgressImage, 0, 0, null);
-                jscr.repaint();
+            if (LEFT_BORDER > 0) {
+                updateBorder(lastBorderUpdate);
+            }
 
-                lastScanLine = rightCol = lastBorderPix = 0;
-                firstBorderPix = dataInProgress.length;
-                firstScanLine = 191;
-                leftCol = 31;
-                lastChgBorder = firstBorderUpdate;
-                
-                long now = System.currentTimeMillis();
-                speed = 1000000 / (now - speedometer);
-                speedometer = now;
-                if (speed != prevSpeed) {
-                    prevSpeed = speed;
-                    SwingUtilities.invokeLater(new Runnable() {
+            step = 0;
+            updateScreen(spectrumModel.lastScrUpdate);
+            gcTvImage.drawImage(inProgressImage, 0, 0, null);
+            jscr.repaint();
 
-                        @Override
-                        public void run() {
-                            speedLabel.setText(String.format("%4d%%", speed));
-                        }
-                    });
-                }
-                
-                if (resetPending) {
-                    tape.stop();
-                }
+            lastScanLine = rightCol = lastBorderPix = 0;
+            firstBorderPix = dataInProgress.length;
+            firstScanLine = 191;
+            leftCol = 31;
+            lastChgBorder = firstBorderUpdate;
+
+            speed = clock.getFrames() - startFrame;
+            if (speed != prevSpeed) {
+                prevSpeed = speed;
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        speedLabel.setText(String.format("%4d%%", speed * 10));
+                    }
+                });
+            }
+
+            if (resetPending) {
+                tape.stop();
             }
         } while (tape.isTapePlaying());
 
