@@ -692,9 +692,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         if (contendedRamPage[address >>> 14]) {
             clock.addTstates(delayTstates[clock.getTstates()] + 4);
-            if (clock.getTstates() >= nextEvent) {
-               updateScreen(clock.getTstates());
-            }
         } else {
             clock.addTstates(4);
         }
@@ -796,9 +793,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
                 clock.addTstates(delayTstates[clock.getTstates()] + 1);
-                if (clock.getTstates() >= nextEvent) {
-                    updateScreen(clock.getTstates());
-                }
             }
         } else {
             clock.addTstates(tstates);
