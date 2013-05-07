@@ -84,7 +84,7 @@ public class Clock {
      */
     public void setTstates(int states) {
         tstates = states;
-        frames = 0;
+        frames = timeout = 0;
     }
 
     public void addTstates(int states) {
@@ -114,7 +114,7 @@ public class Clock {
     }
 
     public void reset() {
-        frames = tstates = 0;
+        frames = timeout = tstates = 0;
     }
 
     public void setTimeout(int ntstates) {
