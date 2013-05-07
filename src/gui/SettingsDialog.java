@@ -60,6 +60,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         flashLoad.setSelected(settings.getTapeSettings().isFlashLoad());
         
         flashLoad.setEnabled(settings.getTapeSettings().isEnableLoadTraps());
+        
+        autoLoadTape.setSelected(settings.getTapeSettings().isAutoLoadTape());
 
         ULAplus.setSelected(settings.getSpectrumSettings().isULAplus());
 
@@ -184,6 +186,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         enableLoadTraps = new javax.swing.JCheckBox();
         flashLoad = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
+        autoLoadTape = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
         samplingPanel = new javax.swing.JPanel();
@@ -440,7 +443,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         tapePanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
-        loadPanel.setLayout(new java.awt.GridLayout(3, 1));
+        loadPanel.setLayout(new java.awt.GridLayout(4, 1));
 
         enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.enableLoadTraps.text")); // NOI18N
         enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
@@ -465,6 +468,14 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         loadPanel.add(acceleratedLoad);
+
+        autoLoadTape.setText(bundle.getString("SettingsDialog.tapePanel.autoLoadTape.text")); // NOI18N
+        autoLoadTape.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autoLoadTapeActionPerformed(evt);
+            }
+        });
+        loadPanel.add(autoLoadTape);
 
         tapePanelTab.add(loadPanel);
 
@@ -859,6 +870,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getSpectrumSettings().setZoomed(zoomCheckbox.isSelected());
     }//GEN-LAST:event_zoomCheckboxActionPerformed
 
+    private void autoLoadTapeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoLoadTapeActionPerformed
+        settings.getTapeSettings().setAutoLoadTape(autoLoadTape.isSelected());
+    }//GEN-LAST:event_autoLoadTapeActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -873,6 +888,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox ULAplus;
     private javax.swing.JCheckBox acceleratedLoad;
     private javax.swing.JPanel audioPanel;
+    private javax.swing.JCheckBox autoLoadTape;
     private javax.swing.JCheckBox autoSaveOnExit;
     private javax.swing.JPanel autoSavePanel;
     private javax.swing.JPanel buttonPanel;
