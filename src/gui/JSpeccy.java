@@ -12,11 +12,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.*;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
+import static javax.swing.TransferHandler.COPY;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -61,6 +65,186 @@ public class JSpeccy extends javax.swing.JFrame {
     Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
     Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
     Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
+    
+    private TransferHandler handler = new TransferHandler() {
+        @Override
+        public boolean canImport(TransferHandler.TransferSupport support) {
+            if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                return false;
+            }
+
+            // When spectrum is in acceleratedLoading method, anything can be dropped
+            if (spectrum.isPaused() && tape.isTapePlaying()) {
+                return false;
+            }
+
+            boolean copySupported = (COPY & support.getSourceDropActions()) == COPY;
+
+            if (!copySupported) {
+                return false;
+            }
+
+            support.setDropAction(COPY);
+
+            return true;
+        }
+
+        @Override
+        public boolean importData(TransferHandler.TransferSupport support) {
+            if (!canImport(support)) {
+                return false;
+            }
+
+            Transferable transfer = support.getTransferable();
+
+            try {
+                java.util.List<File> list =
+                        (java.util.List<File>) transfer.getTransferData(DataFlavor.javaFileListFlavor);
+
+                if (list.size() != 1) {
+                    return false;
+                }
+            
+                for (File file : list) {
+                    if (file.isDirectory())
+                        return false;
+
+//                    System.out.println("File dropped: " + file.getAbsolutePath());
+//                    System.out.println("# selected files: " + list.size());
+                    if (snapshotExtension.accept(file)) {
+                        rotateRecentFile(file);
+                        if (tape.isTapeRunning()) {
+                            tape.stop();
+                        }
+                        stopEmulation();
+                        try {
+                            SpectrumState snapState = new SpectrumState();
+                            if (file.getName().toLowerCase().endsWith(".sna")) {
+                                SnapshotSNA snapSNA = new SnapshotSNA();
+                                snapState = snapSNA.load(file);
+                            }
+
+                            if (file.getName().toLowerCase().endsWith(".z80")) {
+                                SnapshotZ80 snapZ80 = new SnapshotZ80();
+                                snapState = snapZ80.load(file);
+                            }
+
+                            if (file.getName().toLowerCase().endsWith(".szx")) {
+                                snapSZX = new SnapshotSZX();
+                                snapState = snapSZX.load(file);
+
+                                if (snapSZX.isTapeEmbedded()) {
+                                    tape.eject();
+                                    tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
+                                            snapSZX.getTapeData(), snapSZX.getTapeBlock());
+                                }
+
+                                if (snapSZX.isTapeLinked()) {
+                                    File tapeLink = new File(snapSZX.getTapeName());
+
+                                    if (tapeLink.exists()) {
+                                        tape.eject();
+                                        tape.insert(tapeLink);
+                                        tape.setSelectedBlock(snapSZX.getTapeBlock());
+                                    }
+                                }
+                            }
+
+                            spectrum.setSpectrumState(snapState);
+                            startEmulation();
+                            break;
+                        } catch (SnapshotException excpt) {
+                            JOptionPane.showMessageDialog(getContentPane(),
+                                    ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                                    ResourceBundle.getBundle("gui/Bundle").getString(
+                                    "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                            startEmulation();
+                        }
+                    }
+                   
+                    if (tapeExtension.accept(file)) {
+                        // when a IF2 ROM is loaded, is needed to extract this rom to allow
+                        // autoLoadTape work correctly.
+                        if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3 &&
+                                settings.getTapeSettings().isAutoLoadTape() &&
+                                extractIF2RomMediaMenu.isEnabled()) {
+                            spectrum.ejectIF2Rom();
+                            insertIF2RomMediaMenu.setEnabled(true);
+                            extractIF2RomMediaMenu.setEnabled(false);
+                        }
+
+                        if (tape.isTapeRunning()) {
+                            tape.stop();
+                        }
+
+                        tape.eject();
+
+                        if (tape.insert(file)) {
+                            rotateRecentFile(file);
+                            if (settings.getTapeSettings().isAutoLoadTape()) {
+                                spectrum.autoLoadTape();
+                            }
+                            break;
+                        } else {
+                            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                            JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_TAPE_ERROR"),
+                                    bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                    
+                    if (romExtension.accept(file)) {
+                        if (tape.isTapeRunning()) {
+                            tape.stop();
+                        }
+                        stopEmulation();
+
+                        if (spectrum.getSpectrumModel() != MachineTypes.SPECTRUM48K) {
+                            spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
+                        }
+
+                        spectrum.reset();
+
+                        if (spectrum.insertIF2Rom(file)) {
+                            insertIF2RomMediaMenu.setEnabled(false);
+                            extractIF2RomMediaMenu.setEnabled(true);
+                        } else {
+                            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                            JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_ROM_ERROR"),
+                                    bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                        }
+                        
+                        startEmulation();
+                        break;
+                    }
+                    
+                    if (screenExtension.accept(file)) {
+                        if (!spectrum.loadScreen(file)) {
+                            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                            JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_SCREEN_ERROR"),
+                                    bundle.getString("LOAD_SCREEN_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                        }
+                        spectrum.invalidateScreen(true);
+                        break;
+                    }
+                    
+                    if (file.getName().toLowerCase().endsWith(".bin")) {
+                        if (loadSaveMemoryDialog == null) {
+                            loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
+                        }
+
+                        stopEmulation();
+                        loadSaveMemoryDialog.showLoadDialog(getContentPane(), file);
+                        startEmulation();
+                        break;
+                    }
+                }
+            } catch (UnsupportedFlavorException | IOException e) {
+                return false;
+            }
+
+            return true;
+        }
+    };
 
     /** Creates new form JSpeccy */
     public JSpeccy() {
@@ -83,7 +267,7 @@ public class JSpeccy extends javax.swing.JFrame {
 //        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
 //            java.util.logging.Logger.getLogger(JSpeccy.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 //        }
-        
+
         if (UIManager.getLookAndFeel().getName().equals("Metal")) {
             try {
                 // turn off bold fonts
@@ -99,6 +283,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         initComponents();
+        setTransferHandler(handler);
         initEmulator();
         startEmulation();
     }
@@ -1984,6 +2169,9 @@ public class JSpeccy extends javax.swing.JFrame {
                 tape.eject();
                 if (tape.insert(currentFileTape)) {
                     rotateRecentFile(currentFileTape);
+                    if (settings.getTapeSettings().isAutoLoadTape()) {
+                        spectrum.autoLoadTape();
+                    }
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -2088,6 +2276,9 @@ public class JSpeccy extends javax.swing.JFrame {
             tape.eject();
             if (tape.insert(currentFileTape)) {
                 rotateRecentFile(currentFileTape);
+                if (settings.getTapeSettings().isAutoLoadTape()) {
+                    spectrum.autoLoadTape();
+                }
             } else {
                 ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                 JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -2638,6 +2829,10 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (!tape.insert(currentFileTape)) {
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                         bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                } else {
+                    if (settings.getTapeSettings().isAutoLoadTape()) {
+                        spectrum.autoLoadTape();
+                    }
                 }
             }
         }
@@ -2792,6 +2987,9 @@ public class JSpeccy extends javax.swing.JFrame {
             File tmp = tape.getTapeFilename();
             tape.eject();
             tape.insert(tmp);
+            if (settings.getTapeSettings().isAutoLoadTape()) {
+                spectrum.autoLoadTape();
+            }
         }
     }//GEN-LAST:event_reloadTapeMediaMenuActionPerformed
 
@@ -2860,7 +3058,7 @@ public class JSpeccy extends javax.swing.JFrame {
             loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
         
         stopEmulation();
-        loadSaveMemoryDialog.showLoadDialog(this);
+        loadSaveMemoryDialog.showLoadDialog(this, null);
         // The display area may have been affected
         startEmulation();
     }//GEN-LAST:event_loadBinaryFileActionPerformed

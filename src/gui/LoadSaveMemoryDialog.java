@@ -53,7 +53,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
             java.util.ResourceBundle.getBundle("gui/Bundle").getString("BINARY_EXTENSION_TYPE"), "bin");
     }
 
-    public boolean showLoadDialog(Component parent) {
+    public boolean showLoadDialog(Component parent, File file) {
         Frame owner = null;
         if (parent instanceof Frame) {
             owner = (Frame) parent;
@@ -69,7 +69,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         }
 
         saveDialog = false;
-        filename = null;
+        filename = file;
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         loadSaveMemoryDialog.setTitle(bundle.getString("LoadSaveMemoryDialog.LoadTitle.text"));
         fileChoosedLabel.setText(bundle.getString("LoadSaveMemoryDialog.fileChoosedLabel.text"));
@@ -79,6 +79,18 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         rangeCombobox.setEnabled(false);
         loadSaveButton.setEnabled(false);
         loadSaveButton.setText(bundle.getString("LoadSaveMemoryDialog.loadButton.text"));
+        if (filename != null) {
+            fileChoosedLabel.setText(filename.getName());
+            addressSpinner.setEnabled(true);
+            sizeSpinner.setEnabled(true);
+            if (!saveDialog) {
+                sizeSpinner.setModel(new javax.swing.SpinnerNumberModel(filename.length(), 0, filename.length(), 1));
+            }
+            
+            rangeCombobox.setSelectedIndex(0);
+            rangeCombobox.setEnabled(memory.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K);
+            loadSaveButton.setEnabled(true);
+        }
         loadSaveMemoryDialog.setVisible(true);
         return true;
     }

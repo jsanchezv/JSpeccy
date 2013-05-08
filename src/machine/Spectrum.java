@@ -52,7 +52,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private AY8912 ay8912;
     private Tape tape;
     private boolean paused;
-    private boolean resetPending;
+    private boolean resetPending, autoLoadTape;
     private JLabel speedLabel;
 
     private Joystick joystick;
@@ -359,7 +359,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         if (paused) {
             return;
         }
-        
+
         taskFrame.cancel();
         paused = true;
         disableSound();
@@ -453,6 +453,43 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         return memory;
     }
 
+    public void autoLoadTape() {
+        autoLoadTape = true;
+        reset();
+    }
+
+    // Spectrum system variables
+    private static final int LAST_K = 23560;
+    private static final int FLAGS = 23611;
+    private void doAutoLoadTape() {
+        autoLoadTape = false;
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(2000);
+                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+                        memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
+                        memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
+                        Thread.sleep(50);
+                        memory.writeByte(LAST_K, (byte) 0x22); // " key
+                        memory.writeByte(FLAGS, (byte) 0x20);
+                        Thread.sleep(50);
+                        memory.writeByte(LAST_K, (byte) 0x22); // " key
+                        memory.writeByte(FLAGS, (byte) 0x20);
+                        Thread.sleep(50);
+                    }
+                    memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
+                    memory.writeByte(FLAGS, (byte) 0x20);
+
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        };
+        
+        new Thread(task).start();
+    }
     public synchronized void generateFrame() {
 
 //        long startFrame, endFrame, sleepTime;
@@ -464,6 +501,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
         if (resetPending) {
             doReset();
+            if (autoLoadTape) {
+                doAutoLoadTape();
+            }
         }
 
         long counter = framesByInt;
