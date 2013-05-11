@@ -628,8 +628,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
                     screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
                     screenRect.y = ((TOP_BORDER + firstScanLine) * zoom) - zoom;
-                    screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom;
-                    screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom;
+                    screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
+                    screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
                     jscr.repaint(borderRect.union(screenRect));
                 } else {
