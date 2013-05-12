@@ -29,6 +29,8 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.*;
 import machine.Keyboard.Joystick;
 import machine.*;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 import snapshots.*;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -40,25 +42,26 @@ import utilities.TapeStateListener;
  * @author  jsanchez
  */
 public class JSpeccy extends javax.swing.JFrame {
-    Spectrum spectrum;
-    Tape tape;
-    JSpeccyScreen jscr;
-    File currentFileSnapshot, currentDirSaveSnapshot,
-        currentFileTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
-    JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
-    JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
-    File recentFile[] = new File[5];
-    ListSelectionModel lsm;
-    JSpeccySettingsType settings;
-    SettingsDialog settingsDialog;
-    MicrodriveDialog microdriveDialog;
-    MemoryBrowserDialog memoryBrowserDialog;
-    LoadSaveMemoryDialog loadSaveMemoryDialog;
-    FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
+    private Spectrum spectrum;
+    private Tape tape;
+    private JSpeccyScreen jscr;
+    private File currentFileSnapshot, currentDirSaveSnapshot,
+                 currentFileTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
+    private JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
+    private JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
+    private File recentFile[] = new File[5];
+    private ListSelectionModel lsm;
+    private JSpeccySettingsType settings;
+    private SettingsDialog settingsDialog;
+    private MicrodriveDialog microdriveDialog;
+    private MemoryBrowserDialog memoryBrowserDialog;
+    private LoadSaveMemoryDialog loadSaveMemoryDialog;
+    private FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
-    SnapshotSZX snapSZX; // for SZX snapshots
-    SpectrumState memorySnapshot;
-    Thread sleeper;
+    private SnapshotSZX snapSZX; // for SZX snapshots
+    private SpectrumState memorySnapshot;
+    private Thread sleeper;
+    private CommandLineOptions clo;
 
     Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
@@ -247,7 +250,7 @@ public class JSpeccy extends javax.swing.JFrame {
     };
 
     /** Creates new form JSpeccy */
-    public JSpeccy() {
+    public JSpeccy(final String args[]) {
 //        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
 //         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
 //         */
@@ -282,10 +285,142 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         }
 
+        readSettingsFile();
+        if (args.length != 0) {
+            readArguments(args);
+            System.out.println("# args remain: " + clo.getArguments().size());
+        }
+
         initComponents();
         setTransferHandler(handler);
         initEmulator();
+        
+        if (clo != null) {
+            if (clo.isIf1() && clo.getIf1mdv() != null) {
+                spectrum.getInterface1().insertFile(0, clo.getIf1mdv());
+            }
+
+            if (clo.getArguments().size() == 1) {
+                File file = new File(clo.getArguments().get(0));
+                if (snapshotExtension.accept(file)) {
+                    rotateRecentFile(file);
+                    try {
+                        SpectrumState snapState = new SpectrumState();
+                        if (file.getName().toLowerCase().endsWith(".sna")) {
+                            SnapshotSNA snapSNA = new SnapshotSNA();
+                            snapState = snapSNA.load(file);
+                        }
+
+                        if (file.getName().toLowerCase().endsWith(".z80")) {
+                            SnapshotZ80 snapZ80 = new SnapshotZ80();
+                            snapState = snapZ80.load(file);
+                        }
+
+                        if (file.getName().toLowerCase().endsWith(".szx")) {
+                            snapSZX = new SnapshotSZX();
+                            snapState = snapSZX.load(file);
+
+                            if (snapSZX.isTapeEmbedded()) {
+                                tape.eject();
+                                tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
+                                        snapSZX.getTapeData(), snapSZX.getTapeBlock());
+                            }
+
+                            if (snapSZX.isTapeLinked()) {
+                                File tapeLink = new File(snapSZX.getTapeName());
+
+                                if (tapeLink.exists()) {
+                                    tape.eject();
+                                    tape.insert(tapeLink);
+                                    tape.setSelectedBlock(snapSZX.getTapeBlock());
+                                }
+                            }
+                        }
+
+                        spectrum.setSpectrumState(snapState);
+                    } catch (SnapshotException excpt) {
+                        JOptionPane.showMessageDialog(getContentPane(),
+                                ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                                ResourceBundle.getBundle("gui/Bundle").getString(
+                                "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+
+                if (tapeExtension.accept(file)) {
+                    if (tape.insert(file)) {
+                        rotateRecentFile(file);
+                        if (settings.getTapeSettings().isAutoLoadTape()) {
+                            spectrum.autoLoadTape();
+                        }
+                    } else {
+                        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                        JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_TAPE_ERROR"),
+                                bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+
+                if (romExtension.accept(file)) {
+                    if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
+                    }
+
+                    if (spectrum.insertIF2Rom(file)) {
+                        insertIF2RomMediaMenu.setEnabled(false);
+                        extractIF2RomMediaMenu.setEnabled(true);
+                        spectrum.reset();
+                    } else {
+                        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                        JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_ROM_ERROR"),
+                                bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        }
+
         startEmulation();
+    }
+
+    private void readArguments(String args[]) {
+        clo = new CommandLineOptions(settings);
+        CmdLineParser parser = new CmdLineParser(clo);
+        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+        Writer out = new BufferedWriter(new OutputStreamWriter(System.err));
+
+        // if you have a wider console, you could increase the value;
+        // here 80 is also the default
+//        parser.setUsageWidth(80);
+
+        try {
+            // parse the arguments.
+            parser.parseArgument(args);
+
+            // after parsing arguments, you should check
+            // if enough arguments are given.
+//            if( clo.getArguments().isEmpty() )
+//                throw new CmdLineException(parser,"No argument is given");
+            
+            if (clo.isPrintUsage()) {
+                System.err.println(bundle.getString("JSpeccy.usage.header.text"));
+                parser.printUsage(out, bundle);
+                System.exit(0);
+            }
+            
+            clo.copyConfigToSettings();
+
+        } catch( CmdLineException excpt ) {
+            // if there's a problem in the command line,
+            // you'll get this exception. this will report
+            // an error message.
+            System.err.println(excpt.getMessage());
+            System.err.println(bundle.getString("JSpeccy.usage.sample.text"));
+            System.err.println("");
+            // print the list of available options
+            System.err.println(bundle.getString("JSpeccy.usage.header.text"));
+            parser.printUsage(out, bundle);
+            System.err.println();
+
+            System.exit(1);
+        }
     }
 
     private void verifyConfigFile(boolean deleteFile) {
@@ -421,31 +556,33 @@ public class JSpeccy extends javax.swing.JFrame {
         if (currentFileTape != null)
             settings.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
-        int filterM = 0, zoomM = 0;
-        
-        if (palTvFilter.isSelected()) {
-            filterM = 1;
-        }
-        
-        if (rgbFilter.isSelected()) {
-            filterM = 2;
-        }
-        
-        if (bilinearZoom.isSelected()) {
-            zoomM = 1;
-        }
-        
-        if (bicubicZoom.isSelected()) {
-            zoomM = 2;
-        }
-        
-        settings.getSpectrumSettings().setZoomMethod(zoomM);
-        settings.getSpectrumSettings().setFilterMethod(filterM);
-        settings.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
+        if (clo == null) {
+            int filterM = 0, zoomM = 0;
 
-        settings.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
-        
-        settings.getSpectrumSettings().setZoomed(jscr.isZoomed());
+            if (palTvFilter.isSelected()) {
+                filterM = 1;
+            }
+
+            if (rgbFilter.isSelected()) {
+                filterM = 2;
+            }
+
+            if (bilinearZoom.isSelected()) {
+                zoomM = 1;
+            }
+
+            if (bicubicZoom.isSelected()) {
+                zoomM = 2;
+            }
+
+            settings.getSpectrumSettings().setZoomMethod(zoomM);
+            settings.getSpectrumSettings().setFilterMethod(filterM);
+            settings.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
+
+            settings.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
+
+            settings.getSpectrumSettings().setZoomed(jscr.isZoomed());
+        }
 
         try {
             BufferedOutputStream fOut =
@@ -468,7 +605,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void initEmulator() {
 
-        readSettingsFile();
+//        readSettingsFile();
         
         spectrum = new Spectrum(settings);
 
@@ -3171,11 +3308,11 @@ public class JSpeccy extends javax.swing.JFrame {
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
+    public static void main(final String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new JSpeccy().setVisible(true);
+                new JSpeccy(args).setVisible(true);
             }
         });
     }
