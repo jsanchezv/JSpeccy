@@ -116,6 +116,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());
         autoSaveOnExit.setSelected(settings.getSpectrumSettings().isHibernateMode());
         lecEnabled.setSelected(settings.getSpectrumSettings().isLecEnabled());
+        confirmActions.setSelected(settings.getEmulatorSettings().isConfirmActions());
+        autosaveConfigOnExit.setSelected(settings.getEmulatorSettings().isAutosaveConfigOnExit());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -230,6 +232,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         lecInfoLabel = new javax.swing.JLabel();
         lecEnabledPanel = new javax.swing.JPanel();
         lecEnabled = new javax.swing.JCheckBox();
+        emulatorPanelTab = new javax.swing.JPanel();
+        confirmActions = new javax.swing.JCheckBox();
+        autosaveConfigOnExit = new javax.swing.JCheckBox();
 
         setMinimumSize(new java.awt.Dimension(50, 50));
         setPreferredSize(new java.awt.Dimension(440, 400));
@@ -253,6 +258,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         buttonPanel.add(closeButton);
 
         add(buttonPanel, java.awt.BorderLayout.PAGE_END);
+
+        jTabbedPane1.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         hardwarePanelTab.setLayout(new javax.swing.BoxLayout(hardwarePanelTab, javax.swing.BoxLayout.PAGE_AXIS));
 
@@ -716,6 +723,27 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("LEC", lecPanelTab);
 
+        emulatorPanelTab.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.emulatorTab.border.text"))); // NOI18N
+        emulatorPanelTab.setLayout(new java.awt.GridLayout(9, 0));
+
+        confirmActions.setText(bundle.getString("SettingsDialog.confirmActions.text")); // NOI18N
+        confirmActions.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                confirmActionsActionPerformed(evt);
+            }
+        });
+        emulatorPanelTab.add(confirmActions);
+
+        autosaveConfigOnExit.setText(bundle.getString("SettingsDialog.autosaveConfigOnExit.text")); // NOI18N
+        autosaveConfigOnExit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autosaveConfigOnExitActionPerformed(evt);
+            }
+        });
+        emulatorPanelTab.add(autosaveConfigOnExit);
+
+        jTabbedPane1.addTab(bundle.getString("SettingsDialog.emulatorPanel.title.text"), emulatorPanelTab); // NOI18N
+
         add(jTabbedPane1, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -744,13 +772,16 @@ public class SettingsDialog extends javax.swing.JPanel {
     }//GEN-LAST:event_joystickActionPerformed
 
     private void saveSettingsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSettingsButtonActionPerformed
-         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-        int ret = JOptionPane.showConfirmDialog(this,
-                  bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("SAVE_SETTINGS_QUESTION"),
-                  JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+        if (settings.getEmulatorSettings().isConfirmActions()) {
+            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+            int ret = JOptionPane.showConfirmDialog(this,
+                    bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("SAVE_SETTINGS_QUESTION"),
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
 
-        if (ret == JOptionPane.NO_OPTION)
-            return;
+            if (ret == JOptionPane.NO_OPTION) {
+                return;
+            }
+        }
 
         try {
             BufferedOutputStream fOut =
@@ -874,6 +905,14 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getTapeSettings().setAutoLoadTape(autoLoadTape.isSelected());
     }//GEN-LAST:event_autoLoadTapeActionPerformed
 
+    private void confirmActionsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_confirmActionsActionPerformed
+        settings.getEmulatorSettings().setConfirmActions(confirmActions.isSelected());
+    }//GEN-LAST:event_confirmActionsActionPerformed
+
+    private void autosaveConfigOnExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autosaveConfigOnExitActionPerformed
+        settings.getEmulatorSettings().setAutosaveConfigOnExit(autosaveConfigOnExit.isSelected());
+    }//GEN-LAST:event_autosaveConfigOnExitActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -891,13 +930,16 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox autoLoadTape;
     private javax.swing.JCheckBox autoSaveOnExit;
     private javax.swing.JPanel autoSavePanel;
+    private javax.swing.JCheckBox autosaveConfigOnExit;
     private javax.swing.JPanel buttonPanel;
     private javax.swing.JSpinner cartridgeSizeSpinner;
     private javax.swing.JButton closeButton;
+    private javax.swing.JCheckBox confirmActions;
     private javax.swing.JCheckBox connectedIF1;
     private javax.swing.JLabel connectedIF1InfoLabel;
     private javax.swing.JPanel connectedIF1Panel;
     private javax.swing.JPanel defaultModelPanel;
+    private javax.swing.JPanel emulatorPanelTab;
     private javax.swing.JCheckBox enableLoadTraps;
     private javax.swing.JCheckBox enableSaveTraps;
     private javax.swing.JCheckBox enabledAY48k;

@@ -138,6 +138,7 @@
             <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
             <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
             <xsd:element name="Interface1Settings" type="tns:Interface1Type"/>
+            <xsd:element name="EmulatorSettings" type="tns:EmulatorSettingsType"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="RecentFilesType">
@@ -171,6 +172,12 @@
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="EmulatorSettingsType">
+        <xsd:sequence>
+            <xsd:element name="confirmActions" type="xsd:boolean" default="true"/>
+            <xsd:element name="autosaveConfigOnExit" default="false" type="xsd:boolean"/>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:schema>

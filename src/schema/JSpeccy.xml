@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 7 de mayo de 2013, 21:13
+    Created on : 12 de mayo de 2013, 21:52
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -77,5 +77,9 @@
         <ns0:microdriveUnits>8</ns0:microdriveUnits>
         <ns0:cartridgeSize>180</ns0:cartridgeSize>
     </ns0:Interface1Settings>
+    <ns0:EmulatorSettings>
+        <ns0:confirmActions>true</ns0:confirmActions>
+        <ns0:autosaveConfigOnExit>false</ns0:autosaveConfigOnExit>
+    </ns0:EmulatorSettings>
 
 </ns0:JSpeccySettings>

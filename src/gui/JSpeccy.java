@@ -288,7 +288,7 @@ public class JSpeccy extends javax.swing.JFrame {
         readSettingsFile();
         if (args.length != 0) {
             readArguments(args);
-            System.out.println("# args remain: " + clo.getArguments().size());
+//            System.out.println("# args remain: " + clo.getArguments().size());
         }
 
         initComponents();
@@ -400,6 +400,8 @@ public class JSpeccy extends javax.swing.JFrame {
 //                throw new CmdLineException(parser,"No argument is given");
             
             if (clo.isPrintUsage()) {
+                System.err.println(bundle.getString("JSpeccy.usage.sample.text"));
+                System.err.println("");
                 System.err.println(bundle.getString("JSpeccy.usage.header.text"));
                 parser.printUsage(out, bundle);
                 System.exit(0);
@@ -521,26 +523,28 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void saveRecentFiles() {
-        try {
-            // create a JAXBContext capable of handling classes generated into
-            // the configuration package
-            JAXBContext jc = JAXBContext.newInstance("configuration");
+        if (!settings.getEmulatorSettings().isAutosaveConfigOnExit()) {
+            try {
+                // create a JAXBContext capable of handling classes generated into
+                // the configuration package
+                JAXBContext jc = JAXBContext.newInstance("configuration");
 
-            // create an Unmarshaller
-            Unmarshaller unmsh = jc.createUnmarshaller();
+                // create an Unmarshaller
+                Unmarshaller unmsh = jc.createUnmarshaller();
 
-            // unmarshal a po instance document into a tree of Java content
-            // objects composed of classes from the configuration package.
-            JAXBElement<?> settingsElement =
-                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+                // unmarshal a po instance document into a tree of Java content
+                // objects composed of classes from the configuration package.
+                JAXBElement<?> settingsElement =
+                        (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
 
-            settings = (JSpeccySettingsType) settingsElement.getValue();
-        } catch (JAXBException jexcpt) {
-            System.out.println("Something during unmarshalling go very bad!");
-        } catch (IOException ioexcpt) {
-            System.out.println("Can't open the JSpeccy.xml configuration file");
+                settings = (JSpeccySettingsType) settingsElement.getValue();
+            } catch (JAXBException jexcpt) {
+                System.out.println("Something during unmarshalling go very bad!");
+            } catch (IOException ioexcpt) {
+                System.out.println("Can't open the JSpeccy.xml configuration file");
+            }
         }
-
+        
         if (recentFile[0] != null)
             settings.getRecentFilesSettings().setRecentFile0(recentFile[0].getAbsolutePath());
         if (recentFile[1] != null)
@@ -834,38 +838,43 @@ public class JSpeccy extends javax.swing.JFrame {
             dialogType = JOptionPane.QUESTION_MESSAGE;
         }
         
-        int ret = JOptionPane.showConfirmDialog(getContentPane(), msg,
-                bundle.getString("QUIT_JSPECCY"),
-                JOptionPane.OK_CANCEL_OPTION, dialogType); // NOI18N
-        
-        if( ret == JOptionPane.YES_OPTION ) {
-            if (tape.isTapeRunning()) {
-                tape.stop();
-            }
-            if (settings.getSpectrumSettings().isHibernateMode()) {
-                snapSZX = new SnapshotSZX();
-                if (tape.getTapeFilename() != null) {
-                    snapSZX.setTapeLinked(true);
-                    snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
-                    snapSZX.setTapeBlock(tape.getSelectedBlock());
-                }
+        if (settings.getEmulatorSettings().isConfirmActions()
+                || dialogType == JOptionPane.WARNING_MESSAGE) {
+            int ret = JOptionPane.showConfirmDialog(getContentPane(), msg,
+                    bundle.getString("QUIT_JSPECCY"),
+                    JOptionPane.OK_CANCEL_OPTION, dialogType); // NOI18N
 
-                try {
-                    snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
-                } catch (SnapshotException ex) {
-                    JOptionPane.showMessageDialog(this,
+            if (ret == JOptionPane.NO_OPTION) {
+                startEmulation();
+                return;
+            }
+        }
+
+        if (tape.isTapeRunning()) {
+            tape.stop();
+        }
+
+        if (settings.getSpectrumSettings().isHibernateMode()) {
+            snapSZX = new SnapshotSZX();
+            if (tape.getTapeFilename() != null) {
+                snapSZX.setTapeLinked(true);
+                snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
+                snapSZX.setTapeBlock(tape.getSelectedBlock());
+            }
+
+            try {
+                snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
+            } catch (SnapshotException ex) {
+                JOptionPane.showMessageDialog(this,
                         ResourceBundle.getBundle("gui/Bundle").getString("HIBERNATE_SAVE_ERROR"),
                         ResourceBundle.getBundle("gui/Bundle").getString(
                         "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
-                }
             }
-            
-            saveRecentFiles(); // debe ser lo último que se hace antes de salir!!!
-            dispose();
-            System.exit(0);
         }
-        
-        startEmulation();
+
+        saveRecentFiles(); // debe ser lo último que se hace antes de salir!!!
+        dispose();
+        System.exit(0);
     }
 
     private void rotateRecentFile(File lastname) {
@@ -2361,6 +2370,11 @@ public class JSpeccy extends javax.swing.JFrame {
     private void resetMachineMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetMachineMenuActionPerformed
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
 
+        if (!settings.getEmulatorSettings().isConfirmActions()) {
+            spectrum.reset();
+            return;
+        }
+
         stopEmulation();
 
         int ret = JOptionPane.showConfirmDialog(getContentPane(),
@@ -2745,81 +2759,85 @@ public class JSpeccy extends javax.swing.JFrame {
 
         stopEmulation();
 
-        int ret = JOptionPane.showConfirmDialog(getContentPane(),
-            bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
-            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
-
-        if (ret == JOptionPane.YES_OPTION) {
-            spectrum.hardReset();
-            switch (settings.getSpectrumSettings().getDefaultModel()) {
-                case 0:
-                    spec16kHardware.setSelected(true);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
-                    break;
-                case 2:
-                    spec128kHardware.setSelected(true);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
-                    break;
-                case 3:
-                    specPlus2Hardware.setSelected(true);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                    break;
-                case 4:
-                    specPlus2AHardware.setSelected(true);
-                    IF1MediaMenu.setEnabled(false);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                    break;
-                case 5:
-                    specPlus3Hardware.setSelected(true);
-                    IF1MediaMenu.setEnabled(false);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                    break;
-                default:
-                    spec48kHardware.setSelected(true);
-                    modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
-                    modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
-                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
+        if (settings.getEmulatorSettings().isConfirmActions()) {
+            int ret = JOptionPane.showConfirmDialog(getContentPane(),
+                    bundle.getString("ARE_YOU_SURE_QUESTION"), bundle.getString("HARD_RESET_SPECTRUM"),
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE); // NOI18N
+            if (ret == JOptionPane.NO_OPTION) {
+                startEmulation();
+                return;
             }
+        }
 
-            switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
-                case 1:
-                    kempstonJoystick.setSelected(true);
-                    spectrum.setJoystick(Joystick.KEMPSTON);
-                    break;
-                case 2:
-                    sinclair1Joystick.setSelected(true);
-                    spectrum.setJoystick(Joystick.SINCLAIR1);
-                    break;
-                case 3:
-                    sinclair2Joystick.setSelected(true);
-                    spectrum.setJoystick(Joystick.SINCLAIR2);
-                    break;
-                case 4:
-                    cursorJoystick.setSelected(true);
-                    spectrum.setJoystick(Joystick.CURSOR);
-                    break;
-                default:
-                    noneJoystick.setSelected(true);
-                    spectrum.setJoystick(Joystick.NONE);
-            }
-
-            if (settings.getSpectrumSettings().getDefaultModel() < 4) {
-                IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
-                IF2MediaMenu.setEnabled(true);
-            } else {
+        spectrum.hardReset();
+        switch (settings.getSpectrumSettings().getDefaultModel()) {
+            case 0:
+                spec16kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM16K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM16K.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUM16K);
+                break;
+            case 2:
+                spec128kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM128K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM128K.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
+                break;
+            case 3:
+                specPlus2Hardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS2.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
+                break;
+            case 4:
+                specPlus2AHardware.setSelected(true);
                 IF1MediaMenu.setEnabled(false);
-                IF2MediaMenu.setEnabled(false);
-            }
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS2A.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS2A.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
+                break;
+            case 5:
+                specPlus3Hardware.setSelected(true);
+                IF1MediaMenu.setEnabled(false);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            default:
+                spec48kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM48K.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM48K.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
+        }
+
+        switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
+            case 1:
+                kempstonJoystick.setSelected(true);
+                spectrum.setJoystick(Joystick.KEMPSTON);
+                break;
+            case 2:
+                sinclair1Joystick.setSelected(true);
+                spectrum.setJoystick(Joystick.SINCLAIR1);
+                break;
+            case 3:
+                sinclair2Joystick.setSelected(true);
+                spectrum.setJoystick(Joystick.SINCLAIR2);
+                break;
+            case 4:
+                cursorJoystick.setSelected(true);
+                spectrum.setJoystick(Joystick.CURSOR);
+                break;
+            default:
+                noneJoystick.setSelected(true);
+                spectrum.setJoystick(Joystick.NONE);
+        }
+
+        if (settings.getSpectrumSettings().getDefaultModel() < 4) {
+            IF1MediaMenu.setEnabled(settings.getInterface1Settings().isConnectedIF1());
+            IF2MediaMenu.setEnabled(true);
+        } else {
+            IF1MediaMenu.setEnabled(false);
+            IF2MediaMenu.setEnabled(false);
         }
 
         startEmulation();

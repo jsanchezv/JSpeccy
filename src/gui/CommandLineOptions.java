@@ -109,6 +109,9 @@ public class CommandLineOptions {
     
     @Option(name = "--no-save-trap", usage = "CommandLineOptions.noSaveTrap.text")
     private boolean saveTrap;
+    
+    @Option(name = "--no-confirm-actions", usage = "CommandLineOptions.noConfirmActions.text")
+    private boolean confirmActions;
 
     // receives other command line parameters than options
     @Argument
@@ -184,5 +187,8 @@ public class CommandLineOptions {
         settings.getTapeSettings().setAccelerateLoading(!acceleratedLoading);
         settings.getTapeSettings().setAutoLoadTape(!autoload);
         settings.getTapeSettings().setEnableSaveTraps(!saveTrap);
+        
+        // Emulator options
+        settings.getEmulatorSettings().setConfirmActions(!confirmActions);
     }
 }
