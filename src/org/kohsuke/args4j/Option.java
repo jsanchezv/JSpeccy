@@ -1,11 +1,11 @@
 package org.kohsuke.args4j;
 
 import org.kohsuke.args4j.spi.OptionHandler;
+import org.kohsuke.args4j.spi.Setter;
 
 import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-import java.lang.annotation.ElementType;
 import java.lang.reflect.AccessibleObject;
 import java.util.ResourceBundle;
 
@@ -134,6 +134,22 @@ public @interface Option {
     boolean required() default false;
 
     /**
+     * Specify that the option is hidden from the usage, by default.
+     *
+     * <p>
+     * You can still have {@link CmdLineParser} show hidden options
+     * by using {@link OptionHandlerFilter#ALL}, which allows you to
+     * create an option that shows hidden options.
+     *
+     * <p>
+     * If you need more complicated filtering logic, define your own
+     * annotations and check them in {@link Setter#asAnnotatedElement()}.
+     *
+     * @see OptionHandlerFilter#PUBLIC
+     */
+    boolean hidden() default false;
+
+    /**
      * Specify the {@link OptionHandler} that processes the command line arguments.
      *
      * <p>
@@ -160,4 +176,23 @@ public @interface Option {
      * </pre>
      */
     Class<? extends OptionHandler> handler() default OptionHandler.class;
+
+    /**
+     * List of other options that this option depends on.
+     *
+     * <h3>Example</h3>
+     * <pre>
+     *  &#64;Option(name="-a")
+     *  int a;
+     *  //-b is not required but if it's provided, then a becomes required
+     *  &#64;Option(name="-b", depends={"-a"}
+     *  int b;
+     * </pre>
+     * <p>
+     * At the end of {@link CmdLineParser#parseArgument(String...)},
+     * a {@link CmdLineException} will be thrown if options required by another one
+     * are not present.
+     * </p>
+     */
+    String[] depends() default { };
 }

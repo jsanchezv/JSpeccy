@@ -6,7 +6,7 @@ import java.util.ResourceBundle;
 /**
  * @author Kohsuke Kawaguchi
  */
-enum Messages {
+public enum Messages {
     ILLEGAL_OPERAND,
     ILLEGAL_CHAR,
     ILLEGAL_BOOLEAN,
@@ -14,7 +14,8 @@ enum Messages {
     ILLEGAL_FIELD_SIGNATURE,
     ILLEGAL_LIST,
     FORMAT_ERROR_FOR_MAP,
-    MAP_HAS_NO_KEY
+    MAP_HAS_NO_KEY,
+    ILLEGAL_IP_ADDRESS
     ;
 
     private static ResourceBundle rb;
