@@ -12,15 +12,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author jsanchez
  */
 public class Clock {
-    private static Clock instance = new Clock();
+    private static final Clock instance = new Clock();
     private MachineTypes spectrumModel = MachineTypes.SPECTRUM48K;
     private int tstates;
     private long frames;
     private int timeout;
-    private final CopyOnWriteArrayList<ClockTimeoutListener> clockListeners = new CopyOnWriteArrayList<ClockTimeoutListener>();
+    private final CopyOnWriteArrayList<ClockTimeoutListener> clockListeners;
 
     // Clock class implements a Singleton pattern.
     private Clock() {
+        this.clockListeners = new CopyOnWriteArrayList<>();
     }
 
     public static Clock getInstance() {
