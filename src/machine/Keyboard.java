@@ -8,6 +8,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Arrays;
+import joystickinput.JoystickRaw;
 
 /**
  *
@@ -15,16 +16,17 @@ import java.util.Arrays;
  */
 public class Keyboard implements KeyListener {
 
-    public static enum Joystick {
+    public static enum JoystickModel {
 
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR, FULLER
     };
     
-    private int rowKey[] = new int[8];
+    private int rowKey[] = new int[8], sjs1, sjs2;
     private boolean shiftPressed, mapPCKeys, winBug;
     private KeyEvent keyEventPending[] = new KeyEvent[8];
     private int kempston, fuller;
-    private Joystick joystick;
+    private JoystickModel joystickModel, shadowJoystick;
+    private JoystickRaw joystick1, joystick2;
     private int capsShiftCounter = 0;
 
     /*
@@ -55,82 +57,290 @@ public class Keyboard implements KeyListener {
     private static final int KEY_PRESSED_BIT2 = 0xfb;
     private static final int KEY_PRESSED_BIT3 = 0xf7;
     private static final int KEY_PRESSED_BIT4 = 0xef;
+    private static final int KEY_PRESSED_BIT7 = 0x7f;  // for Fuller fire button
     private static final int KEY_RELEASED_BIT0 = 0x01;
     private static final int KEY_RELEASED_BIT1 = 0x02;
     private static final int KEY_RELEASED_BIT2 = 0x04;
     private static final int KEY_RELEASED_BIT3 = 0x08;
     private static final int KEY_RELEASED_BIT4 = 0x10;
+    private static final int KEY_RELEASED_BIT5 = 0x20; // for Kempston fire button 2
+    private static final int KEY_RELEASED_BIT6 = 0x40; // for Kempston fire button 3
+    private static final int KEY_RELEASED_BIT7 = 0x80; // for Fuller fire button
 
-    public Keyboard(configuration.KeyboardJoystickType config) {
+    public Keyboard(configuration.KeyboardJoystickType config, JoystickRaw joy1, JoystickRaw joy2) {
         reset();
-        setJoystick(config.getJoystickModel());
+        setJoystickModel(config.getJoystickModel());
         mapPCKeys = config.isMapPCKeys();
         winBug = System.getProperty("os.name").contains("Windows");
+        joystick1 = joy1;
+//        if (joystick1 != null) {
+//            joystick1.addButtonListener(null);
+//        }
+        joystick2 = joy2;
     }
 
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
         shiftPressed = false;
         kempston = capsShiftCounter = 0;
-        fuller = 0xff;
+        sjs1 = sjs2 = fuller = 0xff;
         Arrays.fill(keyEventPending, null);
     }
 
-    public final Joystick getJoystick() {
-        return joystick;
+    public final JoystickModel getJoystickModel() {
+        return joystick1 == null ? joystickModel : shadowJoystick;
     }
     
-    public final void setJoystick(Joystick model) {
-        joystick = model;
+    public final void setJoystickModel(JoystickModel model) {
         kempston = 0;
-        fuller = 0xff;
+        sjs1 = sjs2 = fuller = 0xff;
+
+        if (joystick1 != null) {
+            shadowJoystick = model;
+            
+            switch (shadowJoystick) {
+                case SINCLAIR1:
+                    joystickModel = joystick2 == null ? JoystickModel.SINCLAIR2 : JoystickModel.NONE;
+                    break;
+                case SINCLAIR2:
+                    joystickModel = joystick2 == null ? JoystickModel.SINCLAIR1 : JoystickModel.NONE;
+                    break;
+                default:
+                    joystickModel = JoystickModel.NONE;
+            }
+        } else {
+            joystickModel = model;
+            shadowJoystick = JoystickModel.NONE;
+        }
     }
     
-    public final void setJoystick(int model) {
+    public final void setJoystickModel(int model) {
         switch (model) {
             case 1:
-                joystick = Joystick.KEMPSTON;
+                setJoystickModel(JoystickModel.KEMPSTON);
                 break;
             case 2:
-                joystick = Joystick.SINCLAIR1;
+                setJoystickModel(JoystickModel.SINCLAIR1);
                 break;
             case 3:
-                joystick = Joystick.SINCLAIR2;
+                setJoystickModel(JoystickModel.SINCLAIR2);
                 break;
             case 4:
-                joystick = Joystick.CURSOR;
+                setJoystickModel(JoystickModel.CURSOR);
                 break;
             case 5:
-                joystick = Joystick.FULLER;
+                setJoystickModel(JoystickModel.FULLER);
                 break;
             default:
-                joystick = Joystick.NONE;
+                setJoystickModel(JoystickModel.NONE);
         }
     }
 
-    public int readKempstonPort() {
-        return kempston;
-    }
-
-    public int readFullerPort() {
-        return fuller;
-    }
-    
     public boolean isMapPCKeys() {
         return mapPCKeys;
     }
-    
+
     public void setMapPCKeys(boolean state) {
         mapPCKeys = state;
         shiftPressed = false;
         Arrays.fill(keyEventPending, null);
     }
 
-    public int readKeyboardPort(int port) {
+    public int readKempstonPort() {
+        if (joystick1 == null) {
+            return kempston;
+        }
+
+        // Standard Kempston Port
+//        int state = joystick1.getButtonMask();
+//        if (state == 0) {
+//            return 0x00;
+//        }
+//
+        int buttons = 0;
+//        if ((state & 0x20) != 0) {
+//            buttons |= KEY_RELEASED_BIT0; // Kempston Right
+//        }
+//        if ((state & 0x80) != 0) {
+//            buttons |= KEY_RELEASED_BIT1; // Kempston Left
+//        }
+//        if ((state & 0x40) != 0) {
+//            buttons |= KEY_RELEASED_BIT2; // Kempston Down
+//        }
+//        if ((state & 0x10) != 0) {
+//            buttons |= KEY_RELEASED_BIT3; // Kempston Up
+//        }
+//        if ((state & 0x6000) != 0) {
+//            buttons |= KEY_RELEASED_BIT4; // Kempston Fire
+//        }
+//        if ((state & 0x8000) != 0) {
+//            buttons |= KEY_RELEASED_BIT5; // Kempston Fire 2
+//        }
+//        if ((state & 0x1000) != 0) {
+//            buttons |= KEY_RELEASED_BIT6; // Kempston Fire 3
+//        }
+        int coord = joystick1.getAxisValue(0);
+        if (coord > 24575) {
+            buttons |= KEY_RELEASED_BIT0; // Kempston Right
+        } else if (coord < -24575) {
+            buttons |= KEY_RELEASED_BIT1; // Kempston Left
+        }
+
+        coord = joystick1.getAxisValue(1);
+        if (coord > 24575) {
+            buttons |= KEY_RELEASED_BIT2; // Kempston Down
+        } else if (coord < -24575) {
+            buttons |= KEY_RELEASED_BIT3; // Kempston Up
+        }
+
+        int state = joystick1.getButtonMask();
+        if (state == 0) {
+            return buttons;
+        }
+
+        if ((state & 0x6000) != 0) {
+            buttons |= KEY_RELEASED_BIT4; // Kempston Fire
+        }
+        if ((state & 0x8000) != 0) {
+            buttons |= KEY_RELEASED_BIT5; // Kempston Fire 2
+        }
+        if ((state & 0x1000) != 0) {
+            buttons |= KEY_RELEASED_BIT6; // Kempston Fire 3
+        }
+        return buttons;
+    }
+
+    public int readFullerPort() {
+        if (joystick1 == null) {
+            return fuller;
+        }
+
+        int state = joystick1.getButtonMask();
+        if (state == 0)
+            return 0xff;
+
+        int buttons = 0xff;
+        if ((state & 0x20) != 0) {
+            buttons &= KEY_PRESSED_BIT4; // Fuller Right
+        }
+        if ((state & 0x80) != 0) {
+            buttons &= KEY_PRESSED_BIT2; // Fuller Left
+        }
+        if ((state & 0x40) != 0) {
+            buttons &= KEY_PRESSED_BIT1; // Fuller Down
+        }
+        if ((state & 0x10) != 0) {
+            buttons &= KEY_PRESSED_BIT0; // Fuller Up
+        }
+        if ((state & 0xF000) != 0) {
+            buttons &= KEY_PRESSED_BIT7; // Fuller Fire
+        }
+        return buttons;
+    }
+
+    private void joystickToSJS1(int state) {
+        sjs1 = 0xff;
+
+        if (state == 0)
+            return;
+
+        if ((state & 0x80) != 0) {
+            sjs1 &= KEY_PRESSED_BIT4; // Sinclair 2 Left (6)
+        }
+        if ((state & 0x20) != 0) {
+            sjs1 &= KEY_PRESSED_BIT3; // Sinclair 2 Right (7)
+        }
+        if ((state & 0x40) != 0) {
+            sjs1 &= KEY_PRESSED_BIT2; // Sinclair 2 Down (8)
+        }
+        if ((state & 0x10) != 0) {
+            sjs1 &= KEY_PRESSED_BIT1; // Sinclair 2 Up (9)
+        }
+        if ((state & 0xF000) != 0) {
+            sjs1 &= KEY_PRESSED_BIT0; // Sinclair 2 Fire (0)
+        }
+    }
+    
+    private void joystickToSJS2(int state) {
+        sjs2 = 0xff;
+        
+        if (state == 0)
+            return;
+
+        if ((state & 0x80) != 0) {
+            sjs2 &= KEY_PRESSED_BIT0; // Sinclair 1 Left (1)
+        }
+        if ((state & 0x20) != 0) {
+            sjs2 &= KEY_PRESSED_BIT1; // Sinclair 1 Right (2)
+        }
+        if ((state & 0x40) != 0) {
+            sjs2 &= KEY_PRESSED_BIT2; // Sinclair 1 Down (3)
+        }
+        if ((state & 0x10) != 0) {
+            sjs2 &= KEY_PRESSED_BIT3; // Sinclair 1 Up (4)
+        }
+        if ((state & 0xF000) != 0) {
+            sjs2 &= KEY_PRESSED_BIT4; // Sinclair 1 Fire (5)
+        }
+    }
+    
+    private void joystickToCursor() {
+        sjs1 = sjs2 = 0xff;
+
+        int state = joystick1.getButtonMask();
+        if (state == 0)
+            return;
+        
+        if ((state & 0x80) != 0) {
+            sjs2 &= KEY_PRESSED_BIT4; // Cursor Left (5)
+        }
+        if ((state & 0x20) != 0) {
+            sjs1 &= KEY_PRESSED_BIT2; // Cursor Right (8)
+        }
+        if ((state & 0x40) != 0) {
+            sjs1 &= KEY_PRESSED_BIT4; // Cursor Down (6)
+        }
+        if ((state & 0x10) != 0) {
+            sjs1 &= KEY_PRESSED_BIT3; // Cursor Up (7)
+        }
+        if ((state & 0xF000) != 0) {
+            sjs1 &= KEY_PRESSED_BIT0; // Cursor Fire (0)
+        }
+    }
+
+    public int readKeyboardPort(int port, boolean mapJoysticks) {
         int keys = 0xff;
         int res = port >>> 8;
 
-//        System.out.println(String.format("readKeyboardPort: %04X", port));
+        // When a second joystick is present:
+        // - If J1 is emulating Kempston, J2 emulates Sinclair1
+        // - If J1 is emulating Sinclair1, J2 emulates Sinclair2
+        // - If J1 is emulating Sinclair2, J2 emulates Sinclair1
+        if (mapJoysticks && joystick1 != null) {
+            switch (shadowJoystick) {
+                case KEMPSTON:
+                    if (joystick2 != null && res == 0xef)
+                        joystickToSJS1(joystick2.getButtonMask());
+                    break;
+                case SINCLAIR1:
+                    if (res == 0xef)
+                        joystickToSJS1(joystick1.getButtonMask());
+                    if (joystick2 != null && res == 0xf7)
+                        joystickToSJS2(joystick2.getButtonMask());
+                    break;
+                case SINCLAIR2:
+                    if (res == 0xf7)
+                        joystickToSJS2(joystick1.getButtonMask());
+                    if (joystick2 != null && res == 0xef)
+                        joystickToSJS1(joystick2.getButtonMask());
+                    break;
+                case CURSOR:
+                    joystickToCursor();
+                    break;
+            }
+        }
+
+//        System.out.println(String.format("readKeyboardPort: %04X, %02x, %02x", port, sjs1, sjs2));
         switch (res) {
             case 0x7f: // SPACE to 'B' row
                 return rowKey[7];
@@ -139,9 +349,9 @@ public class Keyboard implements KeyListener {
             case 0xdf: // 'P' to 'Y' row
                 return rowKey[5];
             case 0xef: // '0' to '6' row
-                return rowKey[4];
+                return rowKey[4] & sjs1;
             case 0xf7: // '1' to '5' row
-                return rowKey[3];
+                return rowKey[3] & sjs2;
             case 0xfb: // 'Q' to 'T' row
                 return rowKey[2];
             case 0xfd: // 'A' to 'G' row
@@ -185,6 +395,7 @@ public class Keyboard implements KeyListener {
 
         /*
          * Windows no envía el keycode VK_ALT_GRAPH y en su lugar envía dos eventos, Ctrl + Alt, en ese orden.
+         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
          * 
          * El Ctrl es una pulsación normal y el Alt lleva activos los modificadores CTRL y ALT.
          * 
@@ -193,6 +404,8 @@ public class Keyboard implements KeyListener {
          * En cualquier otro caso, la tecla Alt hay que saltársela para que sigan funcionando los
          * atajos de teclado sin producir pulsaciones espureas en el emulador.
          * 
+         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
+         * 
          * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
         if (winBug && key == KeyEvent.VK_ALT && (evt.getModifiersEx() == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK)
@@ -200,7 +413,9 @@ public class Keyboard implements KeyListener {
             key = KeyEvent.VK_ALT_GRAPH;
             rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
         } else {
-            if (evt.isAltDown())
+            // En caso de ser Windows, si se reciben Alt + Control probablemente lo que se pulsó fue AltGr
+            // Gracias a pastbytes por detectar (también) este problema e indicarme la manera de reproducirlo.
+            if (evt.isAltDown() && !evt.isControlDown())
                 return;
         }
         
@@ -382,7 +597,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Joystick emulation
             case KeyEvent.VK_LEFT:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                         capsShiftCounter++;
@@ -404,7 +619,7 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_DOWN:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                         capsShiftCounter++;
@@ -426,7 +641,7 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_UP:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                         capsShiftCounter++;
@@ -448,7 +663,7 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_RIGHT:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                         capsShiftCounter++;
@@ -471,7 +686,7 @@ public class Keyboard implements KeyListener {
                 break;
             case KeyEvent.VK_META:
             case KeyEvent.VK_ALT_GRAPH:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         break;
                     case KEMPSTON:
@@ -485,7 +700,7 @@ public class Keyboard implements KeyListener {
                         rowKey[3] &= KEY_PRESSED_BIT4; // 5 -- Fire
                         break;
                     case FULLER:
-                        fuller &= 0x7f;
+                        fuller &= KEY_PRESSED_BIT7;
                         break;
                 }
                 break;
@@ -527,13 +742,15 @@ public class Keyboard implements KeyListener {
          * La tecla Alt hay que saltársela para que sigan funcionando los atajos de teclado sin
          * producir pulsaciones espureas en el emulador.
          * 
+         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
+         * 
          * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
         if (winBug && ((key == KeyEvent.VK_CONTROL && evt.getModifiersEx() == InputEvent.ALT_DOWN_MASK)
                 || (key == KeyEvent.VK_ALT && evt.getKeyLocation() == KeyEvent.KEY_LOCATION_RIGHT))) {
             key = KeyEvent.VK_ALT_GRAPH;
         } else {
-            if (evt.isAltDown())
+            if (evt.isAltDown() && !evt.isControlDown())
                 return;
         }
         
@@ -670,7 +887,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                if (--capsShiftCounter < 1 && !shiftPressed) {
+                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
@@ -707,14 +924,14 @@ public class Keyboard implements KeyListener {
                 rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                if (--capsShiftCounter < 1 && !shiftPressed) {
+                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
                 rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case KeyEvent.VK_ESCAPE:
-                if (--capsShiftCounter < 1 && !shiftPressed) {
+                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                     capsShiftCounter = 0;
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
@@ -722,9 +939,9 @@ public class Keyboard implements KeyListener {
                 break;
             // Joystick emulation
             case KeyEvent.VK_LEFT:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
-                        if (--capsShiftCounter < 1 && !shiftPressed) {
+                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -746,9 +963,9 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_DOWN:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
-                        if (--capsShiftCounter < 1 && !shiftPressed) {
+                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -770,9 +987,9 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_UP:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
-                        if (--capsShiftCounter < 1 && !shiftPressed) {
+                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -794,9 +1011,9 @@ public class Keyboard implements KeyListener {
                 }
                 break;
             case KeyEvent.VK_RIGHT:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
-                        if (--capsShiftCounter < 1 && !shiftPressed) {
+                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
                             capsShiftCounter = 0;
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
@@ -819,7 +1036,7 @@ public class Keyboard implements KeyListener {
                 break;
             case KeyEvent.VK_META:
             case KeyEvent.VK_ALT_GRAPH:
-                switch (joystick) {
+                switch (joystickModel) {
                     case NONE:
                         break;
                     case KEMPSTON:
@@ -833,7 +1050,7 @@ public class Keyboard implements KeyListener {
                         rowKey[3] |= KEY_RELEASED_BIT4;  // 5  -- Fire
                         break;
                     case FULLER:
-                        fuller |= 0x80;
+                        fuller |= KEY_RELEASED_BIT7;
                         break;
                 }
                 break;
