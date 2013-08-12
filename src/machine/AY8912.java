@@ -51,6 +51,7 @@ public final class AY8912 {
     // Noise counter & noise seed
     private int counterN, rng;
     private int envelopePeriod, envelopeCounter;
+    private boolean envelopeTick;
 
     /* Envelope shape cycles:
      C AtAlH
@@ -76,7 +77,7 @@ public final class AY8912 {
 
      The envelope counter on the AY-3-8910 has 16 steps.
      */
-    private boolean Continue, Attack;
+    private boolean Continue, Attack, Hold, Alternate;
     // Envelope amplitude
     private int amplitudeEnv;
     private int maxAmplitude;
@@ -98,7 +99,8 @@ public final class AY8912 {
     private int[] bufC;
     private int pbuf;
     private int FREQ;
-    private double step, stepCounter, stepRate;
+    private long step, stepCounter;
+    private double stepRate;
     // Tone channel levels
     private boolean toneA, toneB, toneC, toneN;
     private boolean disableToneA, disableToneB, disableToneC;
@@ -145,8 +147,10 @@ public final class AY8912 {
         }
 
         if (samplesPerFrame != 0) {
-            step = (double) spectrumModel.tstatesFrame / (double) samplesPerFrame;
-            stepRate = step / 16.0;
+            double tmp = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
+            step = (long)(tmp * 100000.0);
+            stepRate = tmp / 16.0;
+//            System.out.println(String.format("step = %d, stepRate = %f", step, stepRate));
         }
     }
 
@@ -162,9 +166,12 @@ public final class AY8912 {
     public void setAudioFreq(int freq) {
         FREQ = freq;
         samplesPerFrame = FREQ / 50;
-        step = (double) spectrumModel.tstatesFrame / (double) samplesPerFrame;
-        stepRate = step / 16.0;
-//        System.out.println(String.format("step = %f", step));
+
+        double tmp = (double)spectrumModel.tstatesFrame / (double)samplesPerFrame;
+        step = (long)(tmp * 100000.0);
+        stepRate = tmp / 16.0;
+
+//        System.out.println(String.format("step = %d, stepRate = %f", step, stepRate));
     }
 
     public int getAddressLatch() {
@@ -193,27 +200,18 @@ public final class AY8912 {
 
         switch (addressLatch) {
             case FineToneA:
-                regAY[FineToneA] = value & 0xff;
-                periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
-                break;
             case CoarseToneA:
-                regAY[CoarseToneA] = value & 0x0f;
+                regAY[addressLatch] = value & (addressLatch == FineToneA ? 0xff : 0x0f);
                 periodA = (regAY[CoarseToneA] << 8) | regAY[FineToneA];
                 break;
             case FineToneB:
-                regAY[FineToneB] = value & 0xff;
-                periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
-                break;
             case CoarseToneB:
-                regAY[CoarseToneB] = value & 0x0f;
+                regAY[addressLatch] = value & (addressLatch == FineToneB ? 0xff : 0x0f);
                 periodB = (regAY[CoarseToneB] << 8) | regAY[FineToneB];
                 break;
             case FineToneC:
-                regAY[FineToneC] = value & 0xff;
-                periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
-                break;
             case CoarseToneC:
-                regAY[CoarseToneC] = value & 0x0f;
+                regAY[addressLatch] = value & (addressLatch == FineToneC ? 0xff : 0x0f);
                 periodC = (regAY[CoarseToneC] << 8) | regAY[FineToneC];
                 break;
             case NoisePeriod:
@@ -259,25 +257,19 @@ public final class AY8912 {
             case CoarseEnvelope:
                 regAY[addressLatch] = value & 0xff;
                 envelopePeriod = (regAY[CoarseEnvelope] << 8) | regAY[FineEnvelope];
-                // Period = 0 is half as period = 1. (from MAME sources)
-                if (envelopePeriod == 0) {
-                    envelopePeriod = 1;
-                } else {
 //                System.out.println(String.format("envPeriod: %d", envelopePeriod));
-                    envelopePeriod <<= 1;
-                }
                 break;
             case EnvelopeShapeCycle:
                 regAY[EnvelopeShapeCycle] = value & 0x0f;
-//                System.out.println(String.format("envShape: %02x", value & 0x0f));
-                if ((value & ATTACK) != 0) {
-                    amplitudeEnv = 0;
-                    Attack = true;
-                } else {
-                    amplitudeEnv = 15;
-                    Attack = false;
-                }
-                Continue = false;
+                Hold = (value & HOLD) != 0;
+                Alternate = (value & ALTERNATE) != 0;
+                Attack = (value & ATTACK) != 0;
+                amplitudeEnv = Attack ? 0 : 15;
+                Continue = true;         
+                envelopeCounter = 0;
+                envelopeTick = false;
+//                if (envA || envB || envC)
+//                    System.out.println(String.format("envShape: %02x, amplitudeEnv: %d", value & 0x0f, amplitudeEnv));
 
                 if (envA) {
                     amplitudeA = volumeLevel[amplitudeEnv];
@@ -299,6 +291,7 @@ public final class AY8912 {
         }
     }
 
+//    private int ayClock;
     public void updateAY(int tstates) {
 
 //        System.out.println(String.format("updateAY: tstates = %d", tstates));
@@ -306,22 +299,22 @@ public final class AY8912 {
         while (audiotstates < tstates) {
             audiotstates += 16;
 
-            if (++counterA > periodA) {
+            if (++counterA >= periodA) {
                 toneA = !toneA;
                 counterA = 0;
             }
 
-            if (++counterB > periodB) {
+            if (++counterB >= periodB) {
                 toneB = !toneB;
                 counterB = 0;
             }
 
-            if (++counterC > periodC) {
+            if (++counterC >= periodC) {
                 toneC = !toneC;
                 counterC = 0;
             }
 
-            if (++counterN > periodN) {
+            if (++counterN >= periodN) {
                 counterN = 0;
                 // Changes to R6 take effect only when internal counter reaches 0
                 periodN = regAY[NoisePeriod];
@@ -352,34 +345,35 @@ public final class AY8912 {
                 // End of code borrowed from MAME sources
             }
 
-            if (++envelopeCounter > envelopePeriod) {
+            if (envelopeTick && Continue && ++envelopeCounter >= envelopePeriod) {
                 envelopeCounter = 0;
 
-                if (!Continue) {
-                    if (Attack) {
-                        amplitudeEnv++;
-                    } else {
-                        amplitudeEnv--;
-                    }
+                if (Attack) {
+                    amplitudeEnv++;
+                } else {
+                    amplitudeEnv--;
                 }
 
-                if (amplitudeEnv < 0 || amplitudeEnv > 15) {
+                if ((amplitudeEnv & 0x10) != 0) {
                     if ((regAY[EnvelopeShapeCycle] & CONTINUE) == 0) {
                         amplitudeEnv = 0;
-                        Continue = true;
+                        Continue = false;
                     } else {
-                        if ((regAY[EnvelopeShapeCycle] & ALTERNATE) != 0) {
+                        if (Alternate) {
                             Attack = !Attack;
                         }
 
-                        if ((regAY[EnvelopeShapeCycle] & HOLD) != 0) {
+                        if (Hold) {
                             amplitudeEnv = Attack ? 15 : 0;
-                            Continue = true;
+                            Continue = false;
                         } else {
                             amplitudeEnv = Attack ? 0 : 15;
                         }
                     }
                 }
+
+//                if (envA || envB || envC)
+//                    System.out.println(String.format("amplitudeEnv: %d", amplitudeEnv));
 
                 if (envA) {
                     amplitudeA = volumeLevel[amplitudeEnv];
@@ -398,9 +392,9 @@ public final class AY8912 {
             // es cero cuando tono == 0. Es incorrecto hacerlo oscilar
             // entre -VOL...+VOL, ya que entonces no se reproducen efectos
             // como la voz digitalizada de Robocop.
-            double percent = step - stepCounter;
-            stepCounter += 16.0;
-            if (percent > 16.0) {
+            long diff = step - stepCounter;
+            stepCounter += 1600000L;
+            if (diff > 1600000L) {
                 if ((toneA || disableToneA) && (toneN || disableNoiseA)) {
                     volumeA += amplitudeA;
                 }
@@ -412,8 +406,11 @@ public final class AY8912 {
                 if ((toneC || disableToneC) && (toneN || disableNoiseC)) {
                     volumeC += amplitudeC;
                 }
+
+//                System.out.println(String.format("> stepCounter = %f, percent = %f, volumeA = %f, ampA = %f",
+//                    stepCounter, percent, volumeA, amplitudeA));
             } else {
-                percent /= 16.0;
+                double percent = (double)diff / 1600000.0;
                 int lastA = 0, lastB = 0, lastC = 0;
                 if ((toneA || disableToneA) && (toneN || disableNoiseA)) {
                     lastA = (int) (amplitudeA * percent);
@@ -427,6 +424,9 @@ public final class AY8912 {
                     lastC = (int) (amplitudeC * percent);
                 }
 
+//                System.out.println(String.format("< stepCounter = %f, percent = %f, volumeA = %f, lastA = %f",
+//                    stepCounter, percent, volumeA + lastA, lastA));
+                
                 stepCounter -= step;
                 bufA[pbuf] = (int) ((volumeA + lastA) / stepRate);
                 bufB[pbuf] = (int) ((volumeB + lastB) / stepRate);
@@ -437,6 +437,7 @@ public final class AY8912 {
                 volumeB = lastB > 0 ? amplitudeB - lastB : 0;
                 volumeC = lastC > 0 ? amplitudeC - lastC : 0;
             }
+            envelopeTick = !envelopeTick;
         }
     }
 
@@ -456,13 +457,13 @@ public final class AY8912 {
         rng = 1;
         Arrays.fill(regAY, 0);
         regAY[Mixer] = 0xff;
-        Continue = false;
-        Attack = true;
+        envelopeTick = Continue = Attack = false;
+        startPlay();
     }
 
     public void startPlay() {
         audiotstates = pbuf = 0;
-        stepCounter = 0.0;
+        stepCounter = 0;
 
         if (bufA != null) {
             Arrays.fill(bufA, 0);
