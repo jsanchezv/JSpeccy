@@ -89,15 +89,23 @@ public class Clock {
     }
 
     public void addTstates(int states) {
-        tstates += states;
 
         if (timeout > 0) {
-            timeout -= states;
-            if (timeout < 1) {
+            if (states < timeout) {
+                timeout -= states;
+                tstates += states;
+            } else {
+                tstates += timeout;
+                long diff = states - timeout;
+                timeout = 0;
                 for (final ClockTimeoutListener listener : clockListeners) {
                     listener.clockTimeout();
                 }
+                tstates += diff;
+                timeout -= diff;
             }
+        } else {
+            tstates += states;
         }
     }
 
@@ -108,6 +116,7 @@ public class Clock {
     public void endFrame() {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
+//        System.out.println("clock: " + tstates);
     }
 
     public long getAbsTstates() {
@@ -123,6 +132,11 @@ public class Clock {
             throw new ConcurrentModificationException("A timeout is in progress. Can't set another timeout!");
         }
 
-        timeout = ntstates > 0 ? ntstates : 1;
+        timeout = ntstates > 10 ? ntstates : 10;
     } 
+    
+    @Override
+    public String toString() {
+        return String.format("Frame: %d, t-states: %d", frames, tstates);
+    }
 }
