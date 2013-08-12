@@ -27,7 +27,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.*;
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import machine.*;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -844,7 +844,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     bundle.getString("QUIT_JSPECCY"),
                     JOptionPane.OK_CANCEL_OPTION, dialogType); // NOI18N
 
-            if (ret == JOptionPane.NO_OPTION) {
+            if (ret == JOptionPane.CANCEL_OPTION) {
                 startEmulation();
                 return;
             }
@@ -2535,35 +2535,35 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void noneJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noneJoystickActionPerformed
 
-        spectrum.setJoystick(Joystick.NONE);
+        spectrum.setJoystick(JoystickModel.NONE);
         noneJoystick.setSelected(true);
 
 }//GEN-LAST:event_noneJoystickActionPerformed
 
     private void kempstonJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_kempstonJoystickActionPerformed
 
-        spectrum.setJoystick(Joystick.KEMPSTON);
+        spectrum.setJoystick(JoystickModel.KEMPSTON);
         kempstonJoystick.setSelected(true);
 
     }//GEN-LAST:event_kempstonJoystickActionPerformed
 
     private void sinclair1JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair1JoystickActionPerformed
 
-        spectrum.setJoystick(Joystick.SINCLAIR1);
+        spectrum.setJoystick(JoystickModel.SINCLAIR1);
         sinclair1Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair1JoystickActionPerformed
 
     private void sinclair2JoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sinclair2JoystickActionPerformed
 
-        spectrum.setJoystick(Joystick.SINCLAIR2);
+        spectrum.setJoystick(JoystickModel.SINCLAIR2);
         sinclair2Joystick.setSelected(true);
 
     }//GEN-LAST:event_sinclair2JoystickActionPerformed
 
     private void cursorJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cursorJoystickActionPerformed
 
-        spectrum.setJoystick(Joystick.CURSOR);
+        spectrum.setJoystick(JoystickModel.CURSOR);
         cursorJoystick.setSelected(true);
 
     }//GEN-LAST:event_cursorJoystickActionPerformed
@@ -2813,23 +2813,23 @@ public class JSpeccy extends javax.swing.JFrame {
         switch (settings.getKeyboardJoystickSettings().getJoystickModel()) {
             case 1:
                 kempstonJoystick.setSelected(true);
-                spectrum.setJoystick(Joystick.KEMPSTON);
+                spectrum.setJoystick(JoystickModel.KEMPSTON);
                 break;
             case 2:
                 sinclair1Joystick.setSelected(true);
-                spectrum.setJoystick(Joystick.SINCLAIR1);
+                spectrum.setJoystick(JoystickModel.SINCLAIR1);
                 break;
             case 3:
                 sinclair2Joystick.setSelected(true);
-                spectrum.setJoystick(Joystick.SINCLAIR2);
+                spectrum.setJoystick(JoystickModel.SINCLAIR2);
                 break;
             case 4:
                 cursorJoystick.setSelected(true);
-                spectrum.setJoystick(Joystick.CURSOR);
+                spectrum.setJoystick(JoystickModel.CURSOR);
                 break;
             default:
                 noneJoystick.setSelected(true);
-                spectrum.setJoystick(Joystick.NONE);
+                spectrum.setJoystick(JoystickModel.NONE);
         }
 
         if (settings.getSpectrumSettings().getDefaultModel() < 4) {
@@ -3051,7 +3051,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_extractIF2RomMediaMenuActionPerformed
 
     private void fullerJoystickActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fullerJoystickActionPerformed
-        spectrum.setJoystick(Joystick.FULLER);
+        spectrum.setJoystick(JoystickModel.FULLER);
         fullerJoystick.setSelected(true);
     }//GEN-LAST:event_fullerJoystickActionPerformed
 
