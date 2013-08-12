@@ -19,7 +19,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
-import machine.Keyboard.Joystick;
+import joystickinput.JoystickRaw;
+import machine.Keyboard.JoystickModel;
 import snapshots.SpectrumState;
 import utilities.Tape;
 import utilities.Tape.TapeState;
@@ -38,8 +39,9 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private boolean[] contendedRamPage = new boolean[4];
     private boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
+    private int kmouseX = 0, kmouseY = 0, kmouseW; // Kempston Mouse Turbo Master X, Y, Wheel
     private long framesByInt, speedometer, speed, prevSpeed;
-    private boolean muted, enabledSound, enabledAY;
+    private boolean muted, enabledSound, enabledAY, kmouseEnabled;
     private final byte delayTstates[] =
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
@@ -55,7 +57,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private boolean resetPending, autoLoadTape;
     private JLabel speedLabel;
 
-    private Joystick joystick;
+    private JoystickModel joystickModel;
+    private JoystickRaw joystick1, joystick2;
     
     private JSpeccySettingsType settings;
     private SpectrumType specSettings;
@@ -83,7 +86,19 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         borderMode = 1;
         if1 = new Interface1(settings.getInterface1Settings());
 
-        keyboard = new Keyboard(settings.getKeyboardJoystickSettings());
+        if (System.getProperty("os.name").contains("Linux")) {
+            try {
+                joystick1 = new JoystickRaw(0);
+                joystick1.start();
+                joystick2 = new JoystickRaw(1);
+                joystick2.start();
+            } catch (IOException ex) {
+//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                if (joystick1 == null && joystick2 == null)
+                    System.out.println("No physical joystick found!");
+            }
+        }
+        keyboard = new Keyboard(settings.getKeyboardJoystickSettings(), joystick1, joystick2);
 
         resetPending = false;
 
@@ -100,7 +115,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
         state.setEarBit(earBit);
         state.setPortFE(portFE);
-        state.setJoystick(joystick);
+        state.setJoystick(joystickModel);
         
         if (spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K) {
             state.setPort7ffd(port7ffd);
@@ -352,7 +367,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         drawFrame();
         jscr.repaint();
         taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
+        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
     }
 
     public synchronized void stopEmulation() {
@@ -368,10 +383,10 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     public void reset() {
         resetPending = true;
         z80.setPinReset();
+        tape.stop();
     }
 
     private void doReset() {
-        tape.stop();
         clock.reset();
         z80.reset();
         if (memory.isLecPaged()) {
@@ -385,8 +400,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             if1.reset();
         }
         portFE = port7ffd = port1ffd = 0;
+        kmouseX = kmouseY = 0;
+        kmouseW = 0xff;
+        kmouseEnabled = true;
         ULAPlusActive = false;
-        step  = paletteGroup = 0;
+        step = paletteGroup = 0;
         invalidateScreen(true);
         resetPending = false;
     }
@@ -419,18 +437,22 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         keyboard.setMapPCKeys(state);
     }
 
-    public Joystick getJoystick() {
-        return joystick;
+    public JoystickModel getJoystick() {
+        return joystickModel;
     }
     
-    public void setJoystick(Joystick type) {
-        joystick = type;
-        keyboard.setJoystick(type);
+    public void setJoystick(JoystickModel type) {
+        joystickModel = type;
+        keyboard.setJoystickModel(type);
+        kmouseX = kmouseY = 0;
+        kmouseW = 0xff;
     }
     
     public void setJoystick(int model) {
-        keyboard.setJoystick(model);
-        joystick = keyboard.getJoystick();
+        keyboard.setJoystickModel(model);
+        joystickModel = keyboard.getJoystickModel();
+        kmouseX = kmouseY = 0;
+        kmouseW = 0xff;
     }
     
     public void setTape(Tape player) {
@@ -467,7 +489,16 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(1000);
+                    for (int test = 0; test < 10; test++) {
+                        if (z80.isIFF1())
+                            break;
+                        Thread.sleep(250);
+                    }
+                    if (!z80.isIFF1()) {
+                        System.out.println("Can't autoLoadTape!");
+                        return;
+                    }
                     if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                         memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
                         memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
@@ -490,6 +521,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
         new Thread(task).start();
     }
+
     public synchronized void generateFrame() {
 
 //        long startFrame, endFrame, sleepTime;
@@ -515,6 +547,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = firstBorderUpdate;
 
         do {
+
             // Cuando se entra desde una carga de snapshot los t-states pueden
             // no ser 0 y el frame estar a mitad (pojemplo)
             if (clock.getTstates() < spectrumModel.lengthINT) {
@@ -529,14 +562,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     updateScreen(clock.getTstates());
                 }
             }
-            
+
             z80.execute(spectrumModel.tstatesFrame);
 
             if (enabledSound) {
                 if (enabledAY) {
-                    ay8912.updateAY(clock.getTstates());
+                    ay8912.updateAY(spectrumModel.tstatesFrame);
                 }
-                audio.updateAudio(clock.getTstates(), speaker);
+                audio.updateAudio(spectrumModel.tstatesFrame, speaker);
                 audio.endFrame();
             }
 
@@ -702,14 +735,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        speedLabel.setText(String.format("%4d%%", speed * 10));
+                        speedLabel.setText(String.format("%4d%%", Math.abs(speed * 10)));
                     }
                 });
             }
 
-            if (resetPending) {
-                tape.stop();
-            }
         } while (tape.isTapePlaying());
 
         lastScanLine = rightCol = lastBorderPix = step = 0;
@@ -844,7 +874,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
 //        if ((port & 0xff) == 0xff) {
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
-//                    z80.tEstados, z80.getRegPC()));
+//                    clock.getTstates(), z80.getRegPC()));
 //        }
 //        System.out.println(String.format("InPort: %04X", port));
         preIO(port);
@@ -956,20 +986,76 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         /*
          * El interfaz Kempston solo (debería) decodificar A5=0...
          */
-        if (joystick == Joystick.KEMPSTON && (port & 0x0020) == 0) {
-//            System.out.println(String.format("InPort: %04X, PC: %04X", port, z80.getRegPC()));
-            return keyboard.readKempstonPort();
+        if (joystickModel == JoystickModel.KEMPSTON && (port & 0x0020) == 0) {
+//            System.out.println(String.format("InPort: %04X, PC: %04X, Frame: %d", port, z80.getRegPC(), clock.getFrames()));
+//            System.out.println("deadzone: " + sixaxis.getDeadZone() + "\tpoll: " + sixaxis.getPollInterval());
+//                long start = System.currentTimeMillis();
+//                joystick1.poll();
+//                System.out.println(System.currentTimeMillis() - start);
+            if (kmouseEnabled && joystick1 != null) {
+                switch (port & 0x85FF) {
+                    case 0x84DF: // Kempston Mouse Turbo rd7ffd port
+                        return port7ffd;
+                    case 0x80DF: // Kempston Mouse Turbo Master button port
+                        int status = joystick1.getButtonMask();
+                        int buttons = 0x0f;
+                        if ((status & 0x400) != 0) {
+                            buttons &= 0xFD; // Left mouse button
+                        }
+
+                        if ((status & 0x800) != 0) {
+                            buttons &= 0xFE; // Right mouse button
+                        }
+
+                        if ((status & 0x004) != 0) {
+                            buttons &= 0xFB; // Middle mouse button
+                        }
+
+                        // D4-D7 4-bit wheel counter
+                        short waxis = joystick1.getAxisValue(3);
+                        if (waxis > 0) {
+                            kmouseW -= 16;
+                        }
+                        if (waxis < 0) {
+                            kmouseW += 16;
+                        }
+                        return buttons | (kmouseW & 0xf0);
+                    case 0x81DF:
+                        // Kempston Mouse Turbo Master X-AXIS
+                        short xaxis = joystick1.getAxisValue(0);
+                        if (xaxis != 0) {
+                            kmouseX = (kmouseX + xaxis / 6553) & 0xff;
+                        }
+                        return kmouseX;
+                    case 0x85DF:
+                        // Kempston Mouse Turbo Master Y-AXIS
+                        short yaxis = joystick1.getAxisValue(1);
+                        if (yaxis != 0) {
+                            kmouseY = (kmouseY - yaxis / 6553) & 0xff;
+                        }
+                        return kmouseY;
+                }
+                return keyboard.readKempstonPort();
+            }
+
+            // Before exit, reset the additional fire button bits from K-Mouse
+            return keyboard.readKempstonPort() & 0x1F;
         }
 
-        if (joystick == Joystick.FULLER && (port & 0xff) == 0x7f) {
+        if (joystickModel == JoystickModel.FULLER && (port & 0xff) == 0x7f) {
 //            System.out.println(String.format("InPort: %04X", port));
             return keyboard.readFullerPort();
         }
-
+        
         // ULA Port
         if ((port & 0x0001) == 0) {
+//            System.out.println(String.format("InPort: %04X, Frame: %d", port, clock.getFrames()));
             earBit = tape.getEarBit();
-            return keyboard.readKeyboardPort(port) & earBit;
+            if (joystick1 == null || tape.isTapeRunning()) {
+                return keyboard.readKeyboardPort(port, false) & earBit;
+            }
+
+            return keyboard.readKeyboardPort(port, true) & earBit;
         }
 
         if (enabledAY) {
@@ -985,7 +1071,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 return ay8912.readRegister();
             }
 
-            if (joystick == Joystick.FULLER && (port & 0xff) == 0x3f) {
+            if (joystickModel == JoystickModel.FULLER && (port & 0xff) == 0x3f) {
 //                System.out.println(String.format("InPort: %04X", port));
                 return ay8912.readRegister();
             }
@@ -1231,7 +1317,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 return;
             }
 
-            if (enabledAY && joystick == Joystick.FULLER
+            if (enabledAY && joystickModel == JoystickModel.FULLER
                 && spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
 //                System.out.println(String.format("OutPort: %04X [%02X]", port, value));
                 if ((port & 0xff) == 0x3f) {
@@ -1276,6 +1362,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     }
                 }
             }
+            
+            // Enable/disable kempston mouse turbo (port #3EDF)
+            if (joystickModel == JoystickModel.KEMPSTON && (port & 0x85FF) == 0x04DF) {
+                kmouseEnabled = (value & 0x80) == 0;
+            } 
         } finally {
             postIO(port);
         }
@@ -1410,6 +1501,43 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
         return opcode;
     }
+
+//    private void updateJoysticks() {
+//
+//        switch (joystickModel) {
+//            case KEMPSTON:
+//                if (kmouseEnabled) {
+//                    // Kempston Mouse Turbo Master button port
+//                    // D4-D7 4-bit wheel counter
+//                    short waxis = joystick1.getAxisValue(3);
+//                    if (waxis > 0) {
+//                        kmouseW -= 16;
+//                    }
+//                    if (waxis < 0) {
+//                        kmouseW += 16;
+//                    }
+//
+//                    // Kempston Mouse Turbo Master X-AXIS
+//                    short xaxis = joystick1.getAxisValue(0);
+//                    if (xaxis != 0) {
+//                        kmouseX = (kmouseX + xaxis / 5) & 0xff;
+//                    }
+//
+//                    // Kempston Mouse Turbo Master Y-AXIS
+//                    short yaxis = joystick1.getAxisValue(1);
+//                    if (yaxis != 0) {
+//                        kmouseY = (kmouseY - yaxis / 5) & 0xff;
+//                    }
+//                }
+//                // No break sentence, that's correct...
+////            case SINCLAIR1:
+////            case SINCLAIR2:
+////                if (joystick2 != null) {
+////                    joystick2.poll();
+////                }
+////                break;
+//        }
+//    }
 
     public void saveImage(File filename) {
         BufferedOutputStream fOut = null;
@@ -1793,7 +1921,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         dataInProgress =
             ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
-
         
         for (int address = 0x4000; address < 0x5800; address++) {
             int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
@@ -1817,7 +1944,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public synchronized void toggleFlash() {
-        flash = (flash == 0x7f ? 0xff : 0x7f);
+        flash ^= 0x80;
 
         // 0x1800 + 0x4000 = 0x5800 (attr area)
         for (int addrAttr = 0x1800; addrAttr < 0x1b00; addrAttr++) {
@@ -2346,7 +2473,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         @Override
         public void clockTimeout() {
 
-            int spkMic = (tape.getEarBit() == 0xbf) ? 0 : 2000;
+            int spkMic = (tape.getEarBit() == 0xbf) ? 2000 : -2000;
 
             if (spkMic != speaker) {
                 audio.updateAudio(clock.getTstates(), speaker);
