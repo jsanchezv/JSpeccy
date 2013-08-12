@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import z80core.Z80.IntMode;
 
@@ -188,19 +188,19 @@ public class SnapshotZ80 {
             
             switch ((z80Header1[29] & 0xC0)) {
                 case 0: // Cursor/AGF/Protek Joystick
-                    spectrum.setJoystick(Joystick.CURSOR);
+                    spectrum.setJoystick(JoystickModel.CURSOR);
                     break;
                 case 0x40: // Kempston joystick
-                    spectrum.setJoystick(Joystick.KEMPSTON);
+                    spectrum.setJoystick(JoystickModel.KEMPSTON);
                     break;
                 case 0x80:
-                    spectrum.setJoystick(Joystick.SINCLAIR1);
+                    spectrum.setJoystick(JoystickModel.SINCLAIR1);
                     break;
                 case 0xC0:
-                    spectrum.setJoystick(Joystick.SINCLAIR2);
+                    spectrum.setJoystick(JoystickModel.SINCLAIR2);
                     break;
                 default:
-                    spectrum.setJoystick(Joystick.NONE);
+                    spectrum.setJoystick(JoystickModel.NONE);
             }
 
             memory = new MemoryState();

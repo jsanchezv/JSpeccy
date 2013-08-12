@@ -10,7 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import z80core.Z80.IntMode;
 
@@ -284,7 +284,7 @@ public class SnapshotSZX {
 
         spectrum = new SpectrumState();
         
-        spectrum.setJoystick(Joystick.NONE);
+        spectrum.setJoystick(JoystickModel.NONE);
 
         try {
             try {
@@ -464,22 +464,22 @@ public class SnapshotSZX {
                         spectrum.setIssue2((keyb[0] & ZXSTKF_ISSUE2) != 0);
                         switch (keyb[4] & 0xff) {
                             case ZXSKJT_KEMPSTON:
-                                spectrum.setJoystick(Joystick.KEMPSTON);
+                                spectrum.setJoystick(JoystickModel.KEMPSTON);
                                 break;
                             case ZXSKJT_FULLER:
-                                spectrum.setJoystick(Joystick.FULLER);
+                                spectrum.setJoystick(JoystickModel.FULLER);
                                 break;
                             case ZXSKJT_CURSOR:
-                                spectrum.setJoystick(Joystick.CURSOR);
+                                spectrum.setJoystick(JoystickModel.CURSOR);
                                 break;
                             case ZXSKJT_SINCLAIR1:
-                                spectrum.setJoystick(Joystick.SINCLAIR1);
+                                spectrum.setJoystick(JoystickModel.SINCLAIR1);
                                 break;
                             case ZXSKJT_SINCLAIR2:
-                                spectrum.setJoystick(Joystick.SINCLAIR2);
+                                spectrum.setJoystick(JoystickModel.SINCLAIR2);
                                 break;
                             default:
-                                spectrum.setJoystick(Joystick.NONE);
+                                spectrum.setJoystick(JoystickModel.NONE);
                         }
                         break;
                     case ZXSTBID_AY:

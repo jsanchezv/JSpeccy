@@ -4,7 +4,7 @@
  */
 package snapshots;
 
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 
 /**
@@ -20,7 +20,7 @@ public class SpectrumState {
     private byte numMicrodrives = 1;
     private boolean ULAPlusEnabled, ULAPlusActive, issue2, multiface, connectedLec;
     private boolean connectedIF1, enabledAY, enabledAYon48k;
-    private Joystick joystick;
+    private JoystickModel joystick;
     // Color palette
     private int ULAPlusPalette[];
     // Palette group
@@ -259,14 +259,14 @@ public class SpectrumState {
     /**
      * @return the joystick
      */
-    public Joystick getJoystick() {
+    public JoystickModel getJoystick() {
         return joystick;
     }
 
     /**
      * @param joystick the joystick to set
      */
-    public void setJoystick(Joystick joystick) {
+    public void setJoystick(JoystickModel joystick) {
         this.joystick = joystick;
     }
 

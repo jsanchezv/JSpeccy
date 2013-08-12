@@ -13,7 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import z80core.Z80.IntMode;
 
@@ -214,7 +214,7 @@ public class SnapshotSNA {
             }
 
             spectrum.setIssue2(false); // esto no se guarda en los SNA, algo hay que poner...
-            spectrum.setJoystick(Joystick.NONE); // idem
+            spectrum.setJoystick(JoystickModel.NONE); // idem
             spectrum.setTstates(0);
         } catch (IOException ex) {
             throw new SnapshotException("FILE_READ_ERROR", ex);
