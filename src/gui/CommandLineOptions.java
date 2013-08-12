@@ -8,7 +8,7 @@ import configuration.JSpeccySettingsType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import machine.Keyboard.Joystick;
+import machine.Keyboard.JoystickModel;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
@@ -59,7 +59,7 @@ public class CommandLineOptions {
 
     @Option(name = "-j", aliases = "--joystick", metaVar = "CommandLineOptions.metaVar.model.text",
             usage = "CommandLineOptions.joystick.text")
-    private Joystick joystick = Joystick.NONE;
+    private JoystickModel joystick = JoystickModel.NONE;
     
     @Option(name = "--map-pc-keyboard", usage = "CommandLineOptions.mapPCkeyboard.text")
     private boolean mapPCkeys;
