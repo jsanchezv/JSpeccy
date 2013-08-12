@@ -13,7 +13,6 @@ import java.util.TimerTask;
 public class SpectrumTimer extends TimerTask {
 
     private Spectrum spectrum;
-    private long now, diff;
 
     public SpectrumTimer(Spectrum spectrum) {
         this.spectrum = spectrum;
@@ -22,11 +21,7 @@ public class SpectrumTimer extends TimerTask {
     @Override
     public synchronized void run() {
 
-        now = System.currentTimeMillis();
-        diff = now - scheduledExecutionTime();
-        if (diff < 51) {
-            spectrum.generateFrame();
-            spectrum.drawFrame();
-        }
+        spectrum.generateFrame();
+        spectrum.drawFrame();
     }
 }
