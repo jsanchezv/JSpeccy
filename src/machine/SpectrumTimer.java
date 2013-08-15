@@ -21,7 +21,12 @@ public class SpectrumTimer extends TimerTask {
     @Override
     public synchronized void run() {
 
-        spectrum.generateFrame();
-        spectrum.drawFrame();
+        long now = System.currentTimeMillis();
+        long exec =  scheduledExecutionTime();
+        if (now - exec < 20) {
+            spectrum.generateFrame();
+            spectrum.drawFrame();
+        }
+//        System.out.println(now + ", " + exec + ", " + (now - exec) + ", " + Clock.getInstance().getFrames());
     }
 }
