@@ -20,17 +20,17 @@ class Audio {
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
-    // Buffer de sonido para 2 frames a 48 Khz estéreo, hay más espacio del necesario.
-    private final byte[] buf = new byte[8192];
+    // Buffer de sonido para 2 frames a 48 Khz estéreo
+    private final byte[] buf = new byte[3840];
     private final int[] beeper = new int[1024];
     // Buffer de sonido para el AY
     private final int[] ayBufA = new int[1024];
     private final int[] ayBufB = new int[1024];
     private final int[] ayBufC = new int[1024];
-    private int ptrBeeper, ptrBuf;
+    private int ptrBeeper;
     private int level;
     private int audiotstates;
-    private int samplesPerFrame, frameSize, bufferSize;
+    private int samplesPerFrame, frameSize;
     private int soundMode;
     private long timeRem, step;
     private MachineTypes spectrumModel;
@@ -74,7 +74,7 @@ class Audio {
             }
 
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
-            audiotstates = ptrBeeper = ptrBuf = 0;
+            audiotstates = ptrBeeper = 0;
             level = 0;
             
             ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
@@ -103,9 +103,9 @@ class Audio {
              * El frame inicial tienen como misión evitar que el buffer de audio del
              * sistema se vacíe y se oigan efectos extraños.
              */
-            bufferSize = frameSize * 2;
             try {
-                line.open(fmt, frameSize * 5);
+                line.open(fmt, frameSize);
+                line.start();
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -179,37 +179,14 @@ class Audio {
 //        System.out.println(bufp + ", " + ay.getSampleCount());
         
         if (soundMode == 0) {
-            endFrameMono(ptrBeeper);
+            endFrameMono();
         }
         else {
-            endFrameStereo(ptrBeeper);
+            endFrameStereo();
         }
 
-        if (ptrBuf == bufferSize) {
-            // La línea puede no estar en estado running bien porque aún
-            // no se ha hecho el start, bien porque se haya vaciado de datos.
-            // Si hace falta se pone en marcha y en cualquier caso, se prerrellena
-            // con un frame de audio antes de enviar los dos que corresponden.
-            if (!line.isRunning()) {
-                if (!line.isActive())
-                    line.start();
-                line.write(buf, 0, frameSize);
-            }
-//            int available = line.available();
-//            System.out.println(available);
-            // Si hay espacio para un paquete de 2 frames, se envía.
-            // En caso contrario, nos lo saltamos porque es señal de que
-            // el buffer tá petao.
-            if (line.available() >= bufferSize) {
-                line.write(buf, 0, bufferSize);
-                
-            } else {
-//                line.write(buf, 0, available);
-                System.out.println("OVERRUN!");
-            }
-            ptrBuf = 0;
-        }
         
+        line.write(buf, 0, frameSize);
         
         if (enabledAY) {
             ay.endFrame();
@@ -220,53 +197,55 @@ class Audio {
         audiotstates -= spectrumModel.tstatesFrame;
     }
 
-    private void endFrameMono(int nSamples) {
+    private void endFrameMono() {
 
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        int ptr = 0;
         if (enabledAY) {
-            for (int idx = 0; idx < nSamples; idx++) {
+            for (int idx = 0; idx < samplesPerFrame; idx++) {
                 int sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
-                buf[ptrBuf++] = (byte) sample;
-                buf[ptrBuf++] = (byte)(sample >>> 8);
+                buf[ptr++] = (byte) sample;
+                buf[ptr++] = (byte)(sample >>> 8);
             }
         } else {
-            for (int idx = 0; idx < nSamples; idx++) {
-                buf[ptrBuf++] = (byte) beeper[idx];
-                buf[ptrBuf++] = (byte) (beeper[idx] >>> 8);
+            for (int idx = 0; idx < samplesPerFrame; idx++) {
+                buf[ptr++] = (byte) beeper[idx];
+                buf[ptr++] = (byte) (beeper[idx] >>> 8);
             }
         }
     }
 
-    private void endFrameStereo(int nSamples) {
+    private void endFrameStereo() {
 
 
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
+        int ptr = 0;
         if (enabledAY) {
             int sampleL, sampleR, center, side;
-            for (int idx = 0; idx < nSamples; idx++) {
+            for (int idx = 0; idx < samplesPerFrame; idx++) {
                 center = (int)(ayBufB[idx] * 0.7);
                 side = (int)(ayBufC[idx] * 0.3);
                 sampleL = beeper[idx] + ayBufA[idx] + center + side;
                 side = (int)(ayBufA[idx] * 0.3);
                 sampleR = beeper[idx] + side + center + ayBufC[idx];
-                buf[ptrBuf++] = (byte) sampleL;
-                buf[ptrBuf++] = (byte)(sampleL >>> 8);
-                buf[ptrBuf++] = (byte) sampleR;
-                buf[ptrBuf++] = (byte)(sampleR >>> 8);
+                buf[ptr++] = (byte) sampleL;
+                buf[ptr++] = (byte)(sampleL >>> 8);
+                buf[ptr++] = (byte) sampleR;
+                buf[ptr++] = (byte)(sampleR >>> 8);
             }
         } else {
             byte lsb, msb;
-            for (int idx = 0; idx < nSamples; idx++) {
+            for (int idx = 0; idx < samplesPerFrame; idx++) {
                 lsb = (byte) beeper[idx];
                 msb = (byte) (beeper[idx] >>> 8);
-                buf[ptrBuf++] = lsb;
-                buf[ptrBuf++] = msb;
-                buf[ptrBuf++] = lsb;
-                buf[ptrBuf++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
+                buf[ptr++] = lsb;
+                buf[ptr++] = msb;
             }
         }
     }

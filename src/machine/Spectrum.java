@@ -53,7 +53,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     private Audio audio;
     private AY8912 ay8912;
     private Tape tape;
-    private boolean paused;
+    private boolean paused, running;
     private boolean resetPending, autoLoadTape;
     private JLabel speedLabel;
 
@@ -354,30 +354,58 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
     }
 
-    public synchronized void startEmulation() {
-        if (!paused) {
+    public void startEmulation() {
+        if (!paused || running) {
             return;
         }
-        
-        paused = false;
+
         audio.reset();
-        enableSound();
         invalidateScreen(true);
         lastChgBorder = firstBorderUpdate;
         drawFrame();
         jscr.repaint();
-        taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+
+        paused = false;
+        running = true;
+        enableSound();
+        if (enabledSound) {
+            Runnable task = new Runnable() {
+                @Override
+                public void run() {
+                    while (running) {
+                        generateFrame();
+                        drawFrame();
+                    }
+                    paused = true;
+                }
+            };
+
+            new Thread(task, "SpectrumThread").start();
+        } else {
+            taskFrame = new SpectrumTimer(this);
+            timerFrame.scheduleAtFixedRate(taskFrame, 20, 20);
+        }
     }
 
-    public synchronized void stopEmulation() {
-        if (paused) {
+    public void stopEmulation() {
+        if (!running) {
             return;
         }
 
-        taskFrame.cancel();
-        paused = true;
-        disableSound();
+        running = false;
+        if (enabledSound) {
+            while (!paused) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            disableSound();
+        } else {
+            paused = true;
+            taskFrame.cancel();
+        }
     }
 
     public void reset() {
@@ -522,7 +550,15 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         new Thread(task).start();
     }
 
-    public synchronized void generateFrame() {
+    public void clockTick() {
+        
+//        if (running) {
+            generateFrame();
+            drawFrame();
+//        }
+    }
+
+    public void generateFrame() {
 
 //        long startFrame, endFrame, sleepTime;
 //        startFrame = System.currentTimeMillis();
@@ -583,8 +619,8 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             }
 
             if (clock.getFrames() % 50 == 0) {
-                long now = System.currentTimeMillis();
-                speed = 100000 / (now - speedometer);
+                long now = System.currentTimeMillis() / 10;
+                speed = 10000 / (now - speedometer);
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
@@ -691,7 +727,19 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
 
     private synchronized void acceleratedLoading() {
 
-        stopEmulation();
+        boolean soundState = enabledSound;
+        if (enabledSound) {
+            disableSound();
+        } else {
+            // Después de parar la emulación hay que esperar un tiempo prudencial
+            // porque puede estar en medio de un frame
+            stopEmulation();
+            try {
+                Thread.sleep(21);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
         lastScanLine = lastBorderPix = 0;
         firstBorderPix = dataInProgress.length;
@@ -754,7 +802,11 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         step = 0;
         nextEvent = stepStates[0];
 
-        startEmulation();
+        if (soundState) {
+            enableSound();
+        } else {
+            startEmulation();
+        }
     }
     
     @Override
@@ -1650,15 +1702,19 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     public void muteSound(boolean state) {
         muted = state;
 
+        stopEmulation();
+        
         if (muted) {
             disableSound();
         } else {
             enableSound();
         }
+        
+        startEmulation();
     }
 
     private void enableSound() {
-        if (paused || muted || enabledSound || framesByInt > 1) {
+        if (!running || muted || enabledSound || framesByInt > 1) {
             return;
         }
 
@@ -2446,7 +2502,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 case PLAY:
                     if (!paused) {
                         if (settings.getTapeSettings().isAccelerateLoading()) {
-                            new Thread() {
+                            new Thread("TapeThread") {
 
                                 @Override
                                 public void run() {
