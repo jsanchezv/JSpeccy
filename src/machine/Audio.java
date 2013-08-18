@@ -20,14 +20,14 @@ class Audio {
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
-    // Buffer de sonido para 2 frames a 48 Khz estéreo
-    private final byte[] buf = new byte[3840];
+    // Buffer de sonido para 1 frame a 48 Khz estéreo, hay más espacio del necesario.
+    private final byte[] buf = new byte[4096];
     private final int[] beeper = new int[1024];
     // Buffer de sonido para el AY
     private final int[] ayBufA = new int[1024];
     private final int[] ayBufB = new int[1024];
     private final int[] ayBufC = new int[1024];
-    private int ptrBeeper;
+    private int ptrBeeper, ptrBuf;
     private int level;
     private int audiotstates;
     private int samplesPerFrame, frameSize;
@@ -67,6 +67,8 @@ class Audio {
             timeRem = 0;
             samplesPerFrame = samplingFrequency / 50;
             frameSize = samplesPerFrame * 2 * channels;
+//            System.out.println(String.format("FREQ = %d, samples = %d, frameSize = %d",
+//                    samplingFrequency, samplesPerFrame, frameSize));
 
             if (model != spectrumModel) {
                 spectrumModel = model;
@@ -74,7 +76,7 @@ class Audio {
             }
 
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
-            audiotstates = ptrBeeper = 0;
+            audiotstates = ptrBeeper = ptrBuf = 0;
             level = 0;
             
             ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
@@ -96,16 +98,18 @@ class Audio {
             }
 
             /*
-             * La idea de funcionamiento del Audio se basa en tener un buffer de audio de 5 frames
+             * La idea de funcionamiento del Audio se basa en tener un buffer de audio de 3 frames
              * de longitud. Cuando se activa el sonido con el método start, se envía 1 frame
-             * adelantado para iniciar la reproducción e inmediatamente después se envían
-             * paquetes de 2 frames, de modo que la primera vez se envían 3 frames de un golpe.
+             * adelantado para iniciar la reproducción e inmediatamente después se envía el
+             * verdeadero frame, y luego cada vez que le corresponde.
              * El frame inicial tienen como misión evitar que el buffer de audio del
              * sistema se vacíe y se oigan efectos extraños.
+             * Al final se deja espacio para un frame de más, que debería conseguir que siempre
+             * se pueda enviar el frame correspondiente sin que el write se bloquee por
+             * falta de espacio.
              */
             try {
-                line.open(fmt, frameSize);
-                line.start();
+                line.open(fmt, frameSize * 3);
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -171,6 +175,33 @@ class Audio {
             line.flush();
     }
 
+    synchronized public void sendAudioFrame() {
+        // La línea puede no estar en estado running bien porque aún
+        // no se ha hecho el start, bien porque se haya vaciado de datos.
+        // Si hace falta se pone en marcha y en cualquier caso, se prerrellena
+        // con un frame de audio antes de enviar el que corresponde.
+        if (!line.isRunning()) {
+            if (!line.isActive()) {
+                line.start();
+            }
+            line.write(buf, 0, frameSize);
+//            System.out.println("UNDERRUN? ");
+        }
+//        int available = line.available();
+//        if (available < frameSize)
+//            System.out.println(available);
+        // Si hay espacio para el frame, se envía.
+        // En caso contrario, algo pasa y lo mejor es cerrar la línea
+        // y dejar que el próximo frame empiece de cero.
+        if (line.available() >= frameSize)
+            line.write(buf, 0, frameSize);
+        else {
+            System.out.println("Audio warning!");
+            line.flush();
+            line.stop();
+        }
+    }
+
     synchronized public void endFrame() {
 
         if (ptrBeeper == 0)
@@ -185,16 +216,14 @@ class Audio {
             endFrameStereo();
         }
 
+        ptrBuf = 0;
         
-        line.write(buf, 0, frameSize);
         
         if (enabledAY) {
             ay.endFrame();
         }
         
-        ptrBeeper = 0;
-
-        audiotstates -= spectrumModel.tstatesFrame;
+        audiotstates = ptrBeeper = 0;
     }
 
     private void endFrameMono() {
@@ -202,17 +231,16 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        int ptr = 0;
         if (enabledAY) {
             for (int idx = 0; idx < samplesPerFrame; idx++) {
                 int sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
-                buf[ptr++] = (byte) sample;
-                buf[ptr++] = (byte)(sample >>> 8);
+                buf[ptrBuf++] = (byte) sample;
+                buf[ptrBuf++] = (byte)(sample >>> 8);
             }
         } else {
             for (int idx = 0; idx < samplesPerFrame; idx++) {
-                buf[ptr++] = (byte) beeper[idx];
-                buf[ptr++] = (byte) (beeper[idx] >>> 8);
+                buf[ptrBuf++] = (byte) beeper[idx];
+                buf[ptrBuf++] = (byte) (beeper[idx] >>> 8);
             }
         }
     }
@@ -223,7 +251,6 @@ class Audio {
         // El código está repetido, lo que es correcto. Si no se hace así habría
         // que meter la comprobación de enabledAY dentro del bucle, lo que
         // haría que en lugar de comprobarse una vez, se comprobara ciento.
-        int ptr = 0;
         if (enabledAY) {
             int sampleL, sampleR, center, side;
             for (int idx = 0; idx < samplesPerFrame; idx++) {
@@ -232,20 +259,20 @@ class Audio {
                 sampleL = beeper[idx] + ayBufA[idx] + center + side;
                 side = (int)(ayBufA[idx] * 0.3);
                 sampleR = beeper[idx] + side + center + ayBufC[idx];
-                buf[ptr++] = (byte) sampleL;
-                buf[ptr++] = (byte)(sampleL >>> 8);
-                buf[ptr++] = (byte) sampleR;
-                buf[ptr++] = (byte)(sampleR >>> 8);
+                buf[ptrBuf++] = (byte) sampleL;
+                buf[ptrBuf++] = (byte)(sampleL >>> 8);
+                buf[ptrBuf++] = (byte) sampleR;
+                buf[ptrBuf++] = (byte)(sampleR >>> 8);
             }
         } else {
             byte lsb, msb;
             for (int idx = 0; idx < samplesPerFrame; idx++) {
                 lsb = (byte) beeper[idx];
                 msb = (byte) (beeper[idx] >>> 8);
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
-                buf[ptr++] = lsb;
-                buf[ptr++] = msb;
+                buf[ptrBuf++] = lsb;
+                buf[ptrBuf++] = msb;
+                buf[ptrBuf++] = lsb;
+                buf[ptrBuf++] = msb;
             }
         }
     }
@@ -254,6 +281,7 @@ class Audio {
         audiotstates = 0;
         level = ptrBeeper = 0;
         timeRem = 0;
+        Arrays.fill(buf, (byte)0);
         Arrays.fill(beeper, 0);
     }
 }
