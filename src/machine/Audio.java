@@ -184,6 +184,11 @@ class Audio {
         if (!line.isActive())
             line.start();
 
+        if (framesWritten <= line.getLongFramePosition()) {
+            line.write(buf, 0, frameSize >>> 1);
+            framesWritten += samplesPerFrame >>> 1;
+//            System.out.println("UNDERRUN at frame " + Clock.getInstance().getFrames());
+        }
         line.write(buf, 0, frameSize);
         framesWritten += samplesPerFrame;
     }
