@@ -32,7 +32,7 @@ class Audio {
     private int audiotstates;
     private int samplesPerFrame, frameSize;
     private int soundMode;
-    private long timeRem, step;
+    private long timeRem, step, framesWritten;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
     private AY8912Type settings;
@@ -78,6 +78,7 @@ class Audio {
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
             audiotstates = ptrBeeper = ptrBuf = 0;
             level = 0;
+            framesWritten = 0;
             
             ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
             switch (soundMode) {
@@ -109,7 +110,7 @@ class Audio {
              * falta de espacio.
              */
             try {
-                line.open(fmt, frameSize * 3);
+                line.open(fmt, frameSize);
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -175,31 +176,16 @@ class Audio {
             line.flush();
     }
 
+    public boolean isAudioFramePending() {
+        return framesWritten - line.getLongFramePosition() == samplesPerFrame;
+    }
+
     synchronized public void sendAudioFrame() {
-        // La línea puede no estar en estado running bien porque aún
-        // no se ha hecho el start, bien porque se haya vaciado de datos.
-        // Si hace falta se pone en marcha y en cualquier caso, se prerrellena
-        // con un frame de audio antes de enviar el que corresponde.
-        if (!line.isRunning()) {
-            if (!line.isActive()) {
-                line.start();
-            }
-            line.write(buf, 0, frameSize);
-//            System.out.println("UNDERRUN? ");
-        }
-//        int available = line.available();
-//        if (available < frameSize)
-//            System.out.println(available);
-        // Si hay espacio para el frame, se envía.
-        // En caso contrario, algo pasa y lo mejor es cerrar la línea
-        // y dejar que el próximo frame empiece de cero.
-        if (line.available() >= frameSize)
-            line.write(buf, 0, frameSize);
-        else {
-            System.out.println("Audio warning!");
-            line.flush();
-            line.stop();
-        }
+        if (!line.isActive())
+            line.start();
+
+        line.write(buf, 0, frameSize);
+        framesWritten += samplesPerFrame;
     }
 
     synchronized public void endFrame() {

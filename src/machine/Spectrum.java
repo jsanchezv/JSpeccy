@@ -523,15 +523,22 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     public synchronized void clockTick() {
-        // Enviar primero el frame de audio a la tarjeta de sonido,
-        // porque esa no espera y tiene malas pulgas.
+        
+        // Si el subsistema de audio aún tiene un frame entero por reproducir nos
+        // saltamos este tick sin mayores consecuencias.
+        if (enabledSound && audio.isAudioFramePending()) {
+//            System.out.println("Spectrum tick skipped at frame " + clock.getFrames());
+            return;
+        }
+
+        generateFrame();
+        drawFrame();
+        // Enviar el audio debe ir lo último, porque si el write del frame de sonido
+        // se bloquea por falta de espacio en el buffer de audio, lo hace en el
+        // "tiempo de la basura", donde no molesta a nadie.
         if (enabledSound) {
             audio.sendAudioFrame();
         }
-        // Luego se dibuja el último frame emulado
-        drawFrame();
-        // Y al final se ejecuta la parte más variable en tiempo, la propia emulación.
-        generateFrame();
     }
 
     public synchronized void generateFrame() {
