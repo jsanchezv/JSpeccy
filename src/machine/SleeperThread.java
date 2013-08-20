@@ -24,7 +24,8 @@ public class SleeperThread implements Runnable {
     @Override
     public void run() {
         try {
-            Thread.sleep(Long.MAX_VALUE);
+            while (true)
+                Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException excpt) {
             Logger.getLogger(SleeperThread.class.getName()).log(Level.SEVERE, null, excpt);
         }
