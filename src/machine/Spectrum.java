@@ -489,26 +489,31 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(1000);
-                    for (int test = 0; test < 10; test++) {
-                        if (z80.isIFF1())
-                            break;
-                        Thread.sleep(250);
+                    Thread.sleep(1100);
+                    // El 48k tarda en inicializarse unos 86 frames
+                    // Los modelos de 128k, tardan unos 56 frames
+                    // Habrá que comprobar el +3 cuando tenga la disquetera
+                    long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 87 : 57;
+                    while (clock.getFrames() < endFrame) {
+                        Thread.sleep(40);
                     }
+
                     if (!z80.isIFF1()) {
                         System.out.println("Can't autoLoadTape!");
                         return;
                     }
-                    if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
+
+                    System.out.println("AutoLoad frame: " + clock.getFrames());
+                    if (endFrame == 87) {
                         memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
                         memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
-                        Thread.sleep(50);
+                        Thread.sleep(30);
                         memory.writeByte(LAST_K, (byte) 0x22); // " key
                         memory.writeByte(FLAGS, (byte) 0x20);
-                        Thread.sleep(50);
+                        Thread.sleep(30);
                         memory.writeByte(LAST_K, (byte) 0x22); // " key
                         memory.writeByte(FLAGS, (byte) 0x20);
-                        Thread.sleep(50);
+                        Thread.sleep(30);
                     }
                     memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
                     memory.writeByte(FLAGS, (byte) 0x20);
