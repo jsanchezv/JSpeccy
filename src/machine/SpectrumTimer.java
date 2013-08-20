@@ -13,7 +13,6 @@ import java.util.TimerTask;
 public class SpectrumTimer extends TimerTask {
 
     private Spectrum spectrum;
-    private long lastTick;
 
     public SpectrumTimer(Spectrum spectrum) {
         this.spectrum = spectrum;
