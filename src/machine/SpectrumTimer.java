@@ -22,16 +22,13 @@ public class SpectrumTimer extends TimerTask {
     @Override
     public synchronized void run() {
 
-        long now = System.currentTimeMillis();
-        // Ejecutar el frame siempre que hayan transcurrido más de 17 ms desde el
-        // anterior. El resto, se ignoran.
-        if (now - lastTick > 17) {
+        // El timer solo nos sirve de metrónomo, pero es indiferente lo que se
+        // retrase la señal, ya que el tiempo lo marca la tarjeta de sonido.
+        // Lo que sí hay que hacer es purgar todos los eventos demasiado
+        // retrasados para que no se acumulen en el sistema.
+//        long now = System.currentTimeMillis();
+//        System.out.println("Tick delayed: " + (now - scheduledExecutionTime()) + " at frame " + Clock.getInstance().getFrames());
+        if (System.currentTimeMillis() - scheduledExecutionTime() < 100)
             spectrum.clockTick();
-//            System.out.println("Tick delayed: " + (now - lastTick) + " at frame " + Clock.getInstance().getFrames());
-            lastTick = now;            
-//        } else {
-//            System.out.println(String.format("Tick skipped. Now: %d, last: %d, diff: %d",
-//                    now, lastTick, now - lastTick));
-        }
     }
 }
