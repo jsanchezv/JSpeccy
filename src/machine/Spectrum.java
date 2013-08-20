@@ -498,12 +498,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                         Thread.sleep(40);
                     }
 
-                    if (!z80.isIFF1()) {
-                        System.out.println("Can't autoLoadTape!");
-                        return;
-                    }
-
-                    System.out.println("AutoLoad frame: " + clock.getFrames());
                     if (endFrame == 87) {
                         memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
                         memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
