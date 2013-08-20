@@ -99,18 +99,21 @@ class Audio {
             }
 
             /*
-             * La idea de funcionamiento del Audio se basa en tener un buffer de audio de 3 frames
-             * de longitud. Cuando se activa el sonido con el método start, se envía 1 frame
-             * adelantado para iniciar la reproducción e inmediatamente después se envía el
-             * verdeadero frame, y luego cada vez que le corresponde.
+             * La idea de funcionamiento del Audio se basa en tener un buffer de audio de 2 frames
+             * de longitud. Cada vez que detectamos que se ha vaciado el buffer, enviamos un frame
+             * adelantado e inmediatamente después se envía el verdadero frame.
              * El frame inicial tienen como misión evitar que el buffer de audio del
              * sistema se vacíe y se oigan efectos extraños.
-             * Al final se deja espacio para un frame de más, que debería conseguir que siempre
-             * se pueda enviar el frame correspondiente sin que el write se bloquee por
-             * falta de espacio.
+             * Aunque en Linux "parece" que se reserva un frame, internamente el sistema (¿ALSA?)
+             * crea el doble de espacio del solicitado. Eso provoca que el método available() se
+             * comporte de manera errática, de modo que mejor lo evitamos.
              */
             try {
-                line.open(fmt, frameSize);
+                if (System.getProperty("os.name").contains("Linux")) {
+                    line.open(fmt, frameSize);
+                } else {
+                    line.open(fmt, frameSize * 2);
+                }
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -184,11 +187,16 @@ class Audio {
         if (!line.isActive())
             line.start();
 
+        // La posición del sample en reproducción aumenta incluso si no enviamos
+        // nada a la tarjeta de sonido. Eso significa que se nos ha vaciado el buffer
+        // de audio y que hay que rellenarlo con algo adelantado para evitar ruidos
+        // extraños en el audio. Nosotros enviamos medio frame (10 ms de reproducción).
         if (framesWritten <= line.getLongFramePosition()) {
             line.write(buf, 0, frameSize >>> 1);
             framesWritten += samplesPerFrame >>> 1;
 //            System.out.println("UNDERRUN at frame " + Clock.getInstance().getFrames());
         }
+
         line.write(buf, 0, frameSize);
         framesWritten += samplesPerFrame;
     }
