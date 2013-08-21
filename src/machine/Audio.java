@@ -31,7 +31,7 @@ class Audio {
     private int level;
     private int audiotstates;
     private int samplesPerFrame, frameSize;
-    private int soundMode;
+    private int soundMode, channels;
     private long timeRem, step, framesWritten;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
@@ -51,7 +51,7 @@ class Audio {
         if (soundMode < 0 || soundMode > 3)
             soundMode = 0;
 
-        int channels =  soundMode > 0 ? 2 : 1;
+        channels = soundMode > 0 ? 2 : 1;
 
         if (line == null) {
             try {
@@ -180,25 +180,30 @@ class Audio {
     }
 
     public boolean isAudioFramePending() {
-        return framesWritten - line.getLongFramePosition() == samplesPerFrame;
+        return framesWritten - line.getLongFramePosition() == samplesPerFrame * channels;
     }
 
     synchronized public void sendAudioFrame() {
+        if (line == null)
+            return;
+
         if (!line.isActive())
             line.start();
 
         // La posición del sample en reproducción aumenta incluso si no enviamos
-        // nada a la tarjeta de sonido. Eso significa que se nos ha vaciado el buffer
-        // de audio y que hay que rellenarlo con algo adelantado para evitar ruidos
-        // extraños en el audio. Nosotros enviamos medio frame (10 ms de reproducción).
-        if (framesWritten <= line.getLongFramePosition()) {
+        // nada a la tarjeta de sonido. Que se cumpla la desigualdad significa que se
+        // nos ha vaciado el buffer de audio y que hay que rellenarlo con algo adelantado
+        // para evitar ruidos extraños en el audio.
+        // Nosotros enviamos medio frame (10 ms de reproducción).
+        // En modo estéreo, cuentan los dos samples L y R, no cuenta todo como uno.
+        if (framesWritten < line.getLongFramePosition()) {
             line.write(buf, 0, frameSize >>> 1);
-            framesWritten += samplesPerFrame >>> 1;
-//            System.out.println("UNDERRUN at frame " + Clock.getInstance().getFrames());
+            framesWritten += (samplesPerFrame * channels) >>> 1;
+//            System.out.println("Audio UNDERRUN at frame " + Clock.getInstance().getFrames());
         }
 
         line.write(buf, 0, frameSize);
-        framesWritten += samplesPerFrame;
+        framesWritten += samplesPerFrame * channels;
     }
 
     synchronized public void endFrame() {
