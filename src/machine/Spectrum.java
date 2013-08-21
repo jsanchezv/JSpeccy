@@ -354,7 +354,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
     }
 
-    public synchronized void startEmulation() {
+    public void startEmulation() {
         if (!paused) {
             return;
         }
@@ -370,13 +370,13 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
     }
 
-    public synchronized void stopEmulation() {
+    public void stopEmulation() {
         if (paused) {
             return;
         }
 
-        taskFrame.cancel();
         paused = true;
+        taskFrame.cancel();
         disableSound();
     }
 
@@ -525,13 +525,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         
         // Si el subsistema de audio aún tiene un frame entero por reproducir nos
         // saltamos este tick sin mayores consecuencias.
-        if (enabledSound && audio.isAudioFramePending()) {
-//            System.out.println("Spectrum tick skipped at frame " + clock.getFrames());
+        if (paused || (enabledSound && audio.isAudioFramePending())) {
+//            System.out.println("Spectrum tick skipped at frame " + clock.getFrames() + ". paused: " + paused);
             return;
         }
 
         generateFrame();
         drawFrame();
+
         // Enviar el audio debe ir lo último, porque si el write del frame de sonido
         // se bloquea por falta de espacio en el buffer de audio, lo hace en el
         // "tiempo de la basura", donde no molesta a nadie.
@@ -708,8 +709,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
     }
 
     private synchronized void acceleratedLoading() {
-
-        stopEmulation();
 
         lastScanLine = lastBorderPix = 0;
         firstBorderPix = dataInProgress.length;
@@ -2464,6 +2463,7 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                 case PLAY:
                     if (!paused) {
                         if (settings.getTapeSettings().isAccelerateLoading()) {
+                            stopEmulation();
                             new Thread() {
 
                                 @Override
