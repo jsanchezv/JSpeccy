@@ -60,7 +60,6 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     private SnapshotSZX snapSZX; // for SZX snapshots
     private SpectrumState memorySnapshot;
-    private Thread sleeper;
     private CommandLineOptions clo;
 
     Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
@@ -818,8 +817,22 @@ public class JSpeccy extends javax.swing.JFrame {
         
         // That hack is only needed on Windows (sigh!)
         if (System.getProperty("os.name").contains("Windows")) {
-            sleeper = new Thread(new SleeperThread(), "SleeperThread");
-            sleeper.start();
+            new Thread() {
+                {
+                    this.setDaemon(true);
+                    this.start();
+                }
+
+                @Override
+                public void run() {
+                    while (true) {
+                        try {
+                            Thread.sleep(Integer.MAX_VALUE);
+                        } catch (InterruptedException ex) {
+                        }
+                    }
+                }
+            };
         }
     }
     
