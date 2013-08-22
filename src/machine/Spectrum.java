@@ -31,7 +31,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
+public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
     private Z80 z80;
     private Memory memory;
@@ -366,8 +366,14 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         lastChgBorder = firstBorderUpdate;
         drawFrame();
         jscr.repaint();
-        taskFrame = new SpectrumTimer(this);
-        timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
+        if (enabledSound) {
+            synchronized (this) {
+                notifyAll();
+            }
+        } else {
+            taskFrame = new SpectrumTimer(this);
+            timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
+        }
     }
 
     public void stopEmulation() {
@@ -376,7 +382,6 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         }
 
         paused = true;
-        taskFrame.cancel();
         disableSound();
     }
 
@@ -521,22 +526,52 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
         new Thread(task).start();
     }
 
+    /*
+     * El emulador hace uso de dos sistemas de sincronización diferentes, que se escoge dependiendo
+     * de si está habilitado el sonido o no. Si el sonido está activado, el "metrónomo" es la propia
+     * tarjeta de sonido. La llamada al método sendAudioFrame se bloquea en el write hasta que
+     * la tarjeta se ha quedado con todos los datos. El objeto Spectrum corre como un thread 
+     * independiente que cuando no hace falta queda bloqueado en el método wait hasta que se le
+     * requiere con un notifyAll. El otro método es por un timer que llama al método clockTick cada
+     * 20 ms (o cuando al Windows le da la real gana).
+     */
     public synchronized void clockTick() {
         
-        // Si el subsistema de audio aún tiene un frame entero por reproducir nos
-        // saltamos este tick sin mayores consecuencias.
-        if (paused || (enabledSound && audio.isAudioFramePending())) {
+        if (paused || enabledSound) {
+            if (taskFrame != null) {
+                taskFrame.cancel();
+                taskFrame = null;
+            }
 //            System.out.println("Spectrum tick skipped at frame " + clock.getFrames() + ". paused: " + paused);
+            if (!paused)
+                notifyAll();
             return;
         }
 
         generateFrame();
         drawFrame();
+    }
 
-        // Enviar el audio debe ir lo último, porque si el write del frame de sonido
-        // se bloquea por falta de espacio en el buffer de audio, lo hace en el
-        // "tiempo de la basura", donde no molesta a nadie.
-        if (enabledSound) {
+    /*
+     * Este es el método principal del thread Spectrum y que marca el tiempo usando la tarjeta de sonido.
+     */
+    @Override
+    public synchronized void run() {
+        while(true) {
+            while (paused || !enabledSound) {
+                try {
+                    if (!paused && taskFrame == null) {
+                        taskFrame = new SpectrumTimer(this);
+                        timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
+                    }
+                    wait();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+            generateFrame();
+            drawFrame();
             audio.sendAudioFrame();
         }
     }
@@ -2464,6 +2499,12 @@ public class Spectrum implements z80core.MemIoOps, z80core.NotifyOps {
                     if (!paused) {
                         if (settings.getTapeSettings().isAccelerateLoading()) {
                             stopEmulation();
+                            // Hay que darle tiempo a que acabe con el frame actual.
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException ex) {
+                                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                             new Thread() {
 
                                 @Override

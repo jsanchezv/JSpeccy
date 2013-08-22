@@ -32,7 +32,7 @@ class Audio {
     private int audiotstates;
     private int samplesPerFrame, frameSize;
     private int soundMode, channels;
-    private long timeRem, step, framesWritten;
+    private long timeRem, step;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
     private AY8912Type settings;
@@ -78,7 +78,6 @@ class Audio {
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
             audiotstates = ptrBeeper = ptrBuf = 0;
             level = 0;
-            framesWritten = 0;
             
             ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
             switch (soundMode) {
@@ -114,6 +113,7 @@ class Audio {
                 } else {
                     line.open(fmt, frameSize * 2);
                 }
+                line.start();
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -179,31 +179,9 @@ class Audio {
             line.flush();
     }
 
-    public boolean isAudioFramePending() {
-        return framesWritten - line.getLongFramePosition() == samplesPerFrame * channels;
-    }
-
     synchronized public void sendAudioFrame() {
-        if (line == null)
-            return;
-
-        if (!line.isActive())
-            line.start();
-
-        // La posición del sample en reproducción aumenta incluso si no enviamos
-        // nada a la tarjeta de sonido. Que se cumpla la desigualdad significa que se
-        // nos ha vaciado el buffer de audio y que hay que rellenarlo con algo adelantado
-        // para evitar ruidos extraños en el audio.
-        // Nosotros enviamos medio frame (10 ms de reproducción).
-        // En modo estéreo, cuentan los dos samples L y R, no cuenta todo como uno.
-        if (framesWritten < line.getLongFramePosition()) {
-            line.write(buf, 0, frameSize >>> 1);
-            framesWritten += (samplesPerFrame * channels) >>> 1;
-//            System.out.println("Audio UNDERRUN at frame " + Clock.getInstance().getFrames());
-        }
-
-        line.write(buf, 0, frameSize);
-        framesWritten += samplesPerFrame * channels;
+        if (line != null)
+            line.write(buf, 0, frameSize);
     }
 
     synchronized public void endFrame() {
@@ -211,7 +189,7 @@ class Audio {
         if (ptrBeeper == 0)
             return;
                 
-//        System.out.println(bufp + ", " + ay.getSampleCount());
+//        System.out.println(ptrBeeper + ", " + ay.getSampleCount());
         
         if (soundMode == 0) {
             endFrameMono();

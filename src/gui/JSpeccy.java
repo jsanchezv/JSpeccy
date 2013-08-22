@@ -834,6 +834,8 @@ public class JSpeccy extends javax.swing.JFrame {
                 }
             };
         }
+        
+        new Thread(spectrum, "SpectrumThread").start();
     }
     
     private void exitEmulator() {
