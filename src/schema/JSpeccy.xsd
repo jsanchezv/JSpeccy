@@ -101,6 +101,7 @@
             <xsd:element name="highSamplingFreq" type="xsd:boolean" default="false"/>
             <xsd:element name="flashLoad" type="xsd:boolean" default="false"/>
             <xsd:element name="autoLoadTape" type="xsd:boolean" default="true"/>
+            <xsd:element name="invertedEar" type="xsd:boolean" default="false"></xsd:element>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="KeyboardJoystickType">

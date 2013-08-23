@@ -65,8 +65,8 @@ public class Tape implements machine.ClockTimeoutListener {
 
         EJECT, INSERT, STOP, PLAY, RECORD
     };
-    private final ArrayList<TapeStateListener> stateListeners = new ArrayList<TapeStateListener>();
-    private final ArrayList<TapeBlockListener> blockListeners = new ArrayList<TapeBlockListener>();
+    private final ArrayList<TapeStateListener> stateListeners;
+    private final ArrayList<TapeBlockListener> blockListeners;
 
     private enum State {
 
@@ -120,6 +120,8 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final String tzxCreator = "TZX created with JSpeccy v0.92";
 
     public Tape(TapeType tapeSettings) {
+        blockListeners = new ArrayList<>();
+        stateListeners = new ArrayList<>();
         clock = Clock.getInstance();
         settings = tapeSettings;
         statePlay = State.STOP;
@@ -1060,7 +1062,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     break;
                 case START:
                     tapePos = offsetBlocks[idxHeader];
-                    earBit = EAR_OFF;
+                    earBit = settings.isInvertedEar() ? EAR_ON : EAR_OFF;
                     statePlay = State.TZX_HEADER;
                     repeat = true;
                     break;
@@ -1137,7 +1139,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     clock.setTimeout(3500); // 1 ms by TZX spec
                     break;
                 case PAUSE:
-                    earBit = EAR_OFF;
+                    earBit = settings.isInvertedEar() ? EAR_ON : EAR_OFF;
                     statePlay = State.TZX_HEADER;
                     clock.setTimeout(endBlockPause);
                     break;
@@ -1217,7 +1219,7 @@ public class Tape implements machine.ClockTimeoutListener {
                         statePlay = State.STOP;
                         repeat = true;
                     } else {
-                        earBit = EAR_OFF;
+                        earBit = settings.isInvertedEar() ? EAR_ON : EAR_OFF;
                         statePlay = State.TZX_HEADER;
                         clock.setTimeout(endBlockPause);
                     }

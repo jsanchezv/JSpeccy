@@ -2,7 +2,7 @@
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 12 de mayo de 2013, 21:52
+    Created on : 23 de agosto de 2013, 15:47
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -54,6 +54,7 @@
         <ns0:highSamplingFreq>false</ns0:highSamplingFreq>
         <ns0:flashLoad>false</ns0:flashLoad>
         <ns0:autoLoadTape>true</ns0:autoLoadTape>
+        <ns0:invertedEar>false</ns0:invertedEar>
     </ns0:TapeSettings>
     <ns0:KeyboardJoystickSettings>
         <ns0:JoystickModel>0</ns0:JoystickModel>

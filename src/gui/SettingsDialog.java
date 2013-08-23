@@ -118,10 +118,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         lecEnabled.setSelected(settings.getSpectrumSettings().isLecEnabled());
         confirmActions.setSelected(settings.getEmulatorSettings().isConfirmActions());
         autosaveConfigOnExit.setSelected(settings.getEmulatorSettings().isAutosaveConfigOnExit());
+        invertedEar.setSelected(settings.getTapeSettings().isInvertedEar());
     }
 
     public boolean showDialog(Component parent, String title) {
-        Frame owner = null;
+        Frame owner;
         if (parent instanceof Frame) {
             owner = (Frame) parent;
         } else {
@@ -189,6 +190,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         flashLoad = new javax.swing.JCheckBox();
         acceleratedLoad = new javax.swing.JCheckBox();
         autoLoadTape = new javax.swing.JCheckBox();
+        invertedEar = new javax.swing.JCheckBox();
         savePanel = new javax.swing.JPanel();
         enableSaveTraps = new javax.swing.JCheckBox();
         samplingPanel = new javax.swing.JPanel();
@@ -450,7 +452,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         tapePanelTab.setLayout(new java.awt.GridLayout(2, 0));
 
         loadPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.loadPanel.border.text"))); // NOI18N
-        loadPanel.setLayout(new java.awt.GridLayout(4, 1));
+        loadPanel.setLayout(new java.awt.GridLayout(5, 1));
 
         enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.enableLoadTraps.text")); // NOI18N
         enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
@@ -483,6 +485,14 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         });
         loadPanel.add(autoLoadTape);
+
+        invertedEar.setText(bundle.getString("SettingsDialog.tapePanel.invertedEar.text")); // NOI18N
+        invertedEar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                invertedEarActionPerformed(evt);
+            }
+        });
+        loadPanel.add(invertedEar);
 
         tapePanelTab.add(loadPanel);
 
@@ -913,6 +923,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getEmulatorSettings().setAutosaveConfigOnExit(autosaveConfigOnExit.isSelected());
     }//GEN-LAST:event_autosaveConfigOnExitActionPerformed
 
+    private void invertedEarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_invertedEarActionPerformed
+        settings.getTapeSettings().setInvertedEar(invertedEar.isSelected());
+    }//GEN-LAST:event_invertedEarActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -948,6 +962,7 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JCheckBox hifiSound;
     private javax.swing.JRadioButton highSampling;
     private javax.swing.JPanel highSpeedPanel;
+    private javax.swing.JCheckBox invertedEar;
     private javax.swing.JRadioButton issue2;
     private javax.swing.JRadioButton issue3;
     private javax.swing.JLabel jLabel2;
