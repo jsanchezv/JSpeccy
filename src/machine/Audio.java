@@ -98,11 +98,6 @@ class Audio {
             }
 
             /*
-             * La idea de funcionamiento del Audio se basa en tener un buffer de audio de 2 frames
-             * de longitud. Cada vez que detectamos que se ha vaciado el buffer, enviamos un frame
-             * adelantado e inmediatamente después se envía el verdadero frame.
-             * El frame inicial tienen como misión evitar que el buffer de audio del
-             * sistema se vacíe y se oigan efectos extraños.
              * Aunque en Linux "parece" que se reserva un frame, internamente el sistema (¿ALSA?)
              * crea el doble de espacio del solicitado. Eso provoca que el método available() se
              * comporte de manera errática, de modo que mejor lo evitamos.
@@ -165,7 +160,7 @@ class Audio {
         // calculamos el nivel de sonido de la parte residual del tiempo restante
         // para el próximo cambio de estado.
         timeRem = time;
-        if (value != 0) {
+        if (value != 0 && time != 0) {
             level = (int)(((float) time / (float) step) * value);
         } else {
             level = 0;
@@ -199,7 +194,6 @@ class Audio {
         }
 
         ptrBuf = 0;
-        
         
         if (enabledAY) {
             ay.endFrame();
