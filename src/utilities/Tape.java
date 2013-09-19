@@ -116,6 +116,8 @@ public class Tape implements machine.ClockTimeoutListener {
     private int nCalls, callBlk;
     // Call sequence for TZX CALL block
     private short[] callSeq;
+    // vars for GDB's
+    private int totp, npp, asp, totd, npd, asd, ptrSymbol, ptrDataStream, numPulses, nTotp;
     private static final String tzxHeader = "ZXTape!\u001A";
     private static final String tzxCreator = "TZX created with JSpeccy v0.92";
 
@@ -1285,6 +1287,22 @@ public class Tape implements machine.ClockTimeoutListener {
                         Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
                     }
                     break;
+//                case GDB_PULSE_SYNC:
+//                    if (numPulses < npp) {
+//                        if (numPulses == 0) {
+//                            
+//                        }
+//                        leaderLenght = 
+//                        leaderPulses =
+//                    }
+//                    if (leaderPulses-- > 0) {
+//                        clock.setTimeout(leaderLenght);
+//                        break;
+//                    }
+//                    if (totp-- > 0) {
+//                        leaderPulses = ptrDataStream;
+//                    }
+//                    break;
             }
         } while (repeat);
         return true;
@@ -1396,7 +1414,26 @@ public class Tape implements machine.ClockTimeoutListener {
                     repeat = false;
                     break;
                 case 0x19: // Generalized Data Block
-//                    printGDBHeader(tapePos);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 5, 2)
+                            * (END_BLOCK_PAUSE / 1000);
+                    totp = readInt(tapeBuffer, tapePos + 7, 4);
+                    npp = tapeBuffer[tapePos + 11] & 0xff;
+                    asp = tapeBuffer[tapePos + 12] & 0xff;
+                    totd = readInt(tapeBuffer, tapePos + 13, 4);
+                    npd = tapeBuffer[tapePos + 17] & 0xff;
+                    asd = tapeBuffer[tapePos + 18] & 0xff;
+                    printGDBHeader(tapePos);
+//                    ptrSymbol = tapePos + 0x19;
+//                    if (totp > 0) {
+//                        statePlay = State.GDB_PULSE_SYNC;
+//                        ptrDataStream = ptrSymbol + (2 * npp + 1) * asp;
+//                        numPulses = 0;
+//                        leaderLenght = 
+//                        leaderPulses =
+//                    } else {
+//                        statePlay = State.GDB_DATA;
+//                        ptrDataStream = ptrSymbol + (2 * npd + 1) * asd;
+//                    }
                     idxHeader++;
                     System.out.println("Gen. Data Block not supported!. Skipping...");
                     break;
@@ -1498,28 +1535,50 @@ public class Tape implements machine.ClockTimeoutListener {
 //                    tapeBuffer.length, tapePos, blockLen));
     }
 
-//    private void printGDBHeader(int index) {
-//        int blkLenght = tapeBuffer[index + 1] + (tapeBuffer[index + 2] << 8)
-//                + (tapeBuffer[index + 3] << 16) + (tapeBuffer[index + 4] << 24);
-//        int pause = tapeBuffer[index + 5] + (tapeBuffer[index + 6] << 8);
-//        int totp = tapeBuffer[index + 7] + (tapeBuffer[index + 8] << 8)
-//                + (tapeBuffer[index + 9] << 16) + (tapeBuffer[index + 10] << 24);
-//        int npp = tapeBuffer[index + 11];
-//        int asp = tapeBuffer[index + 12];
-//        int totd = tapeBuffer[index + 13] + (tapeBuffer[index + 14] << 8)
-//                + (tapeBuffer[index + 15] << 16) + (tapeBuffer[index + 16] << 24);
-//        int npd = tapeBuffer[index + 17];
-//        int asd = tapeBuffer[index + 18];
-//
-//        System.out.println(String.format("GDB size: %d", blkLenght));
-//        System.out.println(String.format("Pause: %d ms", pause));
-//        System.out.println(String.format("TOTP: %d", totp));
-//        System.out.println(String.format("NPP: %d", npp));
-//        System.out.println(String.format("ASP: %d", asp));
-//        System.out.println(String.format("TOTD: %d", totd));
-//        System.out.println(String.format("NPD: %d", npd));
-//        System.out.println(String.format("ASD: %d", asd));
-//    }
+    private void printGDBHeader(int index) {
+        index++; // Skip GDB Header Code (0x19)
+        int blkLenght = readInt(tapeBuffer, index, 4);
+
+        System.out.println(String.format("GDB size: %d bytes", blkLenght));
+        System.out.println(String.format("End Block Pause: %d ms", endBlockPause));
+        System.out.println(String.format("Total number of symbols in pilot/sync block (TOTP): %d", totp));
+        System.out.println(String.format("Maximum number of pulses per pilot/sync symbol (NPP): %d", npp));
+        System.out.println(String.format("Number of pilot/sync symbols in the alphabet table (ASP): %d", asp));
+        if (totp > 0) {
+            int offset = index + 0x12;
+            for (int symbol = 0; symbol < asp; symbol++) {
+                System.out.print(String.format("\tSymbol %d, type %d: ", symbol, tapeBuffer[offset++] & 0xff));
+                for (int npulse = 0; npulse < npp; npulse++) {
+                    System.out.print(String.format("%d ", readInt(tapeBuffer, offset, 2)));
+                    offset += 2;
+                }
+                System.out.println("");
+            }
+
+            for (int pulse = 0; pulse < totp; pulse++) {
+                System.out.println(String.format("\t\tRepeat %d: symbol %d repeated %d times",
+                        pulse, tapeBuffer[offset++] & 0xff, readInt(tapeBuffer, offset, 2)));
+                offset += 2;
+            }
+        }
+
+        System.out.println(String.format("Total number of symbols in data stream (TOTD): %d", totd));
+        System.out.println(String.format("Maximum number of pulses per data symbol (NPD): %d", npd));
+        System.out.println(String.format("Number of data symbols in the alphabet table (ASD): %d", asd));
+        int offset = index + 0x12;
+        if (totp > 0) {
+            offset += ((2 * npp + 1) * asp) + totp * 3;
+        }
+        for (int symbol = 0; symbol < asd; symbol++) {
+            System.out.print(String.format("\tSymbol %d, type %d: ", symbol, tapeBuffer[offset++] & 0xff));
+            for (int npulse = 0; npulse < npd; npulse++) {
+                System.out.print(String.format("%d ", readInt(tapeBuffer, offset, 2)));
+                offset += 2;
+            }
+            System.out.println("");
+        }
+    }
+
     private boolean playCsw() {
         int timeout;
 
