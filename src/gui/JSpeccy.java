@@ -1496,6 +1496,11 @@ public class JSpeccy extends javax.swing.JFrame {
     mdrvLabel.setMaximumSize(new java.awt.Dimension(26, 26));
     mdrvLabel.setMinimumSize(new java.awt.Dimension(26, 26));
     mdrvLabel.setPreferredSize(new java.awt.Dimension(26, 26));
+    mdrvLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+        public void mouseClicked(java.awt.event.MouseEvent evt) {
+            mdrvLabelMouseClicked(evt);
+        }
+    });
     statusPanel.add(mdrvLabel);
 
     jSeparator10.setOrientation(javax.swing.SwingConstants.VERTICAL);
@@ -1512,6 +1517,11 @@ public class JSpeccy extends javax.swing.JFrame {
     tapeLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     tapeLabel.setPreferredSize(new java.awt.Dimension(30, 26));
     tapeLabel.setRequestFocusEnabled(false);
+    tapeLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+        public void mouseClicked(java.awt.event.MouseEvent evt) {
+            tapeLabelMouseClicked(evt);
+        }
+    });
     statusPanel.add(tapeLabel);
 
     jSeparator2.setOrientation(javax.swing.SwingConstants.VERTICAL);
@@ -3337,6 +3347,26 @@ public class JSpeccy extends javax.swing.JFrame {
         pack();
         startEmulation();
     }//GEN-LAST:event_fullBorderActionPerformed
+
+    private void tapeLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tapeLabelMouseClicked
+        if (evt.getClickCount() == 2 && !evt.isConsumed()) {
+            evt.consume();
+            tapeBrowserDialog.setVisible(true);
+            tapeBrowserDialog.pack();
+            tapeCatalog.doLayout();
+        }
+    }//GEN-LAST:event_tapeLabelMouseClicked
+
+    private void mdrvLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_mdrvLabelMouseClicked
+        if (IF1MediaMenu.isEnabled() && evt.getClickCount() == 2 && !evt.isConsumed()) {
+            evt.consume();
+            ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+            if (microdriveDialog == null)
+                microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
+        
+            microdriveDialog.showDialog(this, bundle.getString("MICRODRIVES_DIALOG_TITLE"));
+        }
+    }//GEN-LAST:event_mdrvLabelMouseClicked
     
     /**
      * @param args the command line arguments
