@@ -28,7 +28,7 @@ class Audio {
     private final int[] ayBufB = new int[1024];
     private final int[] ayBufC = new int[1024];
     private int ptrBeeper, ptrBuf;
-    private int level;
+    private int level, lastLevel;
     private int audiotstates;
     private int samplesPerFrame, frameSize;
     private int soundMode, channels;
@@ -59,7 +59,7 @@ class Audio {
 //                System.out.println(fmt);
                 infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
                 line = (SourceDataLine) AudioSystem.getLine(infoDataLine);
-            } catch (Exception excpt) {
+            } catch (LineUnavailableException excpt) {
                 Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, excpt);
             }
 
@@ -77,7 +77,7 @@ class Audio {
 
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
             audiotstates = ptrBeeper = ptrBuf = 0;
-            level = 0;
+            level = lastLevel = 0;
             
             ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
             switch (soundMode) {
@@ -125,7 +125,7 @@ class Audio {
     }
 
     synchronized void updateAudio(int tstates, int value) {
-        tstates = tstates - audiotstates;
+        tstates -= audiotstates;
         audiotstates += tstates;
         long time = tstates * 100000L;
 
@@ -139,7 +139,8 @@ class Audio {
                     if (value != 0) {
                         level += ((float) diff / (float) step) * value;
                     }
-                    beeper[ptrBeeper++] = (int) level;
+                    lastLevel = (lastLevel * 3 + level) >>> 2;
+                    beeper[ptrBeeper++] = lastLevel;
                 } else {
                     // el tiempo transcurrido no basta para completar la muestra
                     timeRem += time;
@@ -152,7 +153,8 @@ class Audio {
 
             // se añaden muestras completas mientras se pueda
             while (time >= step) {
-                beeper[ptrBeeper++] = value;
+                lastLevel = (lastLevel * 3 + value) >>> 2;
+                beeper[ptrBeeper++] = lastLevel;
                 time -= step;
             }
         }
@@ -160,7 +162,7 @@ class Audio {
         // calculamos el nivel de sonido de la parte residual del tiempo restante
         // para el próximo cambio de estado.
         timeRem = time;
-        if (value != 0 && time != 0) {
+        if (value != 0 && time > 0) {
             level = (int)(((float) time / (float) step) * value);
         } else {
             level = 0;
@@ -168,7 +170,7 @@ class Audio {
     }
 
     synchronized public void flush() {
-        level = ptrBeeper = 0;
+        level = lastLevel = ptrBeeper = 0;
         timeRem = 0;
         if (line != null)
             line.flush();
@@ -255,7 +257,7 @@ class Audio {
 
     public void reset() {
         audiotstates = 0;
-        level = ptrBeeper = 0;
+        level = lastLevel = ptrBeeper = 0;
         timeRem = 0;
         Arrays.fill(buf, (byte)0);
         Arrays.fill(beeper, 0);
