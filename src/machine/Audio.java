@@ -35,7 +35,7 @@ class Audio {
     private long timeRem, step;
     private MachineTypes spectrumModel;
     private boolean enabledAY;
-    private AY8912Type settings;
+    private final AY8912Type settings;
     private AY8912 ay;
 
     Audio(AY8912Type ayConf) {
@@ -139,7 +139,7 @@ class Audio {
                     if (value != 0) {
                         level += ((float) diff / (float) step) * value;
                     }
-                    lastLevel = (lastLevel * 3 + level) >>> 2;
+                    lastLevel += (level - lastLevel) >> 1;
                     beeper[ptrBeeper++] = lastLevel;
                 } else {
                     // el tiempo transcurrido no basta para completar la muestra
@@ -153,7 +153,7 @@ class Audio {
 
             // se añaden muestras completas mientras se pueda
             while (time >= step) {
-                lastLevel = (lastLevel * 3 + value) >>> 2;
+                lastLevel += (value - lastLevel) >> 1;
                 beeper[ptrBeeper++] = lastLevel;
                 time -= step;
             }
@@ -168,7 +168,7 @@ class Audio {
             level = 0;
         }
     }
-
+    
     synchronized public void flush() {
         level = lastLevel = ptrBeeper = 0;
         timeRem = 0;
