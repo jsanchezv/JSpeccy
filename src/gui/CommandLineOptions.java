@@ -30,7 +30,7 @@ public class CommandLineOptions {
     enum Model { sp16k, sp48k, sp128k, plus2, plus2a, plus3 }
     @Option(name = "-m", aliases = "--model", metaVar = "CommandLineOptions.metaVar.model.text",
             usage = "CommandLineOptions.model.text")
-    private Model model = Model.sp48k;
+    private final Model model = Model.sp48k;
     
     @Option(name = "-u", aliases = "--ulaplus", usage = "CommandLineOptions.ulaplus.text")
     private boolean ulaplus;
@@ -38,14 +38,14 @@ public class CommandLineOptions {
     @Option(name = "-if1", aliases = "--interface1", usage = "CommandLineOptions.interface1.text")
     private boolean if1;
     
-    @Option(name = "--microdrive-file", metaVar = "CommandLineOptions.metaVar.file.text",
+    @Option(name = "--microdrive-file", depends = "-if1", metaVar = "CommandLineOptions.metaVar.file.text",
             usage = "CommandLineOptions.microdriveFile.text")
     private File if1mdv;
     
     @Option(name = "--multiface", usage = "CommandLineOptions.multiface.text")
     private boolean multiface;
     
-    @Option(name = "--mf128-on-48k", usage = "CommandLineOptions.mf128on48k.text")
+    @Option(name = "--mf128-on-48k", depends = "--multiface" , usage = "CommandLineOptions.mf128on48k.text")
     private boolean mf128on48k;
     
     @Option(name = "--lec", usage = "CommandLineOptions.lec.text")
@@ -59,7 +59,7 @@ public class CommandLineOptions {
 
     @Option(name = "-j", aliases = "--joystick", metaVar = "CommandLineOptions.metaVar.model.text",
             usage = "CommandLineOptions.joystick.text")
-    private JoystickModel joystick = JoystickModel.NONE;
+    private final JoystickModel joystick = JoystickModel.NONE;
     
     @Option(name = "--map-pc-keyboard", usage = "CommandLineOptions.mapPCkeyboard.text")
     private boolean mapPCkeys;
@@ -83,17 +83,17 @@ public class CommandLineOptions {
     enum SoundMode { MONO, ABC, ACB, BAC };
     @Option(name = "--sound-mode", metaVar = "CommandLineOptions.metaVar.mode.text",
             usage = "CommandLineOptions.soundMode.text")
-    private SoundMode soundMode = SoundMode.MONO;
+    private final SoundMode soundMode = SoundMode.MONO;
     
     enum ZoomFilter { STANDARD, BILINEAL, BICUBIC };
     @Option(name = "--zoom-filter", metaVar = "CommandLineOptions.metaVar.filter.text",
             usage = "CommandLineOptions.zoomFilter.text")
-    private ZoomFilter zoomFilter = ZoomFilter.STANDARD;
+    private final ZoomFilter zoomFilter = ZoomFilter.STANDARD;
     
     enum BorderSize { NONE, STANDARD, FULL, HUGE };
     @Option(name = "--border-size", metaVar = "CommandLineOptions.metaVar.size.text",
             usage = "CommandLineOptions.borderSize.text")
-    private BorderSize borderSize = BorderSize.STANDARD;
+    private final BorderSize borderSize = BorderSize.STANDARD;
     
     @Option(name = "--no-load-trap", usage = "CommandLineOptions.noLoadTrap.text")
     private boolean loadTrap;
@@ -115,7 +115,7 @@ public class CommandLineOptions {
 
     // receives other command line parameters than options
     @Argument
-    private List<String> arguments = new ArrayList<>();
+    private final List<String> arguments = new ArrayList<>();
 
     /**
      * @return the argumentsissue2
