@@ -1995,7 +1995,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         }
     }
 
-    public synchronized void toggleFlash() {
+    public void toggleFlash() {
         flash ^= 0x80;
 
         // 0x1800 + 0x4000 = 0x5800 (attr area)
@@ -2410,19 +2410,11 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             (red << 16) | (green << 8) | blue;
     }
     
-    public synchronized boolean startRecording() {
-        if (!tape.isTapeReady()) {
-            return false;
-        }
-
-        if (!tape.startRecording()) {
-            return false;
-        }
-
-        return true;
+    public boolean startRecording() {
+        return tape.startRecording();
     }
 
-    public synchronized boolean stopRecording() {
+    public boolean stopRecording() {
         if (!tape.isTapeRecording()) {
             return false;
         }
