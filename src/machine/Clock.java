@@ -63,6 +63,11 @@ public class Clock {
         if (!clockListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
+        
+        // When don't have listeners, disable any pending timeout
+        if (clockListeners.isEmpty()) {
+            timeout = 0;
+        }
     }
 
     /**
@@ -116,7 +121,6 @@ public class Clock {
     public void endFrame() {
         frames++;
         tstates %= spectrumModel.tstatesFrame;
-//        System.out.println("clock: " + tstates);
     }
 
     public long getAbsTstates() {
