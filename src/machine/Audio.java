@@ -41,7 +41,7 @@ class Audio {
     Audio(AY8912Type ayConf) {
        settings = ayConf;
        line = null;
-       samplingFrequency = 32000;
+       samplingFrequency = 44100;
     }
     
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY, int freq) {
@@ -139,7 +139,7 @@ class Audio {
                     if (value != 0) {
                         level += ((float) diff / (float) step) * value;
                     }
-                    lastLevel += (level - lastLevel) >> 1;
+                    lastLevel += (level - lastLevel) >> 2;
                     beeper[ptrBeeper++] = lastLevel;
                 } else {
                     // el tiempo transcurrido no basta para completar la muestra
@@ -153,7 +153,7 @@ class Audio {
 
             // se añaden muestras completas mientras se pueda
             while (time >= step) {
-                lastLevel += (value - lastLevel) >> 1;
+                lastLevel += (value - lastLevel) >> 2;
                 beeper[ptrBeeper++] = lastLevel;
                 time -= step;
             }
