@@ -12,14 +12,14 @@ import java.util.TimerTask;
  */
 public class SpectrumTimer extends TimerTask {
 
-    private Spectrum spectrum;
+    private final Spectrum spectrum;
 
     public SpectrumTimer(Spectrum spectrum) {
         this.spectrum = spectrum;
     }
 
     @Override
-    public synchronized void run() {
+    public void run() {
 
         // El timer solo nos sirve de metrónomo, pero es indiferente lo que se
         // retrase la señal, ya que el tiempo lo marca la tarjeta de sonido.
@@ -28,6 +28,8 @@ public class SpectrumTimer extends TimerTask {
 //        long now = System.currentTimeMillis();
 //        System.out.println("Tick delayed: " + (now - scheduledExecutionTime()) + " at frame " + Clock.getInstance().getFrames());
         if (System.currentTimeMillis() - scheduledExecutionTime() < 100)
-            spectrum.clockTick();
+            synchronized(spectrum) {
+                spectrum.notify();
+            }
     }
 }

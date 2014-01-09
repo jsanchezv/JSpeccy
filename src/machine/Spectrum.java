@@ -368,11 +368,11 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         jscr.repaint();
         if (enabledSound) {
             synchronized (this) {
-                notifyAll();
+                notify();
             }
         } else {
             taskFrame = new SpectrumTimer(this);
-            timerFrame.scheduleAtFixedRate(taskFrame, 50, 20);
+            timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
         }
     }
 
@@ -382,6 +382,10 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         }
 
         paused = true;
+        if (!enabledSound) {
+            taskFrame.cancel();
+            taskFrame = null;
+        }
         disableSound();
     }
 
@@ -530,49 +534,30 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
      * El emulador hace uso de dos sistemas de sincronización diferentes, que se escoge dependiendo
      * de si está habilitado el sonido o no. Si el sonido está activado, el "metrónomo" es la propia
      * tarjeta de sonido. La llamada al método sendAudioFrame se bloquea en el write hasta que
-     * la tarjeta se ha quedado con todos los datos. El objeto Spectrum corre como un thread 
-     * independiente que cuando no hace falta queda bloqueado en el método wait hasta que se le
-     * requiere con un notifyAll. El otro método es por un timer que llama al método clockTick cada
-     * 20 ms (o cuando al Windows le da la real gana).
-     */
-    public synchronized void clockTick() {
-        
-        if (paused || enabledSound) {
-            if (taskFrame != null) {
-                taskFrame.cancel();
-                taskFrame = null;
-            }
-//            System.out.println("Spectrum tick skipped at frame " + clock.getFrames() + ". paused: " + paused);
-            if (!paused)
-                notifyAll();
-            return;
-        }
-
-        generateFrame();
-        drawFrame();
-    }
-
-    /*
-     * Este es el método principal del thread Spectrum y que marca el tiempo usando la tarjeta de sonido.
+     * la tarjeta se ha quedado con todos los datos. Cuando no hay audio o el emulador está en pausa,
+     * ejecuta un wait del que sale automáticamente para saber si ha salido de la pausa o bien lo saca
+     * de la pausa el 'tick' del reloj que se programa para que salte cada 20 ms.
      */
     @Override
     public synchronized void run() {
-        while(true) {
-            while (paused || !enabledSound) {
+        while (true) {
+            if (paused || !enabledSound) {
                 try {
-                    if (!paused && taskFrame == null) {
-                        taskFrame = new SpectrumTimer(this);
-                        timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
-                    }
-                    wait();
+                    wait(250);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                if (paused) {
+                    continue;
                 }
             }
 
             generateFrame();
             drawFrame();
-            audio.sendAudioFrame();
+            if (enabledSound) {
+                audio.sendAudioFrame();
+            }
         }
     }
 
@@ -1715,8 +1700,14 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         }
 
         audio.open(spectrumModel, ay8912, enabledAY,
-            settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
+            settings.getSpectrumSettings().isHifiSound() ? 48000 : 44100);
         enabledSound = true;
+        if (!paused) {
+            if (taskFrame != null) {
+                taskFrame.cancel();
+                taskFrame = null;
+            }
+        }
     }
 
     private void disableSound() {
@@ -1727,6 +1718,10 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         enabledSound = false;
         audio.endFrame();
         audio.close();
+        if (!paused) {
+            taskFrame = new SpectrumTimer(this);
+            timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
+        }
     }
 
     public void changeSpeed(int speed) {
