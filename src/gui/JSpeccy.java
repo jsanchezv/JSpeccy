@@ -814,27 +814,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         updateGuiSelections();
-        
-        // That hack is only needed on Windows (sigh!)
-        if (System.getProperty("os.name").contains("Windows")) {
-            new Thread() {
-                {
-                    this.setDaemon(true);
-                    this.start();
-                }
 
-                @Override
-                public void run() {
-                    while (true) {
-                        try {
-                            Thread.sleep(Integer.MAX_VALUE);
-                        } catch (InterruptedException ex) {
-                        }
-                    }
-                }
-            };
-        }
-        
         new Thread(spectrum, "SpectrumThread").start();
     }
     
