@@ -145,7 +145,7 @@ public class CommandLineOptions {
         return if1mdv;
     }
     
-    public void copyConfigToSettings() {
+    public void copyArgumentsToSettings() {
         // hardware options
         settings.getSpectrumSettings().setDefaultModel(model.ordinal());
         settings.getSpectrumSettings().setULAplus(ulaplus);

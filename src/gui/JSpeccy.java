@@ -248,7 +248,8 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     };
 
-    /** Creates new form JSpeccy */
+    /** Creates new form JSpeccy
+     * @param args */
     public JSpeccy(final String args[]) {
 //        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
 //         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
@@ -285,9 +286,15 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         readSettingsFile();
-        if (args.length != 0) {
-            readArguments(args);
+        if (args.length > 0) {
+//            System.out.println("#args: " + args.length);
+            if (!readArguments(args)) {
+                System.exit(1);
+            }
 //            System.out.println("# args remain: " + clo.getArguments().size());
+            if (args.length > 1 || clo.getArguments().size() != 1) {
+                clo.copyArgumentsToSettings();
+            }
         }
 
         initComponents();
@@ -379,7 +386,7 @@ public class JSpeccy extends javax.swing.JFrame {
         startEmulation();
     }
 
-    private void readArguments(String args[]) {
+    private boolean readArguments(String args[]) {
         clo = new CommandLineOptions(settings);
         CmdLineParser parser = new CmdLineParser(clo);
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -403,10 +410,11 @@ public class JSpeccy extends javax.swing.JFrame {
                 System.err.println("");
                 System.err.println(bundle.getString("JSpeccy.usage.header.text"));
                 parser.printUsage(out, bundle);
-                System.exit(0);
+                return false;
             }
+            return true;
             
-            clo.copyConfigToSettings();
+//            clo.copyArgumentsToSettings();
 
         } catch( CmdLineException excpt ) {
             // if there's a problem in the command line,
@@ -420,7 +428,7 @@ public class JSpeccy extends javax.swing.JFrame {
             parser.printUsage(out, bundle);
             System.err.println();
 
-            System.exit(1);
+            return false;
         }
     }
 
