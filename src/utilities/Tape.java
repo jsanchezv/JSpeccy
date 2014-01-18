@@ -22,7 +22,7 @@
  */
 package utilities;
 
-import configuration.TapeType;
+import configuration.TapeSettingsType;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +50,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private InflaterInputStream iis;
     private File filename;
     private byte tapeBuffer[];
-    private int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
+    private final int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
     private int nOffsetBlocks;
     private int idxHeader;
     private int tapePos;
@@ -59,7 +59,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private int bitTime;
     private byte byteTmp;
     private int cswPulses;
-    private Clock clock;
+    private final Clock clock;
 
     public enum TapeState {
 
@@ -82,8 +82,11 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final int EAR_ON = 0xff;
     private static final int EAR_MASK = 0x40;
     private long timeLastOut;
-    private boolean tapeInserted, tapePlaying, tapeRecording;
-    private boolean tzxTape, cswTape;
+    private boolean tapePlaying, tapeRecording;
+    private enum TapeExtensionType {
+        NO_TAPE, TAP, TZX, CSW
+    };
+    private TapeExtensionType tapeExtension;
     /*
      * Tiempos en T-estados de duración de cada pulso para cada parte de la
      * carga
@@ -110,8 +113,8 @@ public class Tape implements machine.ClockTimeoutListener {
     private int freqSample;
     private float cswStatesSample;
     private MachineTypes spectrumModel;
-    private TapeTableModel tapeTableModel;
-    private TapeType settings;
+    private final TapeTableModel tapeTableModel;
+    private final TapeSettingsType settings;
     // # of Calls & origin block of TZX CALL block 
     private int nCalls, callBlk;
     // Call sequence for TZX CALL block
@@ -121,14 +124,14 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final String tzxHeader = "ZXTape!\u001A";
     private static final String tzxCreator = "TZX created with JSpeccy v0.92";
 
-    public Tape(TapeType tapeSettings) {
+    public Tape(TapeSettingsType tapeSettings) {
         blockListeners = new ArrayList<>();
         stateListeners = new ArrayList<>();
         clock = Clock.getInstance();
         settings = tapeSettings;
         statePlay = State.STOP;
-        tapeInserted = tapePlaying = tapeRecording = false;
-        tzxTape = cswTape = false;
+        tapePlaying = tapeRecording = false;
+        tapeExtension = TapeExtensionType.NO_TAPE;
         tapePos = 0;
         earBit = EAR_ON;
         spectrumModel = MachineTypes.SPECTRUM48K;
@@ -237,11 +240,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     private int getNumBlocks() {
-        if (!tapeInserted) {
-            return 1;
-        }
-
-        return nOffsetBlocks + 1;
+        return tapeExtension == TapeExtensionType.NO_TAPE ? 1 : nOffsetBlocks + 1;
     }
 
     public int getSelectedBlock() {
@@ -249,7 +248,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public void setSelectedBlock(int block) {
-        if (!tapeInserted || isTapePlaying() || block > nOffsetBlocks) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || isTapePlaying() || block > nOffsetBlocks) {
             return;
         }
 
@@ -275,7 +274,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private String getBlockType(int block) {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
-        if (!tapeInserted) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
@@ -283,12 +282,12 @@ public class Tape implements machine.ClockTimeoutListener {
             return bundle.getString("END_OF_TAPE");
         }
 
-        if (cswTape) {
+        if (tapeExtension == TapeExtensionType.CSW) {
             return String.format(bundle.getString("CSW_DATA"),
                     tapeBuffer[0x17], tapeBuffer[0x18]); // CSW major.minor version
         }
 
-        if (!tzxTape && !cswTape) {
+        if (tapeExtension == TapeExtensionType.TAP) {
             return bundle.getString("STD_SPD_DATA");
         }
 
@@ -383,7 +382,7 @@ public class Tape implements machine.ClockTimeoutListener {
         java.util.ResourceBundle bundle =
                 java.util.ResourceBundle.getBundle("utilities/Bundle"); // NOI18N
 
-        if (!tapeInserted) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE) {
             return bundle.getString("NO_TAPE_INSERTED");
         }
 
@@ -391,7 +390,7 @@ public class Tape implements machine.ClockTimeoutListener {
             return bundle.getString("END_OF_TAPE");
         }
 
-        if (cswTape) {
+        if (tapeExtension == TapeExtensionType.CSW) {
             if ((tapeBuffer[0x17] & 0xff) == 0x01) { // CSW v1.01
                 return String.format(bundle.getString("CSW1_PULSES"),
                         readInt(tapeBuffer, 0x19, 2));
@@ -408,7 +407,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
         String msg;
 
-        if (!tzxTape) {
+        if (tapeExtension == TapeExtensionType.TAP) {
             int offset = offsetBlocks[block];
             int len = readInt(tapeBuffer, offset, 2);
 
@@ -585,14 +584,18 @@ public class Tape implements machine.ClockTimeoutListener {
     @Override
     public void clockTimeout() {
 
-        if (cswTape) {
-            playCsw();
-        }
-
-        if (tzxTape) {
-            playTzx();
-        } else {
-            playTap();
+        switch (tapeExtension) {
+            case TAP:
+                playTap();
+                break;
+            case TZX:
+                playTzx();
+                break;
+            case CSW:
+                playCsw();
+                break;
+            default:
+                System.out.println("Warning!, clockTiemout without tape playing");
         }
     }
 
@@ -606,7 +609,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean insert(File fileName) {
-        if (tapeInserted) {
+        if (tapeExtension != TapeExtensionType.NO_TAPE) {
             return false;
         }
 
@@ -628,38 +631,33 @@ public class Tape implements machine.ClockTimeoutListener {
         }
 
         tapePos = idxHeader = 0;
-        tapeInserted = true;
         statePlay = State.STOP;
         tapePlaying = tapeRecording = false;
-        tzxTape = filename.getName().toLowerCase().endsWith(".tzx");
-        cswTape = filename.getName().toLowerCase().endsWith(".csw");
-
-        if (tzxTape) {
-            if (!findTZXOffsetBlocks()) {
-                nOffsetBlocks = 0;
+        String name = filename.getName().toLowerCase();
+//        System.out.printf("File extension: %s", name.substring(name.lastIndexOf("."), name.length()));
+        switch (name.substring(name.lastIndexOf("."), name.length())) {
+            case ".tap":
+                tapeExtension = TapeExtensionType.TAP;
+                if (!findTAPOffsetBlocks()) {
+                    nOffsetBlocks = 0;
+                    return false;
+                }
+                break;
+            case ".tzx":
+                tapeExtension = TapeExtensionType.TZX;
+                if (!findTZXOffsetBlocks()) {
+                    nOffsetBlocks = 0;
+                    return false;
+                }
+                break;
+            case ".csw":
+                tapeExtension = TapeExtensionType.CSW;
+                nOffsetBlocks = 1;
+                Arrays.fill(offsetBlocks, 0);
+                break;
+            default:
+                tapeExtension = TapeExtensionType.NO_TAPE;
                 return false;
-            }
-//            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
-//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
-//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
-//            }
-        }
-
-        if (cswTape) {
-            nOffsetBlocks = 1;
-            Arrays.fill(offsetBlocks, 0);
-
-        }
-
-        if (!tzxTape && !cswTape) {
-            if (!findTAPOffsetBlocks()) {
-                nOffsetBlocks = 0;
-                return false;
-            }
-//            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
-//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
-//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
-//            }
         }
 
         tapeTableModel.fireTableDataChanged();
@@ -670,7 +668,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
     public boolean insertEmbeddedTape(String fileName, String extension,
             byte[] tapeData, int selectedBlock) {
-        if (tapeInserted) {
+        if (tapeExtension != TapeExtensionType.NO_TAPE) {
             return false;
         }
 
@@ -680,28 +678,26 @@ public class Tape implements machine.ClockTimeoutListener {
 
         filename = new File(fileName);
         tapePos = idxHeader = 0;
-        tapeInserted = true;
         statePlay = State.STOP;
         tapePlaying = tapeRecording = false;
-        tzxTape = extension.startsWith("tzx");
-        if (tzxTape) {
-            if (!findTZXOffsetBlocks()) {
-                nOffsetBlocks = 0;
+        switch (extension) {
+            case "tap":
+                tapeExtension = TapeExtensionType.TAP;
+                if (!findTAPOffsetBlocks()) {
+                    nOffsetBlocks = 0;
+                    return false;
+                }
+                break;
+            case "tzx":
+                tapeExtension = TapeExtensionType.TZX;
+                if (!findTZXOffsetBlocks()) {
+                    nOffsetBlocks = 0;
+                    return false;
+                }
+                break;
+            default:
+                tapeExtension = TapeExtensionType.NO_TAPE;
                 return false;
-            }
-//            System.out.println(String.format("Encontrados %d TZX blocks", nOffsetBlocks));
-//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
-//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
-//            }
-        } else {
-            if (!findTAPOffsetBlocks()) {
-                nOffsetBlocks = 0;
-                return false;
-            }
-//            System.out.println(String.format("Encontrados %d TAP blocks", nOffsetBlocks));
-//            for(int blk = 0; blk < nOffsetBlocks; blk++) {
-//                System.out.println(String.format("Block %d: %04x", blk, offsetBlocks[blk]));
-//            }
         }
 
         tapeTableModel.fireTableDataChanged();
@@ -711,11 +707,11 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean eject() {
-        if (tapePlaying || tapeRecording) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || tapePlaying || tapeRecording) {
             return false;
         }
 
-        tapeInserted = false;
+        tapeExtension = TapeExtensionType.NO_TAPE;
         tapeBuffer = null;
         filename = null;
         nOffsetBlocks = 0;
@@ -745,15 +741,11 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean isTapeInserted() {
-        return tapeInserted;
+        return tapeExtension != TapeExtensionType.NO_TAPE;
     }
 
     public boolean isTapeReady() {
-        return (tapeInserted && !tapePlaying && !tapeRecording);
-    }
-
-    public boolean isTzxTape() {
-        return tzxTape;
+        return (tapeExtension != TapeExtensionType.NO_TAPE && !tapePlaying && !tapeRecording);
     }
 
     public File getTapeFilename() {
@@ -761,7 +753,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean play() {
-        if (!tapeInserted || tapePlaying || tapeRecording) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || tapePlaying || tapeRecording) {
             return false;
         }
 
@@ -780,7 +772,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public void stop() {
-        if (!tapeInserted || !tapePlaying || tapeRecording) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || !tapePlaying || tapeRecording) {
             return;
         }
 
@@ -793,7 +785,7 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     public boolean rewind() {
-        if (!tapeInserted || tapePlaying || tapeRecording) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || tapePlaying || tapeRecording) {
             return false;
         }
 
@@ -1671,7 +1663,8 @@ public class Tape implements machine.ClockTimeoutListener {
 
     public boolean flashLoad(Memory memory) {
 
-        if (!tapeInserted || cpu == null || cswTape) {
+        if (tapeExtension == TapeExtensionType.NO_TAPE || cpu == null ||
+                (tapeExtension != TapeExtensionType.TAP && tapeExtension != TapeExtensionType.TZX)) {
             return false;
         }
 
@@ -1682,7 +1675,7 @@ public class Tape implements machine.ClockTimeoutListener {
             return false;
         }
 
-        if (tzxTape) {
+        if (tapeExtension == TapeExtensionType.TZX) {
             // Fastload only with Standard Speed Tape Blocks (and some
             // identified erroneusly as Turbo Blocks
             // (Midnight Resistance 128k as an example)
