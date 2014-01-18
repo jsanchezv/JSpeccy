@@ -33,11 +33,11 @@ import z80core.Z80;
  */
 public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
-    private Z80 z80;
-    private Memory memory;
-    private Clock clock;
-    private boolean[] contendedRamPage = new boolean[4];
-    private boolean[] contendedIOPage = new boolean[4];
+    private final Z80 z80;
+    private final Memory memory;
+    private final Clock clock;
+    private final boolean[] contendedRamPage = new boolean[4];
+    private final boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
     private int kmouseX = 0, kmouseY = 0, kmouseW; // Kempston Mouse Turbo Master X, Y, Wheel
     private long framesByInt, speedometer, speed, prevSpeed;
@@ -46,12 +46,12 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
     public int firstBorderUpdate, lastBorderUpdate, borderMode;
-    private Timer timerFrame;
+    private final Timer timerFrame;
     private SpectrumTimer taskFrame;
     private JSpeccyScreen jscr;
-    private Keyboard keyboard;
-    private Audio audio;
-    private AY8912 ay8912;
+    private final Keyboard keyboard;
+    private final Audio audio;
+    private final AY8912 ay8912;
     private Tape tape;
     private boolean paused;
     private boolean resetPending, autoLoadTape, acceleratedLoading;
@@ -60,12 +60,12 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private JoystickModel joystickModel;
     private JoystickRaw joystick1, joystick2;
     
-    private JSpeccySettingsType settings;
-    private SpectrumType specSettings;
+    private final JSpeccySettingsType settings;
+    private final SpectrumType specSettings;
     /* Config vars */
     private boolean issue2, saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
-    private Interface1 if1;
+    private final Interface1 if1;
 
     public Spectrum(JSpeccySettingsType config) {
         clock = Clock.getInstance();
@@ -553,10 +553,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
             if (acceleratedLoading) {
                 acceleratedLoading = false;
-                boolean soundState = enabledSound;
-                enabledSound = false;
+                stopEmulation();
                 acceleratedLoading();
-                enabledSound = soundState;
+                startEmulation();
             }
 
             generateFrame();
@@ -1868,9 +1867,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     // ULAplus precomputed color palette
     private int ULAPlusPrecompPalette[][];
     
-    private Rectangle screenRect = new Rectangle();
+    private final Rectangle screenRect = new Rectangle();
     private int firstBorderPix, lastBorderPix;
-    private Rectangle borderRect = new Rectangle();
+    private final Rectangle borderRect = new Rectangle();
 
     private void initGFX() {
         tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
