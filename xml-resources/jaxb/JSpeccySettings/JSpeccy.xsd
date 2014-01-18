@@ -93,7 +93,7 @@
             <xsd:element name="RomIF1" default="if1.rom" type="xsd:string"/>
         </xsd:sequence>
     </xsd:complexType>
-    <xsd:complexType name="TapeType">
+    <xsd:complexType name="TapeSettingsType">
         <xsd:sequence>
             <xsd:element name="enableLoadTraps" type="xsd:boolean" default="true"/>
             <xsd:element name="accelerateLoading" type="xsd:boolean" default="true"/>
@@ -134,7 +134,7 @@
         <xsd:sequence>
             <xsd:element name="SpectrumSettings" type="tns:SpectrumType"/>
             <xsd:element name="MemorySettings" type="tns:MemoryType"/>
-            <xsd:element name="TapeSettings" type="tns:TapeType"/>
+            <xsd:element name="TapeSettings" type="tns:TapeSettingsType"/>
             <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
             <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
             <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
