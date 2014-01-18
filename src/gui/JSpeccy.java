@@ -56,7 +56,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private MicrodriveDialog microdriveDialog;
     private MemoryBrowserDialog memoryBrowserDialog;
     private LoadSaveMemoryDialog loadSaveMemoryDialog;
-    private FileNameExtensionFilter allSnapTapeExtension, snapshotExtension,
+    private FileNameExtensionFilter allSnapTapeExtension, snapshotExtension, saveSnapshotExtension,
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     private SnapshotSZX snapSZX; // for SZX snapshots
     private SpectrumState memorySnapshot;
@@ -124,6 +124,11 @@ public class JSpeccy extends javax.swing.JFrame {
                             if (file.getName().toLowerCase().endsWith(".sna")) {
                                 SnapshotSNA snapSNA = new SnapshotSNA();
                                 snapState = snapSNA.load(file);
+                            }
+                            
+                             if (file.getName().toLowerCase().endsWith(".sp")) {
+                                SnapshotSP snapSP = new SnapshotSP();
+                                snapState = snapSP.load(file);
                             }
 
                             if (file.getName().toLowerCase().endsWith(".z80")) {
@@ -315,6 +320,11 @@ public class JSpeccy extends javax.swing.JFrame {
                         if (file.getName().toLowerCase().endsWith(".sna")) {
                             SnapshotSNA snapSNA = new SnapshotSNA();
                             snapState = snapSNA.load(file);
+                        }
+                        
+                        if (file.getName().toLowerCase().endsWith(".sp")) {
+                            SnapshotSP snapSP = new SnapshotSP();
+                            snapState = snapSP.load(file);
                         }
 
                         if (file.getName().toLowerCase().endsWith(".z80")) {
@@ -751,9 +761,11 @@ public class JSpeccy extends javax.swing.JFrame {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         allSnapTapeExtension = new FileNameExtensionFilter(
                 bundle.getString("SNAPSHOT_TAPE_TYPE"),
-                "sna", "z80", "szx", "tap", "tzx", "csw");
+                "sna", "z80", "szx", "sp", "tap", "tzx", "csw");
         snapshotExtension = new FileNameExtensionFilter(
-                bundle.getString("SNAPSHOT_TYPE"), "sna", "z80", "szx");
+                bundle.getString("SNAPSHOT_TYPE"), "sna", "z80", "szx", "sp");
+        saveSnapshotExtension = new FileNameExtensionFilter(
+                bundle.getString("SAVE_SNAPSHOT_TYPE"), "sna", "z80", "szx");
         tapeExtension = new FileNameExtensionFilter(
                 bundle.getString("TAPE_TYPE"), "tap", "tzx", "csw");
         createTapeExtension = new FileNameExtensionFilter(
@@ -2287,6 +2299,11 @@ public class JSpeccy extends javax.swing.JFrame {
                         SnapshotSNA snapSNA = new SnapshotSNA();
                         snapState = snapSNA.load(currentFileSnapshot);
                     }
+                    
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sp")) {
+                        SnapshotSP snapSP = new SnapshotSP();
+                        snapState = snapSP.load(currentFileSnapshot);
+                    }
 
                     if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
                         SnapshotZ80 snapZ80 = new SnapshotZ80();
@@ -2489,7 +2506,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if( saveSnapshotDlg == null ) {
             saveSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
             saveSnapshotDlg.addChoosableFileFilter(snapshotExtension);
-            saveSnapshotDlg.setFileFilter(snapshotExtension);
+            saveSnapshotDlg.setFileFilter(saveSnapshotExtension);
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
         }
         else {
@@ -2953,6 +2970,11 @@ public class JSpeccy extends javax.swing.JFrame {
                     if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
                         SnapshotSNA snapSNA = new SnapshotSNA();
                         snapState = snapSNA.load(currentFileSnapshot);
+                    }
+                    
+                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sp")) {
+                        SnapshotSP snapSP = new SnapshotSP();
+                        snapState = snapSP.load(currentFileSnapshot);
                     }
 
                     if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
