@@ -120,7 +120,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         }
                         stopEmulation();
                         try {
-                            SpectrumState snapState = new SpectrumState();
+                            SpectrumState snapState = null;
                             if (file.getName().toLowerCase().endsWith(".sna")) {
                                 SnapshotSNA snapSNA = new SnapshotSNA();
                                 snapState = snapSNA.load(file);
@@ -316,7 +316,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (snapshotExtension.accept(file)) {
                     rotateRecentFile(file);
                     try {
-                        SpectrumState snapState = new SpectrumState();
+                        SpectrumState snapState = null;
                         if (file.getName().toLowerCase().endsWith(".sna")) {
                             SnapshotSNA snapSNA = new SnapshotSNA();
                             snapState = snapSNA.load(file);
@@ -2294,7 +2294,7 @@ public class JSpeccy extends javax.swing.JFrame {
             if (snapshotExtension.accept(currentFileSnapshot)) {
                 rotateRecentFile(currentFileSnapshot);
                 try {
-                    SpectrumState snapState = new SpectrumState();
+                    SpectrumState snapState = null;
                     if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
                         SnapshotSNA snapSNA = new SnapshotSNA();
                         snapState = snapSNA.load(currentFileSnapshot);
@@ -2966,7 +2966,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
                 currentFileSnapshot = recentFile[idx];
                 try {
-                    SpectrumState snapState = new SpectrumState();
+                    SpectrumState snapState = null;
                     if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
                         SnapshotSNA snapSNA = new SnapshotSNA();
                         snapState = snapSNA.load(currentFileSnapshot);
