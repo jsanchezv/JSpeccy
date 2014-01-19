@@ -17,14 +17,9 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSP {
+public class SnapshotSP extends BaseSnapshot {
     
-    private BufferedInputStream fIn;
-    private SpectrumState spectrum;
-    private Z80State z80;
-    private MemoryState memory;
-    private AY8912State ay8912;
-    
+    @Override
     public SpectrumState load(File filename) throws SnapshotException {
         spectrum = new SpectrumState();
         
@@ -165,6 +160,7 @@ public class SnapshotSP {
         return spectrum;
     }
 
+    @Override
     public boolean save(File filename, SpectrumState state) throws SnapshotException {
         throw new SnapshotException("FILE_WRITE_ERROR");
     }

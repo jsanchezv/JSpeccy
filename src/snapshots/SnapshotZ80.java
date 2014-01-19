@@ -22,16 +22,9 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotZ80 {
+public class SnapshotZ80 extends BaseSnapshot {
     
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
-    private SpectrumState spectrum;
-    private Z80State z80;
-    private MemoryState memory;
-    private AY8912State ay8912;
-    
-    public int uncompressZ80(byte buffer[], int length) {
+    private int uncompressZ80(byte buffer[], int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
         int address = 0;
         try {
@@ -112,6 +105,7 @@ public class SnapshotZ80 {
         return addrDst;
     }
 
+    @Override
     public SpectrumState load(File filename) throws SnapshotException {
         spectrum = new SpectrumState();
         
@@ -487,6 +481,7 @@ public class SnapshotZ80 {
     }
 
     // Solo se graban Z80's versión 3
+    @Override
     public boolean save(File filename, SpectrumState state) throws SnapshotException {
         spectrum = state;
         z80 = spectrum.getZ80State();

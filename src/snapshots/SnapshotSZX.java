@@ -18,19 +18,12 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSZX {
+public class SnapshotSZX extends BaseSnapshot {
     
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
     private boolean tapeEmbedded, tapeLinked;
     private byte tapeData[];
     private int tapeBlock;
     private String tapeName, tapeExtension;
-    
-    private SpectrumState spectrum;
-    private Z80State z80;
-    private MemoryState memory;
-    private AY8912State ay8912;
     
     // SZX Definitions
     private static final int ZXST_HEADER = 0x5453585A; // ZXST
@@ -272,6 +265,7 @@ public class SnapshotSZX {
         return (value3 | value2 | value1 | value0);
     }
     
+    @Override
     public SpectrumState load(File filename) throws SnapshotException {
         
         byte dwMagic[] = new byte[4];
@@ -993,6 +987,7 @@ public class SnapshotSZX {
         return spectrum;
     }
 
+    @Override
     public boolean save(File filename, SpectrumState state) throws SnapshotException {
         spectrum = state;
         z80 = spectrum.getZ80State();

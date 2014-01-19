@@ -21,15 +21,9 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSNA {
+public class SnapshotSNA extends BaseSnapshot {
     
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
-    private SpectrumState spectrum;
-    private Z80State z80;
-    private MemoryState memory;
-    private AY8912State ay8912;
-    
+    @Override
     public SpectrumState load(File filename) throws SnapshotException {
         spectrum = new SpectrumState();
         
@@ -230,6 +224,7 @@ public class SnapshotSNA {
         return spectrum;
     }
 
+    @Override
     public boolean save(File filename, SpectrumState state) throws SnapshotException {
         spectrum = state;
         z80 = spectrum.getZ80State();
