@@ -14,7 +14,7 @@ import java.io.File;
  *
  * @author jsanchez
  */
-public abstract class BaseSnapshot {
+public abstract class SnapshotFile {
     protected BufferedInputStream fIn;
     protected BufferedOutputStream fOut;
     protected SpectrumState spectrum;

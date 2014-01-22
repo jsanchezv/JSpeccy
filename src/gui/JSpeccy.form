@@ -328,9 +328,6 @@
                       <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.ignoreRadioButton.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                     </Property>
                   </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="ignoreRadioButtonActionPerformed"/>
-                  </Events>
                 </Component>
                 <Component class="javax.swing.JRadioButton" name="linkedRadioButton">
                   <Properties>
@@ -341,9 +338,6 @@
                       <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.linkedRadioButton.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                     </Property>
                   </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="linkedRadioButtonActionPerformed"/>
-                  </Events>
                 </Component>
                 <Component class="javax.swing.JRadioButton" name="embeddedRadioButton">
                   <Properties>
@@ -354,9 +348,6 @@
                       <ResourceString bundle="gui/Bundle.properties" key="JSpeccy.embeddedRadioButton.text" replaceFormat="java.util.ResourceBundle.getBundle(&quot;{bundleNameSlashes}&quot;).getString(&quot;{key}&quot;)"/>
                     </Property>
                   </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="embeddedRadioButtonActionPerformed"/>
-                  </Events>
                 </Component>
               </SubComponents>
             </Container>

@@ -58,7 +58,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private LoadSaveMemoryDialog loadSaveMemoryDialog;
     private FileNameExtensionFilter allSnapTapeExtension, snapshotExtension, saveSnapshotExtension,
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
-    private SnapshotSZX snapSZX; // for SZX snapshots
     private SpectrumState memorySnapshot;
     private CommandLineOptions clo;
 
@@ -68,7 +67,7 @@ public class JSpeccy extends javax.swing.JFrame {
     Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
     Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
     
-    private TransferHandler handler = new TransferHandler() {
+    private final TransferHandler handler = new TransferHandler() {
         @Override
         public boolean canImport(TransferHandler.TransferSupport support) {
             if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
@@ -120,26 +119,10 @@ public class JSpeccy extends javax.swing.JFrame {
                         }
                         stopEmulation();
                         try {
-                            SpectrumState snapState = null;
-                            if (file.getName().toLowerCase().endsWith(".sna")) {
-                                SnapshotSNA snapSNA = new SnapshotSNA();
-                                snapState = snapSNA.load(file);
-                            }
-                            
-                             if (file.getName().toLowerCase().endsWith(".sp")) {
-                                SnapshotSP snapSP = new SnapshotSP();
-                                snapState = snapSP.load(file);
-                            }
-
-                            if (file.getName().toLowerCase().endsWith(".z80")) {
-                                SnapshotZ80 snapZ80 = new SnapshotZ80();
-                                snapState = snapZ80.load(file);
-                            }
-
-                            if (file.getName().toLowerCase().endsWith(".szx")) {
-                                snapSZX = new SnapshotSZX();
-                                snapState = snapSZX.load(file);
-
+                            SnapshotFile snap = SnapshotFactory.getSnapshot(file);
+                            SpectrumState snapState = snap.load(file);
+                            if (snap instanceof SnapshotSZX) {
+                                SnapshotSZX snapSZX = (SnapshotSZX)snap;
                                 if (snapSZX.isTapeEmbedded()) {
                                     tape.eject();
                                     tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -316,26 +299,10 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (snapshotExtension.accept(file)) {
                     rotateRecentFile(file);
                     try {
-                        SpectrumState snapState = null;
-                        if (file.getName().toLowerCase().endsWith(".sna")) {
-                            SnapshotSNA snapSNA = new SnapshotSNA();
-                            snapState = snapSNA.load(file);
-                        }
-                        
-                        if (file.getName().toLowerCase().endsWith(".sp")) {
-                            SnapshotSP snapSP = new SnapshotSP();
-                            snapState = snapSP.load(file);
-                        }
-
-                        if (file.getName().toLowerCase().endsWith(".z80")) {
-                            SnapshotZ80 snapZ80 = new SnapshotZ80();
-                            snapState = snapZ80.load(file);
-                        }
-
-                        if (file.getName().toLowerCase().endsWith(".szx")) {
-                            snapSZX = new SnapshotSZX();
-                            snapState = snapSZX.load(file);
-
+                        SnapshotFile snap = SnapshotFactory.getSnapshot(file);
+                        SpectrumState snapState = snap.load(file);
+                        if (snap instanceof SnapshotSZX) {
+                            SnapshotSZX snapSZX = (SnapshotSZX) snap;
                             if (snapSZX.isTapeEmbedded()) {
                                 tape.eject();
                                 tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -358,7 +325,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         JOptionPane.showMessageDialog(getContentPane(),
                                 ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
                                 ResourceBundle.getBundle("gui/Bundle").getString(
-                                "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                     }
                 }
 
@@ -530,9 +497,8 @@ public class JSpeccy extends javax.swing.JFrame {
 
             settings = (JSpeccySettingsType) settingsElement.getValue();
         } catch (JAXBException jexcpt) {
-            System.out.println("Something during unmarshalling go very very bad!");
-            readed = false;
-        } catch (IOException ioexcpt) {
+            System.out.println("Something go very very badly with unmarshalling!");
+        } catch (FileNotFoundException ioexcpt) {
             System.out.println("Can't open the JSpeccy.xml configuration file anyway");
             System.exit(0);
         }
@@ -557,7 +523,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 settings = (JSpeccySettingsType) settingsElement.getValue();
             } catch (JAXBException jexcpt) {
                 System.out.println("Something during unmarshalling go very bad!");
-            } catch (IOException ioexcpt) {
+            } catch (FileNotFoundException ioexcpt) {
                 System.out.println("Can't open the JSpeccy.xml configuration file");
             }
         }
@@ -780,7 +746,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (settings.getSpectrumSettings().isHibernateMode()) {
             File autoload = new File("JSpeccy.szx");
             if (autoload.exists()) {
-                snapSZX = new SnapshotSZX();
+                SnapshotSZX snapSZX = new SnapshotSZX();
                 try {
                     spectrum.setSpectrumState(snapSZX.load(autoload));
                     if (snapSZX.isTapeLinked()) {
@@ -870,7 +836,7 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         if (settings.getSpectrumSettings().isHibernateMode()) {
-            snapSZX = new SnapshotSZX();
+            SnapshotSZX snapSZX = new SnapshotSZX();
             if (tape.getTapeFilename() != null) {
                 snapSZX.setTapeLinked(true);
                 snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
@@ -1267,10 +1233,12 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeCatalog.getTableHeader().setReorderingAllowed(false);
         jScrollPane1.setViewportView(tapeCatalog);
         tapeCatalog.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        tapeCatalog.getColumnModel().getColumn(0).setResizable(false);
-        tapeCatalog.getColumnModel().getColumn(0).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title0")); // NOI18N
-        tapeCatalog.getColumnModel().getColumn(1).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title1")); // NOI18N
-        tapeCatalog.getColumnModel().getColumn(2).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title2")); // NOI18N
+        if (tapeCatalog.getColumnModel().getColumnCount() > 0) {
+            tapeCatalog.getColumnModel().getColumn(0).setResizable(false);
+            tapeCatalog.getColumnModel().getColumn(0).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title0")); // NOI18N
+            tapeCatalog.getColumnModel().getColumn(1).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title1")); // NOI18N
+            tapeCatalog.getColumnModel().getColumn(2).setHeaderValue(bundle.getString("JSpeccy.tapeCatalog.columnModel.title2")); // NOI18N
+        }
 
         tapeBrowserDialog.getContentPane().add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
@@ -1378,29 +1346,14 @@ public class JSpeccy extends javax.swing.JFrame {
         saveSzxButtonGroup.add(ignoreRadioButton);
         ignoreRadioButton.setSelected(true);
         ignoreRadioButton.setText(bundle.getString("JSpeccy.ignoreRadioButton.text")); // NOI18N
-        ignoreRadioButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ignoreRadioButtonActionPerformed(evt);
-            }
-        });
         saveSzxChoosePanel.add(ignoreRadioButton);
 
         saveSzxButtonGroup.add(linkedRadioButton);
         linkedRadioButton.setText(bundle.getString("JSpeccy.linkedRadioButton.text")); // NOI18N
-        linkedRadioButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                linkedRadioButtonActionPerformed(evt);
-            }
-        });
         saveSzxChoosePanel.add(linkedRadioButton);
 
         saveSzxButtonGroup.add(embeddedRadioButton);
         embeddedRadioButton.setText(bundle.getString("JSpeccy.embeddedRadioButton.text")); // NOI18N
-        embeddedRadioButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                embeddedRadioButtonActionPerformed(evt);
-            }
-        });
         saveSzxChoosePanel.add(embeddedRadioButton);
 
         jPanel4.add(saveSzxChoosePanel);
@@ -2294,26 +2247,10 @@ public class JSpeccy extends javax.swing.JFrame {
             if (snapshotExtension.accept(currentFileSnapshot)) {
                 rotateRecentFile(currentFileSnapshot);
                 try {
-                    SpectrumState snapState = null;
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
-                        SnapshotSNA snapSNA = new SnapshotSNA();
-                        snapState = snapSNA.load(currentFileSnapshot);
-                    }
-                    
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sp")) {
-                        SnapshotSP snapSP = new SnapshotSP();
-                        snapState = snapSP.load(currentFileSnapshot);
-                    }
-
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
-                        SnapshotZ80 snapZ80 = new SnapshotZ80();
-                        snapState = snapZ80.load(currentFileSnapshot);
-                    }
-
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
-                        snapSZX = new SnapshotSZX();
-                        snapState = snapSZX.load(currentFileSnapshot);
-                        
+                    SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
+                    SpectrumState snapState = snap.load(currentFileSnapshot);
+                    if (snap instanceof SnapshotSZX) {
+                        SnapshotSZX snapSZX = (SnapshotSZX) snap;
                         if (snapSZX.isTapeEmbedded()) {
                             tape.eject();
                             tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -2330,13 +2267,13 @@ public class JSpeccy extends javax.swing.JFrame {
                             }
                         }
                     }
-                    
+
                     spectrum.setSpectrumState(snapState);
                 } catch (SnapshotException excpt) {
                     JOptionPane.showMessageDialog(this,
-                        ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
-                        ResourceBundle.getBundle("gui/Bundle").getString(
-                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                            ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                            ResourceBundle.getBundle("gui/Bundle").getString(
+                                    "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
             } else {
                 currentFileTape = openSnapshotDlg.getSelectedFile();
@@ -2518,45 +2455,34 @@ public class JSpeccy extends javax.swing.JFrame {
         stopEmulation();
 
         int status = saveSnapshotDlg.showSaveDialog(getContentPane());
-        if( status == JFileChooser.APPROVE_OPTION ) {
+        if (status == JFileChooser.APPROVE_OPTION) {
             currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
             if (!snapshotExtension.accept(saveSnapshotDlg.getSelectedFile())) {
                 String saveName = saveSnapshotDlg.getSelectedFile().getAbsolutePath() + ".szx";
                 saveSnapshotDlg.setSelectedFile(new File(saveName));
             }
 
-            if (tape.getTapeFilename() != null &&
-                    saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".szx")) {
-                tapeFilenameLabel.setText(tape.getTapeFilename().getName());
-                ignoreRadioButton.setSelected(true);
-                snapSZX = new SnapshotSZX();
-                snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
-                snapSZX.setTapeBlock(tape.getSelectedBlock());
-                saveSzxTape.pack();
-                saveSzxTape.setVisible(true);
-            }
-            
             try {
-                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".sna")) {
-                    SnapshotSNA snapSNA = new SnapshotSNA();
-                    snapSNA.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
-
+                SnapshotFile snap = SnapshotFactory.getSnapshot(saveSnapshotDlg.getSelectedFile());
+                if (snap instanceof SnapshotSZX && tape.getTapeFilename() != null) {
+                    SnapshotSZX snapSZX = (SnapshotSZX) snap;
+                    tapeFilenameLabel.setText(tape.getTapeFilename().getName());
+                    ignoreRadioButton.setSelected(true);
+                    saveSzxTape.pack();
+                    saveSzxTape.setVisible(true);
+                    snapSZX.setTapeEmbedded(embeddedRadioButton.isSelected());
+                    snapSZX.setTapeLinked(linkedRadioButton.isSelected());
+                    if (snapSZX.isTapeEmbedded() || snapSZX.isTapeLinked()) {
+                        snapSZX.setTapeName(tape.getTapeFilename().getAbsolutePath());
+                        snapSZX.setTapeBlock(tape.getSelectedBlock());
+                    }
                 }
-                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".z80")) {
-                    SnapshotZ80 snapZ80 = new SnapshotZ80();
-                    snapZ80.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
-                }
-
-                if (saveSnapshotDlg.getSelectedFile().getName().toLowerCase().endsWith(".szx")) {
-                    snapSZX = new SnapshotSZX();
-                    snapSZX.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
-                }
-                
+                snap.save(saveSnapshotDlg.getSelectedFile(), spectrum.getSpectrumState());
             } catch (SnapshotException excpt) {
                 JOptionPane.showMessageDialog(this,
                         ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
                         ResourceBundle.getBundle("gui/Bundle").getString(
-                        "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
+                                "SNAPSHOT_SAVE_ERROR"), JOptionPane.ERROR_MESSAGE);
             }
         }
 
@@ -2966,26 +2892,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
                 currentFileSnapshot = recentFile[idx];
                 try {
-                    SpectrumState snapState = null;
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sna")) {
-                        SnapshotSNA snapSNA = new SnapshotSNA();
-                        snapState = snapSNA.load(currentFileSnapshot);
-                    }
-                    
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".sp")) {
-                        SnapshotSP snapSP = new SnapshotSP();
-                        snapState = snapSP.load(currentFileSnapshot);
-                    }
-
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".z80")) {
-                        SnapshotZ80 snapZ80 = new SnapshotZ80();
-                        snapState = snapZ80.load(currentFileSnapshot);
-                    }
-
-                    if (currentFileSnapshot.getName().toLowerCase().endsWith(".szx")) {
-                        snapSZX = new SnapshotSZX();
-                        snapState = snapSZX.load(currentFileSnapshot);
-                        
+                    SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
+                    SpectrumState snapState = snap.load(currentFileSnapshot);
+                    if (snap instanceof SnapshotSZX) {
+                        SnapshotSZX snapSZX = (SnapshotSZX) snap;
                         if (snapSZX.isTapeEmbedded()) {
                             tape.eject();
                             tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -3005,9 +2915,9 @@ public class JSpeccy extends javax.swing.JFrame {
                     spectrum.setSpectrumState(snapState);
                 } catch (SnapshotException excpt) {
                     JOptionPane.showMessageDialog(this,
-                        ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
-                        ResourceBundle.getBundle("gui/Bundle").getString(
-                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                            ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
+                            ResourceBundle.getBundle("gui/Bundle").getString(
+                                    "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
                 }
 
                 startEmulation();
@@ -3093,21 +3003,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private void saveSzxCloseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSzxCloseButtonActionPerformed
         saveSzxTape.setVisible(false);
     }//GEN-LAST:event_saveSzxCloseButtonActionPerformed
-
-    private void linkedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_linkedRadioButtonActionPerformed
-        snapSZX.setTapeLinked(true);
-        snapSZX.setTapeEmbedded(false);
-    }//GEN-LAST:event_linkedRadioButtonActionPerformed
-
-    private void embeddedRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_embeddedRadioButtonActionPerformed
-        snapSZX.setTapeLinked(false);
-        snapSZX.setTapeEmbedded(true);
-    }//GEN-LAST:event_embeddedRadioButtonActionPerformed
-
-    private void ignoreRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ignoreRadioButtonActionPerformed
-        snapSZX.setTapeLinked(false);
-        snapSZX.setTapeEmbedded(false);
-    }//GEN-LAST:event_ignoreRadioButtonActionPerformed
 
     private void loadScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadScreenShotActionPerformed
 

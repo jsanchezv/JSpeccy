@@ -18,7 +18,7 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSZX extends BaseSnapshot {
+public class SnapshotSZX extends SnapshotFile {
     
     private boolean tapeEmbedded, tapeLinked;
     private byte tapeData[];
