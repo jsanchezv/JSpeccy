@@ -472,7 +472,7 @@ public class JSpeccy extends javax.swing.JFrame {
         } catch (JAXBException jexcpt) {
             System.out.println("Something during unmarshalling go very bad!");
             readed = false;
-        } catch (IOException ioexcpt) {
+        } catch (FileNotFoundException ioexcpt) {
             System.out.println("Can't open the JSpeccy.xml configuration file");
         }
 

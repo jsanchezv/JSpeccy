@@ -22,7 +22,13 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotZ80 extends SnapshotFile {
+public class SnapshotZ80 implements SnapshotFile {
+    private BufferedInputStream fIn;
+    private BufferedOutputStream fOut;
+    private SpectrumState spectrum;
+    private Z80State z80;
+    private MemoryState memory;
+    private AY8912State ay8912;
     
     private int uncompressZ80(byte buffer[], int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));

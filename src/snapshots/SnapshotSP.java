@@ -17,7 +17,11 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSP extends SnapshotFile {
+public class SnapshotSP implements SnapshotFile {
+    private BufferedInputStream fIn;
+    private SpectrumState spectrum;
+    private Z80State z80;
+    private MemoryState memory;
     
     @Override
     public SpectrumState load(File filename) throws SnapshotException {

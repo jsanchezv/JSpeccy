@@ -18,7 +18,13 @@ import z80core.Z80.IntMode;
  *
  * @author jsanchez
  */
-public class SnapshotSZX extends SnapshotFile {
+public class SnapshotSZX implements SnapshotFile {
+    private BufferedInputStream fIn;
+    private BufferedOutputStream fOut;
+    private SpectrumState spectrum;
+    private Z80State z80;
+    private MemoryState memory;
+    private AY8912State ay8912;
     
     private boolean tapeEmbedded, tapeLinked;
     private byte tapeData[];

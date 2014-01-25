@@ -6,22 +6,13 @@
 
 package snapshots;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 
 /**
  *
  * @author jsanchez
  */
-public abstract class SnapshotFile {
-    protected BufferedInputStream fIn;
-    protected BufferedOutputStream fOut;
-    protected SpectrumState spectrum;
-    protected Z80State z80;
-    protected MemoryState memory;
-    protected AY8912State ay8912;
-    
-    public abstract SpectrumState load(File filename) throws SnapshotException;
-    public abstract boolean save(File filename, SpectrumState state) throws SnapshotException;
+public interface SnapshotFile {
+    public SpectrumState load(File filename) throws SnapshotException;
+    public boolean save(File filename, SpectrumState state) throws SnapshotException;
 }
