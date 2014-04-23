@@ -278,6 +278,7 @@ public class JoystickRaw implements Runnable {
         }
     }
     /**
+     * @param index
      * @return the buttonState
      */
     public boolean getButtonState(int index) {
@@ -291,6 +292,7 @@ public class JoystickRaw implements Runnable {
     }
 
     /**
+     * @param index
      * @return the axisValue
      */
     public short getAxisValue(int index) {
