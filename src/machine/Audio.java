@@ -1,7 +1,7 @@
 /*
  *	Audio.java
  *
- *  2009-2013 JosÈ Luis S·nchez zx81@ono.com
+ *  2009-2013 Jos√© Luis S√°nchez zx81@ono.com
  *
  *	This program is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@ class Audio {
     private SourceDataLine line;
     private DataLine.Info infoDataLine;
     private AudioFormat fmt;
-    // Buffer de sonido para 1 frame a 48 Khz estÈreo, hay m·s espacio del necesario.
+    // Buffer de sonido para 1 frame a 48 Khz est√©reo, hay m√°s espacio del necesario.
     private final byte[] buf = new byte[4096];
     private final int[] beeper = new int[1024];
     // Buffer de sonido para el AY
@@ -98,9 +98,9 @@ class Audio {
             }
 
             /*
-             * Aunque en Linux "parece" que se reserva un frame, internamente el sistema (øALSA?)
-             * crea el doble de espacio del solicitado. Eso provoca que el mÈtodo available() se
-             * comporte de manera err·tica, de modo que mejor lo evitamos.
+             * Aunque en Linux "parece" que se reserva un frame, internamente el sistema (¬øALSA?)
+             * crea el doble de espacio del solicitado. Eso provoca que el m√©todo available() se
+             * comporte de manera err√°tica, de modo que mejor lo evitamos.
              */
             try {
                 if (System.getProperty("os.name").contains("Linux")) {
@@ -151,7 +151,7 @@ class Audio {
                 }
             }
 
-            // se aÒaden muestras completas mientras se pueda
+            // se a√±aden muestras completas mientras se pueda
             while (time >= step) {
                 lastLevel += (value - lastLevel) >> 2;
                 beeper[ptrBeeper++] = lastLevel;
@@ -160,7 +160,7 @@ class Audio {
         }
 
         // calculamos el nivel de sonido de la parte residual del tiempo restante
-        // para el prÛximo cambio de estado.
+        // para el pr√≥ximo cambio de estado.
         timeRem = time;
         if (value != 0 && time > 0) {
             level = (int)(((float) time / (float) step) * value);
@@ -206,9 +206,9 @@ class Audio {
 
     private void endFrameMono() {
 
-        // El cÛdigo est· repetido, lo que es correcto. Si no se hace asÌ habrÌa
-        // que meter la comprobaciÛn de enabledAY dentro del bucle, lo que
-        // harÌa que en lugar de comprobarse una vez, se comprobara ciento.
+        // El c√≥digo est√° repetido, lo que es correcto. Si no se hace as√≠ habr√≠a
+        // que meter la comprobaci√≥n de enabledAY dentro del bucle, lo que
+        // har√≠a que en lugar de comprobarse una vez, se comprobara ciento.
         if (enabledAY) {
             for (int idx = 0; idx < samplesPerFrame; idx++) {
                 int sample = beeper[idx] + ayBufA[idx] + ayBufB[idx] + ayBufC[idx];
@@ -226,9 +226,9 @@ class Audio {
     private void endFrameStereo() {
 
 
-        // El cÛdigo est· repetido, lo que es correcto. Si no se hace asÌ habrÌa
-        // que meter la comprobaciÛn de enabledAY dentro del bucle, lo que
-        // harÌa que en lugar de comprobarse una vez, se comprobara ciento.
+        // El c√≥digo est√° repetido, lo que es correcto. Si no se hace as√≠ habr√≠a
+        // que meter la comprobaci√≥n de enabledAY dentro del bucle, lo que
+        // har√≠a que en lugar de comprobarse una vez, se comprobara ciento.
         if (enabledAY) {
             int sampleL, sampleR, center, side;
             for (int idx = 0; idx < samplesPerFrame; idx++) {

@@ -46,7 +46,7 @@ public class SnapshotSNA implements SnapshotFile {
                     spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
                     break;
                 case 131103: // 128k
-                case 147487: // snapshot de 128k con una p·gina repetida
+                case 147487: // snapshot de 128k con una p√°gina repetida
                     spectrum.setSpectrumModel(MachineTypes.SPECTRUM128K);
                     break;
                 default:
@@ -115,7 +115,7 @@ public class SnapshotSNA implements SnapshotFile {
             
             byte[] buffer = new byte[0x4000];
 
-            // Cargamos la p·gina de la pantalla 0x4000-0x7FFF (5)
+            // Cargamos la p√°gina de la pantalla 0x4000-0x7FFF (5)
             count = 0;
             while (count != -1 && count < 0x4000) {
                 count += fIn.read(buffer, count, 0x4000 - count);
@@ -127,7 +127,7 @@ public class SnapshotSNA implements SnapshotFile {
             memory.setPageRam(5, buffer);
 
 
-            // Cargamos la p·gina 0x8000-0xBFFF (2)
+            // Cargamos la p√°gina 0x8000-0xBFFF (2)
             buffer = new byte[0x4000];
             count = 0;
             while (count != -1 && count < 0x4000) {
@@ -140,7 +140,7 @@ public class SnapshotSNA implements SnapshotFile {
             memory.setPageRam(2, buffer);
 
             if (snaLen == 49179) { // 48K
-                // Cargamos la p·gina 0xC000-0XFFF (0)
+                // Cargamos la p√°gina 0xC000-0XFFF (0)
                 buffer = new byte[0x4000];
                 count = 0;
                 while (count != -1 && count < 0x4000) {
@@ -152,13 +152,13 @@ public class SnapshotSNA implements SnapshotFile {
                 }
                 memory.setPageRam(0, buffer);
 
-                z80.setRegPC(0x72); // direcciÛn de RETN en la ROM
+                z80.setRegPC(0x72); // direcci√≥n de RETN en la ROM
                 spectrum.setEnabledAY(false);
             } else {
                 boolean loaded[] = new boolean[8];
 
-                // Hasta que leamos el ˙ltimo valor del puerto 0x7ffd no sabemos
-                // en quÈ p·gina hay que poner los ˙ltimos 16K. Los leemos en
+                // Hasta que leamos el √∫ltimo valor del puerto 0x7ffd no sabemos
+                // en qu√© p√°gina hay que poner los √∫ltimos 16K. Los leemos en
                 // un buffer temporal y luego los copiamos (que remedio!!!)
                 buffer = new byte[0x4000];
                 count = 0;
@@ -170,12 +170,12 @@ public class SnapshotSNA implements SnapshotFile {
                     throw new SnapshotException("FILE_READ_ERROR");
                 }
 
-                // En modo 128, la p·gina 5 est· en 0x4000 y la 2 en 0x8000.
+                // En modo 128, la p√°gina 5 est√° en 0x4000 y la 2 en 0x8000.
                 loaded[2] = loaded[5] = true;
                 z80.setRegPC(fIn.read() | (fIn.read() << 8));
                 spectrum.setPort7ffd(fIn.read());
-                // Si la p·gina de memoria en 0xC000 era la 2 o la 5, Èsta se
-                // habr· grabado dos veces, y esta segunda copia es redundante.
+                // Si la p√°gina de memoria en 0xC000 era la 2 o la 5, √©sta se
+                // habr√° grabado dos veces, y esta segunda copia es redundante.
                 int page = spectrum.getPort7ffd() & 0x07;
                 if (page != 2 && page != 5) {
                     memory.setPageRam(page, buffer);
@@ -201,7 +201,7 @@ public class SnapshotSNA implements SnapshotFile {
                         memory.setPageRam(page, buffer);
                     }
                     // El formato SNA no guarda los registros del AY
-                    // Los ponemos a cero y que se apaÒe....
+                    // Los ponemos a cero y que se apa√±e....
                     spectrum.setEnabledAY(true);
                     spectrum.setEnabledAYon48k(false);
                     int regAY[] = new int[16];
@@ -236,7 +236,7 @@ public class SnapshotSNA implements SnapshotFile {
         z80 = spectrum.getZ80State();
         memory = spectrum.getMemoryState();
 
-        // Si la pila est· muy baja, no hay donde almacenar el registro SP
+        // Si la pila est√° muy baja, no hay donde almacenar el registro SP
         if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K
                 && z80.getRegSP() < 0x4002) {
             throw new SnapshotException("SNA_REGSP_ERROR");
@@ -309,13 +309,13 @@ public class SnapshotSNA implements SnapshotFile {
             }
 
             if (spectrum.getSpectrumModel() == MachineTypes.SPECTRUM128K) {
-                // Salvamos la p·gina de la pantalla 0x4000-0x7FFF (5)
+                // Salvamos la p√°gina de la pantalla 0x4000-0x7FFF (5)
                 buffer = memory.getPageRam(5);
                 fOut.write(buffer, 0, buffer.length);
-                // Salvamos la p·gina 0x8000-0xBFFF (2)
+                // Salvamos la p√°gina 0x8000-0xBFFF (2)
                 buffer = memory.getPageRam(2);
                 fOut.write(buffer, 0, buffer.length);
-                // Salvamos la p·gina en 0xC000-0xFFFF
+                // Salvamos la p√°gina en 0xC000-0xFFFF
                 buffer = memory.getPageRam((spectrum.getPort7ffd() & 0x07));
                 fOut.write(buffer, 0, buffer.length);
 
@@ -324,7 +324,7 @@ public class SnapshotSNA implements SnapshotFile {
                 fOut.write(z80.getRegPC());
                 fOut.write(z80.getRegPC() >>> 8);
                 fOut.write(spectrum.getPort7ffd());
-                fOut.write(0x00); // La ROM del TR-DOS no est· paginada
+                fOut.write(0x00); // La ROM del TR-DOS no est√° paginada
                 saved[spectrum.getPort7ffd() & 0x07] = true;
                 for (int page = 0; page < 8; page++) {
                     if (!saved[page]) {

@@ -33,22 +33,22 @@ public final class Memory {
     private byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
     // ROM del Interfaz I
     private byte[][] IF1Rom = new byte[1][PAGE_SIZE];
-    // 8 p·ginas de RAM
+    // 8 p√°ginas de RAM
     private byte[][] Ram = new byte[16][PAGE_SIZE];
-    // RAM falsa para dejar que escriba en p·ginas de ROM sin afectar a la
+    // RAM falsa para dejar que escriba en p√°ginas de ROM sin afectar a la
     // ROM de verdad. Esto evita tener que comprobar en cada escritura si la
-    // p·gina es de ROM o de RAM.
+    // p√°gina es de ROM o de RAM.
     private byte[] fakeROM = new byte[PAGE_SIZE];
-    // punteros a las 4 p·ginas
+    // punteros a las 4 p√°ginas
     private byte[][] readPages = new byte[8][];
     private byte[][] writePages = new byte[8][];
     // Roms de los Multiface ([0]=MF1, [1]=MF128, [2]=MFPLUS3)
     private byte[][] mfROM = new byte[3][PAGE_SIZE];
     // Ram del Multiface 8K para todos
     private byte[] mfRAM = new byte[PAGE_SIZE];
-    // Ram del la expansiÛn de memoria LEC
+    // Ram del la expansi√≥n de memoria LEC
     private byte[][] lecRam;
-    // N˙mero de p·gina de RAM de donde sale la pantalla activa
+    // N√∫mero de p√°gina de RAM de donde sale la pantalla activa
     private int screenPage;
     private int highPage, bankM, bankP, portFD, activePageLEC;
     private boolean IF1RomPaged, IF2RomPaged;
@@ -266,7 +266,7 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10]; // P·gina 5
+        readPages[2] = writePages[2] = Ram[10]; // P√°gina 5
         readPages[3] = writePages[3] = Ram[11];
 
         readPages[4] = readPages[5] = Ram[4];
@@ -288,13 +288,13 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10]; // P·gina 5
+        readPages[2] = writePages[2] = Ram[10]; // P√°gina 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4];  // P·gina 2
+        readPages[4] = writePages[4] = Ram[4];  // P√°gina 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0];  // P·gina 0
+        readPages[6] = writePages[6] = Ram[0];  // P√°gina 0
         readPages[7] = writePages[7] = Ram[1];
         screenPage = 10;
         model128k = false;
@@ -310,13 +310,13 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10]; // P·gina 5
+        readPages[2] = writePages[2] = Ram[10]; // P√°gina 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4]; // P·gina 2
+        readPages[4] = writePages[4] = Ram[4];  // P√°gina 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0]; // P·gina 0
+        readPages[6] = writePages[6] = Ram[0];  // P√°gina 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -335,13 +335,13 @@ public final class Memory {
         }
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10]; // P·gina 5
+        readPages[2] = writePages[2] = Ram[10]; // P√°gina 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4]; // P·gina 2
+        readPages[4] = writePages[4] = Ram[4];  // P√°gina 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0]; // P·gina 0
+        readPages[6] = writePages[6] = Ram[0];  // P√°gina 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -355,13 +355,13 @@ public final class Memory {
         readPages[1] = RomPlus3[1];
         writePages[0] = writePages[1] = fakeROM;
 
-        readPages[2] = writePages[2] = Ram[10]; // P·gina 5
+        readPages[2] = writePages[2] = Ram[10]; // P√°gina 5
         readPages[3] = writePages[3] = Ram[11];
 
-        readPages[4] = writePages[4] = Ram[4]; // P·gina 2
+        readPages[4] = writePages[4] = Ram[4];  // P√°gina 2
         readPages[5] = writePages[5] = Ram[5];
 
-        readPages[6] = writePages[6] = Ram[0]; // P·gina 0
+        readPages[6] = writePages[6] = Ram[0];  // P√°gina 0
         readPages[7] = writePages[7] = Ram[1];
 
         screenPage = 10;
@@ -392,7 +392,7 @@ public final class Memory {
         // Set the active screen
         screenPage = (port7ffd & 0x08) == 0 ? 10 : 14;
 
-        // Si el +3 est· en modo "all RAM" no se conmuta ROM ni RAM
+        // Si el +3 est√° en modo "all RAM" no se conmuta ROM ni RAM
         if (plus3RamMode) {
             return;
         }
@@ -402,7 +402,7 @@ public final class Memory {
         readPages[6] = writePages[6] = Ram[highPage << 1];
         readPages[7] = writePages[7] = Ram[(highPage << 1) + 1];
 
-        // Si est· funcionando el IF1, el IF2 o el MF, no tocar la ROM
+        // Si est√° funcionando el IF1, el IF2 o el MF, no tocar la ROM
         if (IF1RomPaged || multifacePaged
                 || (IF2RomPaged && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3)) {
             return;
@@ -475,7 +475,7 @@ public final class Memory {
             readPages[1] = RomPlus3[rom + 1];
             writePages[0] = writePages[1] = fakeROM;
             // Si estamos en Plus3RamMode es que estamos saliendo del modo
-            // "all RAM" y hay que reponer las p·ginas a su lugar
+            // "all RAM" y hay que reponer las p√°ginas a su lugar
             if (plus3RamMode) {
                 readPages[2] = writePages[2] = Ram[10];
                 readPages[3] = writePages[3] = Ram[11];
@@ -585,11 +585,11 @@ public final class Memory {
         return res;
     }
 
-    // "La AbadÌa del Crimen" pone la p·gina 7 en 0xC000 y selecciona la
-    // pantalla de la p·gina 7. A partir de ahÌ, la modifica en 0xC000 en
-    // lugar de hacerlo en 0x4000, donde siempre est· la p·gina 5.
-    // Livingstone Supongo II, versiÛn +2A/+3, usa las combinaciones "all RAM"
-    // de p·ginas 4, 5, 6, 3 y 4, 7, 6, 3.
+    // "La Abad√≠a del Crimen" pone la p√°gina 7 en 0xC000 y selecciona la
+    // pantalla de la p√°gina 7. A partir de ah√≠, la modifica en 0xC000 en
+    // lugar de hacerlo en 0x4000, donde siempre est√° la p√°gina 5.
+    // Livingstone Supongo II, versi√≥n +2A/+3, usa las combinaciones "all RAM"
+    // de p√°ginas 4, 5, 6, 3 y 4, 7, 6, 3.
     public boolean isScreenByte(int addr) {
         if (plus3RamMode) {
             switch (bankP & 0x06) {
@@ -602,7 +602,7 @@ public final class Memory {
             }
         }
 
-        // El caso de todo RAM con p·ginas 4, 5, 6, 7 cae aquÌ
+        // El caso de todo RAM con p√°ginas 4, 5, 6, 7 cae aqu√≠
         switch (addr >>> 13) {
             case 2: // Address 0x4000-0x5fff
                 return (addr < 0x5B00 && screenPage == 10);
@@ -659,36 +659,36 @@ public final class Memory {
     }
 
     /*
-     * Existieron, b·sicamente, 3 modelos de Multiface, versiÛn Spectrum:
+     * Existieron, b√°sicamente, 3 modelos de Multiface, versi√≥n Spectrum:
      * el Multiface 1, para el Spectrum 48k, el Multiface 128, para el 128k/+2
-     * y el Multiface 3, para el Spectrum +2A/+3. El MF128 podÌa funcionar
-     * tambiÈn en el 16k/48k y el MF1 podÌa funcionar en el 128k en el modo 48k
-     * con paginaciÛn bloqueada. El MF3 solo funcionaba los +2A/+3.
+     * y el Multiface 3, para el Spectrum +2A/+3. El MF128 pod√≠a funcionar
+     * tambi√©n en el 16k/48k y el MF1 pod√≠a funcionar en el 128k en el modo 48k
+     * con paginaci√≥n bloqueada. El MF3 solo funcionaba los +2A/+3.
      *
      * Todos tienen 8 KB de ROM que se paginan entre las direcciones 0x0000-0x1FFF
      * y 8 KB de RAM que se paginan entre 0x2000-0x3FFF. De esta forma, sustituyen
      * a la ROM del Spectrum en dos momentos principalmente:
      *
-     * 1.- Cuando se pulsa el botÛn rojo del Multiface. Con ello se provoca una
-     *     NMI a la vez que mediante la seÒal del bus de expansiÛn ROMCS se deja
+     * 1.- Cuando se pulsa el bot√≥n rojo del Multiface. Con ello se provoca una
+     *     NMI a la vez que mediante la se√±al del bus de expansi√≥n ROMCS se deja
      *     a la ROM original en estado de alta impedancia. La NMI ejecuta entonces
      *     la rutina en 0x0066 de la ROM del Multiface. En el 128K se inhabilita
      *     el chip de la ROM (32 KB) y, por tanto, da igual cual de ellas estuviera
-     *     paginada. En el +2A/+3 hay dos chips de ROM fÌsicas (32+32 KB) y en el
-     *     bus, en lugar de una seÒal ROMCS hay dos llamadas ROM 1 OE y ROM 2 OE. En
+     *     paginada. En el +2A/+3 hay dos chips de ROM f√≠sicas (32+32 KB) y en el
+     *     bus, en lugar de una se√±al ROMCS hay dos llamadas ROM 1 OE y ROM 2 OE. En
      *     este caso, el fallo es que el +3 tiene modos "all RAM" en los cuales no hay
      *     ROM que inhabilitar (si lo hay, pero da igual porque no se usan) y el
      *     MF3 no funciona.
-     *     Adem·s, en el MF128 y en el MF3 hay un "switch" interno que sirve de bloqueo
-     *     del aparato, para que Èste no sea detectado por otro hardware (excusa f·cil)
-     *     ni por el software. Este bloqueo se desactiva SIEMPRE al pulsar el botÛn rojo.
+     *     Adem√°s, en el MF128 y en el MF3 hay un "switch" interno que sirve de bloqueo
+     *     del aparato, para que √©ste no sea detectado por otro hardware (excusa f√°cil)
+     *     ni por el software. Este bloqueo se desactiva SIEMPRE al pulsar el bot√≥n rojo.
      *
-     * 2.- Por programaciÛn, siempre que el aparato (MF128/MF3) no estÈ en estado de bloqueo.
-     *     (Versiones posteriores del MF1 incorporaban un switch fÌsico).
-     *     Cada modelo de MF tiene un puerto de activaciÛn y otro de desactivaciÛn
-     *     (ambos diferentes entre todos ellos). El mÈtodo consiste en leer de un puerto
-     *     determinado, lo que provoca la paginaciÛn/despaginaciÛn del aparato. La
-     *     relaciÛn de puertos es:
+     * 2.- Por programaci√≥n, siempre que el aparato (MF128/MF3) no est√© en estado de bloqueo.
+     *     (Versiones posteriores del MF1 incorporaban un switch f√≠sico).
+     *     Cada modelo de MF tiene un puerto de activaci√≥n y otro de desactivaci√≥n
+     *     (ambos diferentes entre todos ellos). El m√©todo consiste en leer de un puerto
+     *     determinado, lo que provoca la paginaci√≥n/despaginaci√≥n del aparato. La
+     *     relaci√≥n de puertos es:
      *
      *     * Multiface One
      *       IN del puerto 0x9f, pagina el MF
@@ -697,24 +697,24 @@ public final class Memory {
      *     * Multiface 128
      *       IN del puerto 0xbf, pagina el MF128
      *       IN del puerto 0x3f, despagina el MF128
-     *       IN del puerto 0x01bf, lectura del ˙ltimo valor enviado el puerto 0x7ffd
+     *       IN del puerto 0x01bf, lectura del √∫ltimo valor enviado el puerto 0x7ffd
      *
      *     * Multiface 3
      *       IN del puerto 0x3f, pagina el MF3
      *       IN del puerto 0xbf, despagina el MF3
-     *       IN del puerto 0x1f3f, lectura del ˙ltimo valor enviado al puerto 0x1ffd
-     *       IN del puerto 0x7f3f, lectura del ˙ltimo valor enviado el puerto 0x7ffd
+     *       IN del puerto 0x1f3f, lectura del √∫ltimo valor enviado al puerto 0x1ffd
+     *       IN del puerto 0x7f3f, lectura del √∫ltimo valor enviado el puerto 0x7ffd
      *
-     *     Los dos ˙ltimos puertos del MF3, solo son legibles cuando el aparato est·
-     *     desbloqueado y, adem·s, est· paginada la ROM del MF3. Si no, devuelven
-     *     0xFF como todo puerto que no estÈ asignado.
+     *     Los dos √∫ltimos puertos del MF3, solo son legibles cuando el aparato est√©
+     *     desbloqueado y, adem√°s, est√© paginada la ROM del MF3. Si no, devuelven
+     *     0xFF como todo puerto que no est√© asignado.
      *
      *     El MF128 y el MF3 controlan el "switch" de bloqueo con una escritura (OUT) al
      *     puerto 0x3f para activar el bloqueo y con un OUT al puerto 0xbf para desactivar
-     *     el bloqueo (es asÌ como funciona la opciÛn de ON/OFF del men˙ del MF). Esta
-     *     escritura funciona siempre que estÈ paginada la ROM del MF, el bloqueo
-     *     desactivado y, supuestamente, pero no lo he comprobado, que el PC estÈ
-     *     en una direcciÛn por debajo de 0x4000.
+     *     el bloqueo (es as√≠ como funciona la opci√≥n de ON/OFF del men√∫ del MF). Esta
+     *     escritura funciona siempre que est√© paginada la ROM del MF, el bloqueo
+     *     desactivado y, supuestamente, pero no lo he comprobado, que el PC est√©
+     *     en una direcci√≥n por debajo de 0x4000.
      *     El valor enviado al puerto parece que es indiferente. El amigo Woodster, del
      *     canal SPIN, me dijo el 12/09/2010:
      *
@@ -726,7 +726,7 @@ public final class Memory {
      *     [1:39pm] <Woodster>         JR   #06E8
      *     [1:39pm] <Woodster> L06E6:  OUT  (#BF),A
      *
-     *     La mayorÌa de informaciÛn acerca de los detalles no evidentes proviene de Èl.
+     *     La mayor√≠a de informaci√≥n acerca de los detalles no evidentes proviene de √©l.
      *     Thanks Woodster. :)
      *
      *     http://www.worldofspectrum.org/forums/showthread.php?t=12294
@@ -759,8 +759,8 @@ public final class Memory {
 
     /*
      * Al despaginar los MF128/MFP3 hay que tener en cuenta que la
-     * paginaciÛn puede estar bloqueada (bit 5 de 0x7ffd). En ese
-     * caso, la ROM que entra es, por obligaciÛn, la del Spectrum 48k
+     * paginacion puede estar bloqueada (bit 5 de 0x7ffd). En ese
+     * caso, la ROM que entra es, por obligaci√≥n, la del Spectrum 48k
      * (ROM1 para el 128k/+2 y ROM3 para el +2A/+3.
      */
     public void unpageMultiface() {

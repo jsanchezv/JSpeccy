@@ -42,7 +42,7 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     private static final int yUv = 1;
     private static final int yuV = 2;
     
-    // Estos miembros solo cambian cuando cambia el tamaño del borde
+    // Estos miembros solo cambian cuando cambia el tamaÃ±o del borde
     private int LEFT_BORDER = 32;
     private int RIGHT_BORDER = 32;
     private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;

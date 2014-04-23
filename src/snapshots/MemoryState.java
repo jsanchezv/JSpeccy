@@ -114,7 +114,7 @@ public class MemoryState {
         this.IF1RomPaged = IF1RomPaged;
     }
     
-    // método de conveniencia para los snapshots Z80
+    // mÃ©todo de conveniencia para los snapshots Z80
     public byte readByte(int page, int address) {
             return ram[page][address];
     }

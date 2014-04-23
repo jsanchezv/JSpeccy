@@ -2,20 +2,20 @@
 //Title:        Emulador en Java de un Sinclair ZX Spectrum 48K
 //Version:      1.0 B
 //Copyright:    Copyright (c) 2004
-//Author:       Alberto S·nchez TerrÈn
+//Author:       Alberto S√°nchez Terr√©n
 //Clase:        Z80.java
-//DescripciÛn:  La clase Z80 es la m·s extensa de todas ya que debe implementar
-//				la estructura del microprocesador Z80 y la ejecuciÛn de todas
-//				las instrucciones del repertorio del mismo.
+//Descripci√≥n:  La clase Z80 es la m√°s extensa de todas ya que debe implementar
+//		la estructura del microprocesador Z80 y la ejecuciÔøΩn de todas
+//		las instrucciones del repertorio del mismo.
 //-----------------------------------------------------------------------------
 /*
- * VersiÛn: 2.0
- * Autor:   JosÈ Luis S·nchez Villanueva
+ * Versi√≥n: 2.0
+ * Autor:   Jos√© Luis S√°nchez Villanueva
  *
  * Notas:   09/01/2008 pasa los 68 tests de ZEXALL, con lo que se supone
- *          que realiza una implementaciÛn correcta de la Z80.
+ *          que realiza una implementaci√≥n correcta de la Z80.
  * 
- *          14/01/2008 pasa tambiÈn los tests de fuse 0.10, exceptuando
+ *          14/01/2008 pasa tambi√©n los tests de fuse 0.10, exceptuando
  *          los que fuse no implementa bien (BIT n,(HL)).
  *          Del resto, cumple con los contenidos de los registros, flags,
  *          y t-estados.
@@ -25,110 +25,110 @@
  *          03/12/2008 se descomponen las instrucciones para poder
  *          implementar la contended-memory del Spectrum.
  *
- *          21/09/2009 modificaciÛn a lo bestia del emulador. Los flags
- *          se convierten de boolean a bits en un int. El ˙nico
+ *          21/09/2009 modificaci√≥n a lo bestia del emulador. Los flags
+ *          se convierten de boolean a bits en un int. El √∫nico
  *          que se deja como estaba es el carryFlag. Ahora los
  *          flags se sacan de tablas precalculadas.
  *
  *          22/09/2009 Optimizado el tratamiento del HALFCARRY_FLAG en los
- *          mÈtodos add16/add/sub/cp.
+ *          m√©todos add16/add/sub/cp.
  *
- *          23/09/2009 Los mÈtodos de m·s 8000 bytecodes no son compilados
+ *          23/09/2009 Los m√©todos de m√°s 8000 bytecodes no son compilados
  *          por el JIT a menos que se obliguemos a ello, cosa poco aconsejable.
- *          El mÈtodo decodeDDFDCD original tenÌa m·s de 12000 bytecodes, asÌ que
- *          se subdivide en 2 mÈtodos que procesan los cÛdigos por rangos:
+ *          El m√©todo decodeDDFDCD original ten√≠a m√°s de 12000 bytecodes, as√≠ que
+ *          se subdivide en 2 m√©todos que procesan los c√≥digos por rangos:
  *          0x00-0x7F y 0x80-0xFF quedando todos por debajo de los 7000 bytecodes.
  *
- *          25/09/2009 Se completa la emulaciÛn del registro interno MEMPTR.
+ *          25/09/2009 Se completa la emulaci√≥n del registro interno MEMPTR.
  *          Ahora el core-Z80 supera todos los test de MEMPTR del z80tests.tap.
  *          (http://homepage.ntlworld.com/mark.woodmass/z80tests.tap)
- *          Mis agradecimientos a ∑The Woodster∑ por el programa, a Boo-boo que
+ *          Mis agradecimientos a "The Woodster" por el programa, a Boo-boo que
  *          investigo el funcionamiento de MEMPTR y a Vladimir Kladov por
- *          traducir al inglÈs el documento original.
+ *          traducir al ingl√©s el documento original.
  *
  *          02/10/2009 Se modifica el core para que soporte el retriggering de
  *          interrupciones, cosa que en realidad, estaba pensada desde el
  *          principio.
  *
  *          28/03/2010 Se corrige un problema con el manejo de las interrupciones.
- *          Para ello es necesario introducir el flag 'halted'. El problema surgÌa
- *          ˙nicamente cuando la INT se producÌa cuando la instrucciÛn a la que
- *          apunta PC es un HALT pero Èste a˙n no se ha ejecutado. En ese caso,
- *          el HALT se ejecutar· a la vuelta de la interrupciÛn. Hasta ahora,
- *          la direcciÛn de retorno de la INT que se guardaba en el stack era la
- *          de PC+1 como si el HALT ya se hubiera ejecutado, cuando esto ˙ltimo
+ *          Para ello es necesario introducir el flag 'halted'. El problema surg√≠a
+ *          √∫nicamente cuando la INT se produc√≠a cuando la instrucci√≥n a la que
+ *          apunta PC es un HALT pero √©ste a√∫n no se ha ejecutado. En ese caso,
+ *          el HALT se ejecutar√° a la vuelta de la interrupci√≥n. Hasta ahora,
+ *          la direcci√≥n de retorno de la INT que se guardaba en el stack era la
+ *          de PC+1 como si el HALT ya se hubiera ejecutado, cuando esto √∫ltimo
  *          era falso. Gracias a Woodster por el programa de test y por informarme
  *          del fallo. Thanks!, Woodster. :)
- *          Creo tambiÈn los mÈtodos isHalted/setHalted para acceder al flag. De paso,
- *          duplico el mÈtodo push para que tenga dos par·metros y poder usarla asÌ
- *          con los registros de propÛsito general, para que sea m·s r·pido.
+ *          Creo tambi√©n los m√©todos isHalted/setHalted para acceder al flag. De paso,
+ *          duplico el m√©todo push para que tenga dos par√°metros y poder usarla as√≠
+ *          con los registros de prop√≥sito general, para que sea m√°s r√°pido.
  *
- *          23/08/2010 IncreÌble!. DespuÈs de tanto tiempo, a˙n he tenido que
- *          corregir la instrucciÛn LD SP, IX(IY) que realizaba los 2 estados de
- *          contenciÛn sobre PC en lugar de sobre IR que es lo correcto. De paso
+ *          23/08/2010 Incre√≠ble!. Despu√©s de tanto tiempo, a√∫n he tenido que
+ *          corregir la instrucci√≥n LD SP, IX(IY) que realizaba los 2 estados de
+ *          contenci√≥n sobre PC en lugar de sobre IR que es lo correcto. De paso
  *          he verificado que todos los usos de getRegIR() son correctos.
  * 
- *          29/05/2011 Corregida la inicializaciÛn de los registros dependiendo
- *          de si es por un reset a travÈs de dicho pin o si es por inicio de
- *          alimentaciÛn al chip.
+ *          29/05/2011 Corregida la inicializaci√≥n de los registros dependiendo
+ *          de si es por un reset a trav√©s de dicho pin o si es por inicio de
+ *          alimentaci√≥n al chip.
  * 
- *          04/06/2011 Creados los mÈtodos de acceso al registro oculto MEMPTR
+ *          04/06/2011 Creados los m√©todos de acceso al registro oculto MEMPTR
  *          para que puedar cargarse/guardarse en los snapshots de tipo SZX.
  * 
- *          06/06/2011 PequeÒas optimizaciones en LDI/LDD y CPI/CPD. Se eliminan
- *          los mÈtodos set/reset porque, al no afectar a los flags, es m·s
- *          r·pido aplicar la operaciÛn lÛgica con la m·scara donde proceda que
- *          llamar a un mÈtodo pas·ndole dos par·metros. Se elimina tambiÈn el
- *          mÈtodo EXX y su cÛdigo se pone en el switch principal.
+ *          06/06/2011 Peque√±as optimizaciones en LDI/LDD y CPI/CPD. Se eliminan
+ *          los m√©todos set/reset porque, al no afectar a los flags, es m√°s
+ *          r√°pido aplicar la operaci√≥n l√≥gica con la m√°scara donde proceda que
+ *          llamar a un m√©todo pas√°ndole dos par√°metros. Se elimina tambi√©n el
+ *          m√©todo EXX y su c√≥digo se pone en el switch principal.
  * 
  *          07/06/2011 En las instrucciones INC/DEC (HL) el estado adicional
- *          estaba mal puesto, ya que va despuÈs del read y no antes. Corregido.
+ *          estaba mal puesto, ya que va despu√©s del read y no antes. Corregido.
  * 
- *          04/07/2011 Se elimina el mÈtodo push aÒadido el 28/03/2010 y se usa
- *          el que queda en todos los casos. El cÛdigo de RETI se unifica con
- *          RETN y sus cÛdigos duplicados. Ligeras modificaciones en DJNZ y en
+ *          04/07/2011 Se elimina el m√©todo push a√±adido el 28/03/2010 y se usa
+ *          el que queda en todos los casos. El c√≥digo de RETI se unifica con
+ *          RETN y sus c√≥digos duplicados. Ligeras modificaciones en DJNZ y en
  *          LDI/LDD/CPI/CPD. Se optimiza el tratamiento del registro MEMPTR.
  * 
  *          11/07/2011 Se optimiza el tratamiento del carryFlag en las instrucciones
  *          SUB/SBC/SBC16/CP. Se optimiza el tratamiento del HalfCarry en las
  *          instruciones ADC/ADC16/SBC/SBC16.
  * 
- *          25/09/2011 Introducidos los mÈtodos get/setTimeout. De esa forma,
- *          adem·s de recibir una notificaciÛn despuÈs de cada instrucciÛn ejecutada
- *          se puede recibir tras N ciclos. En cualquier caso, execDone ser· llamada
- *          con el n˙mero de ciclos ejecutados, sea tras una sola instrucciÛn o tras
- *          expirar el timeout programado. Si hay un timeout, Èste seguir· vigente
+ *          25/09/2011 Introducidos los m√©todos get/setTimeout. De esa forma,
+ *          adem√°s de recibir una notificaci√≥n despu√©s de cada instrucci√≥n ejecutada
+ *          se puede recibir tras N ciclos. En cualquier caso, execDone ser√° llamada
+ *          con el n√∫mero de ciclos ejecutados, sea tras una sola instrucci√≥n o tras
+ *          expirar el timeout programado. Si hay un timeout, √©ste seguir√° vigente
  *          hasta que se programe otro o se ponga a false execDone. Si el timeout
- *          se programa a cero, se llamar· a execDone tras cada instrucciÛn.
+ *          se programa a cero, se llamar√° a execDone tras cada instrucci√≥n.
  * 
- *          08/10/2011 En los mÈtodos xor, or y cp se aseguran de que valores > 0xff
- *          pasados como par·metro no le afecten.
+ *          08/10/2011 En los m√©todos xor, or y cp se aseguran de que valores > 0xff
+ *          pasados como par√°metro no le afecten.
  * 
  *          11/10/2011 Introducida la nueva funcionalidad que permite definir
- *          breakpoints. Cuando se va a ejecutar el opcode que est· en esa direcciÛn
- *          se llama al mÈtodo atAddress. Se separan en dos interfaces las llamadas a
- *          los accesos a memoria de las llamadas de notificaciÛn.
+ *          breakpoints. Cuando se va a ejecutar el opcode que est√° en esa direcci√≥n
+ *          se llama al m√©todo atAddress. Se separan en dos interfaces las llamadas a
+ *          los accesos a memoria de las llamadas de notificaci√≥n.
  * 
- *          13/10/2011 Corregido un error en la emulaciÛn de las instrucciones
- *          DD/FD que no van seguidas de un cÛdigo de instrucciÛn adecuado a IX o IY.
+ *          13/10/2011 Corregido un error en la emulaci√≥n de las instrucciones
+ *          DD/FD que no van seguidas de un c√≥digo de instrucci√≥n adecuado a IX o IY.
  *          Tal y como se trataban hasta ahora, se comprobaban las interrupciones entre
- *          el/los cÛdigos DD/FD y el cÛdigo de instrucciÛn que le seguÌa.
+ *          el/los c√≥digos DD/FD y el c√≥digo de instrucci√≥n que le segu√≠a.
  * 
- *          02/12/2011 Creados los mÈtodos necesarios para poder grabar y cargar el
- *          estado de la CPU de una sola vez a travÈs de la clase Z80State. Los modos
- *          de interrupciÛn pasan a estar en una enumeraciÛn. Se proporcionan mÈtodos de
+ *          02/12/2011 Creados los m√©todos necesarios para poder grabar y cargar el
+ *          estado de la CPU de una sola vez a trav√©s de la clase Z80State. Los modos
+ *          de interrupci√≥n pasan a estar en una enumeraci√≥n. Se proporcionan m√©todos de
  *          acceso a los registros alternativos de 8 bits.
  * 
- *          03/06/2012 Eliminada la adiciÛn del 25/09/2011. El n˙cleo de la Z80 no tiene
+ *          03/06/2012 Eliminada la adici√≥n del 25/09/2011. El n√∫cleo de la Z80 no tiene
  *          que preocuparse por timeouts ni zarandajas semejantes. Eso ahora es
  *          responsabilidad de la clase Clock. Se mantiene la funcionalidad del execDone
- *          por si fuera necesario en alg˙n momento avisar tras cada ejecuciÛn de
- *          instrucciÛn (para un depurador, por ejemplo).
+ *          por si fuera necesario en alg√∫n momento avisar tras cada ejecuci√≥n de
+ *          instrucci√≥n (para un depurador, por ejemplo).
  * 
- *          10/12/2012 Actualizada la emulaciÛn con las ˙ltimas investigaciones llevadas a
+ *          10/12/2012 Actualizada la emulaci√≥n con las √∫ltimas investigaciones llevadas a
  *          cabo por Patrik Rak, respecto al comportamiento de los bits 3 y 5 del registro F
- *          en las instrucciones CCF/SCF. Otro de los tests de Patrik demuestra que, adem·s,
- *          la emulaciÛn de MEMPTR era incompleta (por no estar completamente descrita).
+ *          en las instrucciones CCF/SCF. Otro de los tests de Patrik demuestra que, adem√°s,
+ *          la emulaci√≥n de MEMPTR era incompleta (por no estar completamente descrita).
  *
  */
 package z80core;
@@ -142,7 +142,7 @@ public class Z80 {
     private final Clock clock;
     private final MemIoOps MemIoImpl;
     private final NotifyOps NotifyImpl;
-    // CÛdigo de instrucciÛn a ejecutar
+    // C√≥digo de instrucci√≥n a ejecutar
     private int opCode;
     // Subsistema de notificaciones
     private boolean execDone;
@@ -156,7 +156,7 @@ public class Z80 {
     private static final int BIT5_MASK = 0x20;
     private static final int ZERO_MASK = 0x40;
     private static final int SIGN_MASK = 0x80;
-    // M·scaras de conveniencia
+    // M√°scaras de conveniencia
     private static final int FLAG_53_MASK = BIT5_MASK | BIT3_MASK;
     private static final int FLAG_SZ_MASK = SIGN_MASK | ZERO_MASK;
     private static final int FLAG_SZHN_MASK = FLAG_SZ_MASK | HALFCARRY_MASK | ADDSUB_MASK;
@@ -166,9 +166,9 @@ public class Z80 {
     private int regA, regB, regC, regD, regE, regH, regL;
     // Flags sIGN, zERO, 5, hALFCARRY, 3, pARITY y ADDSUB (n)
     private int sz5h3pnFlags;
-    // El flag Carry es el ˙nico que se trata aparte
+    // El flag Carry es el √∫nico que se trata aparte
     private boolean carryFlag;
-    /* Flags para indicar la modificaciÛn del registro F en la instrucciÛn actual
+    /* Flags para indicar la modificaci√≥n del registro F en la instrucci√≥n actual
      * y en la anterior.
      * Son necesarios para emular el comportamiento de los bits 3 y 5 del
      * registro F con las instrucciones CCF/SCF.
@@ -184,73 +184,73 @@ public class Z80 {
     private int regFx;
     // Registros alternativos
     private int regBx, regCx, regDx, regEx, regHx, regLx;
-    // Registros de propÛsito especÌfico
+    // Registros de prop√≥sito espec√≠fico
     // *PC -- Program Counter -- 16 bits*
     private int regPC;
-    // *IX -- Registro de Ìndice -- 16 bits*
+    // *IX -- Registro de √≠ndice -- 16 bits*
     private int regIX;
-    // *IY -- Registro de Ìndice -- 16 bits*
+    // *IY -- Registro de √≠ndice -- 16 bits*
     private int regIY;
     // *SP -- Stack Pointer -- 16 bits*
     private int regSP;
-    // *I -- Vector de interrupciÛn -- 8 bits*
+    // *I -- Vector de interrupci√≥n -- 8 bits*
     private int regI;
     // *R -- Refresco de memoria -- 7 bits*
     private int regR;
     // *R7 -- Refresco de memoria -- 1 bit* (bit superior de R)
     private boolean regRbit7;
-    //Flip-flops de interrupciÛn
+    //Flip-flops de interrupci√≥n
     private boolean ffIFF1 = false;
     private boolean ffIFF2 = false;
     // EI solo habilita las interrupciones DESPUES de ejecutar la
-    // siguiente instrucciÛn (excepto si la siguiente instrucciÛn es un EI...)
+    // siguiente instrucci√≥n (excepto si la siguiente instrucci√≥n es un EI...)
     private boolean pendingEI = false;
-    // Estado de la lÌnea NMI
+    // Estado de la l√≠nea NMI
     private boolean activeNMI = false;
-    // Si est· activa la lÌnea INT
-    // En el 48 y los +2a/+3 la lÌnea INT se activa durante 32 ciclos de reloj
+    // Si est√° activa la l√≠nea INT
+    // En el 48 y los +2a/+3 la l√≠nea INT se activa durante 32 ciclos de reloj
     // En el 128 y +2, se activa 36 ciclos de reloj
     private boolean activeINT = false;
-    // Modos de interrupciÛn
+    // Modos de interrupci√≥n
     public enum IntMode { IM0, IM1, IM2 };
-    // Modo de interrupciÛn
+    // Modo de interrupci√≥n
     private IntMode modeINT = IntMode.IM0;
-    // halted == true cuando la CPU est· ejecutando un HALT (28/03/2010)
+    // halted == true cuando la CPU est√° ejecutando un HALT (28/03/2010)
     private boolean halted = false;
-    // pinReset == true, se ha producido un reset a travÈs de la patilla
+    // pinReset == true, se ha producido un reset a trav√©s de la patilla
     private boolean pinReset = false;
     /*
      * Registro interno que usa la CPU de la siguiente forma
      *
      * ADD HL,xx      = Valor del registro H antes de la suma
      * LD r,(IX/IY+d) = Byte superior de la suma de IX/IY+d
-     * JR d           = Byte superior de la direcciÛn de destino del salto
+     * JR d           = Byte superior de la direcci√≥n de destino del salto
      *
-     * 04/12/2008     No se vayan todavÌa, a˙n hay m·s. Con lo que se ha
+     * 04/12/2008     No se vayan todav√≠a, a√∫n hay m√°s. Con lo que se ha
      *                implementado hasta ahora parece que funciona. El resto de
-     *                la historia est· contada en:
+     *                la historia est√° contada en:
      *                http://zx.pk.ru/attachment.php?attachmentid=2989
      *
-     * 25/09/2009     Se ha completado la emulaciÛn de MEMPTR. A seÒalar que
+     * 25/09/2009     Se ha completado la emulaci√≥n de MEMPTR. A se√±alar que
      *                no se puede comprobar si MEMPTR se ha emulado bien hasta
      *                que no se emula el comportamiento del registro en las
      *                instrucciones CPI y CPD. Sin ello, todos los tests de
-     *                z80tests.tap fallar·n aunque se haya emulado bien al
+     *                z80tests.tap fallar√°n aunque se haya emulado bien al
      *                registro en TODAS las otras instrucciones.
      *                Shit yourself, little parrot.
      */
     private int memptr;
 
-    /* Algunos flags se precalculan para un tratamiento m·s r·pido
+    /* Algunos flags se precalculan para un tratamiento m√°s r√°pido
      * Concretamente, SIGN, ZERO, los bits 3, 5, PARITY y ADDSUB:
      * sz53n_addTable tiene el ADDSUB flag a 0 y paridad sin calcular
      * sz53pn_addTable tiene el ADDSUB flag a 0 y paridad calculada
      * sz53n_subTable tiene el ADDSUB flag a 1 y paridad sin calcular
      * sz53pn_subTable tiene el ADDSUB flag a 1 y paridad calculada
-     * El resto de bits est·n a 0 en las cuatro tablas lo que es
+     * El resto de bits est√°n a 0 en las cuatro tablas lo que es
      * importante para muchas operaciones que ponen ciertos flags a 0 por real
-     * decreto. Si lo ponen a 1 por el mismo mÈtodo basta con hacer un OR con
-     * la m·scara correspondiente.
+     * decreto. Si lo ponen a 1 por el mismo m√©todo basta con hacer un OR con
+     * la m√°scara correspondiente.
      */
     private static final int sz53n_addTable[] = new int[256];
     private static final int sz53pn_addTable[] = new int[256];
@@ -290,8 +290,8 @@ public class Z80 {
         sz53pn_subTable[0] |= ZERO_MASK;
     }
 
-    // Un true en una direcciÛn indica que se debe notificar que se va a
-    // ejecutar la instrucciÛn que est· en esa direciÛn.
+    // Un true en una direcci√≥n indica que se debe notificar que se va a
+    // ejecutar la instrucci√≥n que est√° en esa direci√≥n.
     private boolean breakpointAt[] = new boolean[65536];
     
     // Constructor de la clase
@@ -548,9 +548,9 @@ public class Z80 {
         regL = word & 0xff;
     }
 
-    /* Las funciones incRegXX y decRegXX est·n escritas pensando en que
-     * puedan aprovechar el camino m·s corto aunque tengan un poco m·s de
-     * cÛdigo (al menos en bytecodes lo tienen)
+    /* Las funciones incRegXX y decRegXX est√°n escritas pensando en que
+     * puedan aprovechar el camino m√°s corto aunque tengan un poco m√°s de
+     * c√≥digo (al menos en bytecodes lo tienen)
      */
     private void incRegHL() {
         if (++regL < 0x100) {
@@ -589,7 +589,7 @@ public class Z80 {
         regLx = word & 0xff;
     }
 
-    // Acceso a registros de propÛsito especÌfico
+    // Acceso a registros de prop√≥sito espec√≠fico
     public final int getRegPC() {
         return regPC;
     }
@@ -759,7 +759,7 @@ public class Z80 {
         carryFlag = (regF & CARRY_MASK) != 0;
     }
 
-    // Acceso a los flip-flops de interrupciÛn
+    // Acceso a los flip-flops de interrupci√≥n
     public final boolean isIFF1() {
         return ffIFF1;
     }
@@ -784,12 +784,12 @@ public class Z80 {
         activeNMI = nmi;
     }
 
-    // La lÌnea de NMI se activa por impulso, no por nivel
+    // La l√≠nea de NMI se activa por impulso, no por nivel
     public final void triggerNMI() {
         activeNMI = true;
     }
 
-    // La lÌnea INT se activa por nivel
+    // La l√≠nea INT se activa por nivel
     public final boolean isINTLine() {
         return activeINT;
     }
@@ -798,7 +798,7 @@ public class Z80 {
         activeINT = intLine;
     }
 
-    //Acceso al modo de interrupciÛn
+    //Acceso al modo de interrupci√≥n
     public final IntMode getIM() {
         return modeINT;
     }
@@ -899,17 +899,17 @@ public class Z80 {
     }
     
     // Reset
-    /* Seg˙n el documento de Sean Young, que se encuentra en
+    /* Seg√∫n el documento de Sean Young, que se encuentra en
      * [http://www.myquest.com/z80undocumented], la mejor manera de emular el
-     * reset es poniendo PC, IFF1, IFF2, R e IM0 a 0 y todos los dem·s registros
+     * reset es poniendo PC, IFF1, IFF2, R e IM0 a 0 y todos los dem√°s registros
      * a 0xFFFF.
      * 
-     * 29/05/2011: cuando la CPU recibe alimentaciÛn por primera vez, los
+     * 29/05/2011: cuando la CPU recibe alimentaci√≥n por primera vez, los
      *             registros PC e IR se inicializan a cero y el resto a 0xFF.
-     *             Si se produce un reset a travÈs de la patilla correspondiente,
+     *             Si se produce un reset a trav√©s de la patilla correspondiente,
      *             los registros PC e IR se inicializan a 0 y el resto se preservan.
      *             En cualquier caso, todo parece depender bastante del modelo
-     *             concreto de Z80, asÌ que se escoge el comportamiento del
+     *             concreto de Z80, as√≠ que se escoge el comportamiento del
      *             modelo Zilog Z8400APS. Z80A CPU.
      *             http://www.worldofspectrum.org/forums/showthread.php?t=34574
      */
@@ -948,7 +948,7 @@ public class Z80 {
     }
 
     // Rota a la izquierda el valor del argumento
-    // El bit 0 y el flag C toman el valor del bit 7 antes de la operaciÛn
+    // El bit 0 y el flag C toman el valor del bit 7 antes de la operaci√≥n
     private int rlc(int oper8) {
         carryFlag = (oper8 > 0x7f);
         oper8 = (oper8 << 1) & 0xfe;
@@ -962,7 +962,7 @@ public class Z80 {
 
     // Rota a la izquierda el valor del argumento
     // El bit 7 va al carry flag
-    // El bit 0 toma el valor del flag C antes de la operaciÛn
+    // El bit 0 toma el valor del flag C antes de la operaci√≥n
     private int rl(int oper8) {
         boolean carry = carryFlag;
         carryFlag = (oper8 > 0x7f);
@@ -989,7 +989,7 @@ public class Z80 {
     // Rota a la izquierda el valor del argumento (como sla salvo por el bit 0)
     // El bit 7 va al carry flag
     // El bit 0 toma el valor 1
-    // InstrucciÛn indocumentada
+    // InstrucciÔøΩn indocumentada
     private int sll(int oper8) {
         carryFlag = (oper8 > 0x7f);
         oper8 = ((oper8 << 1) | CARRY_MASK) & 0xff;
@@ -999,7 +999,7 @@ public class Z80 {
     }
 
     // Rota a la derecha el valor del argumento
-    // El bit 7 y el flag C toman el valor del bit 0 antes de la operaciÛn
+    // El bit 7 y el flag C toman el valor del bit 0 antes de la operaci√≥n
     private int rrc(int oper8) {
         carryFlag = (oper8 & CARRY_MASK) != 0;
         oper8 >>>= 1;
@@ -1013,7 +1013,7 @@ public class Z80 {
 
     // Rota a la derecha el valor del argumento
     // El bit 0 va al carry flag
-    // El bit 7 toma el valor del flag C antes de la operaciÛn
+    // El bit 7 toma el valor del flag C antes de la operaci√≥n
     private int rr(int oper8) {
         boolean carry = carryFlag;
         carryFlag = (oper8 & CARRY_MASK) != 0;
@@ -1029,9 +1029,9 @@ public class Z80 {
     // A = A7 A6 A5 A4 (HL)3 (HL)2 (HL)1 (HL)0
     // (HL) = A3 A2 A1 A0 (HL)7 (HL)6 (HL)5 (HL)4
     // Los bits 3,2,1 y 0 de (HL) se copian a los bits 3,2,1 y 0 de A.
-    // Los 4 bits bajos que habÌa en A se copian a los bits 7,6,5 y 4 de (HL).
-    // Los 4 bits altos que habÌa en (HL) se copian a los 4 bits bajos de (HL)
-    // Los 4 bits superiores de A no se tocan. °p'habernos matao!
+    // Los 4 bits bajos que hab√≠a en A se copian a los bits 7,6,5 y 4 de (HL).
+    // Los 4 bits altos que hab√≠a en (HL) se copian a los 4 bits bajos de (HL)
+    // Los 4 bits superiores de A no se tocan. ¬°p'habernos matao!
     private void rrd() {
         int aux = (regA & 0x0f) << 4;
         memptr = getRegHL();
@@ -1046,10 +1046,10 @@ public class Z80 {
 
     // A = A7 A6 A5 A4 (HL)7 (HL)6 (HL)5 (HL)4
     // (HL) = (HL)3 (HL)2 (HL)1 (HL)0 A3 A2 A1 A0
-    // Los 4 bits bajos que habÌa en (HL) se copian a los bits altos de (HL).
-    // Los 4 bits altos que habÌa en (HL) se copian a los 4 bits bajos de A
+    // Los 4 bits bajos que hab√≠a en (HL) se copian a los bits altos de (HL).
+    // Los 4 bits altos que hab√≠a en (HL) se copian a los 4 bits bajos de A
     // Los bits 3,2,1 y 0 de A se copian a los bits 3,2,1 y 0 de (HL).
-    // Los 4 bits superiores de A no se tocan. °p'habernos matao!
+    // Los 4 bits superiores de A no se tocan. ¬°p'habernos matao!
     private void rld() {
         int aux = regA & 0x0f;
         memptr = getRegHL();
@@ -1149,8 +1149,8 @@ public class Z80 {
         res &= 0xff;
         sz5h3pnFlags = sz53n_addTable[res];
 
-        /* El mÛdulo 16 del resultado ser· menor que el mÛdulo 16 del registro A
-         * si ha habido HalfCarry. Sucede lo mismo para todos los mÈtodos suma
+        /* El m√≥dulo 16 del resultado ser√° menor que el m√≥dulo 16 del registro A
+         * si ha habido HalfCarry. Sucede lo mismo para todos los m√©todos suma
          * SIN carry */
         if ((res & 0x0f) < (regA & 0x0f)) {
             sz5h3pnFlags |= HALFCARRY_MASK;
@@ -1243,8 +1243,8 @@ public class Z80 {
         res &= 0xff;
         sz5h3pnFlags = sz53n_subTable[res];
 
-        /* El mÛdulo 16 del resultado ser· mayor que el mÛdulo 16 del registro A
-         * si ha habido HalfCarry. Sucede lo mismo para todos los mÈtodos resta
+        /* El m√≥dulo 16 del resultado ser√° mayor que el m√≥dulo 16 del registro A
+         * si ha habido HalfCarry. Sucede lo mismo para todos los m√©todos resta
          * SIN carry, incluido cp */
         if ((res & 0x0f) > (regA & 0x0f)) {
             sz5h3pnFlags |= HALFCARRY_MASK;
@@ -1311,7 +1311,7 @@ public class Z80 {
         flagQ = true;
     }
 
-    // OperaciÛn AND lÛgica
+    // Operaci√≥n AND l√≥gica
     private void and(int oper8) {
         regA &= oper8;
         carryFlag = false;
@@ -1319,7 +1319,7 @@ public class Z80 {
         flagQ = true;
     }
 
-    // OperaciÛn XOR lÛgica
+    // Operaci√≥n XOR l√≥gica
     public final void xor(int oper8) {
         regA = (regA ^ oper8) & 0xff;
         carryFlag = false;
@@ -1327,7 +1327,7 @@ public class Z80 {
         flagQ = true;
     }
 
-    // OperaciÛn OR lÛgica
+    // Operaci√≥n OR l√≥gica
     private void or(int oper8) {
         regA = (regA | oper8) & 0xff;
         carryFlag = false;
@@ -1335,7 +1335,7 @@ public class Z80 {
         flagQ = true;
     }
 
-    // OperaciÛn de comparaciÛn con el registro A
+    // Operaci√≥n de comparaci√≥n con el registro A
     // es como SUB, pero solo afecta a los flags
     // Los flags SIGN y ZERO se calculan a partir del resultado
     // Los flags 3 y 5 se copian desde el operando (sigh!)
@@ -1346,7 +1346,7 @@ public class Z80 {
         res &= 0xff;
 
         sz5h3pnFlags = (sz53n_addTable[oper8] & FLAG_53_MASK)
-            | // No necesito preservar H, pero est· a 0 en la tabla de todas formas
+            | // No necesito preservar H, pero est√° a 0 en la tabla de todas formas
             (sz53n_subTable[res] & FLAG_SZHN_MASK);
 
         if ((res & 0x0f) > (regA & 0x0f)) {
@@ -1640,7 +1640,7 @@ public class Z80 {
      * SIEMPRE el valor de los bits correspondientes del valor a comparar para
      * las instrucciones BIT n,r. Para BIT n,(HL) toman el valor del registro
      * escondido (memptr), y para las BIT n, (IX/IY+n) toman el valor de los
-     * bits superiores de la direcciÛn indicada por IX/IY+n.
+     * bits superiores de la direcci√≥n indicada por IX/IY+n.
      *
      * 04/12/08 Confirmado el comentario anterior:
      *          http://scratchpad.wikia.com/wiki/Z80
@@ -1660,8 +1660,8 @@ public class Z80 {
         flagQ = true;
     }
 
-    //InterrupciÛn
-    /* Desglose de la interrupciÛn, seg˙n el modo:
+    //Interrupci√≥n
+    /* Desglose de la interrupci√≥n, seg√∫n el modo:
      * IM0:
      *      M1: 7 T-Estados -> reconocer INT y decSP
      *      M2: 3 T-Estados -> escribir byte alto y decSP
@@ -1691,7 +1691,7 @@ public class Z80 {
 
         regR++;
         ffIFF1 = ffIFF2 = false;
-        push(regPC);  // el push aÒadir· 6 t-estados (+contended si toca)
+        push(regPC);  // el push aÔøΩadirÔøΩ 6 t-estados (+contended si toca)
         if (modeINT == IntMode.IM2) {
             regPC = MemIoImpl.peek16((regI << 8) | 0xff); // +6 t-estados
         } else {
@@ -1701,9 +1701,9 @@ public class Z80 {
         //System.out.println(String.format("Coste INT: %d", tEstados-tmp));
     }
 
-    //InterrupciÛn NMI, no utilizado por ahora
-    /* Desglose de ciclos de m·quina y T-Estados
-     * M1: 5 T-Estados -> extraer opcode (p· n·, es tonterÌa) y decSP
+    //Interrupci√≥n NMI, no utilizado por ahora
+    /* Desglose de ciclos de m√°quina y T-Estados
+     * M1: 5 T-Estados -> extraer opcode (p√° n√°, es tonter√≠a) y decSP
      * M2: 3 T-Estados -> escribe byte alto de PC y decSP
      * M3: 3 T-Estados -> escribe byte bajo de PC y PC=0x0066
      */
@@ -1736,8 +1736,8 @@ public class Z80 {
     }
     
 
-    /* Los tEstados transcurridos se calculan teniendo en cuenta el n˙mero de
-     * ciclos de m·quina reales que se ejecutan. Esa es la ˙nica forma de poder
+    /* Los tEstados transcurridos se calculan teniendo en cuenta el n√∫mero de
+     * ciclos de m√°quina reales que se ejecutan. Esa es la √∫nica forma de poder
      * simular la contended memory del Spectrum.
      */
     public final void execute(int statesLimit) {
@@ -1752,8 +1752,8 @@ public class Z80 {
                 continue;
             }
 
-            // Ahora se comprueba si al final de la instrucciÛn anterior se
-            // encontrÛ una interrupciÛn enmascarable y, de ser asÌ, se procesa.
+            // Ahora se comprueba si al final de la instrucci√≥n anterior se
+            // encontr√≥ una interrupci√≥n enmascarable y, de ser as√≠, se procesa.
             if (activeINT) {
                 if (ffIFF1 && !pendingEI) {
                     lastFlagQ = false;
@@ -1776,8 +1776,8 @@ public class Z80 {
             
             lastFlagQ = flagQ;
 
-            // Si est· pendiente la activaciÛn de la interrupciones y el
-            // cÛdigo que se acaba de ejecutar no es el propio EI
+            // Si est√° pendiente la activaci√≥n de la interrupciones y el
+            // c√≥digo que se acaba de ejecutar no es el propio EI
             if (pendingEI && opCode != 0xFB) {
                 pendingEI = false;
             }
@@ -2926,7 +2926,7 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xE3: {     /* EX (SP),HL */
-                // InstrucciÛn de ejecuciÛn sutil.
+                // Instrucci√≥n de ejecuci√≥n sutil.
                 int work16 = regH;
                 int work8 = regL;
                 setRegHL(MemIoImpl.peek16(regSP));
@@ -4236,7 +4236,7 @@ public class Z80 {
                 break;
             }
             default: {
-//                System.out.println("Error instrucciÛn CB " + Integer.toHexString(opCode));
+//                System.out.println("Error instrucci√≥n CB " + Integer.toHexString(opCode));
                 break;
             }
         }
@@ -4244,14 +4244,14 @@ public class Z80 {
 
     //Subconjunto de instrucciones 0xDD / 0xFD
     /*
-     * Hay que tener en cuenta el manejo de secuencias cÛdigos DD/FD que no
-     * hacen nada. Seg˙n el apartado 3.7 del documento
+     * Hay que tener en cuenta el manejo de secuencias c√≥digos DD/FD que no
+     * hacen nada. Seg√∫n el apartado 3.7 del documento
      * [http://www.myquest.nl/z80undocumented/z80-documented-v0.91.pdf]
-     * secuencias de cÛdigos como FD DD 00 21 00 10 NOP NOP NOP LD HL,1000h
+     * secuencias de c√≥digos como FD DD 00 21 00 10 NOP NOP NOP LD HL,1000h
      * activan IY con el primer FD, IX con el segundo DD y vuelven al
-     * registro HL con el cÛdigo NOP. Es decir, si detr·s del cÛdigo DD/FD no
-     * viene una instrucciÛn que maneje el registro HL, el cÛdigo DD/FD
-     * "se olvida" y hay que procesar la instrucciÛn como si nunca se
+     * registro HL con el c√≥digo NOP. Es decir, si detr√°s del c√≥digo DD/FD no
+     * viene una instrucci√≥n que maneje el registro HL, el c√≥digo DD/FD
+     * "se olvida" y hay que procesar la instrucci√≥n como si nunca se
      * hubiera visto el prefijo (salvo por los 4 t-estados que ha costado).
      * Naturalmente, en una serie repetida de DDFD no hay que comprobar las
      * interrupciones entre cada prefijo.
@@ -4693,7 +4693,7 @@ public class Z80 {
                 break;
             }
             case 0xE3: {     /* EX (SP),IX */
-                // InstrucciÛn de ejecuciÛn sutil como pocas... atento al dato.
+                // Instrucci√≥n de ejecuci√≥n sutil como pocas... atento al dato.
                 int work16 = regIXY;
                 regIXY = MemIoImpl.peek16(regSP);
                 MemIoImpl.contendedStates((regSP + 1) & 0xffff, 1);
@@ -4718,13 +4718,13 @@ public class Z80 {
                 break;
             }
             default: {
-                // Detr·s de un DD/FD o varios en secuencia venÌa un cÛdigo
-                // que no correspondÌa con una instrucciÛn que involucra a 
-                // IX o IY. Se trata como si fuera un cÛdigo normal.
-                // Sin esto, adem·s de emular mal, falla el test
+                // Detr√°s de un DD/FD o varios en secuencia ven√≠a un c√≥digo
+                // que no correspond√≠a con una instrucci√≥n que involucra a 
+                // IX o IY. Se trata como si fuera un c√≥digo normal.
+                // Sin esto, adem√°s de emular mal, falla el test
                 // ld <bcdexya>,<bcdexya> de ZEXALL.
 
-//                System.out.println("Error instrucciÛn DD/FD" + Integer.toHexString(opCode));
+//                System.out.println("Error instrucci√≥n DD/FD" + Integer.toHexString(opCode));
 
                 if (breakpointAt[regPC]) {
                     opCode = NotifyImpl.atAddress(regPC, opCode);
@@ -4737,7 +4737,7 @@ public class Z80 {
         return regIXY;
     }
 
-    // Subconjunto de instrucciones 0xDDCB desde el cÛdigo 0x00 hasta el 0x7F
+    // Subconjunto de instrucciones 0xDDCB desde el c√≥digo 0x00 hasta el 0x7F
     private void decodeDDFDCBto7F(int opCode, int address) {
 
         switch (opCode) {
@@ -5240,7 +5240,7 @@ public class Z80 {
         }
     }
 
-    // Subconjunto de instrucciones 0xDDCB desde el cÛdigo 0x80 hasta el 0xFF
+    // Subconjunto de instrucciones 0xDDCB desde el c√≥digo 0x80 hasta el 0xFF
     private void decodeDDFDCBtoFF(int opCode, int address) {
 
         switch (opCode) {
@@ -6394,7 +6394,7 @@ public class Z80 {
                 break;
             }
             default: {
-//                System.out.println("Error instrucciÛn ED " + Integer.toHexString(opCode));
+//                System.out.println("Error instrucci√≥n ED " + Integer.toHexString(opCode));
                 break;
             }
         }

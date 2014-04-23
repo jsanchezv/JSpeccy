@@ -5,19 +5,19 @@
  * 26/02/2010 Nota al bloque Turbo Mode del formato TZX: algunos programas
  * necesitan empezar con una polaridad concreta. Dos ejemplos son "MASK" y
  * "Basil the Great Mouse Detective". Al resto de programas que he probado eso
- * les da igual, excepto a los juegos de The Edge con su propia protección,
+ * les da igual, excepto a los juegos de The Edge con su propia protecciÃ³n,
  * como "Starbike", "Brian Bloodaxe" y "That's the Spirit" que no cargan justamente
- * por eso. Debería ser algo seleccionado por el usuario.
+ * por eso. DeberÃ­a ser algo seleccionado por el usuario.
  *
  * 21/01/2011 El problema del "Basil, the Great Mouse Detective" y del "MASK"
  * ha sido solucionado en el tratamiento de los Turbo Data Block sin afectar a
- * los juegos de The Edge. El único que sigue dando problemillas para cargar
- * es el "Lone Wolf 3", pero da la impresión de que la rutina de carga reiniciable
+ * los juegos de The Edge. El Ãºnico que sigue dando problemillas para cargar
+ * es el "Lone Wolf 3", pero da la impresiÃ³n de que la rutina de carga reiniciable
  * que usa es muy sensible y suele dar problemas en todos los emuladores que he
  * probado. Con un poco de paciencia, acaba por cargar. :)
  * 
- * 08/04/2012 Añadido el soporte de bloques CALL y RETURN en los TZX. Solo hay un
- * programa que lo necesita (que yo sepa), el Hollywood Poker que está en tzxvault.
+ * 08/04/2012 AÃ±adido el soporte de bloques CALL y RETURN en los TZX. Solo hay un
+ * programa que lo necesita (que yo sepa), el Hollywood Poker que estÃ¡ en tzxvault.
  * 
  */
 package utilities;
@@ -50,7 +50,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private InflaterInputStream iis;
     private File filename;
     private byte tapeBuffer[];
-    private final int offsetBlocks[] = new int[4096]; // el AMC tiene más de 1500 bloques!!!
+    private final int offsetBlocks[] = new int[4096]; // el AMC tiene mÃ¡s de 1500 bloques!!!
     private int nOffsetBlocks;
     private int idxHeader;
     private int tapePos;
@@ -88,7 +88,7 @@ public class Tape implements machine.ClockTimeoutListener {
     };
     private TapeExtensionType tapeExtension;
     /*
-     * Tiempos en T-estados de duración de cada pulso para cada parte de la
+     * Tiempos en T-estados de duraciÃ³n de cada pulso para cada parte de la
      * carga
      */
     private final int LEADER_LENGHT = 2168;
@@ -264,7 +264,7 @@ public class Tape implements machine.ClockTimeoutListener {
             if ((tapeBuffer[offset + car] & 0xff) > 31 && (tapeBuffer[offset + car] & 0xff) < 128) {
                 msg[car] = tapeBuffer[offset + car];
             } else {
-                msg[car] = '?'; // sustituir el carácter no imprimible
+                msg[car] = '?'; // sustituir el carÃ¡cter no imprimible
             }
         }
 
@@ -1343,7 +1343,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     blockLen = readInt(tapeBuffer, tapePos + 16, 3);
                     tapePos += 19;
                     // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
-                    // Así cargan los juegos problemáticos indicados en la cabecera
+                    // AsÃ­ cargan los juegos problemÃ¡ticos indicados en la cabecera
                     // Cambio deshecho el 23/09/2011
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
@@ -1401,7 +1401,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     }
                     tapePos += 15;
                     idxHeader++;
-                    // al entrar la primera vez deshará el cambio
+                    // al entrar la primera vez desharÃ¡ el cambio
                     earBit ^= EAR_MASK;
                     repeat = false;
                     break;
@@ -1414,7 +1414,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     totd = readInt(tapeBuffer, tapePos + 13, 4);
                     npd = tapeBuffer[tapePos + 17] & 0xff;
                     asd = tapeBuffer[tapePos + 18] & 0xff;
-                    printGDBHeader(tapePos);
+//                    printGDBHeader(tapePos);
 //                    ptrSymbol = tapePos + 0x19;
 //                    if (totp > 0) {
 //                        statePlay = State.GDB_PULSE_SYNC;
@@ -1737,7 +1737,7 @@ public class Tape implements machine.ClockTimeoutListener {
             tapePos += 2;
         }
 
-        // ¿Coincide el flag? (está en el registro A)
+        // Â¿Coincide el flag? (estÃ¡ en el registro A)
         if (cpu.getRegA() != (tapeBuffer[tapePos] & 0xff)) {
             cpu.xor(tapeBuffer[tapePos]);
             cpu.setCarryFlag(false);
@@ -1757,15 +1757,15 @@ public class Tape implements machine.ClockTimeoutListener {
             count++;
         }
 
-        // Se cargarón los bytes pedidos en DE
+        // Se cargarÃ¡n los bytes pedidos en DE
         if (count == nBytes) {
             cpu.xor(tapeBuffer[tapePos + count + 1]); // Byte de paridad
             cpu.cp(0x01);
         }
 
         // Hay menos bytes en la cinta de los indicados en DE
-        // En ese caso habrá dado un error de timeout en LD-SAMPLE (0x05ED)
-        // que se señaliza con CARRY==reset & ZERO==set
+        // En ese caso habrÃ¡ dado un error de timeout en LD-SAMPLE (0x05ED)
+        // que se seÃ±aliza con CARRY==reset & ZERO==set
         if (count < nBytes) {
             cpu.setFlags(0x50); // when B==0xFF, then INC B, B=0x00, F=0x50
         }
@@ -1814,7 +1814,7 @@ public class Tape implements machine.ClockTimeoutListener {
             // Y ahora la cabecera de Normal Speed block
             record.write(0x10); // TZX ID: Normal Speed Block
             record.write(0xE8);
-            record.write(0x03); // pausa de 1000 ms estándar
+            record.write(0x03); // pausa de 1000 ms estÃ¡ndar
         }
         record.write(nBytes + 2);
         record.write((nBytes + 2) >>> 8);

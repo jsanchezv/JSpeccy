@@ -421,8 +421,8 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         }
 
-        // Si el archivo de configuración no existe, lo crea de nuevo en el
-        // directorio actual copiándolo del bueno que hay siempre en el .jar
+        // Si el archivo de configuraciÃ³n no existe, lo crea de nuevo en el
+        // directorio actual copiÃ¡ndolo del bueno que hay siempre en el .jar
         InputStream input = null;
         BufferedOutputStream output = null;
         try {
@@ -853,7 +853,7 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         }
 
-        saveRecentFiles(); // debe ser lo último que se hace antes de salir!!!
+        saveRecentFiles(); // debe ser lo Ãºltimo que se hace antes de salir!!!
         dispose();
         System.exit(0);
     }

@@ -108,7 +108,7 @@ public class SnapshotSP implements SnapshotFile {
             
             byte[] buffer = new byte[0x4000];
 
-            // Cargamos la p·gina de la pantalla 0x4000-0x7FFF (5)
+            // Cargamos la p√°gina de la pantalla 0x4000-0x7FFF (5)
             count = 0;
             while (count != -1 && count < 0x4000) {
                 count += fIn.read(buffer, count, 0x4000 - count);
@@ -121,7 +121,7 @@ public class SnapshotSP implements SnapshotFile {
 
 
             if (spLen == 49152) { // 48K
-                // Cargamos la p·gina 0x8000-0xBFFF (2)
+                // Cargamos la p√°gina 0x8000-0xBFFF (2)
                 buffer = new byte[0x4000];
                 count = 0;
                 while (count != -1 && count < 0x4000) {
@@ -133,7 +133,7 @@ public class SnapshotSP implements SnapshotFile {
                 }
                 memory.setPageRam(2, buffer);
 
-                // Cargamos la p·gina 0xC000-0XFFF (0)
+                // Cargamos la p√°gina 0xC000-0XFFF (0)
                 buffer = new byte[0x4000];
                 count = 0;
                 while (count != -1 && count < 0x4000) {

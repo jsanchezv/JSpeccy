@@ -18,19 +18,19 @@ public enum MachineTypes {
     SPECTRUMPLUS3(5);
 
     static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS3 };
-    public CodeModel codeModel; // Código de modelo
+    public CodeModel codeModel; // CÃ³digo de modelo
     private String longModelName;   // Nombre largo del modelo de Spectrum
     private String shortModelName;   // Nombre corto del modelo de Spectrum
     public int clockFreq;       // Clock frequency
     public int tstatesFrame;    // t-states por cuadro de la imagen
-    public int tstatesLine;     // t-states por línea de imagen
-    public int upBorderWidth;   // Número de líneas del borde superior
-    public int scanLines;       // Número de líneas de imagen
+    public int tstatesLine;     // t-states por lÃ­nea de imagen
+    public int upBorderWidth;   // NÃºmero de lÃ­neas del borde superior
+    public int scanLines;       // NÃºmero de lÃ­neas de imagen
     public int firstScrByte;    // t-states hasta el primer byte de la pantalla
-    public int lastScrUpdate;   // t-states última actualización de la pantalla
+    public int lastScrUpdate;   // t-states Ãºltima actualizaciÃ³n de la pantalla
     public int outOffset;       //
     public int outBorderOffset; //
-    public int lengthINT;       // Duración en t-states de la señal INT
+    public int lengthINT;       // DuraciÃ³n en t-states de la seÃ±al INT
     private boolean hasAY8912;  // Tiene un AY-3-8912?
     private boolean hasDisk;    // Tiene un controlador de disco y disquetera?
 

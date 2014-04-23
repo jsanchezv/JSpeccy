@@ -21,9 +21,9 @@ public class SpectrumTimer extends TimerTask {
     @Override
     public void run() {
 
-        // El timer solo nos sirve de metrónomo, pero es indiferente lo que se
-        // retrase la señal, ya que el tiempo lo marca la tarjeta de sonido.
-        // Lo que sí hay que hacer es purgar todos los eventos demasiado
+        // El timer solo nos sirve de metrÃ³nomo, pero es indiferente lo que se
+        // retrase la seÃ±al, ya que el tiempo lo marca la tarjeta de sonido.
+        // Lo que sÃ­ hay que hacer es purgar todos los eventos demasiado
         // retrasados para que no se acumulen en el sistema.
 //        long now = System.currentTimeMillis();
 //        System.out.println("Tick delayed: " + (now - scheduledExecutionTime()) + " at frame " + Clock.getInstance().getFrames());

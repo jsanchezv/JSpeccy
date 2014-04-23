@@ -210,9 +210,9 @@ public class SnapshotZ80 implements SnapshotFile {
             if (z80.getRegPC() != 0) {
                 byte[] pageBuffer = new byte[0x4000];
                 spectrum.setSpectrumModel(MachineTypes.SPECTRUM48K);
-                if ((z80Header1[12] & 0x20) == 0) { // el bloque no est· comprimido
+                if ((z80Header1[12] & 0x20) == 0) { // el bloque no est√° comprimido
 
-                    // Cargamos la p·gina de la pantalla 0x4000-0x7FFF (5)
+                    // Cargamos la p√°gina de la pantalla 0x4000-0x7FFF (5)
                     count = 0;
                     while (count != -1 && count < 0x4000) {
                         count += fIn.read(pageBuffer, count, 0x4000 - count);
@@ -224,7 +224,7 @@ public class SnapshotZ80 implements SnapshotFile {
                     memory.setPageRam(5, pageBuffer);
 
 
-                    // Cargamos la p·gina 0x8000-0xBFFF (2)
+                    // Cargamos la p√°gina 0x8000-0xBFFF (2)
                     pageBuffer = new byte[0x4000];
                     count = 0;
                     while (count != -1 && count < 0x4000) {
@@ -236,7 +236,7 @@ public class SnapshotZ80 implements SnapshotFile {
                     }
                     memory.setPageRam(2, pageBuffer);
 
-                    // Cargamos la p·gina 0xC000-0xFFFF (0)
+                    // Cargamos la p√°gina 0xC000-0xFFFF (0)
                     pageBuffer = new byte[0x4000];
                     count = 0;
                     while (count != -1 && count < 0x4000) {
@@ -486,7 +486,7 @@ public class SnapshotZ80 implements SnapshotFile {
         return spectrum;
     }
 
-    // Solo se graban Z80's versiÛn 3
+    // Solo se graban Z80's versi√≥n 3
     @Override
     public boolean save(File filename, SpectrumState state) throws SnapshotException {
         spectrum = state;
@@ -552,7 +552,7 @@ public class SnapshotZ80 implements SnapshotFile {
                 case SINCLAIR2:
                     z80HeaderV3[29] |= 0xC0;
             }
-            // Hasta aquÌ la cabecera v1.0, ahora viene lo propio de la v3.x
+            // Hasta aqu√≠ la cabecera v1.0, ahora viene lo propio de la v3.x
             z80HeaderV3[30] = 55; // Cabecera adicional de 55 bytes
             z80HeaderV3[32] = (byte) z80.getRegPC();
             z80HeaderV3[33] = (byte) (z80.getRegPC() >>> 8);
@@ -604,11 +604,11 @@ public class SnapshotZ80 implements SnapshotFile {
             byte buffer[] = new byte[0x4000];
             int bufLen;
             if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
-                // P·gina 5, que corresponde a 0x4000-0x7FFF
+                // P√°gina 5, que corresponde a 0x4000-0x7FFF
                 bufLen = compressPageZ80(buffer, 5);
                 if (bufLen == 0x4000) {
                     fOut.write(0xff);
-                    fOut.write(0xff); // bloque sin compresiÛn
+                    fOut.write(0xff); // bloque sin compresi√≥n
                 } else {
                     fOut.write(bufLen);
                     fOut.write(bufLen >>> 8);
@@ -616,11 +616,11 @@ public class SnapshotZ80 implements SnapshotFile {
                 fOut.write(8);
                 fOut.write(buffer, 0, bufLen);
 
-                // P·gina 2, que corresponde a 0x8000-0xBFFF
+                // P√°gina 2, que corresponde a 0x8000-0xBFFF
                 bufLen = compressPageZ80(buffer, 2);
                 if (bufLen == 0x4000) {
                     fOut.write(0xff);
-                    fOut.write(0xff); // bloque sin compresiÛn
+                    fOut.write(0xff); // bloque sin compresi√≥n
                 } else {
                     fOut.write(bufLen);
                     fOut.write(bufLen >>> 8);
@@ -628,11 +628,11 @@ public class SnapshotZ80 implements SnapshotFile {
                 fOut.write(4);
                 fOut.write(buffer, 0, bufLen);
 
-                // P·gina 0, que corresponde a 0xC000-0xFFFF
+                // P√°gina 0, que corresponde a 0xC000-0xFFFF
                 bufLen = compressPageZ80(buffer, 0);
                 if (bufLen == 0x4000) {
                     fOut.write(0xff);
-                    fOut.write(0xff); // bloque sin compresiÛn
+                    fOut.write(0xff); // bloque sin compresi√≥n
                 } else {
                     fOut.write(bufLen);
                     fOut.write(bufLen >>> 8);
@@ -644,7 +644,7 @@ public class SnapshotZ80 implements SnapshotFile {
                     bufLen = compressPageZ80(buffer, page);
                     if (bufLen == 0x4000) {
                         fOut.write(0xff);
-                        fOut.write(0xff); // bloque sin compresiÛn
+                        fOut.write(0xff); // bloque sin compresi√≥n
                     } else {
                         fOut.write(bufLen);
                         fOut.write(bufLen >>> 8);

@@ -685,9 +685,9 @@ public class SnapshotSZX implements SnapshotFile {
                         szxLen -= szFileExtension.length;
 
                         if ((tape[2] & ZXSTTP_EMBEDDED) != 0) {
-                            // Hay que crear un String con la extensiÛn sin
+                            // Hay que crear un String con la extensi√≥n sin
                             // "comerse" los ceros del final, porque luego no se
-                            // ven, pero est·n....
+                            // ven, pero est√°n....
                             int nChars = 0;
                             while (nChars < szFileExtension.length) {
                                 if (szFileExtension[nChars] == 0) {

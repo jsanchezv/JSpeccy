@@ -15,59 +15,59 @@ public class Z80State {
     private int regA, regB, regC, regD, regE, regH, regL;
     // Flags sIGN, zERO, 5, hALFCARRY, 3, pARITY y ADDSUB (n), carryFlag
     private int regF;
-    // La ˙ltima instrucciÛn modificÛ los flags
+    // La √∫ltima instrucci√≥n modific√≥ los flags
     private boolean flagQ;
     // Acumulador alternativo y flags -- 8 bits
     private int regAx;
     private int regFx;
     // Registros alternativos
     private int regBx, regCx, regDx, regEx, regHx, regLx;
-    // Registros de propÛsito especÌfico
+    // Registros de prop√≥sito espec√≠fico
     // *PC -- Program Counter -- 16 bits*
     private int regPC;
-    // *IX -- Registro de Ìndice -- 16 bits*
+    // *IX -- Registro de √≠ndice -- 16 bits*
     private int regIX;
-    // *IY -- Registro de Ìndice -- 16 bits*
+    // *IY -- Registro de √≠ndice -- 16 bits*
     private int regIY;
     // *SP -- Stack Pointer -- 16 bits*
     private int regSP;
-    // *I -- Vector de interrupciÛn -- 8 bits*
+    // *I -- Vector de interrupci√≥n -- 8 bits*
     private int regI;
     // *R -- Refresco de memoria -- 7 bits*
     private int regR;
-    //Flip-flops de interrupciÛn
+    //Flip-flops de interrupci√≥n
     private boolean ffIFF1 = false;
     private boolean ffIFF2 = false;
     // EI solo habilita las interrupciones DESPUES de ejecutar la
-    // siguiente instrucciÛn (excepto si la siguiente instrucciÛn es un EI...)
+    // siguiente instrucci√≥n (excepto si la siguiente instrucci√≥n es un EI...)
     private boolean pendingEI = false;
-    // Estado de la lÌnea NMI
+    // Estado de la l√≠nea NMI
     private boolean activeNMI = false;
-    // Si est· activa la lÌnea INT
-    // En el 48 la lÌnea INT se activa durante 32 ciclos de reloj
+    // Si est√° activa la l√≠nea INT
+    // En el 48 la l√≠nea INT se activa durante 32 ciclos de reloj
     // En el 128 y superiores, se activa 36 ciclos de reloj
     private boolean activeINT = false;
-    // Modos de interrupciÛn
+    // Modos de interrupci√≥n
     private IntMode modeINT = IntMode.IM0;
-    // halted == true cuando la CPU est· ejecutando un HALT (28/03/2010)
+    // halted == true cuando la CPU est√° ejecutando un HALT (28/03/2010)
     private boolean halted = false;
     /**
      * Registro interno que usa la CPU de la siguiente forma
      *
      * ADD HL,xx      = Valor del registro H antes de la suma
      * LD r,(IX/IY+d) = Byte superior de la suma de IX/IY+d
-     * JR d           = Byte superior de la direcciÛn de destino del salto
+     * JR d           = Byte superior de la direcci√≥n de destino del salto
      *
-     * 04/12/2008     No se vayan todavÌa, a˙n hay m·s. Con lo que se ha
+     * 04/12/2008     No se vayan todav√≠a, a√∫n hay m√°s. Con lo que se ha
      *                implementado hasta ahora parece que funciona. El resto de
-     *                la historia est· contada en:
+     *                la historia est√° contada en:
      *                http://zx.pk.ru/attachment.php?attachmentid=2989
      *
-     * 25/09/2009     Se ha completado la emulaciÛn de MEMPTR. A seÒalar que
+     * 25/09/2009     Se ha completado la emulaci√≥n de MEMPTR. A se√±alar que
      *                no se puede comprobar si MEMPTR se ha emulado bien hasta
      *                que no se emula el comportamiento del registro en las
      *                instrucciones CPI y CPD. Sin ello, todos los tests de
-     *                z80tests.tap fallar·n aunque se haya emulado bien al
+     *                z80tests.tap fallar√°n aunque se haya emulado bien al
      *                registro en TODAS las otras instrucciones.
      *                Shit yourself, little parrot.
      */
@@ -280,7 +280,7 @@ public class Z80State {
         regLx = word & 0xff;
     }
 
-    // Acceso a registros de propÛsito especÌfico
+    // Acceso a registros de prop√≥sito espec√≠fico
     public final int getRegPC() {
         return regPC;
     }
@@ -338,7 +338,7 @@ public class Z80State {
         memptr = word & 0xffff;
     }
     
-    // Acceso a los flip-flops de interrupciÛn
+    // Acceso a los flip-flops de interrupci√≥n
     public final boolean isIFF1() {
         return ffIFF1;
     }
@@ -363,12 +363,12 @@ public class Z80State {
         activeNMI = nmi;
     }
 
-    // La lÌnea de NMI se activa por impulso, no por nivel
+    // La l√≠nea de NMI se activa por impulso, no por nivel
     public final void triggerNMI() {
         activeNMI = true;
     }
 
-    // La lÌnea INT se activa por nivel
+    // La l√≠nea INT se activa por nivel
     public final boolean isINTLine() {
         return activeINT;
     }
@@ -377,7 +377,7 @@ public class Z80State {
         activeINT = intLine;
     }
 
-    //Acceso al modo de interrupciÛn
+    //Acceso al modo de interrupci√≥n
     public final IntMode getIM() {
         return modeINT;
     }

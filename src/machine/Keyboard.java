@@ -394,17 +394,17 @@ public class Keyboard implements KeyListener {
 //        System.out.println(String.format("Press keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
 
         /*
-         * Windows no envía el keycode VK_ALT_GRAPH y en su lugar envía dos eventos, Ctrl + Alt, en ese orden.
-         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
+         * Windows no envÃ­a el keycode VK_ALT_GRAPH y en su lugar envÃ­a dos eventos, Ctrl + Alt, en ese orden.
+         * AdemÃ¡s, una repeticiÃ³n de tecla consiste en mÃºltiples eventos keyPressed y un solo evento keyReleased.
          * 
-         * El Ctrl es una pulsación normal y el Alt lleva activos los modificadores CTRL y ALT.
+         * El Ctrl es una pulsaciÃ³n normal y el Alt lleva activos los modificadores CTRL y ALT.
          * 
          * El problema es que el primer Ctrl nos "presiona" la tecla Symbol-Shift, y hay que quitarla.
          * 
-         * En cualquier otro caso, la tecla Alt hay que saltársela para que sigan funcionando los
+         * En cualquier otro caso, la tecla Alt hay que saltÃ¡rsela para que sigan funcionando los
          * atajos de teclado sin producir pulsaciones espureas en el emulador.
          * 
-         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
+         * AdemÃ¡s, una repeticiÃ³n de tecla consiste en mÃºltiples eventos keyPressed y un solo evento keyReleased.
          * 
          * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
@@ -413,8 +413,8 @@ public class Keyboard implements KeyListener {
             key = KeyEvent.VK_ALT_GRAPH;
             rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
         } else {
-            // En caso de ser Windows, si se reciben Alt + Control probablemente lo que se pulsó fue AltGr
-            // Gracias a pastbytes por detectar (también) este problema e indicarme la manera de reproducirlo.
+            // En caso de ser Windows, si se reciben Alt + Control probablemente lo que se pulsÃ³ fue AltGr
+            // Gracias a pastbytes por detectar (tambiÃ©n) este problema e indicarme la manera de reproducirlo.
             if (evt.isAltDown() && !evt.isControlDown())
                 return;
         }
@@ -735,14 +735,14 @@ public class Keyboard implements KeyListener {
 //        System.out.println(String.format("Release keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
 
         /*
-         * Windows no envía el keycode VK_ALT_GRAPH y en su lugar envía dos eventos, Ctrl + Alt, en ese orden.
+         * Windows no envÃ­a el keycode VK_ALT_GRAPH y en su lugar envÃ­a dos eventos, Ctrl + Alt, en ese orden.
          * 
          * El Ctrl lleva activo el modificador Alt. El Alt es un evento normal.
          * 
-         * La tecla Alt hay que saltársela para que sigan funcionando los atajos de teclado sin
+         * La tecla Alt hay que saltÃ¡rsela para que sigan funcionando los atajos de teclado sin
          * producir pulsaciones espureas en el emulador.
          * 
-         * Además, una repetición de tecla consiste en múltiples eventos keyPressed y un solo evento keyReleased.
+         * AdemÃ¡s, una repeticiÃ³n de tecla consiste en mÃºltiples eventos keyPressed y un solo evento keyReleased.
          * 
          * Algunos teclados de Windows no tienen AltGr sino un Alt derecho. Shit yourself, little parrot!.
          */
@@ -1384,7 +1384,7 @@ public class Keyboard implements KeyListener {
                 rowKey[1] &= KEY_PRESSED_BIT3; // F
                 break;
             case '|':
-            case '¦': // Spanish keyboard
+            case 'Â¦': // Spanish keyboard
                 rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
                 rowKey[1] &= KEY_PRESSED_BIT1; // S
                 break;
@@ -1396,27 +1396,27 @@ public class Keyboard implements KeyListener {
                 rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
                 rowKey[1] &= KEY_PRESSED_BIT0; // A
                 break;
-            case '©': // Mac only
+            case 'Â©': // Mac only
                 rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
                 rowKey[5] &= KEY_PRESSED_BIT0; // P
                 break;
             case '`': // PC only
-            case '§': // Mac only
-            case '¡': // Spanish keyboard only
+            case 'Â§': // Mac only
+            case 'Â¡': // Spanish keyboard only
                 rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 rowKey[3] &= KEY_PRESSED_BIT0; // 1 (EDIT mode)
                 break;
-            case '¬': // PC only
-            case '±': // Mac only
-            case '¿': // Spanish keyboard only
+            case 'Â¬': // PC only
+            case 'Â±': // Mac only
+            case 'Â¿': // Spanish keyboard only
                 rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 rowKey[4] &= KEY_PRESSED_BIT1; // 9 (GRAPHICS mode)
                 break;
-            case '£':
+            case 'Â£':
                 rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift
                 rowKey[0] &= KEY_PRESSED_BIT2; // x
                 break;
-            case 'º':
+            case 'Âº':
                 rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 rowKey[7] &= KEY_PRESSED_BIT1; // Symbol Shift -- Extended Mode
                 break;
@@ -1725,7 +1725,7 @@ public class Keyboard implements KeyListener {
                 rowKey[1] |= KEY_RELEASED_BIT3; // F
                 break;
             case '|':
-            case '¦': // Spanish keyboard
+            case 'Â¦': // Spanish keyboard
                 rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
                 rowKey[1] |= KEY_RELEASED_BIT1; // S
                 break;
@@ -1737,27 +1737,27 @@ public class Keyboard implements KeyListener {
                 rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
                 rowKey[1] |= KEY_RELEASED_BIT0; // A
                 break;
-            case '©': // Mac only
+            case 'Â©': // Mac only
                 rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
                 rowKey[5] |= KEY_RELEASED_BIT0; // P
                 break;
             case '`':
-            case '§': // Mac only
-            case '¡': // Spanish keyboard
+            case 'Â§': // Mac only
+            case 'Â¡': // Spanish keyboard
 //                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[3] |= KEY_RELEASED_BIT0; // 1
                 break;
-            case '¬':
-            case '±': // Mac only
-            case '¿': // Spanish keyboard
+            case 'Â¬':
+            case 'Â±': // Mac only
+            case 'Â¿': // Spanish keyboard
 //                rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[4] |= KEY_RELEASED_BIT1; // G (Graphics mode)
                 break;
-            case '£': // Pound sign
+            case 'Â£': // Pound sign
                 rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift
                 rowKey[0] |= KEY_RELEASED_BIT2; // X
                 break;
-            case 'º': // Spanish keyboard only
+            case 'Âº': // Spanish keyboard only
                 rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
                 rowKey[7] |= KEY_RELEASED_BIT1; // Symbol Shift -- Extended Mode
                 break;
