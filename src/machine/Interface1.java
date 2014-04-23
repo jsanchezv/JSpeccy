@@ -37,13 +37,13 @@ public class Interface1 {
     
     private int mdrFlipFlop, mdrSelected;
     private byte numMicrodrives;
-    private Microdrive microdrive[];
+    private final Microdrive microdrive[];
     private boolean commsClk;
-    private Clock clock;
-    private Interface1Type settings;
+    private final Clock clock;
+    private final Interface1Type settings;
     private int lan;
     
-    private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<Interface1DriveListener>();
+    private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<>();
     
     public Interface1(Interface1Type if1settings) {
         clock = Clock.getInstance();
@@ -314,7 +314,7 @@ public class Interface1 {
         if (drive <  0 || drive > 7 || mdrFlipFlop == 0)
             return false;
         
-        return mdrSelected == drive ? true : false;
+        return mdrSelected == drive;
     }
     
     public int getDriveRunning() {
