@@ -93,7 +93,7 @@ public final class AY8912 {
         0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0000
     };
     // Real (for the soundcard) volume levels
-    private int[] volumeLevel = new int[16];
+    private final int[] volumeLevel = new int[16];
     private int[] bufA;
     private int[] bufB;
     private int[] bufC;
