@@ -499,7 +499,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     Thread.sleep(1100);
                     // El 48k tarda en inicializarse unos 86 frames
                     // Los modelos de 128k, tardan unos 56 frames
-                    // Habr· que comprobar el +3 cuando tenga la disquetera
+                    // Habr√° que comprobar el +3 cuando tenga la disquetera
                     long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 87 : 57;
                     while (clock.getFrames() < endFrame) {
                         Thread.sleep(40);
@@ -529,11 +529,11 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     }
 
     /*
-     * El emulador hace uso de dos sistemas de sincronizaciÛn diferentes, que se escoge dependiendo
-     * de si est· habilitado el sonido o no. Si el sonido est· activado, el "metrÛnomo" es la propia
-     * tarjeta de sonido. La llamada al mÈtodo sendAudioFrame se bloquea en el write hasta que
-     * la tarjeta se ha quedado con todos los datos. Cuando no hay audio o el emulador est· en pausa,
-     * ejecuta un wait del que sale autom·ticamente para saber si ha salido de la pausa o bien lo saca
+     * El emulador hace uso de dos sistemas de sincronizaci√≥n diferentes, que se escoge dependiendo
+     * de si est√° habilitado el sonido o no. Si el sonido est√° activado, el "metr√≥nomo" es la propia
+     * tarjeta de sonido. La llamada al m√©todo sendAudioFrame se bloquea en el write hasta que
+     * la tarjeta se ha quedado con todos los datos. Cuando no hay audio o el emulador est√° en pausa,
+     * ejecuta un wait del que sale autom√°ticamente para saber si ha salido de la pausa o bien lo saca
      * de la pausa el 'tick' del reloj que se programa para que salte cada 20 ms.
      */
     @Override
@@ -677,8 +677,8 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     public synchronized void drawFrame() {
         /* 20/03/2010
          * La pantalla se ha de dibujar en un solo paso. Si el borde no se
-         * modificÛ, se vuelca sobre el doble b˙fer solo la pantalla. Si se
-         * modificÛ el borde, primero se vuelca la pantalla sobre la imagen
+         * modific√≥, se vuelca sobre el doble b√∫fer solo la pantalla. Si se
+         * modific√≥ el borde, primero se vuelca la pantalla sobre la imagen
          * del borde y luego se vuelca el borde. Si no, se pueden ver "artifacts"
          * en juegos como el TV-game.
          */
@@ -1024,7 +1024,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 //        }
 
         /*
-         * El interfaz Kempston solo (deberÌa) decodificar A5=0...
+         * El interfaz Kempston solo (deber√≠a) decodificar A5=0...
          */
         if (joystickModel == JoystickModel.KEMPSTON && (port & 0x0020) == 0) {
 //            System.out.println(String.format("InPort: %04X, PC: %04X, Frame: %d", port, z80.getRegPC(), clock.getFrames()));
@@ -1164,7 +1164,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
             /*
              * Solo en el modelo 128K, pero no en los +2/+2A/+3, si se lee el puerto
-             * 0x7ffd, el valor leÌdo es reescrito en el puerto 0x7ffd.
+             * 0x7ffd, el valor le√≠do es reescrito en el puerto 0x7ffd.
              * http://www.speccy.org/foro/viewtopic.php?f=8&t=2374
              */
             if ((port & 0x8002) == 0 && spectrumModel == MachineTypes.SPECTRUM128K) {
@@ -1173,7 +1173,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 if ((port7ffd & 0x08) != (floatbus & 0x08)) {
                     invalidateScreen(true);
                 }
-                // En el 128k las p·ginas impares son contended
+                // En el 128k las p√°ginas impares son contended
                 contendedRamPage[3] = contendedIOPage[3] = (floatbus & 0x01) != 0;
                 port7ffd = floatbus;
             }
@@ -1277,15 +1277,18 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 if ((port & 0x8002) == 0) {
 //            System.out.println(String.format("outPort: %04X %02x at %d t-states",
 //            port, value, z80.tEstados));
-
-                    memory.setPort7ffd(value);
-                    // En el 128k las p·ginas impares son contended
-                    contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0;
                     // Si ha cambiado la pantalla visible hay que invalidar
-                    // Se invalida tambiÈn el borde, o la MDA_DEMO no va bien.
+                    // Se invalida tambi√©n el borde, o la MDA_DEMO no va bien.
                     if (((port7ffd ^ value) & 0x08) != 0) {
+                        updateScreen(clock.getTstates());
                         invalidateScreen(true);
                     }
+//                    System.out.printf("%d, %d, %d, %d\n", nextEvent, clock.getTstates(), nextEvent - clock.getTstates(),
+//                            delayTstates[clock.getTstates()]);
+
+                    memory.setPort7ffd(value);
+                    // En el 128k las p√°ginas impares son contended
+                    contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0;
                     port7ffd = value;
                     return;
                 }
@@ -1294,15 +1297,18 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
                 // Port 0x7ffd decodes with bit15 and bit1 reset, bit14 set
                 if ((port & 0xC002) == 0x4000) {
-                    memory.setPort7ffd(value);
-                    // En el +3 las p·ginas 4 a 7 son contended
-                    contendedRamPage[3] = memory.getPlus3HighPage() > 3;
                     // Si ha cambiado la pantalla visible hay que invalidar
-                    // Se invalida tambiÈn el borde, o la MDA_DEMO no va bien.
+                    // Se invalida tambi√©n el borde, o la MDA_DEMO no va bien.
                     if (((port7ffd ^ value) & 0x08) != 0) {
+                        updateScreen(clock.getTstates() + 1);
                         invalidateScreen(true);
                     }
+//                    System.out.printf("%d, %d, %d, %d\n", nextEvent, clock.getTstates(), nextEvent - clock.getTstates(),
+//                            delayTstates[clock.getTstates()]);
 
+                    memory.setPort7ffd(value);
+                    // En el +3 las p√°ginas 4 a 7 son contended
+                    contendedRamPage[3] = memory.getPlus3HighPage() > 3;
                     port7ffd = value;
                     return;
                 }
@@ -1390,7 +1396,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                         ULAPlusActive = (value & 0x01) != 0;
                         invalidateScreen(true);
                     } else {
-                        // Solo es necesario redibujar el borde si se modificÛ uno
+                        // Solo es necesario redibujar el borde si se modific√≥ uno
                         // de los colores de paper de la paleta 0. (8-15)
                         // Pero hay que hacerlo *antes* de modificar la paleta.
                         if (paletteGroup > 7 && paletteGroup < 16 && LEFT_BORDER > 0) {
@@ -1414,8 +1420,8 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
     /*
      * Las operaciones de I/O se producen entre los ciclos T3 y T4 de la CPU,
-     * y justo ahÌ es donde podemos encontrar la contenciÛn en los accesos. Los
-     * ciclos de contenciÛn son exactamente iguales a los de la memoria, con los
+     * y justo ah√≠ es donde podemos encontrar la contenci√≥n en los accesos. Los
+     * ciclos de contenci√≥n son exactamente iguales a los de la memoria, con los
      * siguientes condicionantes dependiendo del estado del bit A0 y de si el
      * puerto accedido se encuentra entre las direcciones 0x4000-0x7FFF:
      *
@@ -1425,11 +1431,11 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
      *                                      Yes     Reset    C:1, C:3
      *                                      Yes     Set      C:1, C:1, C:1, C:1
      *
-     * La columna 'Contention Pattern' se lee 'N:x', no contenciÛn x ciclos
-     * 'C:n' se lee contenciÛn seguido de n ciclos sin contenciÛn.
-     * AsÌ pues se necesitan dos rutinas, la que aÒade el t-estado inicial
-     * con sus contenciones cuando procede y la que aÒade los 3 estados finales
-     * con la contenciÛn correspondiente.
+     * La columna 'Contention Pattern' se lee 'N:x', no contenci√≥n x ciclos
+     * 'C:n' se lee contenci√≥n seguido de n ciclos sin contenci√≥n.
+     * As√≠ pues se necesitan dos rutinas, la que a√±ade el t-estado inicial
+     * con sus contenciones cuando procede y la que a√±ade los 3 estados finales
+     * con la contenci√≥n correspondiente.
      */
     private void preIO(int port) {
 
@@ -1735,7 +1741,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             framesByInt = speed;
         } else {
             framesByInt = 1;
-            // La velocidad r·pida solo pinta 1 frame de cada 10, asÌ que
+            // La velocidad r√°pida solo pinta 1 frame de cada 10, as√≠ que
             // al volver a velocidad lenta hay que actualizar la pantalla
             invalidateScreen(true);
             enableSound();
@@ -1754,7 +1760,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         sp_volt[3] = (int) (SPEAKER_VOLUME * 1.3);
     }
 
-    /* SecciÛn gr·fica */
+    /* Secci√≥n gr√°fica */
     //Vector con los valores correspondientes a lo colores anteriores
     public static final int[] Paleta = {
         0x000000, /* negro */
@@ -1765,7 +1771,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         0x00c0c0, /* cyan */
         0xc0c000, /* amarillo */
         0xc0c0c0, /* blanco */
-        0x000000, /* negro brillante */
+        0x000000, /* negro "brillante" */
         0x0000ff, /* azul brillante */
         0xff0000, /* rojo brillante	*/
         0xff00ff, /* magenta brillante */
@@ -1777,41 +1783,41 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
     // corresponde una entrada en la tabla que hace referencia al color
     // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
-    // ya est·n cambiados, lo que facilita el tratamiento del FLASH.
+    // ya est√°n cambiados, lo que facilita el tratamiento del FLASH.
     private static final int Paper[] = new int[256];
     private static final int Ink[] = new int[256];
-    // Tabla de correspondencia entre la direcciÛn de pantalla y su atributo - 0x4000
+    // Tabla de correspondencia entre la direcci√≥n de pantalla y su atributo - 0x4000
     public final int scr2attr[] = new int[6144];
-    // Tabla de correspondencia entre cada atributo y el primer byte del car·cter
+    // Tabla de correspondencia entre cada atributo y el primer byte del car√°cter
     // en la pantalla del Spectrum (la contraria de la anterior)
     private final int attr2scr[] = new int[768];
-    // Tabla de correspondencia entre la direcciÛn de pantalla del Spectrum
-    // y la direcciÛn que le corresponde en el BufferedImage.
+    // Tabla de correspondencia entre la direcci√≥n de pantalla del Spectrum
+    // y la direcci√≥n que le corresponde en el BufferedImage.
     private final int bufAddr[] = new int[6144];
-    // Tabla para hacer m·s r·pido el redibujado. Para cada direcciÛn de memoria del 
-    // Spectrum, almacena la lÌnea de scan que le corresponde en la pantalla (0-191)
+    // Tabla para hacer m√°s r√°pido el redibujado. Para cada direcci√≥n de memoria del 
+    // Spectrum, almacena la l√≠nea de scan que le corresponde en la pantalla (0-191)
     private final int scanLineTable[] = new int[6144];
-    // Tabla que contiene la direcciÛn de pantalla del primer byte de cada
-    // car·cter en la columna cero.
+    // Tabla que contiene la direcci√≥n de pantalla del primer byte de cada
+    // car√°cter en la columna cero.
     private final int scrAddr[] = new int[192];
-    // Tabla que indica si un byte de la pantalla ha sido modificado y habr· que
+    // Tabla que indica si un byte de la pantalla ha sido modificado y habr√° que
     // redibujarlo.
     private final boolean dirtyByte[] = new boolean[6144];
-    // Tabla de traslaciÛn entre t-states y la direcciÛn de la pantalla del
+    // Tabla de traslaci√≥n entre t-states y la direcci√≥n de la pantalla del
     // Spectrum que se vuelca en ese t-state o -1 si no le corresponde ninguna.
     private final int states2scr[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
-    // Tabla de traslaciÛn de t-states al pixel correspondiente del borde.
+    // Tabla de traslaci√≥n de t-states al pixel correspondiente del borde.
     private final int states2border[] = new int[MachineTypes.SPECTRUM128K.tstatesFrame + 100];
     // Secuencia de t-states que hay que ejecutar para ir actualizando la pantalla
     int stepStates[] = new int[6144];
     private int step;
-    // Constante que indica que no hay un evento prÛximo
+    // Constante que indica que no hay un evento pr√≥ximo
     // El valor de la constante debe ser mayor que cualquier spectrumModel.tstatesframe
     private final int NO_EVENT = 0x1234567;
-    // t-states del prÛximo evento
+    // t-states del pr√≥ximo evento
     private int nextEvent = NO_EVENT;
     
-    // Estos miembros solo cambian cuando cambia el tamaÒo del borde
+    // Estos miembros solo cambian cuando cambia el tama√±o del borde
     private int LEFT_BORDER = 32;
     private int RIGHT_BORDER = 32;
     private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
@@ -1820,7 +1826,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private int SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
 
     static {
-        // InicializaciÛn de las tablas de Paper/Ink
+        // Inicializaci√≥n de las tablas de Paper/Ink
         /* Para cada valor de atributo, hay dos tablas, donde cada una
          * ya tiene el color que le corresponde, para no tener que extraerlo
          */
@@ -1843,18 +1849,18 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private BufferedImage inProgressImage; // imagen del borde
     private int dataInProgress[];
     private Graphics2D gcTvImage;
-    // t-states del ˙ltimo cambio de border
+    // t-states del √∫ltimo cambio de border
     private int lastChgBorder;
-    // veces que ha cambiado el borde en el ˙ltimo frame
+    // veces que ha cambiado el borde en el √∫ltimo frame
     //private int nBorderChanges;
     /*
      * screenDirty indica que se cambiaron bytes de la pantalla. Hay que redibujarla
      * borderDirty indica que hay colores del borde que cambiaron. Hay que redibujarlo
-     * borderChanged indica que se hizo un out que cambiÛ el color del borde, lo que
+     * borderChanged indica que se hizo un out que cambi√≥ el color del borde, lo que
      *               no significa que haya que redibujarlo necesariamente.
      */
     private boolean screenDirty, borderDirty, borderChanged, borderUpdated;
-    // Primera y ˙ltima lÌnea a ser actualizada
+    // Primera y √∫ltima l√≠nea a ser actualizada
     private int firstScanLine, lastScanLine;
     private int leftCol, rightCol;
     // ULAplus support (30/08/2010)
@@ -1891,8 +1897,8 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         ULAPlusActive = false;
         paletteGroup = 0;
 
-        //InicializaciÛn de la tabla de direcciones de pantalla
-        /* Hay una entrada en la tabla con la direcciÛn del primer byte
+        //Inicializaci√≥n de la tabla de direcciones de pantalla
+        /* Hay una entrada en la tabla con la direcci√≥n del primer byte
          * de cada fila de la pantalla.
          */
         int row, col, scan;
@@ -2007,34 +2013,34 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     }
 
     /*
-     * Cada lÌnea completa de imagen dura 224 T-Estados, divididos en:
+     * Cada l√≠nea completa de imagen dura 224 T-Estados, divididos en:
      * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
      * 24 T-Estados en los que se dibujan los 48 pixeles del borde derecho
      * 48 T-Estados iniciales de H-Sync y blanking
      * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
      *
-     * Cada pantalla consta de 312 lÌneas divididas en:
-     * 16 lÌneas en las cuales el haz vuelve a la parte superior de la pantalla
-     * 48 lÌneas de borde superior
-     * 192 lÌneas de pantalla
-     * 56 lÌneas de borde inferior de las cuales se ven solo 48
+     * Cada pantalla consta de 312 l√≠neas divididas en:
+     * 16 l√≠neas en las cuales el haz vuelve a la parte superior de la pantalla
+     * 48 l√≠neas de borde superior
+     * 192 l√≠neas de pantalla
+     * 56 l√≠neas de borde inferior de las cuales se ven solo 48
      */
     private int tStatesToScrPix48k(int tstates) {
         tstates %= spectrumModel.tstatesFrame;
         int row = tstates / spectrumModel.tstatesLine;
         int col = tstates % spectrumModel.tstatesLine;
 
-        // Quitamos las lÌneas que no se ven por arriba y por abajo
+        // Quitamos las l√≠neas que no se ven por arriba y por abajo
         if (row < (64 - TOP_BORDER - 1) || row > (256 + BOTTOM_BORDER - 1)) {
             return 0xf0cab0ba;
         }
 
-        // Caso especial de la primera lÌnea
+        // Caso especial de la primera l√≠nea
         if (row == (64 - TOP_BORDER - 1) && col < 200 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
-        // Caso especial de la ˙ltima lÌnea
+        // Caso especial de la √∫ltima l√≠nea
         if (row == (256 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
@@ -2050,7 +2056,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             return 0xf0cab0ba;
         }
 
-        // 176 t-estados de lÌnea es en medio de la zona de retrazo
+        // 176 t-estados de l√≠nea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
             col -= 200 + (24 - LEFT_BORDER / 2);
@@ -2069,17 +2075,17 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         int row = tstates / spectrumModel.tstatesLine;
         int col = tstates % spectrumModel.tstatesLine;
 
-        // Quitamos las lÌneas que no se ven por arriba y por abajo
+        // Quitamos las l√≠neas que no se ven por arriba y por abajo
         if (row < (63 - TOP_BORDER - 1) || row > (255 + BOTTOM_BORDER - 1)) {
             return 0xf0cab0ba;
         }
 
-        // Caso especial de la primera lÌnea
+        // Caso especial de la primera l√≠nea
         if (row == (63 - TOP_BORDER - 1) && col < 204 + (24 - LEFT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
 
-        // Caso especial de la ˙ltima lÌnea
+        // Caso especial de la √∫ltima l√≠nea
         if (row == (255 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
             return 0xf0cab0ba;
         }
@@ -2095,7 +2101,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             return 0xf0cab0ba;
         }
 
-        // 176 t-estados de lÌnea es en medio de la zona de retrazo
+        // 176 t-estados de l√≠nea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
             col -= 204 + (24 - LEFT_BORDER / 2);
@@ -2224,7 +2230,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         } else {
             int addr = attr2scr[address & 0x3ff] & 0x1fff;
             // cuando esto lo hace un compilador, se le llama loop-unrolling
-            // cuando lo hace un pogramadÛ, se le llama shapusa :P
+            // cuando lo hace un pogramad√≥, se le llama shapusa :P
             dirtyByte[addr] = true;
             dirtyByte[addr + 256] = true;
             dirtyByte[addr + 512] = true;
