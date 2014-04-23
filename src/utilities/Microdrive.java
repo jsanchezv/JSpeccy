@@ -69,7 +69,7 @@ public class Microdrive {
     private BufferedInputStream fIn;
     private BufferedOutputStream fOut;
     private File filename;
-    private Clock clock;
+    private final Clock clock;
     private long startGap;
 
     public Microdrive() {
@@ -369,43 +369,41 @@ public class Microdrive {
                 }
 
                 if ((header[2] & MDVT_COMPRESSED) != 0) {
+                    byte[] cswGaps;
                     // Block is compressed
-                    InflaterInputStream iis = new InflaterInputStream(fIn);
-                    cartridge = new byte[sectorSize * numSectors];
-                    readed = 0;
-                    while (readed < cartridge.length) {
-                        int count = iis.read(cartridge, readed, cartridge.length - readed);
-                        if (count == -1) {
-                            break;
+                    try (InflaterInputStream iis = new InflaterInputStream(fIn)) {
+                        cartridge = new byte[sectorSize * numSectors];
+                        readed = 0;
+                        while (readed < cartridge.length) {
+                            int count = iis.read(cartridge, readed, cartridge.length - readed);
+                            if (count == -1) {
+                                break;
+                            }
+                            readed += count;
                         }
-                        readed += count;
-                    }
-
-                    if (readed != cartridge.length) {
-                        iis.close();
-                        return false;
-                    }
-                    
-                    // The Gap entries are WORDs
-                    byte[] cswGaps = new byte[gapEntries << 1];
-                    readed = 0;
-                    while (readed < cswGaps.length) {
-                        int count = iis.read(cswGaps, readed, cswGaps.length - readed);
-                        if (count == -1) {
-                            break;
+                        if (readed != cartridge.length) {
+                            iis.close();
+                            return false;
+                        }   // The Gap entries are WORDs
+                        cswGaps = new byte[gapEntries << 1];
+                        readed = 0;
+                        while (readed < cswGaps.length) {
+                            int count = iis.read(cswGaps, readed, cswGaps.length - readed);
+                            if (count == -1) {
+                                break;
+                            }
+                            readed += count;
                         }
-                        readed += count;
                     }
-                    
-                    iis.close();
                     if (readed != cswGaps.length) {
                         return false;
                     }
-                    
+
                     clockGap = convertCswToGaps(header[9], cswGaps);
-                    if (clockGap == null)
+                    if (clockGap == null) {
                         return false;
-                    
+                    }
+
                 } else {
                     // Not compressed data
                     cartridge = new byte[sectorSize * numSectors];
@@ -421,7 +419,7 @@ public class Microdrive {
                     if (readed != cartridge.length) {
                         return false;
                     }
-                    
+
                     // The Gap entries are WORDs
                     byte[] cswGaps = new byte[gapEntries << 1];
                     readed = 0;
@@ -432,14 +430,15 @@ public class Microdrive {
                         }
                         readed += count;
                     }
-                    
+
                     if (readed != cswGaps.length) {
                         return false;
                     }
-                    
+
                     clockGap = convertCswToGaps(header[9], cswGaps);
-                    if (clockGap == null)
+                    if (clockGap == null) {
                         return false;
+                    }
                 }
             }
         } catch (IOException ex) {
@@ -447,8 +446,9 @@ public class Microdrive {
             return false;
         } finally {
             try {
-                if (fIn != null)
+                if (fIn != null) {
                     fIn.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
                 return false;
@@ -563,7 +563,7 @@ public class Microdrive {
             }
             
             // Creator ID
-            String creatorID = "JSpeccy 0.89.1 (24/12/2011)";
+            String creatorID = "JSpeccy 0.92 (23/04/2014)";
             // Creator Length
             byte[] fieldText = creatorID.getBytes("UTF-8");
             int fieldLen = fieldText.length < 256 ? fieldText.length : 255;
@@ -579,15 +579,13 @@ public class Microdrive {
             
             if (!unformatted) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                DeflaterOutputStream dos = new DeflaterOutputStream(baos);
-                
-                // Sectors Data
-                dos.write(cartridge);
-            
-                // GAP DATA
-                dos.write(buffer.toByteArray());
-            
-                dos.close();
+                try (DeflaterOutputStream dos = new DeflaterOutputStream(baos)) {
+                    // Sectors Data
+                    dos.write(cartridge);
+                    
+                    // GAP DATA
+                    dos.write(buffer.toByteArray());
+                }
             
                 baos.writeTo(fOut);
             }
