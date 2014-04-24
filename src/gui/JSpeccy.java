@@ -410,7 +410,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void verifyConfigFile(boolean deleteFile) {
-        File file = new File("JSpeccy.xml");
+        File file = new File(System.getProperty("user.home") + "/JSpeccy.xml");
         if (file.exists() && !deleteFile) {
             return;
         }
@@ -427,7 +427,7 @@ public class JSpeccy extends javax.swing.JFrame {
         BufferedOutputStream output = null;
         try {
             input = Spectrum.class.getResourceAsStream("/schema/JSpeccy.xml");
-            output = new BufferedOutputStream (new FileOutputStream("JSpeccy.xml"));
+            output = new BufferedOutputStream (new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
 
             byte[] fileConf = new byte[input.available()];
             input.read(fileConf);
@@ -466,7 +466,7 @@ public class JSpeccy extends javax.swing.JFrame {
             // unmarshal a po instance document into a tree of Java content
             // objects composed of classes from the configuration package.
             JAXBElement<?> settingsElement =
-                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
 
             settings = (JSpeccySettingsType) settingsElement.getValue();
         } catch (JAXBException jexcpt) {
@@ -493,7 +493,7 @@ public class JSpeccy extends javax.swing.JFrame {
             // unmarshal a po instance document into a tree of Java content
             // objects composed of classes from the configuration package.
             JAXBElement<?> settingsElement =
-                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
 
             settings = (JSpeccySettingsType) settingsElement.getValue();
         } catch (JAXBException jexcpt) {
@@ -518,7 +518,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 // unmarshal a po instance document into a tree of Java content
                 // objects composed of classes from the configuration package.
                 JAXBElement<?> settingsElement =
-                        (JAXBElement<?>) unmsh.unmarshal(new FileInputStream("JSpeccy.xml"));
+                        (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
 
                 settings = (JSpeccySettingsType) settingsElement.getValue();
             } catch (JAXBException jexcpt) {
@@ -573,7 +573,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         try {
             BufferedOutputStream fOut =
-                new BufferedOutputStream(new FileOutputStream("JSpeccy.xml"));
+                new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
             // create an element for marshalling
             JAXBElement<JSpeccySettingsType> confElement =
                 (new ObjectFactory()).createJSpeccySettings(settings);
@@ -744,7 +744,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 bundle.getString("ROM_TYPE"), "rom");
         
         if (settings.getSpectrumSettings().isHibernateMode()) {
-            File autoload = new File("JSpeccy.szx");
+            File autoload = new File(System.getProperty("user.home") + "/JSpeccy.szx");
             if (autoload.exists()) {
                 SnapshotSZX snapSZX = new SnapshotSZX();
                 try {
@@ -844,7 +844,7 @@ public class JSpeccy extends javax.swing.JFrame {
             }
 
             try {
-                snapSZX.save(new File("JSpeccy.szx"), spectrum.getSpectrumState());
+                snapSZX.save(new File(System.getProperty("user.home") + "/JSpeccy.szx"), spectrum.getSpectrumState());
             } catch (SnapshotException ex) {
                 JOptionPane.showMessageDialog(this,
                         ResourceBundle.getBundle("gui/Bundle").getString("HIBERNATE_SAVE_ERROR"),
