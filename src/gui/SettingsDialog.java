@@ -795,7 +795,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         try {
             BufferedOutputStream fOut =
-                new BufferedOutputStream(new FileOutputStream("JSpeccy.xml"));
+                new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
             // create an element for marshalling
             JAXBElement<JSpeccySettingsType> confElement =
                 (new ObjectFactory()).createJSpeccySettings(settings);
