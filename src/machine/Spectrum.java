@@ -500,12 +500,12 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     // El 48k tarda en inicializarse unos 86 frames
                     // Los modelos de 128k, tardan unos 56 frames
                     // Habrá que comprobar el +3 cuando tenga la disquetera
-                    long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 87 : 57;
+                    long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 100 : 70;
                     while (clock.getFrames() < endFrame) {
                         Thread.sleep(40);
                     }
 
-                    if (endFrame == 87) {
+                    if (endFrame == 100) {
                         memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
                         memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
                         Thread.sleep(30);
