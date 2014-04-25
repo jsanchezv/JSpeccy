@@ -122,7 +122,7 @@ public class Tape implements machine.ClockTimeoutListener {
     // vars for GDB's
     private int totp, npp, asp, totd, npd, asd, ptrSymbol, ptrDataStream, numPulses, nTotp;
     private static final String tzxHeader = "ZXTape!\u001A";
-    private static final String tzxCreator = "TZX created with JSpeccy v0.92";
+    private static final String tzxCreator = "TZX created with JSpeccy v0.93";
 
     public Tape(TapeSettingsType tapeSettings) {
         blockListeners = new ArrayList<>();
