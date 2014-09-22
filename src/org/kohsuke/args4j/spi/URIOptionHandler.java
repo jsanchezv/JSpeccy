@@ -4,8 +4,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -26,12 +24,12 @@ public class URIOptionHandler extends OptionHandler<URI> {
             setter.addValue(new URI(param));
             return 1;
         } catch (URISyntaxException e) {
-            throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND.format(params.getParameter(-1),param));
+            throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND, params.getParameter(-1), param);
         }
     }
 
     @Override
     public String getDefaultMetaVariable() {
-        return "URI";
+        return Messages.DEFAULT_META_URI_OPTION_HANDLER.format();            
     }
 }

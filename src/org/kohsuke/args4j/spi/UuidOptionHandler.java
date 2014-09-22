@@ -27,12 +27,12 @@ public class UuidOptionHandler extends
 			return UUID.fromString(argument);
 		} catch (IllegalArgumentException e) {
 			throw new CmdLineException(owner,
-					Messages.ILLEGAL_UUID.format(argument));
+					Messages.ILLEGAL_UUID, argument);
 		}
 	}
 
 	@Override
 	public String getDefaultMetaVariable() {
-		return "<uuid>";
+            return Messages.DEFAULT_META_UUID_OPTION_HANDLER.format();            
 	}
 }

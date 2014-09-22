@@ -24,13 +24,13 @@ public class URLOptionHandler extends OptionHandler<URL> {
             setter.addValue(new URL(param));
             return 1;
         } catch (MalformedURLException e) {
-            throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND.format(
-                    params.getParameter(-1),param));
+            throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND,
+                    params.getParameter(-1), param);
         }
     }
 
     @Override
     public String getDefaultMetaVariable() {
-        return "URL";
+        return Messages.DEFAULT_META_URL_OPTION_HANDLER.format();            
     }
 }

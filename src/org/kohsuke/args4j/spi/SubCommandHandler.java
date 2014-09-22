@@ -7,13 +7,14 @@ import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.OptionDef;
 
 import java.util.AbstractList;
+import java.util.ResourceBundle;
 
 /**
  * {@link OptionHandler} used with {@link Argument} for parsing typical "sub-command" pattern.
  *
  * <p>
  * The "sub-command" pattern refers to the design of the command line like <tt>git</tt> and <tt>svn</tt>, where
- * the first argument to the command designates a sub-command (say <samp>git checkout</samp>), then everything
+ * the first argument to the command designates a sub-command (say <code>git checkout</code>), then everything
  * that follows afterward are parsed by this sub-command (which is usually different depending on
  * which sub-command was selected.)
  *
@@ -21,7 +22,7 @@ import java.util.AbstractList;
  * This {@link OptionHandler} models this design pattern with the {@link SubCommands} annotation.
  * See the following example:
  *
- * <code><pre>
+ * <pre>{@code
  * class Git {
  *      &#64;Argument(handler={@link SubCommandHandler}.class)
  *      &#64;SubCommands({
@@ -47,10 +48,10 @@ import java.util.AbstractList;
  *
  *     ...
  * }
- * </pre></code>
+ * }</pre>
  *
  * <p>
- * An example of legal command line option for this is <samp>-r checkout -a</samp>.
+ * An example of legal command line option for this is <code>-r checkout -a</code>.
  *
  * <ul>
  * <li>
@@ -107,7 +108,7 @@ public class SubCommandHandler extends OptionHandler<Object> {
     }
 
     protected int fallback(String subCmd) throws CmdLineException {
-        throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND.format(option.toString(),subCmd));
+        throw new CmdLineException(owner, Messages.ILLEGAL_OPERAND, option.toString(), subCmd);
     }
 
     protected Object subCommand(SubCommand c, final Parameters params) throws CmdLineException {
@@ -148,6 +149,18 @@ public class SubCommandHandler extends OptionHandler<Object> {
 
     @Override
     public String getDefaultMetaVariable() {
-        return "CMD ARGS...";
+        StringBuffer rv = new StringBuffer();
+        rv.append("[");
+        for (SubCommand sc : commands.value()) {
+            rv.append(sc.name()).append(" | ");
+        }
+        rv.delete(rv.length()-3, rv.length());
+        rv.append("]");
+        return rv.toString();
+    }
+
+    @Override
+    public String getMetaVariable(ResourceBundle rb) {
+        return getDefaultMetaVariable();
     }
 }

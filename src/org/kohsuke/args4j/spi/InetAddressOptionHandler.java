@@ -25,12 +25,12 @@ public class InetAddressOptionHandler extends
 			return InetAddress.getByName(argument);
 		} catch (UnknownHostException e) {
 			throw new CmdLineException(owner,
-					Messages.ILLEGAL_IP_ADDRESS.format(argument));
+					Messages.ILLEGAL_IP_ADDRESS, argument);
 		}
 	}
 
 	@Override
 	public String getDefaultMetaVariable() {
-		return "<ip address>";
+        return Messages.DEFAULT_META_INET_ADDRESS_OPTION_HANDLER.format();
 	}
 }

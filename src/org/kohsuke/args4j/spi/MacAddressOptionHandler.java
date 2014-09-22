@@ -22,7 +22,7 @@ import org.kohsuke.args4j.OptionDef;
 public class MacAddressOptionHandler extends OptionHandler<byte[]> {
     public MacAddressOptionHandler(CmdLineParser parser, OptionDef option,
 	    Setter<? super byte[]> setter) {
-	super(parser, option, setter);
+		super(parser, option, setter);
     }
 
 	@Override
@@ -48,7 +48,7 @@ public class MacAddressOptionHandler extends OptionHandler<byte[]> {
 		    macStringArray = macString.split("[^0-9a-fA-F]+");
 		else
 		    throw new CmdLineException(owner,
-			    Messages.ILLEGAL_MAC_ADDRESS.format(macString));
+			    Messages.ILLEGAL_MAC_ADDRESS, macString);
 
 		byte[] mac = new byte[6];
 		for (int i = 0; i < 6; i++)
@@ -71,7 +71,7 @@ public class MacAddressOptionHandler extends OptionHandler<byte[]> {
 
     @Override
     public String getDefaultMetaVariable() {
-	return "<mac address>";
+        return Messages.DEFAULT_META_MAC_ADDRESS_OPTION_HANDLER.format();
     }
     
 }

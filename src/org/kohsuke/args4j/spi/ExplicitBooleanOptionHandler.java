@@ -52,13 +52,13 @@ public class ExplicitBooleanOptionHandler extends OptionHandler<Boolean> {
     private Boolean getBoolean(String parameter) throws CmdLineException {
         String valueStr = parameter.toLowerCase();
         if (!ACCEPTABLE_VALUES.containsKey(valueStr)) {
-            throw new CmdLineException(owner, Messages.ILLEGAL_BOOLEAN.format(valueStr));
+            throw new CmdLineException(owner, Messages.ILLEGAL_BOOLEAN, valueStr);
         }
         return ACCEPTABLE_VALUES.get(valueStr);
     }
 
     @Override
     public String getDefaultMetaVariable() {
-        return "[VAL]";
+        return Messages.DEFAULT_META_EXPLICIT_BOOLEAN_OPTION_HANDLER.format();
     }
 }

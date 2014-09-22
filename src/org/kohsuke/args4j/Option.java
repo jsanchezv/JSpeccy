@@ -19,7 +19,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *
  * <p>
  * This annotation can be placed on a field of type T or the method
- * of the form <code>void <i><samp>methodName</samp></i>(T value)</code>. Its access
+ * of the form <code>void <i><code>methodName</code></i>(T value)</code>. Its access
  * modified can be anything, but if it's not public, your application
  * needs to run in a security context that allows args4j to access
  * the field/method (see {@link AccessibleObject#setAccessible(boolean)}.
@@ -31,7 +31,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * <h2>Boolean Switch</h2>
  * <p>
  * When <var>T</var> is {@code boolean} , it represents
- * a {@code boolean} option that takes the form of <samp>-OPT</samp>. When this option is set,
+ * a {@code boolean} option that takes the form of <code>-OPT</code>. When this option is set,
  * the property will be set to {@code true}.
  *
  * <h2>String Switch</h2>
@@ -47,17 +47,17 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * the operand and the enum constant name is done in a case insensitive fashion.
  * <p>
  * For example, the following definition will represent command line options
- * like <samp>-coin penny</samp> or <samp>-coin DIME</samp>,
- * but things like <samp>-coin</samp> or <samp>-coin abc</samp> are errors.
+ * like <code>-coin penny</code> or <code>-coin DIME</code>,
+ * but things like <code>-coin</code> or <code>-coin abc</code> are errors.
  *
- * <code><pre>
+ * <pre>
  * enum Coin { PENNY,NICKEL,DIME,QUARTER }
  *
  * class Option {
  *   &#64;Option(name="-coin")
  *   public Coin coin;
  * }
- * </pre></code>
+ * </pre>
  *
  * <h2>File Switch</h2>
  * <p>
@@ -70,12 +70,12 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({FIELD,METHOD,PARAMETER})
 public @interface Option {
     /**
-     * Name of the option, such as <samp>-foo</samp> or <samp>-bar</samp>.
+     * Name of the option, such as <code>-foo</code> or <code>-bar</code>.
      */
     String name();
     
     /**
-     * Aliases for the options, such as <samp>--long-option-name</samp>.
+     * Aliases for the options, such as <code>--long-option-name</code>.
      */
     String[] aliases() default { };
 
@@ -104,11 +104,11 @@ public @interface Option {
     /**
      * When the option takes an operand, the usage screen will show something like this
      *
-     * <code><pre>
+     * <pre>
      * -x FOO  : blah blah blah
-     * </pre></code>
+     * </pre>
      *
-     * You can replace the <samp>FOO</samp> token by using this parameter.
+     * You can replace the <code>FOO</code> token by using this parameter.
      *
      * <p>
      * If left unspecified, this value is infered from the type of the option.
@@ -134,6 +134,17 @@ public @interface Option {
      * flag.
      */
     boolean required() default false;
+    
+    /**
+     * Specify that the option is a help option.
+     *
+     * <p>
+     * When flagging an option being the help option, required
+     * arguments or options that are missing in an actual command
+     * line don't cause an exception to be thrown.
+     * @see #required() 
+     */
+    boolean help() default false;
 
     /**
      * Specify that the option is hidden from the usage, by default.
@@ -167,7 +178,7 @@ public @interface Option {
      *
      * <h3>Example</h3>
      *
-     * <code><pre>
+     * <pre>
      * // this is a normal "-r" option
      * &#64;Option(name="-r")
      * boolean value;
@@ -176,7 +187,7 @@ public @interface Option {
      * // handler provided for boolean
      * &#64;Option(name="-b",handler=MyHandler.class)
      * boolean value;
-     * </pre></code>
+     * </pre>
      */
     Class<? extends OptionHandler> handler() default OptionHandler.class;
 
@@ -185,13 +196,13 @@ public @interface Option {
      *
      * <h3>Example</h3>
      *
-     * <code><pre>
+     * <pre>
      *  &#64;Option(name="-a")
      *  int a;
      *  //-b is not required but if it's provided, then a becomes required
      *  &#64;Option(name="-b", depends={"-a"}
      *  int b;
-     * </pre></code>
+     * </pre>
      *
      * <p>
      * At the end of {@link CmdLineParser#parseArgument(String...)},
@@ -200,4 +211,25 @@ public @interface Option {
      * </p>
      */
     String[] depends() default { };
+    
+    /**
+     * List of other options that this option is incompatible with..
+     *
+     * <h3>Example</h3>
+     *
+     * <pre>
+     *  &#64;Option(name="-a")
+     *  int a;
+     *  // -h and -a cannot be specified together
+     *  &#64;Option(name="-h", forbids={"-a"}
+     *  boolean h;
+     * </pre>
+     *
+     * <p>
+     * At the end of {@link CmdLineParser#parseArgument(String...)},
+     * a {@link CmdLineException} will be thrown if forbidden option
+     * combinations are present.
+     * </p>
+     */
+    String[] forbids() default { };    
 }
