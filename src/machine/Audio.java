@@ -41,7 +41,6 @@ class Audio {
     Audio(AY8912Type ayConf) {
        settings = ayConf;
        line = null;
-       samplingFrequency = 44100;
     }
     
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY, int freq) {
@@ -79,7 +78,7 @@ class Audio {
             audiotstates = ptrBeeper = ptrBuf = 0;
             level = lastLevel = 0;
             
-            ay8912.setMaxAmplitude(soundMode == 0 ? 8192 : 12288);
+            ay8912.setMaxAmplitude(soundMode == 0 ? 10900 : 16350);
             switch (soundMode) {
                 case 2: // Stereo ACB
                     ay8912.setBufferChannels(ayBufA, ayBufC, ayBufB);
@@ -139,7 +138,7 @@ class Audio {
                     if (value != 0) {
                         level += ((float) diff / (float) step) * value;
                     }
-                    lastLevel += (level - lastLevel) >> 2;
+                    lastLevel += (level - lastLevel) >> 1;
                     beeper[ptrBeeper++] = lastLevel;
                 } else {
                     // el tiempo transcurrido no basta para completar la muestra
@@ -153,7 +152,7 @@ class Audio {
 
             // se añaden muestras completas mientras se pueda
             while (time >= step) {
-                lastLevel += (value - lastLevel) >> 2;
+                lastLevel += (value - lastLevel) >> 1;
                 beeper[ptrBeeper++] = lastLevel;
                 time -= step;
             }
@@ -187,7 +186,7 @@ class Audio {
             return;
                 
 //        System.out.println(ptrBeeper + ", " + ay.getSampleCount());
-        
+
         if (soundMode == 0) {
             endFrameMono();
         }

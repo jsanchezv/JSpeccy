@@ -84,7 +84,7 @@ public final class AY8912 {
     // AY register index
     private int addressLatch;
     // AY register set
-    private int regAY[] = new int[16];
+    private final int regAY[] = new int[16];
     // Output signal levels (thanks to Matthew Westcott)
     // http://groups.google.com/group/comp.sys.sinclair/browse_thread/thread/
     // fb3091da4c4caf26/d5959a800cda0b5e?lnk=gst&q=Matthew+Westcott#d5959a800cda0b5e
@@ -112,7 +112,7 @@ public final class AY8912 {
     private MachineTypes spectrumModel;
 
     AY8912() {
-        maxAmplitude = 8192;
+        maxAmplitude = 10900;
         for (int idx = 0; idx < volumeLevel.length; idx++) {
             volumeLevel[idx] = (int) (maxAmplitude * volumeRate[idx]);
 //            System.out.println(String.format("volumeLevel[%d]: %d",
