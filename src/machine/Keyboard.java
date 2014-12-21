@@ -21,13 +21,14 @@ public class Keyboard implements KeyListener {
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR, FULLER
     };
     
-    private int rowKey[] = new int[8], sjs1, sjs2;
-    private boolean shiftPressed, mapPCKeys, winBug;
-    private KeyEvent keyEventPending[] = new KeyEvent[8];
+    private final int rowKey[] = new int[8];
+    private int sjs1, sjs2;
+    private boolean shiftPressed, mapPCKeys;
+    private final boolean winBug;
+    private final KeyEvent keyEventPending[] = new KeyEvent[8];
     private int kempston, fuller;
     private JoystickModel joystickModel, shadowJoystick;
-    private JoystickRaw joystick1, joystick2;
-    private int capsShiftCounter = 0;
+    private final JoystickRaw joystick1, joystick2;
 
     /*
      * Spectrum Keyboard Map
@@ -82,7 +83,7 @@ public class Keyboard implements KeyListener {
     public final void reset() {
         Arrays.fill(rowKey, 0xff);
         shiftPressed = false;
-        kempston = capsShiftCounter = 0;
+        kempston = 0;
         sjs1 = sjs2 = fuller = 0xff;
         Arrays.fill(keyEventPending, null);
     }
@@ -551,8 +552,8 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                capsShiftCounter++;
-                rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
+                if (!shiftPressed)
+                    rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
                 rowKey[4] &= KEY_PRESSED_BIT0; // 0
                 break;
             case KeyEvent.VK_COMMA:
@@ -586,21 +587,21 @@ public class Keyboard implements KeyListener {
                 rowKey[5] &= KEY_PRESSED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                capsShiftCounter++;
-                rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
+                if (!shiftPressed)
+                    rowKey[0] &= KEY_PRESSED_BIT0; // CAPS
                 rowKey[3] &= KEY_PRESSED_BIT1; // 2  -- Caps Lock
                 break;
             case KeyEvent.VK_ESCAPE:
-                capsShiftCounter++;
-                rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
+                if (!shiftPressed)
+                    rowKey[0] &= KEY_PRESSED_BIT0; // Caps Shift
                 rowKey[7] &= KEY_PRESSED_BIT0; // Space
                 break;
             // Joystick emulation
             case KeyEvent.VK_LEFT:
                 switch (joystickModel) {
                     case NONE:
-                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
-                        capsShiftCounter++;
+                        if (!shiftPressed)
+                            rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
                         rowKey[3] &= KEY_PRESSED_BIT4; // 5  -- Left arrow
                         break;
@@ -621,8 +622,8 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_DOWN:
                 switch (joystickModel) {
                     case NONE:
-                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
-                        capsShiftCounter++;
+                        if (!shiftPressed)
+                            rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT4; // 6  -- Down arrow
                         break;
@@ -643,8 +644,8 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_UP:
                 switch (joystickModel) {
                     case NONE:
-                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
-                        capsShiftCounter++;
+                        if (!shiftPressed)
+                            rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT3; // 7  -- Up arrow
                         break;
@@ -665,8 +666,8 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_RIGHT:
                 switch (joystickModel) {
                     case NONE:
-                        rowKey[0] &= KEY_PRESSED_BIT0; // Caps
-                        capsShiftCounter++;
+                        if (!shiftPressed)
+                            rowKey[0] &= KEY_PRESSED_BIT0; // Caps
                     case CURSOR:
                         rowKey[4] &= KEY_PRESSED_BIT2; // 8  -- Right arrow
                         break;
@@ -869,9 +870,10 @@ public class Keyboard implements KeyListener {
                 break;
             // Row Caps Shift - V
             case KeyEvent.VK_SHIFT:
-                if (capsShiftCounter == 0)
+                if (shiftPressed) {
                     rowKey[0] |= KEY_RELEASED_BIT0; // Caps Shift
-                shiftPressed = false;
+                    shiftPressed = false;
+                }
                 break;
             case KeyEvent.VK_Z:
                 rowKey[0] |= KEY_RELEASED_BIT1; // Z
@@ -887,8 +889,7 @@ public class Keyboard implements KeyListener {
                 break;
             // Additional keys
             case KeyEvent.VK_BACK_SPACE:
-                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                    capsShiftCounter = 0;
+                if (!shiftPressed) {
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
                 rowKey[4] |= KEY_RELEASED_BIT0; // 0
@@ -924,15 +925,13 @@ public class Keyboard implements KeyListener {
                 rowKey[5] |= KEY_RELEASED_BIT1; // O
                 break;
             case KeyEvent.VK_CAPS_LOCK:
-                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                    capsShiftCounter = 0;
+                if (!shiftPressed) {
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
                 rowKey[3] |= KEY_RELEASED_BIT1; // 2
                 break;
             case KeyEvent.VK_ESCAPE:
-                if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                    capsShiftCounter = 0;
+                if (!shiftPressed) {
                     rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                 }
                 rowKey[7] |= KEY_RELEASED_BIT0; // Space
@@ -941,8 +940,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_LEFT:
                 switch (joystickModel) {
                     case NONE:
-                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                            capsShiftCounter = 0;
+                        if (!shiftPressed) {
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
                     case CURSOR:
@@ -965,8 +963,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_DOWN:
                 switch (joystickModel) {
                     case NONE:
-                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                            capsShiftCounter = 0;
+                        if (!shiftPressed) {
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
                     case CURSOR:
@@ -989,8 +986,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_UP:
                 switch (joystickModel) {
                     case NONE:
-                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                            capsShiftCounter = 0;
+                        if (!shiftPressed) {
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
                     case CURSOR:
@@ -1013,8 +1009,7 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_RIGHT:
                 switch (joystickModel) {
                     case NONE:
-                        if (winBug || (--capsShiftCounter < 1 && !shiftPressed)) {
-                            capsShiftCounter = 0;
+                        if (!shiftPressed) {
                             rowKey[0] |= KEY_RELEASED_BIT0; // CAPS
                         }
                     case CURSOR:
