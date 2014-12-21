@@ -26,26 +26,27 @@ import tv.porst.jhexview.IDataChangedListener;
 public final class Memory {
 
     private final int PAGE_SIZE = 0x2000;
-    private byte[][] Rom48k = new byte[2][PAGE_SIZE];
-    private byte[][] IF2Rom = new byte[2][PAGE_SIZE];
-    private byte[][] Rom128k = new byte[4][PAGE_SIZE];
-    private byte[][] RomPlus2 = new byte[4][PAGE_SIZE];
-    private byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
+    private final byte[][] Rom48k = new byte[2][PAGE_SIZE];
+    private final byte[][] IF2Rom = new byte[2][PAGE_SIZE];
+    private final byte[][] Rom128k = new byte[4][PAGE_SIZE];
+    private final byte[][] RomPlus2 = new byte[4][PAGE_SIZE];
+    private final byte[][] RomPlus2a = new byte[8][PAGE_SIZE];
+    private final byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
     // ROM del Interfaz I
-    private byte[][] IF1Rom = new byte[1][PAGE_SIZE];
+    private final byte[][] IF1Rom = new byte[1][PAGE_SIZE];
     // 8 páginas de RAM
-    private byte[][] Ram = new byte[16][PAGE_SIZE];
+    private final byte[][] Ram = new byte[16][PAGE_SIZE];
     // RAM falsa para dejar que escriba en páginas de ROM sin afectar a la
     // ROM de verdad. Esto evita tener que comprobar en cada escritura si la
     // página es de ROM o de RAM.
-    private byte[] fakeROM = new byte[PAGE_SIZE];
+    private final byte[] fakeROM = new byte[PAGE_SIZE];
     // punteros a las 4 páginas
-    private byte[][] readPages = new byte[8][];
-    private byte[][] writePages = new byte[8][];
+    private final byte[][] readPages = new byte[8][];
+    private final byte[][] writePages = new byte[8][];
     // Roms de los Multiface ([0]=MF1, [1]=MF128, [2]=MFPLUS3)
-    private byte[][] mfROM = new byte[3][PAGE_SIZE];
+    private final byte[][] mfROM = new byte[3][PAGE_SIZE];
     // Ram del Multiface 8K para todos
-    private byte[] mfRAM = new byte[PAGE_SIZE];
+    private final byte[] mfRAM = new byte[PAGE_SIZE];
     // Ram del la expansión de memoria LEC
     private byte[][] lecRam;
     // Número de página de RAM de donde sale la pantalla activa
@@ -55,8 +56,8 @@ public final class Memory {
     private boolean model128k, pagingLocked, plus3RamMode;
     private boolean multifacePaged, multifaceLocked;
     private MachineTypes spectrumModel;
-    private JSpeccySettingsType settings;
-    private Random random;
+    private final JSpeccySettingsType settings;
+    private final Random random;
 
     public Memory(JSpeccySettingsType memSettings) {
         spectrumModel = null;
@@ -349,10 +350,15 @@ public final class Memory {
         model128k = true;
         bankM = 0;
     }
-
+    
     private void setMemoryMapPlus3() {
-        readPages[0] = RomPlus3[0];
-        readPages[1] = RomPlus3[1];
+        if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+            readPages[0] = RomPlus3[0];
+            readPages[1] = RomPlus3[1];
+        } else {
+            readPages[0] = RomPlus2a[0];
+            readPages[1] = RomPlus2a[1];
+        }
         writePages[0] = writePages[1] = fakeROM;
 
         readPages[2] = writePages[2] = Ram[10]; // Página 5
@@ -471,8 +477,13 @@ public final class Memory {
 
             int rom = ((bankM & 0x10) >>> 3) | (bankP & 0x04);
 
-            readPages[0] = RomPlus3[rom];
-            readPages[1] = RomPlus3[rom + 1];
+            if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
+                readPages[0] = RomPlus3[rom];
+                readPages[1] = RomPlus3[rom + 1];
+            } else {
+                readPages[0] = RomPlus2a[rom];
+                readPages[1] = RomPlus2a[rom + 1];
+            }
             writePages[0] = writePages[1] = fakeROM;
             // Si estamos en Plus3RamMode es que estamos saliendo del modo
             // "all RAM" y hay que reponer las páginas a su lugar
@@ -633,8 +644,8 @@ public final class Memory {
         if (spectrumModel != model) {
             spectrumModel = model;
             
-            for (int page = 0; page < Ram.length; page++) {
-                random.nextBytes(Ram[page]);
+            for (byte[] Ram1 : Ram) {
+                random.nextBytes(Ram1);
             }
             random.nextBytes(mfRAM);
         }
@@ -1033,6 +1044,19 @@ public final class Memory {
             loadRomAsResource("/roms/plus2-1.rom", RomPlus2, 2, PAGE_SIZE * 2);
         }
 
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus2A0(), RomPlus2a, 0, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/plus2a-0.rom", RomPlus2a, 0, PAGE_SIZE * 2);
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus2A1(), RomPlus2a, 2, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/plus2a-1.rom", RomPlus2a, 2, PAGE_SIZE * 2);
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus2A2(), RomPlus2a, 4, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/plus2a-2.rom", RomPlus2a, 4, PAGE_SIZE * 2);
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRomPlus2A3(), RomPlus2a, 6, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/plus2a-3.rom", RomPlus2a, 6, PAGE_SIZE * 2);
+        }
+        
         if (!loadRomAsFile(romsDirectory + conf.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-0.rom", RomPlus3, 0, PAGE_SIZE * 2);
         }
@@ -1204,7 +1228,8 @@ public final class Memory {
             Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
-                fIn.close();
+                if (fIn != null)
+                    fIn.close();
             } catch (IOException ex) {
                 Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
             }

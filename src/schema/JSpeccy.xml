@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <!--
     Document   : JSpeccy.xml
-    Created on : 17 de enero de 2014, 15:46
+    Created on : 21 de diciembre de 2014, 16:25
     Author     : jsanchez
     Description:
         Purpose of the document follows.
@@ -38,6 +38,10 @@
         <ns0:Rom128k1>128-1.rom</ns0:Rom128k1>
         <ns0:RomPlus20>plus2-0.rom</ns0:RomPlus20>
         <ns0:RomPlus21>plus2-1.rom</ns0:RomPlus21>
+        <ns0:RomPlus2a0>plus2a-0.rom</ns0:RomPlus2a0>
+        <ns0:RomPlus2a1>plus2a-1.rom</ns0:RomPlus2a1>
+        <ns0:RomPlus2a2>plus2a-2.rom</ns0:RomPlus2a2>
+        <ns0:RomPlus2a3>plus2a-3.rom</ns0:RomPlus2a3>
         <ns0:RomPlus30>plus3-0.rom</ns0:RomPlus30>
         <ns0:RomPlus31>plus3-1.rom</ns0:RomPlus31>
         <ns0:RomPlus32>plus3-2.rom</ns0:RomPlus32>
