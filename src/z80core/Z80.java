@@ -145,7 +145,7 @@ public class Z80 {
     // Código de instrucción a ejecutar
     private int opCode;
     // Subsistema de notificaciones
-    private boolean execDone;
+    private final boolean execDone;
     // Posiciones de los flags
     private static final int CARRY_MASK = 0x01;
     private static final int ADDSUB_MASK = 0x02;
@@ -292,7 +292,7 @@ public class Z80 {
 
     // Un true en una dirección indica que se debe notificar que se va a
     // ejecutar la instrucción que está en esa direción.
-    private boolean breakpointAt[] = new boolean[65536];
+    private final boolean breakpointAt[] = new boolean[65536];
     
     // Constructor de la clase
     public Z80(MemIoOps memory, NotifyOps notify) {
@@ -989,7 +989,7 @@ public class Z80 {
     // Rota a la izquierda el valor del argumento (como sla salvo por el bit 0)
     // El bit 7 va al carry flag
     // El bit 0 toma el valor 1
-    // Instrucci�n indocumentada
+    // Instrucción indocumentada
     private int sll(int oper8) {
         carryFlag = (oper8 > 0x7f);
         oper8 = ((oper8 << 1) | CARRY_MASK) & 0xff;
