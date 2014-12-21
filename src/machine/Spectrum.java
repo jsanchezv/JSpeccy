@@ -41,7 +41,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
     private int kmouseX = 0, kmouseY = 0, kmouseW; // Kempston Mouse Turbo Master X, Y, Wheel
     private long framesByInt, speedometer, speed, prevSpeed;
-    private boolean muted, enabledSound, enabledAY, kmouseEnabled;
+    private boolean muted, enabledAY, kmouseEnabled;
     private final byte delayTstates[] =
         new byte[MachineTypes.SPECTRUM128K.tstatesFrame + 200];
     public MachineTypes spectrumModel;
@@ -53,8 +53,10 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private final Audio audio;
     private final AY8912 ay8912;
     private Tape tape;
-    private boolean paused;
-    private boolean resetPending, autoLoadTape, acceleratedLoading;
+    private volatile boolean paused;
+    private volatile boolean acceleratedLoading;
+    private volatile boolean enabledSound;
+    private boolean resetPending, autoLoadTape;
     private JLabel speedLabel;
 
     private JoystickModel joystickModel;
@@ -269,11 +271,15 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
     public void selectHardwareModel(MachineTypes hardwareModel) {
 
+        if (tape != null && tape.isTapePlaying()) {
+            tape.stop();
+        }
+
         disableSound();
         spectrumModel = hardwareModel;
         clock.setSpectrumModel(spectrumModel);
         memory.reset(spectrumModel);
-        
+
         if (tape != null) {
             tape.setSpectrumModel(spectrumModel);
         }
@@ -502,23 +508,23 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     // Habrá que comprobar el +3 cuando tenga la disquetera
                     long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 100 : 70;
                     while (clock.getFrames() < endFrame) {
-                        Thread.sleep(40);
+                        Thread.sleep(20);
                     }
 
                     if (endFrame == 100) {
                         memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
-                        memory.writeByte(FLAGS, (byte) 0x20);  // signal that a key was pressed
+                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));  // signal that a key was pressed
                         Thread.sleep(30);
                         memory.writeByte(LAST_K, (byte) 0x22); // " key
-                        memory.writeByte(FLAGS, (byte) 0x20);
+                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
                         Thread.sleep(30);
                         memory.writeByte(LAST_K, (byte) 0x22); // " key
-                        memory.writeByte(FLAGS, (byte) 0x20);
+                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
                         Thread.sleep(30);
                     }
                     memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
-                    memory.writeByte(FLAGS, (byte) 0x20);
-
+                    memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
+                    Thread.sleep(30);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -729,7 +735,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
             jscr.repaint(screenRect);
-
         }
     }
 
@@ -1685,7 +1690,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         return false;
     }
 
-    static final int SPEAKER_VOLUME = 6300;
+    static final int SPEAKER_VOLUME = -24576; // 6300;
     private int speaker;
     private static final int sp_volt[];
 
@@ -1709,7 +1714,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         }
 
         audio.open(spectrumModel, ay8912, enabledAY,
-                settings.getSpectrumSettings().isHifiSound() ? 48000 : 44100);
+                settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
 
         if (!paused) {
             if (taskFrame != null) {
