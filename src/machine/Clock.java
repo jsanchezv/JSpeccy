@@ -94,23 +94,22 @@ public class Clock {
     }
 
     public void addTstates(int states) {
+        tstates += states;
 
         if (timeout > 0) {
-            if (states < timeout) {
-                timeout -= states;
-                tstates += states;
-            } else {
-                tstates += timeout;
-                long diff = states - timeout;
-                timeout = 0;
+            timeout -= states;
+
+            if (timeout <= 0) {
+                int res = timeout;
                 for (final ClockTimeoutListener listener : clockListeners) {
-                    listener.clockTimeout();
+                   listener.clockTimeout();
                 }
-                tstates += diff;
-                timeout -= diff;
+                
+                if (timeout > 0) {
+//                    System.out.println("Timeout: " + timeout + " res: " + res);
+                    timeout += res;
+                }
             }
-        } else {
-            tstates += states;
         }
     }
 
