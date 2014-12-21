@@ -83,6 +83,10 @@
             <xsd:element name="Rom128k1" type="xsd:string" default="128-1.rom"/>
             <xsd:element name="RomPlus20" type="xsd:string" default="plus2-0.rom"/>
             <xsd:element name="RomPlus21" type="xsd:string" default="plus2-1.rom"/>
+            <xsd:element name="RomPlus2a0" default="plus2a-0.rom" type="xsd:string"></xsd:element>
+            <xsd:element name="RomPlus2a1" default="plus2a-1.rom" type="xsd:string"/>
+            <xsd:element name="RomPlus2a2" default="plus2a-2.rom" type="xsd:string"/>
+            <xsd:element name="RomPlus2a3" default="plus2a-3.rom" type="xsd:string"/>
             <xsd:element name="RomPlus30" type="xsd:string" default="plus3-0.rom"/>
             <xsd:element name="RomPlus31" type="xsd:string" default="plus3-1.rom"/>
             <xsd:element name="RomPlus32" type="xsd:string" default="plus3-2.rom"/>
