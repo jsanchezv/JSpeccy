@@ -51,7 +51,6 @@ public final class AY8912 {
     // Noise counter & noise seed
     private int counterN, rng;
     private int envelopePeriod, envelopeCounter;
-    private boolean envelopeTick;
 
     /* Envelope shape cycles:
      C AtAlH
@@ -257,6 +256,10 @@ public final class AY8912 {
             case CoarseEnvelope:
                 regAY[addressLatch] = value & 0xff;
                 envelopePeriod = (regAY[CoarseEnvelope] << 8) | regAY[FineEnvelope];
+                if (envelopePeriod == 0)
+                    envelopePeriod = 2;  // envelopePeriod = 1; envelopePeriod <<= 1;
+                else
+                    envelopePeriod <<= 1;
 //                System.out.println(String.format("envPeriod: %d", envelopePeriod));
                 break;
             case EnvelopeShapeCycle:
@@ -267,7 +270,6 @@ public final class AY8912 {
                 amplitudeEnv = Attack ? 0 : 15;
                 Continue = true;         
                 envelopeCounter = 0;
-                envelopeTick = false;
 //                if (envA || envB || envC)
 //                    System.out.println(String.format("envShape: %02x, amplitudeEnv: %d", value & 0x0f, amplitudeEnv));
 
@@ -345,7 +347,7 @@ public final class AY8912 {
                 // End of code borrowed from MAME sources
             }
 
-            if (envelopeTick && Continue && ++envelopeCounter >= envelopePeriod) {
+            if (Continue && ++envelopeCounter >= envelopePeriod) {
                 envelopeCounter = 0;
 
                 if (Attack) {
@@ -437,7 +439,6 @@ public final class AY8912 {
                 volumeB = lastB > 0 ? amplitudeB - lastB : 0;
                 volumeC = lastC > 0 ? amplitudeC - lastC : 0;
             }
-            envelopeTick = !envelopeTick;
         }
     }
 
@@ -457,7 +458,7 @@ public final class AY8912 {
         rng = 1;
         Arrays.fill(regAY, 0);
         regAY[Mixer] = 0xff;
-        envelopeTick = Continue = Attack = false;
+        Continue = Attack = false;
         startPlay();
     }
 
