@@ -14,6 +14,7 @@ import java.awt.image.DataBufferInt;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -508,7 +509,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     // Habrá que comprobar el +3 cuando tenga la disquetera
                     long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 100 : 70;
                     while (clock.getFrames() < endFrame) {
-                        Thread.sleep(20);
+                        TimeUnit.MILLISECONDS.sleep(20);
                     }
 
                     if (endFrame == 100) {
@@ -2521,6 +2522,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
         @Override
         public void clockTimeout() {
+
+            if (!enabledSound)
+                return;
 
             int spkMic = (tape.getEarBit() == 0xbf) ? -8000 : 8000;
 
