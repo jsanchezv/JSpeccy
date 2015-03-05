@@ -1487,9 +1487,9 @@ public class JSpeccy extends javax.swing.JFrame {
     speedLabel.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
     speedLabel.setText(bundle.getString("JSpeccy.speedLabel.text")); // NOI18N
     speedLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
-    speedLabel.setMaximumSize(new java.awt.Dimension(75, 18));
-    speedLabel.setMinimumSize(new java.awt.Dimension(40, 18));
-    speedLabel.setPreferredSize(new java.awt.Dimension(50, 18));
+    speedLabel.setMaximumSize(new java.awt.Dimension(85, 18));
+    speedLabel.setMinimumSize(new java.awt.Dimension(50, 18));
+    speedLabel.setPreferredSize(new java.awt.Dimension(60, 18));
     speedLabel.setRequestFocusEnabled(false);
     statusPanel.add(speedLabel);
 

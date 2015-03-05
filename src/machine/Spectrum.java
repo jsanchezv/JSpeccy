@@ -643,7 +643,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
                         @Override
                         public void run() {
-                            speedLabel.setText(String.format("%4d%%", speed));
+                            speedLabel.setText(String.format("%5d%%", speed));
                         }
                     });
 //                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
@@ -783,7 +783,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        speedLabel.setText(String.format("%4d%%", Math.abs(speed * 10)));
+                        speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10)));
                     }
                 });
             }
