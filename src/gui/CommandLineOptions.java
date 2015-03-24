@@ -30,7 +30,7 @@ public class CommandLineOptions {
     enum Model { sp16k, sp48k, sp128k, plus2, plus2a, plus3 }
     @Option(name = "-m", aliases = "--model", metaVar = "CommandLineOptions.metaVar.model.text",
             usage = "CommandLineOptions.model.text")
-    private final Model model = Model.sp48k;
+    private Model model = Model.sp48k;
     
     @Option(name = "-u", aliases = "--ulaplus", usage = "CommandLineOptions.ulaplus.text")
     private boolean ulaplus;
@@ -59,7 +59,7 @@ public class CommandLineOptions {
 
     @Option(name = "-j", aliases = "--joystick", metaVar = "CommandLineOptions.metaVar.model.text",
             usage = "CommandLineOptions.joystick.text")
-    private final JoystickModel joystick = JoystickModel.NONE;
+    private JoystickModel joystick = JoystickModel.NONE;
     
     @Option(name = "--map-pc-keyboard", usage = "CommandLineOptions.mapPCkeyboard.text")
     private boolean mapPCkeys;
@@ -83,17 +83,17 @@ public class CommandLineOptions {
     enum SoundMode { MONO, ABC, ACB, BAC };
     @Option(name = "--sound-mode", metaVar = "CommandLineOptions.metaVar.mode.text",
             usage = "CommandLineOptions.soundMode.text")
-    private final SoundMode soundMode = SoundMode.MONO;
+    private SoundMode soundMode = SoundMode.MONO;
     
     enum ZoomFilter { STANDARD, BILINEAL, BICUBIC };
     @Option(name = "--zoom-filter", metaVar = "CommandLineOptions.metaVar.filter.text",
             usage = "CommandLineOptions.zoomFilter.text")
-    private final ZoomFilter zoomFilter = ZoomFilter.STANDARD;
+    private ZoomFilter zoomFilter = ZoomFilter.STANDARD;
     
     enum BorderSize { NONE, STANDARD, FULL, HUGE };
     @Option(name = "--border-size", metaVar = "CommandLineOptions.metaVar.size.text",
             usage = "CommandLineOptions.borderSize.text")
-    private final BorderSize borderSize = BorderSize.STANDARD;
+    private BorderSize borderSize = BorderSize.STANDARD;
     
     @Option(name = "--no-load-trap", usage = "CommandLineOptions.noLoadTrap.text")
     private boolean loadTrap;
@@ -115,7 +115,7 @@ public class CommandLineOptions {
 
     // receives other command line parameters than options
     @Argument
-    private final List<String> arguments = new ArrayList<>();
+    private List<String> arguments = new ArrayList<>();
 
     /**
      * @return the argumentsissue2
