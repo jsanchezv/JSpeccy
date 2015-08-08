@@ -499,36 +499,33 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private static final int FLAGS = 23611;
     private void doAutoLoadTape() {
         autoLoadTape = false;
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(1100);
-                    // El 48k tarda en inicializarse unos 86 frames
-                    // Los modelos de 128k, tardan unos 56 frames
-                    // Habrá que comprobar el +3 cuando tenga la disquetera
-                    long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 100 : 70;
-                    while (clock.getFrames() < endFrame) {
-                        TimeUnit.MILLISECONDS.sleep(20);
-                    }
-
-                    if (endFrame == 100) {
-                        memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
-                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));  // signal that a key was pressed
-                        Thread.sleep(30);
-                        memory.writeByte(LAST_K, (byte) 0x22); // " key
-                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
-                        Thread.sleep(30);
-                        memory.writeByte(LAST_K, (byte) 0x22); // " key
-                        memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
-                        Thread.sleep(30);
-                    }
-                    memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
+        Runnable task = () -> {
+            try {
+                Thread.sleep(1100);
+                // El 48k tarda en inicializarse unos 86 frames
+                // Los modelos de 128k, tardan unos 56 frames
+                // Habrá que comprobar el +3 cuando tenga la disquetera
+                long endFrame = spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM48K ? 100 : 70;
+                while (clock.getFrames() < endFrame) {
+                    TimeUnit.MILLISECONDS.sleep(20);
+                }
+                
+                if (endFrame == 100) {
+                    memory.writeByte(LAST_K, (byte) 0xEF); // LOAD keyword
+                    memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));  // signal that a key was pressed
+                    Thread.sleep(30);
+                    memory.writeByte(LAST_K, (byte) 0x22); // " key
                     memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
                     Thread.sleep(30);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                    memory.writeByte(LAST_K, (byte) 0x22); // " key
+                    memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
+                    Thread.sleep(30);
                 }
+                memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
+                memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
+                Thread.sleep(30);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
             }
         };
         
@@ -639,12 +636,8 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
-                    SwingUtilities.invokeLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            speedLabel.setText(String.format("%5d%%", speed));
-                        }
+                    SwingUtilities.invokeLater(() -> {
+                        speedLabel.setText(String.format("%5d%%", speed));
                     });
 //                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
                 }
@@ -780,11 +773,8 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
             speed = clock.getFrames() - startFrame;
             if (speed != prevSpeed) {
                 prevSpeed = speed;
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10)));
-                    }
+                SwingUtilities.invokeLater(() -> {
+                    speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10)));
                 });
             }
 
