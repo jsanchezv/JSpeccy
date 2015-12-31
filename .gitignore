@@ -1,4 +1,5 @@
 /build/
 /dist/
-/nbproject/private/
-JSpeccy.xml
+nbproject/*
+!nbproject/project.properties
+!nbproject/project.xml
