@@ -66,6 +66,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
             loadSaveMemoryDialog.setModalityType(ModalityType.APPLICATION_MODAL);
             loadSaveMemoryDialog.getContentPane().add(this);
             loadSaveMemoryDialog.pack();
+            loadSaveMemoryDialog.setLocationRelativeTo(parent);
         }
 
         saveDialog = false;

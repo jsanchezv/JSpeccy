@@ -2414,6 +2414,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void imageHelpMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageHelpMenuActionPerformed
         keyboardHelper.setResizable(false);
         keyboardHelper.pack();
+        keyboardHelper.setLocationRelativeTo(jscr);
         keyboardHelper.setVisible(true);
     }//GEN-LAST:event_imageHelpMenuActionPerformed
 
@@ -2469,6 +2470,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     tapeFilenameLabel.setText(tape.getTapeFilename().getName());
                     ignoreRadioButton.setSelected(true);
                     saveSzxTape.pack();
+                    saveSzxTape.setLocationRelativeTo(jscr);
                     saveSzxTape.setVisible(true);
                     snapSZX.setTapeEmbedded(embeddedRadioButton.isSelected());
                     snapSZX.setTapeLinked(linkedRadioButton.isSelected());
@@ -2561,9 +2563,10 @@ public class JSpeccy extends javax.swing.JFrame {
     }//GEN-LAST:event_fastEmulationToggleButtonActionPerformed
 
     private void browserTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browserTapeMediaMenuActionPerformed
-        tapeBrowserDialog.setVisible(true);
         tapeBrowserDialog.pack();
+        tapeBrowserDialog.setLocationRelativeTo(jscr);
         tapeCatalog.doLayout();
+        tapeBrowserDialog.setVisible(true);
     }//GEN-LAST:event_browserTapeMediaMenuActionPerformed
 
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
@@ -3092,6 +3095,7 @@ public class JSpeccy extends javax.swing.JFrame {
         snmValue.setValue(spectrum.getMemory().readByte(snmAddress.getNumber().intValue()) & 0xff);
         pokeDialog.setVisible(true);
         pokeDialog.pack();
+        pokeDialog.setLocationRelativeTo(jscr);
     }//GEN-LAST:event_pokeMachineMenuActionPerformed
 
     private void addressSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_addressSpinnerStateChanged
@@ -3256,9 +3260,10 @@ public class JSpeccy extends javax.swing.JFrame {
     private void tapeLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tapeLabelMouseClicked
         if (evt.getClickCount() == 2 && !evt.isConsumed()) {
             evt.consume();
-            tapeBrowserDialog.setVisible(true);
             tapeBrowserDialog.pack();
+            tapeBrowserDialog.setLocationRelativeTo(jscr);
             tapeCatalog.doLayout();
+            tapeBrowserDialog.setVisible(true);
         }
     }//GEN-LAST:event_tapeLabelMouseClicked
 

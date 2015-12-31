@@ -95,6 +95,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
             microdriveDialog = new JDialog(owner, false);
             microdriveDialog.getContentPane().add(this);
             microdriveDialog.pack();
+            microdriveDialog.setLocationRelativeTo(parent);
         }
 
         microdriveDialog.setTitle(title);

@@ -133,6 +133,7 @@ public class SettingsDialog extends javax.swing.JPanel {
             settingsDialog = new JDialog(owner, true);
             settingsDialog.getContentPane().add(this);
             settingsDialog.pack();
+            settingsDialog.setLocationRelativeTo(parent);
         }
 
         updateUserSettings();

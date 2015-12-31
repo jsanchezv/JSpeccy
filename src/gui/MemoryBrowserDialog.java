@@ -65,6 +65,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             memoryBrowserDialog.setMaximumSize(new Dimension(520, 800));
             memoryBrowserDialog.getContentPane().add(this);
             memoryBrowserDialog.pack();
+            memoryBrowserDialog.setLocationRelativeTo(parent);
         }
 
         if (spectrumModel != memory.getSpectrumModel()) {
