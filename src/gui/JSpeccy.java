@@ -15,18 +15,39 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.*;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
 import static javax.swing.TransferHandler.COPY;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
-import javax.xml.bind.*;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import machine.Keyboard.JoystickModel;
 import machine.*;
 import org.kohsuke.args4j.CmdLineException;
@@ -34,7 +55,6 @@ import org.kohsuke.args4j.CmdLineParser;
 import snapshots.*;
 import utilities.Tape;
 import utilities.Tape.TapeState;
-import utilities.TapeBlockListener;
 import utilities.TapeStateListener;
 
 /**
@@ -614,24 +634,15 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeCatalog.setModel(tape.getTapeTableModel());
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
-        lsm.addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent event) {
-
-                if (!event.getValueIsAdjusting() && event.getLastIndex() != -1) {
-                    tape.setSelectedBlock(lsm.getLeadSelectionIndex());
-                }
+        lsm.addListSelectionListener((ListSelectionEvent event) -> {
+            if (!event.getValueIsAdjusting() && event.getLastIndex() != -1) {
+                tape.setSelectedBlock(lsm.getLeadSelectionIndex());
             }
         });
         
         tape.addTapeChangedListener(new TapeChangedListener());
-        tape.addTapeBlockListener(new TapeBlockListener() {
-            
-            @Override
-            public void blockChanged(int block) {
-                lsm.setSelectionInterval(block, block);
-            }
+        tape.addTapeBlockListener((int block) -> {
+            lsm.setSelectionInterval(block, block);
         });
         
         spectrum.getInterface1().addInterface1DriveListener(new Interface1DriveListener() {
@@ -2567,6 +2578,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserDialog.setLocationRelativeTo(jscr);
         tapeCatalog.doLayout();
         tapeBrowserDialog.setVisible(true);
+        tapeBrowserDialog.repaint();
     }//GEN-LAST:event_browserTapeMediaMenuActionPerformed
 
     private void specPlus2HardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2HardwareActionPerformed
@@ -3264,6 +3276,7 @@ public class JSpeccy extends javax.swing.JFrame {
             tapeBrowserDialog.setLocationRelativeTo(jscr);
             tapeCatalog.doLayout();
             tapeBrowserDialog.setVisible(true);
+            tapeBrowserDialog.repaint();
         }
     }//GEN-LAST:event_tapeLabelMouseClicked
 
@@ -3282,11 +3295,8 @@ public class JSpeccy extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(final String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new JSpeccy(args).setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            new JSpeccy(args).setVisible(true);
         });
     }
     
@@ -3467,9 +3477,10 @@ public class JSpeccy extends javax.swing.JFrame {
                     rewindTapeMediaMenu.setEnabled(true);
                     ejectTapeMediaMenu.setEnabled(true);
                     reloadTapeMediaMenu.setEnabled(true);
-                    if (tape.getTapeFilename().canWrite() &&
-                        !tape.getTapeFilename().getName().toLowerCase().endsWith(".csw"))
+                    if (tape.getTapeFilename().canWrite()
+                            && !tape.getTapeFilename().getName().toLowerCase().endsWith(".csw")) {
                         canRec = true;
+                    }
                     clearTapeMediaMenu.setEnabled(canRec);
                     recordStartTapeMediaMenu.setEnabled(canRec);
                     tapeBrowserButtonRec.setEnabled(canRec);
@@ -3506,9 +3517,10 @@ public class JSpeccy extends javax.swing.JFrame {
                     ejectTapeMediaMenu.setEnabled(true);
                     reloadTapeMediaMenu.setEnabled(true);
                     createTapeMediaMenu.setEnabled(true);
-                    if (tape.getTapeFilename().canWrite() &&
-                        !tape.getTapeFilename().getName().toLowerCase().endsWith(".csw"))
+                    if (tape.getTapeFilename().canWrite()
+                            && !tape.getTapeFilename().getName().toLowerCase().endsWith(".csw")) {
                         canRec = true;
+                    }
                     clearTapeMediaMenu.setEnabled(canRec);
                     recordStartTapeMediaMenu.setEnabled(canRec);
                     tapeBrowserButtonRec.setEnabled(canRec);
