@@ -69,7 +69,7 @@ public class JSpeccy extends javax.swing.JFrame {
                  currentFileTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
     private JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
     private JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
-    private File recentFile[] = new File[5];
+    private RecentFilesMgr recentFilesMgr;
     private ListSelectionModel lsm;
     private JSpeccySettingsType settings;
     private SettingsDialog settingsDialog;
@@ -133,7 +133,7 @@ public class JSpeccy extends javax.swing.JFrame {
 //                    System.out.println("File dropped: " + file.getAbsolutePath());
 //                    System.out.println("# selected files: " + list.size());
                     if (snapshotExtension.accept(file)) {
-                        rotateRecentFile(file);
+                        recentFilesMgr.addRecentFile(file);
                         if (tape.isTapeRunning()) {
                             tape.stop();
                         }
@@ -190,7 +190,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         tape.eject();
 
                         if (tape.insert(file)) {
-                            rotateRecentFile(file);
+                            recentFilesMgr.addRecentFile(file);
                             if (settings.getTapeSettings().isAutoLoadTape()) {
                                 spectrum.autoLoadTape();
                             }
@@ -317,7 +317,7 @@ public class JSpeccy extends javax.swing.JFrame {
             if (clo.getArguments().size() == 1) {
                 File file = new File(clo.getArguments().get(0));
                 if (snapshotExtension.accept(file)) {
-                    rotateRecentFile(file);
+                    recentFilesMgr.addRecentFile(file);
                     try {
                         SnapshotFile snap = SnapshotFactory.getSnapshot(file);
                         SpectrumState snapState = snap.load(file);
@@ -351,7 +351,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
                 if (tapeExtension.accept(file)) {
                     if (tape.insert(file)) {
-                        rotateRecentFile(file);
+                        recentFilesMgr.addRecentFile(file);
                         if (settings.getTapeSettings().isAutoLoadTape()) {
                             spectrum.autoLoadTape();
                         }
@@ -526,6 +526,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void saveRecentFiles() {
+        JSpeccySettingsType toSave = null;
         if (!settings.getEmulatorSettings().isAutosaveConfigOnExit()) {
             try {
                 // create a JAXBContext capable of handling classes generated into
@@ -540,28 +541,27 @@ public class JSpeccy extends javax.swing.JFrame {
                 JAXBElement<?> settingsElement =
                         (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
 
-                settings = (JSpeccySettingsType) settingsElement.getValue();
+                toSave = (JSpeccySettingsType) settingsElement.getValue();
             } catch (JAXBException jexcpt) {
                 System.out.println("Something during unmarshalling go very bad!");
             } catch (FileNotFoundException ioexcpt) {
                 System.out.println("Can't open the JSpeccy.xml configuration file");
             }
         }
+
+        if (toSave == null)
+            return;
         
-        if (recentFile[0] != null)
-            settings.getRecentFilesSettings().setRecentFile0(recentFile[0].getAbsolutePath());
-        if (recentFile[1] != null)
-            settings.getRecentFilesSettings().setRecentFile1(recentFile[1].getAbsolutePath());
-        if (recentFile[2] != null)
-            settings.getRecentFilesSettings().setRecentFile2(recentFile[2].getAbsolutePath());
-        if (recentFile[3] != null)
-            settings.getRecentFilesSettings().setRecentFile3(recentFile[3].getAbsolutePath());
-        if (recentFile[4] != null)
-            settings.getRecentFilesSettings().setRecentFile4(recentFile[4].getAbsolutePath());
+        toSave.getRecentFilesSettings().getRecentFile().clear();
+        for (int idx = 0; idx < recentFilesMgr.size(); idx++) {
+            toSave.getRecentFilesSettings().getRecentFile().add(recentFilesMgr.getAbsolutePath(idx));
+        }
+
         if (currentFileSnapshot != null)
-            settings.getRecentFilesSettings().setLastSnapshotDir(currentFileSnapshot.getParent());
+            toSave.getRecentFilesSettings().setLastSnapshotDir(currentFileSnapshot.getParent());
+
         if (currentFileTape != null)
-            settings.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
+            toSave.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
         if (clo == null) {
             int filterM = 0, zoomM = 0;
@@ -582,13 +582,13 @@ public class JSpeccy extends javax.swing.JFrame {
                 zoomM = 2;
             }
 
-            settings.getSpectrumSettings().setZoomMethod(zoomM);
-            settings.getSpectrumSettings().setFilterMethod(filterM);
-            settings.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
+            toSave.getSpectrumSettings().setZoomMethod(zoomM);
+            toSave.getSpectrumSettings().setFilterMethod(filterM);
+            toSave.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
 
-            settings.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
+            toSave.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
 
-            settings.getSpectrumSettings().setZoomed(jscr.isZoomed());
+            toSave.getSpectrumSettings().setZoomed(jscr.isZoomed());
         }
 
         try {
@@ -596,7 +596,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
             // create an element for marshalling
             JAXBElement<JSpeccySettingsType> confElement =
-                (new ObjectFactory()).createJSpeccySettings(settings);
+                (new ObjectFactory()).createJSpeccySettings(toSave);
 
             // create a Marshaller and marshal to conf. file
             JAXB.marshal(confElement, fOut);
@@ -611,8 +611,6 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void initEmulator() {
-
-//        readSettingsFile();
         
         spectrum = new Spectrum(settings);
 
@@ -693,45 +691,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         pack();
 
-        if (settings.getRecentFilesSettings().getRecentFile0() != null
-            && !settings.getRecentFilesSettings().getRecentFile0().isEmpty()) {
-            recentFile[0] = new File(settings.getRecentFilesSettings().getRecentFile0());
-            recentFileMenu0.setText(recentFile[0].getName());
-            recentFileMenu0.setToolTipText(recentFile[0].getAbsolutePath());
-            recentFileMenu0.setEnabled(true);
-        }
-
-        if (settings.getRecentFilesSettings().getRecentFile1() != null
-            && !settings.getRecentFilesSettings().getRecentFile1().isEmpty()) {
-            recentFile[1] = new File(settings.getRecentFilesSettings().getRecentFile1());
-            recentFileMenu1.setText(recentFile[1].getName());
-            recentFileMenu1.setToolTipText(recentFile[1].getAbsolutePath());
-            recentFileMenu1.setEnabled(true);
-        }
-
-        if (settings.getRecentFilesSettings().getRecentFile2() != null
-            && !settings.getRecentFilesSettings().getRecentFile2().isEmpty()) {
-            recentFile[2] = new File(settings.getRecentFilesSettings().getRecentFile2());
-            recentFileMenu2.setText(recentFile[2].getName());
-            recentFileMenu2.setToolTipText(recentFile[2].getAbsolutePath());
-            recentFileMenu2.setEnabled(true);
-        }
-
-        if (settings.getRecentFilesSettings().getRecentFile3() != null
-            && !settings.getRecentFilesSettings().getRecentFile3().isEmpty()) {
-            recentFile[3] = new File(settings.getRecentFilesSettings().getRecentFile3());
-            recentFileMenu3.setText(recentFile[3].getName());
-            recentFileMenu3.setToolTipText(recentFile[3].getAbsolutePath());
-            recentFileMenu3.setEnabled(true);
-        }
-
-        if (settings.getRecentFilesSettings().getRecentFile4() != null
-            && !settings.getRecentFilesSettings().getRecentFile4().isEmpty()) {
-            recentFile[4] = new File(settings.getRecentFilesSettings().getRecentFile4());
-            recentFileMenu4.setText(recentFile[4].getName());
-            recentFileMenu4.setToolTipText(recentFile[4].getAbsolutePath());
-            recentFileMenu4.setEnabled(true);
-        }
+        recentFilesMgr = new RecentFilesMgr(settings.getRecentFilesSettings(), recentFilesMenu);
 
         settingsDialog = new SettingsDialog(settings);
         
@@ -867,56 +827,6 @@ public class JSpeccy extends javax.swing.JFrame {
         saveRecentFiles(); // debe ser lo último que se hace antes de salir!!!
         dispose();
         System.exit(0);
-    }
-
-    private void rotateRecentFile(File lastname) {
-        
-        for (int idx = 0; idx < 5; idx++) {
-            if(recentFile[idx] != null &&
-                lastname.getAbsolutePath().equals(recentFile[idx].getAbsolutePath()))
-                return;
-        }
-        
-        recentFile[4] = recentFile[3];
-        recentFile[3] = recentFile[2];
-        recentFile[2] = recentFile[1];
-        recentFile[1] = recentFile[0];
-        recentFile[0] = lastname;
-
-        if (recentFile[0] != null && !recentFile[0].getName().isEmpty()) {
-            recentFileMenu0.setText(recentFile[0].getName());
-            recentFileMenu0.setToolTipText(recentFile[0].getAbsolutePath());
-            recentFileMenu0.setEnabled(true);
-            settings.getRecentFilesSettings().setRecentFile0(recentFile[0].getAbsolutePath());
-        }
-
-        if (recentFile[1] != null && !recentFile[1].getName().isEmpty()) {
-            recentFileMenu1.setText(recentFile[1].getName());
-            recentFileMenu1.setToolTipText(recentFile[1].getAbsolutePath());
-            recentFileMenu1.setEnabled(true);
-            settings.getRecentFilesSettings().setRecentFile1(recentFile[1].getAbsolutePath());
-        }
-
-        if (recentFile[2] != null && !recentFile[2].getName().isEmpty()) {
-            recentFileMenu2.setText(recentFile[2].getName());
-            recentFileMenu2.setToolTipText(recentFile[2].getAbsolutePath());
-            recentFileMenu2.setEnabled(true);
-            settings.getRecentFilesSettings().setRecentFile2(recentFile[2].getAbsolutePath());
-        }
-
-        if (recentFile[3] != null && !recentFile[3].getName().isEmpty()) {
-            recentFileMenu3.setText(recentFile[3].getName());
-            recentFileMenu3.setToolTipText(recentFile[3].getAbsolutePath());
-            recentFileMenu3.setEnabled(true);
-            settings.getRecentFilesSettings().setRecentFile3(recentFile[3].getAbsolutePath());
-        }
-
-        if (recentFile[4] != null && !recentFile[4].getName().isEmpty()) {
-            recentFileMenu4.setText(recentFile[4].getName());
-            recentFileMenu4.setToolTipText(recentFile[4].getAbsolutePath());
-            recentFileMenu4.setEnabled(true);
-            settings.getRecentFilesSettings().setRecentFile4(recentFile[4].getAbsolutePath());
-        }
     }
     
     private void updateGuiSelections() {
@@ -2256,7 +2166,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     currentFileSnapshot.getParent());
 
             if (snapshotExtension.accept(currentFileSnapshot)) {
-                rotateRecentFile(currentFileSnapshot);
+                recentFilesMgr.addRecentFile(currentFileSnapshot);
                 try {
                     SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
                     SpectrumState snapState = snap.load(currentFileSnapshot);
@@ -2292,7 +2202,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         currentFileTape.getParent());
                 tape.eject();
                 if (tape.insert(currentFileTape)) {
-                    rotateRecentFile(currentFileTape);
+                    recentFilesMgr.addRecentFile(currentFileTape);
                     if (settings.getTapeSettings().isAutoLoadTape()) {
                         spectrum.autoLoadTape();
                     }
@@ -2404,7 +2314,7 @@ public class JSpeccy extends javax.swing.JFrame {
                     currentFileTape.getParent());
             tape.eject();
             if (tape.insert(currentFileTape)) {
-                rotateRecentFile(currentFileTape);
+                recentFilesMgr.addRecentFile(currentFileTape);
                 if (settings.getTapeSettings().isAutoLoadTape()) {
                     spectrum.autoLoadTape();
                 }
@@ -2711,7 +2621,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (res)
                     tape.eject();
                 if (res && tape.insert(currentFileTape)) {
-                    rotateRecentFile(currentFileTape);
+                    recentFilesMgr.addRecentFile(currentFileTape);
                 } else {
                     ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -2894,18 +2804,18 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.stopRecording();
     }//GEN-LAST:event_recordStopTapeMediaMenuActionPerformed
 
-    private void loadRecentFile(int idx) {
+    private void loadRecentFile(File fdopen) {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
 
-        if (!recentFile[idx].exists()) {
+        if (!fdopen.exists()) {
             JOptionPane.showMessageDialog(this, bundle.getString("RECENT_FILE_ERROR"),
                 bundle.getString("RECENT_FILE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE); //NOI18N
         } else {
-            if (snapshotExtension.accept(recentFile[idx])) {
+            if (snapshotExtension.accept(fdopen)) {
 
                 stopEmulation();
 
-                currentFileSnapshot = recentFile[idx];
+                currentFileSnapshot = fdopen;
                 try {
                     SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
                     SpectrumState snapState = snap.load(currentFileSnapshot);
@@ -2939,7 +2849,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
             } else {
                 tape.eject();
-                currentFileTape = recentFile[idx];
+                currentFileTape = fdopen;
                 
                 if (!tape.insert(currentFileTape)) {
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
@@ -2954,23 +2864,23 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void recentFileMenu0ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu0ActionPerformed
-        loadRecentFile(0);
+        loadRecentFile(recentFilesMgr.getRecentFile(0));
     }//GEN-LAST:event_recentFileMenu0ActionPerformed
 
     private void recentFileMenu1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu1ActionPerformed
-        loadRecentFile(1);
+        loadRecentFile(recentFilesMgr.getRecentFile(1));
     }//GEN-LAST:event_recentFileMenu1ActionPerformed
 
     private void recentFileMenu2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu2ActionPerformed
-        loadRecentFile(2);
+        loadRecentFile(recentFilesMgr.getRecentFile(2));
     }//GEN-LAST:event_recentFileMenu2ActionPerformed
 
     private void recentFileMenu3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu3ActionPerformed
-        loadRecentFile(3);
+        loadRecentFile(recentFilesMgr.getRecentFile(3));
     }//GEN-LAST:event_recentFileMenu3ActionPerformed
 
     private void recentFileMenu4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recentFileMenu4ActionPerformed
-        loadRecentFile(4);
+        loadRecentFile(recentFilesMgr.getRecentFile(4));
     }//GEN-LAST:event_recentFileMenu4ActionPerformed
 
     private void insertIF2RomMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_insertIF2RomMediaMenuActionPerformed

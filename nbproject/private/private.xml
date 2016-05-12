@@ -4,9 +4,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/home/jsanchez/src/JSpeccy/src/machine/Audio.java</file>
+            <file>file:/home/jsanchez/src/JSpeccy/src/schema/JSpeccy.xsd</file>
             <file>file:/home/jsanchez/src/JSpeccy/src/gui/JSpeccyScreen.java</file>
+            <file>file:/home/jsanchez/src/JSpeccy/src/schema/JSpeccy.xml</file>
+            <file>file:/home/jsanchez/src/JSpeccy/src/gui/RecentFilesMgr.java</file>
             <file>file:/home/jsanchez/src/JSpeccy/src/gui/JSpeccy.java</file>
             <file>file:/home/jsanchez/src/JSpeccy/src/joystickinput/JoystickInput.java</file>
+            <file>file:/home/jsanchez/src/JSpeccy/src/machine/Spectrum.java</file>
         </group>
     </open-files>
 </project-private>

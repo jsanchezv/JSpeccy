@@ -2,8 +2,7 @@
 
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     targetNamespace="http://xml.netbeans.org/schema/JSpeccy"
-    xmlns:tns="http://xml.netbeans.org/schema/JSpeccy"
-    elementFormDefault="qualified">
+    xmlns:tns="http://xml.netbeans.org/schema/JSpeccy">
     <xsd:element name="JSpeccySettings" type="tns:JSpeccySettingsType"/>
     <xsd:complexType name="SpectrumType">
         <xsd:sequence>
@@ -11,7 +10,7 @@
             <xsd:element name="mutedSound" type="xsd:boolean" default="false"/>
             <xsd:element name="loadingNoise" type="xsd:boolean" default="true"/>
             <xsd:element name="ULAplus" type="xsd:boolean" default="false"/>
-            <xsd:element name="defaultModel" default="1" form="qualified">
+            <xsd:element name="defaultModel" default="1">
                 <xsd:simpleType>
                     <xsd:restriction base="xsd:integer">
                         <xsd:maxInclusive value="5"/>
@@ -19,7 +18,7 @@
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
-            <xsd:element name="framesInt" form="qualified" default="2">
+            <xsd:element name="framesInt" default="2">
                 <xsd:simpleType>
                     <xsd:restriction base="xsd:integer">
                         <xsd:maxInclusive value="10"/>
@@ -148,11 +147,7 @@
     </xsd:complexType>
     <xsd:complexType name="RecentFilesType">
         <xsd:sequence>
-            <xsd:element name="recentFile0" type="xsd:string"/>
-            <xsd:element name="recentFile1" type="xsd:string"/>
-            <xsd:element name="recentFile2" type="xsd:string"/>
-            <xsd:element name="recentFile3" type="xsd:string"/>
-            <xsd:element name="recentFile4" type="xsd:string"/>
+            <xsd:element name="recentFile" type="xsd:string" minOccurs="0" maxOccurs="5"/>
             <xsd:element name="lastSnapshotDir" type="xsd:string"/>
             <xsd:element name="lastTapeDir" type="xsd:string"/>
         </xsd:sequence>
