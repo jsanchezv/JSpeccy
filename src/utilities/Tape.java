@@ -595,7 +595,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 playCsw();
                 break;
             default:
-                System.out.println("Warning!, clockTiemout without tape playing");
+                System.out.println("Warning!, clockTimeout without tape playing");
         }
     }
 
@@ -2005,7 +2005,7 @@ public class Tape implements machine.ClockTimeoutListener {
         micBit = micState;
     }
 
-    public class TapeTableModel extends AbstractTableModel {
+    private class TapeTableModel extends AbstractTableModel {
 
         public TapeTableModel() {
         }

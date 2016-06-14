@@ -82,7 +82,7 @@
             <xsd:element name="Rom128k1" type="xsd:string" default="128-1.rom"/>
             <xsd:element name="RomPlus20" type="xsd:string" default="plus2-0.rom"/>
             <xsd:element name="RomPlus21" type="xsd:string" default="plus2-1.rom"/>
-            <xsd:element name="RomPlus2a0" default="plus2a-0.rom" type="xsd:string"></xsd:element>
+            <xsd:element name="RomPlus2a0" default="plus2a-0.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a1" default="plus2a-1.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a2" default="plus2a-2.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a3" default="plus2a-3.rom" type="xsd:string"/>
@@ -104,7 +104,7 @@
             <xsd:element name="highSamplingFreq" type="xsd:boolean" default="false"/>
             <xsd:element name="flashLoad" type="xsd:boolean" default="false"/>
             <xsd:element name="autoLoadTape" type="xsd:boolean" default="true"/>
-            <xsd:element name="invertedEar" type="xsd:boolean" default="false"></xsd:element>
+            <xsd:element name="invertedEar" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="KeyboardJoystickType">
