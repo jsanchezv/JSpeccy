@@ -31,6 +31,9 @@ public class RecentFilesMgr {
         
         int idx = 0;
         for (String name : cfgFileList.getRecentFile()) {
+            if (name == null || name.length() == 0)
+                continue;
+            
             File file = new File(name);
             if (file.exists()) {
                 filesList.add(file);
