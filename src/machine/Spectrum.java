@@ -4,7 +4,7 @@
  */
 package machine;
 
-import configuration.JSpeccySettingsType;
+import configuration.JSpeccySettings;
 import configuration.SpectrumType;
 import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
@@ -63,14 +63,14 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private JoystickModel joystickModel;
     private JoystickRaw joystick1, joystick2;
     
-    private final JSpeccySettingsType settings;
+    private final JSpeccySettings settings;
     private final SpectrumType specSettings;
     /* Config vars */
     private boolean issue2, saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private final Interface1 if1;
 
-    public Spectrum(JSpeccySettingsType config) {
+    public Spectrum(JSpeccySettings config) {
         clock = Clock.getInstance();
         settings = config;
         specSettings = settings.getSpectrumSettings();

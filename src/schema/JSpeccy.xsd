@@ -1,9 +1,22 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     targetNamespace="http://xml.netbeans.org/schema/JSpeccy"
     xmlns:tns="http://xml.netbeans.org/schema/JSpeccy">
-    <xsd:element name="JSpeccySettings" type="tns:JSpeccySettingsType"/>
+    <xsd:element name="JSpeccySettings">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="SpectrumSettings" type="tns:SpectrumType"/>
+                <xsd:element name="MemorySettings" type="tns:MemoryType"/>
+                <xsd:element name="TapeSettings" type="tns:TapeSettingsType"/>
+                <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
+                <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
+                <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
+                <xsd:element name="Interface1Settings" type="tns:Interface1Type"/>
+                <xsd:element name="EmulatorSettings" type="tns:EmulatorSettingsType"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
     <xsd:complexType name="SpectrumType">
         <xsd:sequence>
             <xsd:element name="AYEnabled48k" type="xsd:boolean" default="false"/>
@@ -82,7 +95,7 @@
             <xsd:element name="Rom128k1" type="xsd:string" default="128-1.rom"/>
             <xsd:element name="RomPlus20" type="xsd:string" default="plus2-0.rom"/>
             <xsd:element name="RomPlus21" type="xsd:string" default="plus2-1.rom"/>
-            <xsd:element name="RomPlus2a0" default="plus2a-0.rom" type="xsd:string"></xsd:element>
+            <xsd:element name="RomPlus2a0" default="plus2a-0.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a1" default="plus2a-1.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a2" default="plus2a-2.rom" type="xsd:string"/>
             <xsd:element name="RomPlus2a3" default="plus2a-3.rom" type="xsd:string"/>
@@ -104,7 +117,7 @@
             <xsd:element name="highSamplingFreq" type="xsd:boolean" default="false"/>
             <xsd:element name="flashLoad" type="xsd:boolean" default="false"/>
             <xsd:element name="autoLoadTape" type="xsd:boolean" default="true"/>
-            <xsd:element name="invertedEar" type="xsd:boolean" default="false"></xsd:element>
+            <xsd:element name="invertedEar" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="KeyboardJoystickType">
@@ -131,18 +144,6 @@
                     </xsd:restriction>
                 </xsd:simpleType>
             </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-    <xsd:complexType name="JSpeccySettingsType">
-        <xsd:sequence>
-            <xsd:element name="SpectrumSettings" type="tns:SpectrumType"/>
-            <xsd:element name="MemorySettings" type="tns:MemoryType"/>
-            <xsd:element name="TapeSettings" type="tns:TapeSettingsType"/>
-            <xsd:element name="KeyboardJoystickSettings" type="tns:KeyboardJoystickType"/>
-            <xsd:element name="AY8912Settings" type="tns:AY8912Type"/>
-            <xsd:element name="RecentFilesSettings" type="tns:RecentFilesType"/>
-            <xsd:element name="Interface1Settings" type="tns:Interface1Type"/>
-            <xsd:element name="EmulatorSettings" type="tns:EmulatorSettingsType"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="RecentFilesType">

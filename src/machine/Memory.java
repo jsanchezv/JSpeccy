@@ -4,7 +4,7 @@
  */
 package machine;
 
-import configuration.JSpeccySettingsType;
+import configuration.JSpeccySettings;
 import configuration.MemoryType;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -56,10 +56,10 @@ public final class Memory {
     private boolean model128k, pagingLocked, plus3RamMode;
     private boolean multifacePaged, multifaceLocked;
     private MachineTypes spectrumModel;
-    private final JSpeccySettingsType settings;
+    private final JSpeccySettings settings;
     private final Random random;
 
-    public Memory(JSpeccySettingsType memSettings) {
+    public Memory(JSpeccySettings memSettings) {
         spectrumModel = null;
         settings = memSettings;
         random = new Random();

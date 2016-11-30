@@ -4,7 +4,7 @@
  */
 package gui;
 
-import configuration.JSpeccySettingsType;
+import configuration.JSpeccySettings;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +19,8 @@ import org.kohsuke.args4j.Option;
  * @author jsanchez
  */
 public class CommandLineOptions {
-    JSpeccySettingsType settings;
-    CommandLineOptions(JSpeccySettingsType config) {
+    JSpeccySettings settings;
+    CommandLineOptions(JSpeccySettings config) {
         settings = config;
     }
 

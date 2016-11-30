@@ -6,8 +6,7 @@
 
 package gui;
 
-import configuration.JSpeccySettingsType;
-import configuration.ObjectFactory;
+import configuration.JSpeccySettings;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.RenderingHints;
@@ -45,7 +44,6 @@ import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import machine.Keyboard.JoystickModel;
@@ -71,7 +69,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
     private RecentFilesMgr recentFilesMgr;
     private ListSelectionModel lsm;
-    private JSpeccySettingsType settings;
+    private JSpeccySettings settings;
     private SettingsDialog settingsDialog;
     private MicrodriveDialog microdriveDialog;
     private MemoryBrowserDialog memoryBrowserDialog;
@@ -485,10 +483,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
             // unmarshal a po instance document into a tree of Java content
             // objects composed of classes from the configuration package.
-            JAXBElement<?> settingsElement =
-                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
-
-            settings = (JSpeccySettingsType) settingsElement.getValue();
+            settings = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
         } catch (JAXBException jexcpt) {
             System.out.println("Something during unmarshalling go very bad!");
             readed = false;
@@ -512,10 +507,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
             // unmarshal a po instance document into a tree of Java content
             // objects composed of classes from the configuration package.
-            JAXBElement<?> settingsElement =
-                    (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
-
-            settings = (JSpeccySettingsType) settingsElement.getValue();
+            settings = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
         } catch (JAXBException jexcpt) {
             System.out.println("Something go very very badly with unmarshalling!");
         } catch (FileNotFoundException ioexcpt) {
@@ -526,7 +518,7 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void saveRecentFiles() {
-        JSpeccySettingsType toSave = null;
+        JSpeccySettings toSave = null;
         if (!settings.getEmulatorSettings().isAutosaveConfigOnExit()) {
             try {
                 // create a JAXBContext capable of handling classes generated into
@@ -538,10 +530,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
                 // unmarshal a po instance document into a tree of Java content
                 // objects composed of classes from the configuration package.
-                JAXBElement<?> settingsElement =
-                        (JAXBElement<?>) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
-
-                toSave = (JSpeccySettingsType) settingsElement.getValue();
+                toSave = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
             } catch (JAXBException jexcpt) {
                 System.out.println("Something during unmarshalling go very bad!");
             } catch (FileNotFoundException ioexcpt) {
@@ -594,12 +583,8 @@ public class JSpeccy extends javax.swing.JFrame {
         try {
             BufferedOutputStream fOut =
                 new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
-            // create an element for marshalling
-            JAXBElement<JSpeccySettingsType> confElement =
-                (new ObjectFactory()).createJSpeccySettings(toSave);
-
             // create a Marshaller and marshal to conf. file
-            JAXB.marshal(confElement, fOut);
+            JAXB.marshal(toSave, fOut);
             try {
                 fOut.close();
             } catch (IOException ex) {
