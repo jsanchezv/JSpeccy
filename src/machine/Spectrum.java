@@ -1020,9 +1020,10 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 //        }
 
         /*
-         * El interfaz Kempston solo (debería) decodificar A5=0...
+         * El interfaz Kempston original decodifica A7=A6=A5=0.
+         * Pero hay clónicos que solo decodifican A5=0.
          */
-        if (joystickModel == JoystickModel.KEMPSTON && (port & 0x0020) == 0) {
+        if (joystickModel == JoystickModel.KEMPSTON && ((port & 0x00E0) == 0 || (port & 0xFF) == 0xDF)) {
 //            System.out.println(String.format("InPort: %04X, PC: %04X, Frame: %d", port, z80.getRegPC(), clock.getFrames()));
 //            System.out.println("deadzone: " + sixaxis.getDeadZone() + "\tpoll: " + sixaxis.getPollInterval());
 //                long start = System.currentTimeMillis();
