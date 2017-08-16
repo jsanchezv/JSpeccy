@@ -881,7 +881,7 @@ public class Tape implements machine.ClockTimeoutListener {
             case PAUSE:
                 earBit ^= EAR_MASK;
                 statePlay = State.PAUSE_STOP;
-                clock.setTimeout(END_BLOCK_PAUSE); // 1 seg. pausa
+                clock.setTimeout(3500); // 1 ms pausa
 //                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
 //                    tapeBuffer.length, tapePos));
                 break;
@@ -1320,14 +1320,17 @@ public class Tape implements machine.ClockTimeoutListener {
                     zeroLenght = ZERO_LENGHT;
                     oneLenght = ONE_LENGHT;
                     bitsLastByte = 8;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2)
-                            * (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 1, 2);
                     blockLen = readInt(tapeBuffer, tapePos + 3, 2);
                     tapePos += 5;
                     leaderPulses =
                             (tapeBuffer[tapePos] & 0xff) < 0x80 ? HEADER_PULSES : DATA_PULSES;
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
+                    if (idxHeader >= nOffsetBlocks && endBlockPause > 1000) {
+                        endBlockPause = 1;
+                    }
+                    endBlockPause *= (END_BLOCK_PAUSE / 1000);
                     repeat = false;
                     break;
                 case 0x11: // Turbo speed data block
@@ -1338,8 +1341,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     oneLenght = readInt(tapeBuffer, tapePos + 9, 2);
                     leaderPulses = readInt(tapeBuffer, tapePos + 11, 2);
                     bitsLastByte = tapeBuffer[tapePos + 13] & 0xff;
-                    endBlockPause = readInt(tapeBuffer, tapePos + 14, 2)
-                            * (END_BLOCK_PAUSE / 1000);
+                    endBlockPause = readInt(tapeBuffer, tapePos + 14, 2);
                     blockLen = readInt(tapeBuffer, tapePos + 16, 3);
                     tapePos += 19;
                     // Hasta el 21/01/2011, el estado era State.LEADER_NOCHG
@@ -1347,6 +1349,10 @@ public class Tape implements machine.ClockTimeoutListener {
                     // Cambio deshecho el 23/09/2011
                     statePlay = State.LEADER_NOCHG;
                     idxHeader++;
+                    if (idxHeader >= nOffsetBlocks && endBlockPause > 1000) {
+                        endBlockPause = 1;
+                    }
+                    endBlockPause *= (END_BLOCK_PAUSE / 1000);
                     repeat = false;
                     break;
                 case 0x12: // Pure Tone Block
