@@ -1956,6 +1956,7 @@ public class Tape implements machine.ClockTimeoutListener {
         }
 
         tapeRecording = false;
+        fireTapeStateChanged(TapeState.STOP);
         File tmp = filename;
         eject();
         insert(tmp);
