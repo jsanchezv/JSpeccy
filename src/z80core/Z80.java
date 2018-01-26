@@ -14,12 +14,12 @@
  *
  * Notas:   09/01/2008 pasa los 68 tests de ZEXALL, con lo que se supone
  *          que realiza una implementación correcta de la Z80.
- * 
+ *
  *          14/01/2008 pasa también los tests de fuse 0.10, exceptuando
  *          los que fuse no implementa bien (BIT n,(HL)).
  *          Del resto, cumple con los contenidos de los registros, flags,
  *          y t-estados.
- * 
+ *
  *          15/01/2008 faltaban los flags de las instrucciones IN r,(C).
  *
  *          03/12/2008 se descomponen las instrucciones para poder
@@ -67,32 +67,32 @@
  *          corregir la instrucción LD SP, IX(IY) que realizaba los 2 estados de
  *          contención sobre PC en lugar de sobre IR que es lo correcto. De paso
  *          he verificado que todos los usos de getRegIR() son correctos.
- * 
+ *
  *          29/05/2011 Corregida la inicialización de los registros dependiendo
  *          de si es por un reset a través de dicho pin o si es por inicio de
  *          alimentación al chip.
- * 
+ *
  *          04/06/2011 Creados los métodos de acceso al registro oculto MEMPTR
  *          para que puedar cargarse/guardarse en los snapshots de tipo SZX.
- * 
+ *
  *          06/06/2011 Pequeñas optimizaciones en LDI/LDD y CPI/CPD. Se eliminan
  *          los métodos set/reset porque, al no afectar a los flags, es más
  *          rápido aplicar la operación lógica con la máscara donde proceda que
  *          llamar a un método pasándole dos parámetros. Se elimina también el
  *          método EXX y su código se pone en el switch principal.
- * 
+ *
  *          07/06/2011 En las instrucciones INC/DEC (HL) el estado adicional
  *          estaba mal puesto, ya que va después del read y no antes. Corregido.
- * 
+ *
  *          04/07/2011 Se elimina el método push añadido el 28/03/2010 y se usa
  *          el que queda en todos los casos. El código de RETI se unifica con
  *          RETN y sus códigos duplicados. Ligeras modificaciones en DJNZ y en
  *          LDI/LDD/CPI/CPD. Se optimiza el tratamiento del registro MEMPTR.
- * 
+ *
  *          11/07/2011 Se optimiza el tratamiento del carryFlag en las instrucciones
  *          SUB/SBC/SBC16/CP. Se optimiza el tratamiento del HalfCarry en las
  *          instruciones ADC/ADC16/SBC/SBC16.
- * 
+ *
  *          25/09/2011 Introducidos los métodos get/setTimeout. De esa forma,
  *          además de recibir una notificación después de cada instrucción ejecutada
  *          se puede recibir tras N ciclos. En cualquier caso, execDone será llamada
@@ -100,36 +100,43 @@
  *          expirar el timeout programado. Si hay un timeout, éste seguirá vigente
  *          hasta que se programe otro o se ponga a false execDone. Si el timeout
  *          se programa a cero, se llamará a execDone tras cada instrucción.
- * 
+ *
  *          08/10/2011 En los métodos xor, or y cp se aseguran de que valores > 0xff
  *          pasados como parámetro no le afecten.
- * 
+ *
  *          11/10/2011 Introducida la nueva funcionalidad que permite definir
  *          breakpoints. Cuando se va a ejecutar el opcode que está en esa dirección
  *          se llama al método atAddress. Se separan en dos interfaces las llamadas a
  *          los accesos a memoria de las llamadas de notificación.
- * 
+ *
  *          13/10/2011 Corregido un error en la emulación de las instrucciones
  *          DD/FD que no van seguidas de un código de instrucción adecuado a IX o IY.
  *          Tal y como se trataban hasta ahora, se comprobaban las interrupciones entre
  *          el/los códigos DD/FD y el código de instrucción que le seguía.
- * 
+ *
  *          02/12/2011 Creados los métodos necesarios para poder grabar y cargar el
  *          estado de la CPU de una sola vez a través de la clase Z80State. Los modos
  *          de interrupción pasan a estar en una enumeración. Se proporcionan métodos de
  *          acceso a los registros alternativos de 8 bits.
- * 
+ *
  *          03/06/2012 Eliminada la adición del 25/09/2011. El núcleo de la Z80 no tiene
  *          que preocuparse por timeouts ni zarandajas semejantes. Eso ahora es
  *          responsabilidad de la clase Clock. Se mantiene la funcionalidad del execDone
  *          por si fuera necesario en algún momento avisar tras cada ejecución de
  *          instrucción (para un depurador, por ejemplo).
- * 
+ *
  *          10/12/2012 Actualizada la emulación con las últimas investigaciones llevadas a
  *          cabo por Patrik Rak, respecto al comportamiento de los bits 3 y 5 del registro F
  *          en las instrucciones CCF/SCF. Otro de los tests de Patrik demuestra que, además,
  *          la emulación de MEMPTR era incompleta (por no estar completamente descrita).
+ *          El comportamiento coincide con el de un Z80 de Zilog, no con los clónicos NEC.
  *
+ *          25/01/2018 Una secuencia potencialmente infinita de DD/FD acaba por provocar un
+ *          error de Stack Overflow. Se modifica el core para que se trate como lo que es,
+ *          un prefijo del código que viene detrás.
+ *          Se cambia también el lugar de comprobación de la INT a donde corresponde, el final
+ *          de la ejecución de la instrucción.
+ *          La activación de INT depende ahora de Clock, no del Spectrum en sí mismo.
  */
 package z80core;
 
@@ -144,6 +151,9 @@ public class Z80 {
     private final NotifyOps NotifyImpl;
     // Código de instrucción a ejecutar
     private int opCode;
+    // Se está ejecutando una instrucción DDXX o FDXX
+    // Solo puede contener 3 valores [0x00, 0xDD, 0xFD]
+    private int opcodeDDFD = 0x00;
     // Subsistema de notificaciones
     private final boolean execDone;
     // Posiciones de los flags
@@ -172,10 +182,10 @@ public class Z80 {
      * y en la anterior.
      * Son necesarios para emular el comportamiento de los bits 3 y 5 del
      * registro F con las instrucciones CCF/SCF.
-     * 
+     *
      * http://www.worldofspectrum.org/forums/showthread.php?t=41834
      * http://www.worldofspectrum.org/forums/showthread.php?t=41704
-     * 
+     *
      * Thanks to Patrik Rak for his tests and investigations.
      */
     private boolean flagQ, lastFlagQ;
@@ -293,7 +303,7 @@ public class Z80 {
     // Un true en una dirección indica que se debe notificar que se va a
     // ejecutar la instrucción que está en esa direción.
     private final boolean breakpointAt[] = new boolean[65536];
-    
+
     // Constructor de la clase
     public Z80(MemIoOps memory, NotifyOps notify) {
         this.clock = Clock.getInstance();
@@ -360,7 +370,7 @@ public class Z80 {
     public final void setRegL(int value) {
         regL = value & 0xff;
     }
-    
+
     // Acceso a registros alternativos de 8 bits
     public final int getRegAx() {
         return regAx;
@@ -369,7 +379,7 @@ public class Z80 {
     public final void setRegAx(int value) {
         regAx = value & 0xff;
     }
-    
+
     public final int getRegFx() {
         return regFx;
     }
@@ -779,7 +789,7 @@ public class Z80 {
     public final boolean isNMI() {
         return activeNMI;
     }
-    
+
     public final void setNMI(boolean nmi) {
         activeNMI = nmi;
     }
@@ -793,7 +803,7 @@ public class Z80 {
     public final boolean isINTLine() {
         return activeINT;
     }
-    
+
     public final void setINTLine(boolean intLine) {
         activeINT = intLine;
     }
@@ -822,11 +832,11 @@ public class Z80 {
     public final boolean isPendingEI() {
         return pendingEI;
     }
-    
+
     public final void setPendingEI(boolean state) {
         pendingEI = state;
     }
-    
+
     public final Z80State getZ80State() {
         Z80State state = new Z80State();
         state.setRegA(regA);
@@ -862,7 +872,7 @@ public class Z80 {
         state.setFlagQ(lastFlagQ);
         return state;
     }
-    
+
     public final void setZ80State(Z80State state) {
         regA = state.getRegA();
         setFlags(state.getRegF());
@@ -897,13 +907,13 @@ public class Z80 {
         flagQ = false;
         lastFlagQ = state.isFlagQ();
     }
-    
+
     // Reset
     /* Según el documento de Sean Young, que se encuentra en
      * [http://www.myquest.com/z80undocumented], la mejor manera de emular el
      * reset es poniendo PC, IFF1, IFF2, R e IM0 a 0 y todos los demás registros
      * a 0xFFFF.
-     * 
+     *
      * 29/05/2011: cuando la CPU recibe alimentación por primera vez, los
      *             registros PC e IR se inicializan a cero y el resto a 0xFF.
      *             Si se produce un reset a través de la patilla correspondiente,
@@ -1087,20 +1097,20 @@ public class Z80 {
 
     /*
      * Half-carry flag:
-     * 
+     *
      * FLAG = (A^B^RESULT)&0x10  for any operation
-     * 
+     *
      * Overflow flag:
-     * 
+     *
      * FLAG = ~(A^B)&(B^RESULT)&0x80 for addition [ADD/ADC]
      * FLAG = (A^B)&(A^RESULT)&0x80  for subtraction [SUB/SBC]
-     * 
+     *
      * For INC/DEC, you can use following simplifications:
-     * 
+     *
      * INC:
      * H_FLAG = (RESULT&0x0F)==0x00
      * V_FLAG = RESULT==0x80
-     * 
+     *
      * DEC:
      * H_FLAG = (RESULT&0x0F)==0x0F
      * V_FLAG = RESULT==0x7F
@@ -1681,6 +1691,7 @@ public class Z80 {
 
         //System.out.println(String.format("INT at %d T-States", tEstados));
 //        int tmp = tEstados; // peek8 modifica los tEstados
+        lastFlagQ = false;
         // Si estaba en un HALT esperando una INT, lo saca de la espera
         if (halted) {
             halted = false;
@@ -1708,6 +1719,7 @@ public class Z80 {
      * M3: 3 T-Estados -> escribe byte bajo de PC y PC=0x0066
      */
     private void nmi() {
+        lastFlagQ = false;
         // Esta lectura consigue dos cosas:
         //      1.- La lectura del opcode del M1 que se descarta
         //      2.- Si estaba en un HALT esperando una INT, lo saca de la espera
@@ -1722,19 +1734,18 @@ public class Z80 {
         push(regPC);  // 3+3 t-estados + contended si procede
         regPC = memptr = 0x0066;
     }
-    
+
     public final boolean isBreakpoint(int address) {
         return breakpointAt[address & 0xffff];
     }
-    
+
     public final void setBreakpoint(int address, boolean state) {
         breakpointAt[address & 0xffff] = state;
     }
-    
+
     public void resetBreakpoints() {
         Arrays.fill(breakpointAt, false);
     }
-    
 
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
@@ -1745,47 +1756,62 @@ public class Z80 {
         while (clock.getTstates() < statesLimit) {
 
             // Primero se comprueba NMI
-            if (activeNMI) {
+            if (opcodeDDFD == 0 && activeNMI) {
                 activeNMI = false;
-                lastFlagQ = false;
                 nmi();
                 continue;
             }
 
-            // Ahora se comprueba si al final de la instrucción anterior se
-            // encontró una interrupción enmascarable y, de ser así, se procesa.
-            if (activeINT) {
-                if (ffIFF1 && !pendingEI) {
-                    lastFlagQ = false;
-                    interruption();
-                }
-            }
-
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
-            
-            if (breakpointAt[regPC]) {
+
+            if (opcodeDDFD == 0 && breakpointAt[regPC]) {
                 opCode = NotifyImpl.atAddress(regPC, opCode);
             }
-            
+
             regPC = (regPC + 1) & 0xffff;
 
-            flagQ = false;
+            if (opCode == 0xDD || opCode == 0xFD) {
+                opcodeDDFD = opCode;
+                continue;
+            }
             
-            decodeOpcode(opCode);
-            
-            lastFlagQ = flagQ;
-
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
             if (pendingEI && opCode != 0xFB) {
                 pendingEI = false;
             }
 
+            flagQ = false;
+
+            switch (opcodeDDFD) {
+                case 0x00:
+                    decodeOpcode(opCode);
+                    break;
+                case 0xDD:
+                    regIX = decodeDDFD(opCode, regIX);
+                    opcodeDDFD = 0;
+                    break;
+                case 0xFD:
+                    regIY = decodeDDFD(opCode, regIY);
+                    opcodeDDFD = 0;
+                    break;
+                default:
+                    System.out.println(String.format("ERROR!: opcodeDDFD = %02x, opCode = %02x", opcodeDDFD, opCode));
+            }
+
+            lastFlagQ = flagQ;
+            
+            // Ahora se comprueba si al final de la instrucción anterior se
+            // encontró una interrupción enmascarable y, de ser así, se procesa.
+            // El orden de las condiciones es estricto. NO CAMBIAR!.
+            if (clock.isINTtime() && !pendingEI && ffIFF1) {
+                interruption();
+            }
+
             if (execDone) {
                 NotifyImpl.execDone();
             }
-
         } /* del while */
     }
 
@@ -2894,7 +2920,8 @@ public class Z80 {
                 break;
             }
             case 0xDD: {     /* Subconjunto de instrucciones */
-                regIX = decodeDDFD(regIX);
+                System.out.println("decodeOpcode: no se debería llegar aquí (DD)");
+//                regIX = decodeDDFD(opCode, regIX);
                 break;
             }
             case 0xDE: {     /* SBC A,n */
@@ -3086,7 +3113,8 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xFD:       /* Subconjunto de instrucciones */
-                regIY = decodeDDFD(regIY);
+                System.out.println("decodeOpcode: no se debería llegar aquí (FD)");
+//                regIY = decodeDDFD(opCode, regIY);
                 break;
             case 0xFE:       /* CP n */
                 cp(MemIoImpl.peek8(regPC));
@@ -4256,12 +4284,11 @@ public class Z80 {
      * Naturalmente, en una serie repetida de DDFD no hay que comprobar las
      * interrupciones entre cada prefijo.
      */
-    private int decodeDDFD(int regIXY) {
+    private int decodeDDFD(int opCode, int regIXY) {
 
-        regR++;
-        opCode = MemIoImpl.fetchOpcode(regPC);
-        regPC = (regPC + 1) & 0xffff;
-
+//        regR++;
+//        opCode = MemIoImpl.fetchOpcode(regPC);
+//        regPC = (regPC + 1) & 0xffff;
         switch (opCode) {
             case 0x09: {     /* ADD IX,BC */
                 MemIoImpl.contendedStates(getPairIR(), 7);
@@ -4688,6 +4715,9 @@ public class Z80 {
                 }
                 break;
             }
+            case 0xDD: {
+                System.out.println("DecodeDDFD ha encontrado otro DD anidado!.");
+            }
             case 0xE1: {     /* POP IX */
                 regIXY = pop();
                 break;
@@ -4716,6 +4746,9 @@ public class Z80 {
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 regSP = regIXY;
                 break;
+            }
+            case 0xFD: {
+                System.out.println("DecodeDDFD ha encontrado otro FD anidado!.");
             }
             default: {
                 // Detrás de un DD/FD o varios en secuencia venía un código
