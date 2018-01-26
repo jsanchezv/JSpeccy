@@ -123,6 +123,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private int totp, npp, asp, totd, npd, asd, ptrSymbol, ptrDataStream, numPulses, nTotp;
     private static final String tzxHeader = "ZXTape!\u001A";
     private static final String tzxCreator = "TZX created with JSpeccy v0.93";
+    private boolean manualMode = false;
 
     public Tape(TapeSettingsType tapeSettings) {
         blockListeners = new ArrayList<>();
@@ -752,7 +753,7 @@ public class Tape implements machine.ClockTimeoutListener {
         return filename;
     }
 
-    public boolean play() {
+    public boolean play(boolean origin) {
         if (tapeExtension == TapeExtensionType.NO_TAPE || tapePlaying || tapeRecording) {
             return false;
         }
@@ -761,9 +762,9 @@ public class Tape implements machine.ClockTimeoutListener {
             return false;
         }
 
+        manualMode = origin;
         statePlay = State.START;
 
-        tapePos = offsetBlocks[idxHeader];
         fireTapeStateChanged(TapeState.PLAY);
         tapePlaying = true;
         clock.addClockTimeoutListener(this);
@@ -881,13 +882,13 @@ public class Tape implements machine.ClockTimeoutListener {
             case PAUSE:
                 earBit ^= EAR_MASK;
                 statePlay = State.PAUSE_STOP;
-                clock.setTimeout(3500); // 1 ms pausa
+                clock.setTimeout(manualMode ? 3500 : 10); // 1 ms pause in manual mode
 //                System.out.println(String.format("tapeBufferLength: %d, tapePos: %d",
 //                    tapeBuffer.length, tapePos));
                 break;
             case PAUSE_STOP:
                 idxHeader++;
-                if (tapePos == tapeBuffer.length) {
+                if (tapePos == tapeBuffer.length || !manualMode) {
                     stop();
                 } else {
                     statePlay = State.START; // START
