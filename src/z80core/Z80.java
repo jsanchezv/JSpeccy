@@ -153,7 +153,7 @@ public class Z80 {
     private int opCode;
     // Se está ejecutando una instrucción DDXX o FDXX
     // Solo puede contener 3 valores [0x00, 0xDD, 0xFD]
-    private int opcodeDDFD = 0x00;
+    private int prefixDDFD = 0x00;
     // Subsistema de notificaciones
     private final boolean execDone;
     // Posiciones de los flags
@@ -955,6 +955,7 @@ public class Z80 {
         halted = false;
         setIM(IntMode.IM0);
         lastFlagQ = false;
+        prefixDDFD = 0x00;
     }
 
     // Rota a la izquierda el valor del argumento
@@ -1756,7 +1757,7 @@ public class Z80 {
         while (clock.getTstates() < statesLimit) {
 
             // Primero se comprueba NMI
-            if (opcodeDDFD == 0 && activeNMI) {
+            if (prefixDDFD == 0 && activeNMI) {
                 activeNMI = false;
                 nmi();
                 continue;
@@ -1765,14 +1766,14 @@ public class Z80 {
             regR++;
             opCode = MemIoImpl.fetchOpcode(regPC);
 
-            if (opcodeDDFD == 0 && breakpointAt[regPC]) {
+            if (prefixDDFD == 0 && breakpointAt[regPC]) {
                 opCode = NotifyImpl.atAddress(regPC, opCode);
             }
 
             regPC = (regPC + 1) & 0xffff;
 
             if (opCode == 0xDD || opCode == 0xFD) {
-                opcodeDDFD = opCode;
+                prefixDDFD = opCode;
                 continue;
             }
             
@@ -1784,20 +1785,20 @@ public class Z80 {
 
             flagQ = false;
 
-            switch (opcodeDDFD) {
+            switch (prefixDDFD) {
                 case 0x00:
                     decodeOpcode(opCode);
                     break;
                 case 0xDD:
                     regIX = decodeDDFD(opCode, regIX);
-                    opcodeDDFD = 0;
+                    prefixDDFD = 0;
                     break;
                 case 0xFD:
                     regIY = decodeDDFD(opCode, regIY);
-                    opcodeDDFD = 0;
+                    prefixDDFD = 0;
                     break;
                 default:
-                    System.out.println(String.format("ERROR!: opcodeDDFD = %02x, opCode = %02x", opcodeDDFD, opCode));
+                    System.out.println(String.format("ERROR!: opcodeDDFD = %02x, opCode = %02x", prefixDDFD, opCode));
             }
 
             lastFlagQ = flagQ;
