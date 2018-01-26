@@ -1254,7 +1254,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 }
                 //System.out.println(String.format("outPort: %04X %02x", port, value));
                 portFE = value;
-                return;
             }
 
             if (spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
@@ -1274,7 +1273,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     // En el 128k las páginas impares son contended
                     contendedRamPage[3] = contendedIOPage[3] = (value & 0x01) != 0;
                     port7ffd = value;
-                    return;
                 }
             }
 
@@ -1282,7 +1280,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                 // Port 0x7ffd decodes with bit15 and bit1 reset, bit14 set
                 if ((port & 0xC002) == 0x4000) {
                     // Si ha cambiado la pantalla visible hay que invalidar
-                    // Se invalida también el borde, o la MDA_DEMO no va bien.
+                    // Se invalida también el borde
                     if (((port7ffd ^ value) & 0x08) != 0) {
                         updateScreen(clock.getTstates() + 1);
                         invalidateScreen(true);
@@ -1294,7 +1292,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     // En el +3 las páginas 4 a 7 son contended
                     contendedRamPage[3] = memory.getPlus3HighPage() > 3;
                     port7ffd = value;
-                    return;
                 }
 
                 // Port 0x1ffd decodes with bit1, bit13, bit14 & bit15 reset,
@@ -1325,7 +1322,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 //                }
 
                     port1ffd = value;
-                    return;
                 }
 
 //                if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
@@ -1344,7 +1340,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                     }
                     ay8912.writeRegister(value);
                 }
-                return;
             }
 
             if (enabledAY && joystickModel == JoystickModel.FULLER
