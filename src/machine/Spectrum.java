@@ -596,14 +596,6 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
         do {
 
-            // Cuando se entra desde una carga de snapshot los t-states pueden
-            // no ser 0 y el frame estar a mitad (pojemplo)
-            if (clock.getTstates() < spectrumModel.lengthINT) {
-                z80.setINTLine(true);
-                z80.execute(spectrumModel.lengthINT);
-            }
-            z80.setINTLine(false);
-
             while (step < stepStates.length) {
                 z80.execute(stepStates[step]);
                 if (clock.getTstates() >= nextEvent) {
@@ -744,14 +736,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         nextEvent = NO_EVENT;
         do {
             long startFrame = clock.getFrames();
-            long end = System.currentTimeMillis() + 200;
+            long end = System.currentTimeMillis() + 300;
             do {
-                z80.setINTLine(true);
-                z80.execute(spectrumModel.lengthINT);
-                z80.setINTLine(false);
-
                 z80.execute(spectrumModel.tstatesFrame);
-
                 clock.endFrame();
             } while (tape.isTapePlaying() && System.currentTimeMillis() <= end);
 
@@ -1536,7 +1523,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
                         invalidateScreen(true); // thanks Andrew Owen
                         return 0xC9; // RET opcode
                     } else {
-                        tape.play();
+                        tape.play(false);
                     }
                 }
                 break;
@@ -1682,7 +1669,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
         return false;
     }
 
-    static final int SPEAKER_VOLUME = -24576; // 6300;
+    static final int SPEAKER_VOLUME = -32700; // 6300;
     private int speaker;
     private static final int sp_volt[];
 
@@ -1752,9 +1739,9 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
 
     static void setvol() {
         sp_volt[0] = 0; //(int) -SPEAKER_VOLUME;
-        sp_volt[1] = 0; // (int) -(SPEAKER_VOLUME * 1.4);
-        sp_volt[2] = (int) SPEAKER_VOLUME;
-        sp_volt[3] = (int) (SPEAKER_VOLUME * 1.3);
+        sp_volt[1] = (int) (SPEAKER_VOLUME * 0.04f); // (int) -(SPEAKER_VOLUME * 1.4);
+        sp_volt[2] = (int) (SPEAKER_VOLUME * 0.96f);
+        sp_volt[3] = SPEAKER_VOLUME;
     }
 
     /* Sección gráfica */
