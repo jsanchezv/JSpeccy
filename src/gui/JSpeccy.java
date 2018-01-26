@@ -2274,7 +2274,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (tape.isTapePlaying()) {
             tape.stop();
         } else {
-            tape.play();
+            tape.play(true);
         }
     }//GEN-LAST:event_playTapeMediaMenuActionPerformed
 
@@ -2969,7 +2969,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     private void tapeBrowserButtonPlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tapeBrowserButtonPlayActionPerformed
         if (tape.isTapeReady()) {
-            tape.play();
+            tape.play(true);
         }
     }//GEN-LAST:event_tapeBrowserButtonPlayActionPerformed
 
