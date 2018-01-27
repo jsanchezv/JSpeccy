@@ -156,7 +156,7 @@ public class Z80 {
     // Solo puede (debería) contener uno de 5 valores [0x00, 0xCB, 0xDD, 0xED, 0xFD]
     private int prefixOpcode = 0x00;
     // Subsistema de notificaciones
-    private final boolean execDone;
+    private boolean execDone = false;
     // Posiciones de los flags
     private static final int CARRY_MASK = 0x01;
     private static final int ADDSUB_MASK = 0x02;
@@ -1749,6 +1749,13 @@ public class Z80 {
         Arrays.fill(breakpointAt, false);
     }
 
+    public boolean isExecDone() {
+        return execDone;
+    }
+
+    public void setExecDone(boolean state) {
+        execDone = state;
+    }
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
      * simular la contended memory del Spectrum.
