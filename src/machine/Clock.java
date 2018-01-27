@@ -94,7 +94,10 @@ public class Clock {
      * @param states the tstates to set
      */
     public void setTstates(int states) {
-        tstates = states;
+        if (states < 0 || states > spectrumModel.tstatesFrame)
+            tstates = 0;
+        else
+            tstates = states;
         frames = timeout = 0;
     }
 
