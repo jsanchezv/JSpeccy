@@ -137,6 +137,9 @@
  *          Se cambia también el lugar de comprobación de la INT a donde corresponde, el final
  *          de la ejecución de la instrucción.
  *          La activación de INT depende ahora de Clock, no del Spectrum en sí mismo.
+ *
+ *          27/01/2018 Generalizo la solución de los prefijos para que se pueda aplicar también a
+ *          CB y ED. Se elimina el miembro opCode y se convierte en variable local.
  */
 package z80core;
 
@@ -149,11 +152,9 @@ public class Z80 {
     private final Clock clock;
     private final MemIoOps MemIoImpl;
     private final NotifyOps NotifyImpl;
-    // Código de instrucción a ejecutar
-    private int opCode;
-    // Se está ejecutando una instrucción DDXX o FDXX
-    // Solo puede contener 3 valores [0x00, 0xDD, 0xFD]
-    private int prefixDDFD = 0x00;
+    // Se está ejecutando una instrucción CBXX, DDXX, EDXX o FDXX 
+    // Solo puede (debería) contener uno de 5 valores [0x00, 0xCB, 0xDD, 0xED, 0xFD]
+    private int prefixOpcode = 0x00;
     // Subsistema de notificaciones
     private final boolean execDone;
     // Posiciones de los flags
@@ -955,7 +956,7 @@ public class Z80 {
         halted = false;
         setIM(IntMode.IM0);
         lastFlagQ = false;
-        prefixDDFD = 0x00;
+        prefixOpcode = 0x00;
     }
 
     // Rota a la izquierda el valor del argumento
@@ -1757,52 +1758,54 @@ public class Z80 {
         while (clock.getTstates() < statesLimit) {
 
             // Primero se comprueba NMI
-            if (prefixDDFD == 0 && activeNMI) {
+            if (prefixOpcode == 0 && activeNMI) {
                 activeNMI = false;
                 nmi();
                 continue;
             }
 
             regR++;
-            opCode = MemIoImpl.fetchOpcode(regPC);
+            int opCode = MemIoImpl.fetchOpcode(regPC);
 
-            if (prefixDDFD == 0 && breakpointAt[regPC]) {
+            if (prefixOpcode == 0 && breakpointAt[regPC]) {
                 opCode = NotifyImpl.atAddress(regPC, opCode);
             }
 
             regPC = (regPC + 1) & 0xffff;
 
-            if (opCode == 0xDD || opCode == 0xFD) {
-                prefixDDFD = opCode;
-                continue;
+            flagQ = false;
+
+            switch (prefixOpcode) {
+                case 0x00:
+                    decodeOpcode(opCode);
+                    break;
+                case 0xCB:
+                    decodeCB(opCode);
+                    break;
+                case 0xDD:
+                    regIX = decodeDDFD(opCode, regIX);
+                    break;
+                case 0xED:
+                    decodeED(opCode);
+                    break;
+                case 0xFD:
+                    regIY = decodeDDFD(opCode, regIY);
+                    break;
+                default:
+                    System.out.println(String.format("ERROR!: prefixOpcode = %02x, opCode = %02x", prefixOpcode, opCode));
             }
-            
+
+            if (prefixOpcode != 0x00)
+                continue;
+
+            lastFlagQ = flagQ;
+
             // Si está pendiente la activación de la interrupciones y el
             // código que se acaba de ejecutar no es el propio EI
             if (pendingEI && opCode != 0xFB) {
                 pendingEI = false;
             }
 
-            flagQ = false;
-
-            switch (prefixDDFD) {
-                case 0x00:
-                    decodeOpcode(opCode);
-                    break;
-                case 0xDD:
-                    regIX = decodeDDFD(opCode, regIX);
-                    prefixDDFD = 0;
-                    break;
-                case 0xFD:
-                    regIY = decodeDDFD(opCode, regIY);
-                    prefixDDFD = 0;
-                    break;
-                default:
-                    System.out.println(String.format("ERROR!: opcodeDDFD = %02x, opCode = %02x", prefixDDFD, opCode));
-            }
-
-            lastFlagQ = flagQ;
-            
             // Ahora se comprueba si al final de la instrucción anterior se
             // encontró una interrupción enmascarable y, de ser así, se procesa.
             // El orden de las condiciones es estricto. NO CAMBIAR!.
@@ -2774,7 +2777,7 @@ public class Z80 {
                 break;
             }
             case 0xCB: {     /* Subconjunto de instrucciones */
-                decodeCB();
+                prefixOpcode = 0xCB;
                 break;
             }
             case 0xCC: {     /* CALL Z,nn */
@@ -2921,8 +2924,7 @@ public class Z80 {
                 break;
             }
             case 0xDD: {     /* Subconjunto de instrucciones */
-                System.out.println("decodeOpcode: no se debería llegar aquí (DD)");
-//                regIX = decodeDDFD(opCode, regIX);
+                prefixOpcode = 0xDD;
                 break;
             }
             case 0xDE: {     /* SBC A,n */
@@ -3027,7 +3029,7 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xED:       /*Subconjunto de instrucciones*/
-                decodeED();
+                prefixOpcode = 0xED;
                 break;
             case 0xEE:       /* XOR n */
                 xor(MemIoImpl.peek8(regPC));
@@ -3114,8 +3116,7 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xFD:       /* Subconjunto de instrucciones */
-                System.out.println("decodeOpcode: no se debería llegar aquí (FD)");
-//                regIY = decodeDDFD(opCode, regIY);
+                prefixOpcode = 0xFD;
                 break;
             case 0xFE:       /* CP n */
                 cp(MemIoImpl.peek8(regPC));
@@ -3129,12 +3130,8 @@ public class Z80 {
     }
 
     //Subconjunto de instrucciones 0xCB
-    private void decodeCB() {
-
-        regR++;
-        opCode = MemIoImpl.fetchOpcode(regPC);
-        regPC = (regPC + 1) & 0xffff;
-
+    private void decodeCB(int opCode) {
+        prefixOpcode = 0;
         switch (opCode) {
             case 0x00: {     /* RLC B */
                 regB = rlc(regB);
@@ -4286,10 +4283,7 @@ public class Z80 {
      * interrupciones entre cada prefijo.
      */
     private int decodeDDFD(int opCode, int regIXY) {
-
-//        regR++;
-//        opCode = MemIoImpl.fetchOpcode(regPC);
-//        regPC = (regPC + 1) & 0xffff;
+        prefixOpcode = 0;
         switch (opCode) {
             case 0x09: {     /* ADD IX,BC */
                 MemIoImpl.contendedStates(getPairIR(), 7);
@@ -4717,7 +4711,8 @@ public class Z80 {
                 break;
             }
             case 0xDD: {
-                System.out.println("DecodeDDFD ha encontrado otro DD anidado!.");
+                prefixOpcode = 0xDD;
+                break;
             }
             case 0xE1: {     /* POP IX */
                 regIXY = pop();
@@ -4749,7 +4744,8 @@ public class Z80 {
                 break;
             }
             case 0xFD: {
-                System.out.println("DecodeDDFD ha encontrado otro FD anidado!.");
+                prefixOpcode = 0xFD;
+                break;
             }
             default: {
                 // Detrás de un DD/FD o varios en secuencia venía un código
@@ -6050,12 +6046,8 @@ public class Z80 {
     }
 
     //Subconjunto de instrucciones 0xED
-    private void decodeED() {
-
-        regR++;
-        opCode = MemIoImpl.fetchOpcode(regPC);
-        regPC = (regPC + 1) & 0xffff;
-
+    private void decodeED(int opCode) {
+        prefixOpcode = 0;
         switch (opCode) {
             case 0x40: {     /* IN B,(C) */
                 memptr = getRegBC();
@@ -6427,6 +6419,9 @@ public class Z80 {
                 }
                 break;
             }
+            case 0xED:
+                prefixOpcode = 0xED;
+                break;
             default: {
 //                System.out.println("Error instrucción ED " + Integer.toHexString(opCode));
                 break;
