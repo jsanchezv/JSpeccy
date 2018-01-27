@@ -4745,6 +4745,10 @@ public class Z80 {
                 regPC = regIXY;
                 break;
             }
+            case 0xED: {
+                prefixOpcode = 0xED;
+                break;
+            }
             case 0xF9: {     /* LD SP,IX */
                 MemIoImpl.contendedStates(getPairIR(), 2);
                 regSP = regIXY;
@@ -6426,8 +6430,17 @@ public class Z80 {
                 }
                 break;
             }
+            case 0xCB:
+                prefixOpcode = 0xCB;
+                break;
+            case 0xDD:
+                prefixOpcode = 0xDD;
+                break;
             case 0xED:
                 prefixOpcode = 0xED;
+                break;
+            case 0xFD:
+                prefixOpcode = 0xFD;
                 break;
             default: {
 //                System.out.println("Error instrucción ED " + Integer.toHexString(opCode));
