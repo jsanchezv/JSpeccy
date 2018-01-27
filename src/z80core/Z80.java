@@ -140,6 +140,12 @@
  *
  *          27/01/2018 Generalizo la solución de los prefijos para que se pueda aplicar también a
  *          CB y ED. Se elimina el miembro opCode y se convierte en variable local.
+ *
+ *          27/01/2018 (reloaded) Estrictamente hablando, al final del ciclo de máquina de la
+ *          instrucción se comprueban, por este orden, BUSRQ, NMI e INT. La primera no la
+ *          emulamos y la segunda, si la movemos a su sitio, nos ahorramos una comparación.
+ *          Se reorganizan también las comparaciones de la INT, así solo se llama al método de Clock
+ *          si las interrupciones están habilitadas y no hay pendiente un EI.
  */
 package z80core;
 
@@ -1764,15 +1770,8 @@ public class Z80 {
 
         while (clock.getTstates() < statesLimit) {
 
-            // Primero se comprueba NMI
-            if (prefixOpcode == 0 && activeNMI) {
-                activeNMI = false;
-                nmi();
-                continue;
-            }
-
-            regR++;
             int opCode = MemIoImpl.fetchOpcode(regPC);
+            regR++;
 
             if (prefixOpcode == 0 && breakpointAt[regPC]) {
                 opCode = NotifyImpl.atAddress(regPC, opCode);
@@ -1807,16 +1806,21 @@ public class Z80 {
 
             lastFlagQ = flagQ;
 
-            // Si está pendiente la activación de la interrupciones y el
+            // Si está pendiente la activación de la interrupción y el
             // código que se acaba de ejecutar no es el propio EI
             if (pendingEI && opCode != 0xFB) {
                 pendingEI = false;
             }
 
-            // Ahora se comprueba si al final de la instrucción anterior se
-            // encontró una interrupción enmascarable y, de ser así, se procesa.
-            // El orden de las condiciones es estricto. NO CAMBIAR!.
-            if (clock.isINTtime() && !pendingEI && ffIFF1) {
+            // Primero se comprueba NMI
+            if (activeNMI) {
+                activeNMI = false;
+                nmi();
+                continue;
+            }
+
+            // Ahora se comprueba si hay una INT
+            if (ffIFF1 && !pendingEI && clock.isINTtime()) {
                 interruption();
             }
 
