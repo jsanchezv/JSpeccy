@@ -1666,7 +1666,7 @@ public class Z80 {
     private void bit(int mask, int reg) {
         boolean zeroFlag = (mask & reg) == 0;
 
-        sz5h3pnFlags = sz53n_addTable[reg] & ~FLAG_SZP_MASK | HALFCARRY_MASK;
+        sz5h3pnFlags = (sz53n_addTable[reg] & ~FLAG_SZP_MASK) | HALFCARRY_MASK;
 
         if (zeroFlag) {
             sz5h3pnFlags |= (PARITY_MASK | ZERO_MASK);
