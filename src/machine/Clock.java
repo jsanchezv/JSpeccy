@@ -4,7 +4,6 @@
  */
 package machine;
 
-import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -19,7 +18,6 @@ public class Clock {
     private long frames;
     private int timeout;
     private final CopyOnWriteArrayList<ClockTimeoutListener> clockListeners;
-    private final boolean activeINT[] = new boolean[71000];
 
     // Clock class implements a Singleton pattern.
     private Clock() {
@@ -77,9 +75,6 @@ public class Clock {
      */
     public void setSpectrumModel(MachineTypes spectrumModel) {
         this.spectrumModel = spectrumModel;
-        Arrays.fill(activeINT, false);
-        Arrays.fill(activeINT, 0, spectrumModel.lengthINT, true);
-        Arrays.fill(activeINT, spectrumModel.tstatesFrame, spectrumModel.tstatesFrame + spectrumModel.lengthINT, true);
         reset();
     }
 
@@ -145,10 +140,6 @@ public class Clock {
 
         timeout = ntstates > 10 ? ntstates : 10;
     } 
-
-    public boolean isINTtime() {
-        return activeINT[tstates];
-    }
 
     @Override
     public String toString() {
