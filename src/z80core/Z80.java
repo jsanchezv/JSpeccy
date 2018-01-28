@@ -1706,7 +1706,7 @@ public class Z80 {
             regPC = (regPC + 1) & 0xffff;
         }
 
-        clock.addTstates(7);
+        MemIoImpl.interruptHandlingTime(7);
 
         regR++;
         ffIFF1 = ffIFF2 = false;
@@ -1732,7 +1732,7 @@ public class Z80 {
         //      1.- La lectura del opcode del M1 que se descarta
         //      2.- Si estaba en un HALT esperando una INT, lo saca de la espera
         MemIoImpl.fetchOpcode(regPC);
-        clock.addTstates(1);
+        MemIoImpl.interruptHandlingTime(1);
         if (halted) {
             halted = false;
             regPC = (regPC + 1) & 0xffff;
@@ -1774,7 +1774,7 @@ public class Z80 {
             regR++;
 
             if (prefixOpcode == 0 && breakpointAt[regPC]) {
-                opCode = NotifyImpl.atAddress(regPC, opCode);
+                opCode = NotifyImpl.breakpoint(regPC, opCode);
             }
 
             regPC = (regPC + 1) & 0xffff;
@@ -1819,7 +1819,7 @@ public class Z80 {
             }
 
             // Ahora se comprueba si hay una INT
-            if (ffIFF1 && !pendingEI && clock.isINTtime()) {
+            if (ffIFF1 && !pendingEI && MemIoImpl.isActiveINT()) {
                 interruption();
             }
 
@@ -4771,7 +4771,7 @@ public class Z80 {
 //                System.out.println("Error instrucción DD/FD" + Integer.toHexString(opCode));
 
                 if (breakpointAt[regPC]) {
-                    opCode = NotifyImpl.atAddress(regPC, opCode);
+                    opCode = NotifyImpl.breakpoint(regPC, opCode);
                 }
 
                 decodeOpcode(opCode);
@@ -6187,7 +6187,7 @@ public class Z80 {
                 MemIoImpl.addressOnBus(getPairIR(), 1);
                 regA = regI;
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if (ffIFF2 && !clock.isINTtime()) {
+                if (ffIFF2 && !MemIoImpl.isActiveINT()) {
                     sz5h3pnFlags |= PARITY_MASK;
                 }
                 flagQ = true;
@@ -6225,7 +6225,7 @@ public class Z80 {
                 MemIoImpl.addressOnBus(getPairIR(), 1);
                 regA = getRegR();
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if (ffIFF2 && !clock.isINTtime()) {
+                if (ffIFF2 && !MemIoImpl.isActiveINT()) {
                     sz5h3pnFlags |= PARITY_MASK;
                 }
                 flagQ = true;
