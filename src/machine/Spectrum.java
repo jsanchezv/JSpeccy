@@ -1472,12 +1472,25 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     }
 
     @Override
-    public void execDone() {
-
+    public void interruptHandlingTime(int tstates) {
+        clock.addTstates(tstates);
     }
 
     @Override
-    public int atAddress(int address, int opcode) {
+    public boolean isActiveINT() {
+        int tmp = clock.getTstates();
+
+        if (tmp >= spectrumModel.lengthINT)
+            tmp -= spectrumModel.tstatesFrame;
+
+        return tmp >= 0 && tmp < spectrumModel.lengthINT;
+    }
+
+    @Override
+    public void execDone() { }
+
+    @Override
+    public int breakpoint(int address, int opcode) {
         
 //        System.out.println(String.format("atAddress: 0x%04X", address));
         
