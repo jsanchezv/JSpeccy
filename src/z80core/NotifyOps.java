@@ -9,6 +9,6 @@ package z80core;
  * @author jsanchez
  */
 public interface NotifyOps {
-    int atAddress(int address, int opcode);
+    int breakpoint(int address, int opcode);
     void execDone();
 }
