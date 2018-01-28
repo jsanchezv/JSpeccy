@@ -21,4 +21,7 @@ public interface MemIoOps {
     void outPort(int port, int value);
 
     void addressOnBus(int address, int tstates);
+
+    void interruptHandlingTime(int tstates);
+    boolean isActiveINT();
 }
