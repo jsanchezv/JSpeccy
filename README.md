@@ -5,6 +5,7 @@
 * Uses the same Z80 core as [Z80Core](http://github.com/jsanchezv/Z80Core) project.
 * Contended memory emulation.
 * Border effects (Aquaplane, The Sentinel)
+* Selectable border size (no border, standar, complete, huge)
 * High resolution color effects (Uridium, Black Lamp)
 * Emulation for screen scanlines, PAL effect or RGB monitor
 * Floating bus emulation (Arkanoid, Sidewize, Cobra)
@@ -18,6 +19,9 @@
 * Multiface One/128/Plus 3 emulation
 * ULA+ mode support (up to 64 colors on screen)
 * LEC Memory expansion, up to 528 KB, to use LEC CP/M v2.2, using Microdrives as storage
+* Window can be maximized up to x4.
+* Selectable emulation speed up to x10 (35 Mhz CPU)
 * Translations to English, Spanish & Italian
+* Complete command line support, to integrate JSpeccy with front-ends.
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)
