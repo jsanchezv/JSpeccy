@@ -20,5 +20,5 @@ public interface MemIoOps {
     int inPort(int port);
     void outPort(int port, int value);
 
-    void contendedStates(int address, int tstates);
+    void addressOnBus(int address, int tstates);
 }

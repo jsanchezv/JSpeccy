@@ -881,7 +881,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     }
 
     @Override
-    public void contendedStates(int address, int tstates) {
+    public void addressOnBus(int address, int tstates) {
         if (contendedRamPage[address >>> 14]
             && spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             for (int idx = 0; idx < tstates; idx++) {
