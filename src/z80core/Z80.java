@@ -754,7 +754,7 @@ public class Z80 {
     }
 
     public final boolean isSignFlag() {
-        return (sz5h3pnFlags & SIGN_MASK) != 0;
+        return sz5h3pnFlags >= SIGN_MASK;
     }
 
     public final void setSignFlag(boolean state) {
@@ -6188,7 +6188,7 @@ public class Z80 {
                 MemIoImpl.contendedStates(getPairIR(), 1);
                 regA = regI;
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if (ffIFF2) {
+                if (ffIFF2 && !clock.isINTtime()) {
                     sz5h3pnFlags |= PARITY_MASK;
                 }
                 flagQ = true;
@@ -6226,7 +6226,7 @@ public class Z80 {
                 MemIoImpl.contendedStates(getPairIR(), 1);
                 regA = getRegR();
                 sz5h3pnFlags = sz53n_addTable[regA];
-                if (ffIFF2) {
+                if (ffIFF2 && !clock.isINTtime()) {
                     sz5h3pnFlags |= PARITY_MASK;
                 }
                 flagQ = true;
