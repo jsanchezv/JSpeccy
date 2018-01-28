@@ -5,7 +5,7 @@
 * Uses the same Z80 core as [Z80Core](http://github.com/jsanchezv/Z80Core) project.
 * Contended memory emulation.
 * Border effects (Aquaplane, The Sentinel)
-* Selectable border size (no border, standar, complete, huge)
+* Selectable border size (no border, standard, complete, huge)
 * High resolution color effects (Uridium, Black Lamp)
 * Emulation for screen scanlines, PAL effect or RGB monitor
 * Floating bus emulation (Arkanoid, Sidewize, Cobra)
