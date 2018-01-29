@@ -146,6 +146,10 @@
  *          emulamos y la segunda, si la movemos a su sitio, nos ahorramos una comparación.
  *          Se reorganizan también las comparaciones de la INT, así solo se llama al método de Clock
  *          si las interrupciones están habilitadas y no hay pendiente un EI.
+ *
+ *          29/01/2018 CB es el único prefijo de instrucción cuyo byte siguiente produce SIEMPRE un
+ *          código de instrucción válido, de modo que no merece la pena dividirlo en dos y es mejor
+ *          que se ejecute como una unidad indivisible.
  */
 package z80core;
 
@@ -158,8 +162,8 @@ public class Z80 {
     private final Clock clock;
     private final MemIoOps MemIoImpl;
     private final NotifyOps NotifyImpl;
-    // Se está ejecutando una instrucción CBXX, DDXX, EDXX o FDXX 
-    // Solo puede (debería) contener uno de 5 valores [0x00, 0xCB, 0xDD, 0xED, 0xFD]
+    // Se está ejecutando una instrucción DDxx, EDxx o FDxx 
+    // Solo puede (debería) contener uno de 4 valores [0x00, 0xDD, 0xED, 0xFD]
     private int prefixOpcode = 0x00;
     // Subsistema de notificaciones
     private boolean execDone = false;
@@ -1762,6 +1766,7 @@ public class Z80 {
     public void setExecDone(boolean state) {
         execDone = state;
     }
+
     /* Los tEstados transcurridos se calculan teniendo en cuenta el número de
      * ciclos de máquina reales que se ejecutan. Esa es la única forma de poder
      * simular la contended memory del Spectrum.
@@ -1781,12 +1786,12 @@ public class Z80 {
 
             flagQ = false;
 
+            // El prefijo 0xCB no cuenta para esta guerra.
+            // En CBxx todas las xx producen un código válido
+            // de instrucción, incluyendo CBCB.
             switch (prefixOpcode) {
                 case 0x00:
                     decodeOpcode(opCode);
-                    break;
-                case 0xCB:
-                    decodeCB(opCode);
                     break;
                 case 0xDD:
                     regIX = decodeDDFD(opCode, regIX);
@@ -2787,7 +2792,7 @@ public class Z80 {
                 break;
             }
             case 0xCB: {     /* Subconjunto de instrucciones */
-                prefixOpcode = 0xCB;
+                decodeCB();
                 break;
             }
             case 0xCC: {     /* CALL Z,nn */
@@ -3140,8 +3145,11 @@ public class Z80 {
     }
 
     //Subconjunto de instrucciones 0xCB
-    private void decodeCB(int opCode) {
-        prefixOpcode = 0;
+    private void decodeCB() {
+        int opCode = MemIoImpl.fetchOpcode(regPC);
+        regPC = (regPC + 1) & 0xffff;
+        regR++;
+
         switch (opCode) {
             case 0x00: {     /* RLC B */
                 regB = rlc(regB);
@@ -6433,9 +6441,6 @@ public class Z80 {
                 }
                 break;
             }
-            case 0xCB:
-                prefixOpcode = 0xCB;
-                break;
             case 0xDD:
                 prefixOpcode = 0xDD;
                 break;
