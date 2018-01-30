@@ -1825,19 +1825,22 @@ public class Z80 {
                 pendingEI = false;
             }
 
+            if (execDone) {
+                NotifyImpl.execDone();
+            }
+
             // Primero se comprueba NMI
+            // Si se activa NMI no se comprueba INT porque la siguiente
+            // instrucción debe ser la de 0x0066.
             if (activeNMI) {
                 activeNMI = false;
                 nmi();
+                return;
             }
 
             // Ahora se comprueba si hay una INT
             if (ffIFF1 && !pendingEI && MemIoImpl.isActiveINT()) {
                 interruption();
-            }
-
-            if (execDone) {
-                NotifyImpl.execDone();
             }
         } /* del while */
     }
