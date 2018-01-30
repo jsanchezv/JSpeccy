@@ -82,23 +82,18 @@ public class MemIoOps {
 
     public void addressOnBus(int address, int tstates) {
         // Additional clocks to be added on some instructions
+        // Not to be changed, really.
         this.tstates += tstates;
     }
 
     public void interruptHandlingTime(int tstates) {
+        // Additional clocks to be added on INT & NMI
+        // Not to be changed, really.
         this.tstates += tstates;
     }
 
     public boolean isActiveINT() {
         return false;
-    }
-
-    public int peekAddress(int address) {
-        return z80Ram[address & 0xffff] & 0xff;
-    }
-
-    public void pokeAddress(int address, int value) {
-        z80Ram[address & 0xffff] = (byte)value;
     }
 
     public long getTstates() {
