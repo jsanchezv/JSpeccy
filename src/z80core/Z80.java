@@ -160,8 +160,8 @@ import snapshots.Z80State;
 public class Z80 {
 
     private final Clock clock;
-    private final MemIoOps MemIoImpl;
-    private final NotifyOps NotifyImpl;
+    private MemIoOps MemIoImpl;
+    private NotifyOps NotifyImpl;
     // Se está ejecutando una instrucción DDxx, EDxx o FDxx 
     // Solo puede (debería) contener uno de 4 valores [0x00, 0xDD, 0xED, 0xFD]
     private int prefixOpcode = 0x00;
@@ -323,6 +323,14 @@ public class Z80 {
         execDone = false;
         Arrays.fill(breakpointAt, false);
         reset();
+    }
+
+    public void setMemIoHandler(MemIoOps memIo) {
+        MemIoImpl = memIo;
+    }
+
+    public void setNotifyHandler(NotifyOps notify) {
+        NotifyImpl = notify;
     }
 
     // Acceso a registros de 8 bits
