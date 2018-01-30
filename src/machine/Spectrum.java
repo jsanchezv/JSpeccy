@@ -32,7 +32,7 @@ import z80core.Z80;
  *
  * @author jsanchez
  */
-public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
+public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.NotifyOps {
 
     private final Z80 z80;
     private final Memory memory;
@@ -71,6 +71,7 @@ public class Spectrum implements Runnable, z80core.MemIoOps, z80core.NotifyOps {
     private final Interface1 if1;
 
     public Spectrum(JSpeccySettings config) {
+        super(0,0);
         clock = Clock.getInstance();
         settings = config;
         specSettings = settings.getSpectrumSettings();
