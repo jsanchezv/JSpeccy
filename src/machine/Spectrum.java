@@ -395,6 +395,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         }
     }
 
+    @Override
     public void reset() {
         resetPending = true;
         z80.setPinReset();
