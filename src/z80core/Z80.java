@@ -1835,7 +1835,7 @@ public class Z80 {
             if (activeNMI) {
                 activeNMI = false;
                 nmi();
-                return;
+                continue;
             }
 
             // Ahora se comprueba si hay una INT
