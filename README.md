@@ -24,4 +24,29 @@
 * Translations to English, Spanish & Italian
 * Complete command line support, to integrate JSpeccy with front-ends.
 
+### How to Use
+You need to have installed Java 8. Run with:
+
+**java -jar JSpeccy.jar**
+
+A configuration file named JSpeccy.xml will be created on the user directory.
+
+On Unix/Linux platforms using X11, Java 8 have a bug redrawing the screen. Java 8 use
+the XRender extension by default and this causes some problems. To resolve it, you can
+test two possible solutions. First, you can add the option:
+
+**java -Dsun.java2d.opengl=True -jar JSpeccy.jar**
+
+that uses the OpenGL backend. This solution can be problematic when don't exist a
+good OpenGL driver or X11 is using Mesa. With these case you can use:
+
+**java -Dsun.java2d.xrender=false -jar JSpeccy.jar**
+
+If you are using Java 9 you need to add another startup option:
+
+**java --add-modules jdk.xml.bind -jar JSpeccy.jar**
+
+in Java 9 the Swing redrawing bug exist too, and you can need any of the previous
+solutions (sigh!).
+
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)
