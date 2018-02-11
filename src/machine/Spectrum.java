@@ -296,18 +296,38 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 buildScreenTables48k();
                 enabledAY = specSettings.isAYEnabled48K();
                 connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
+                Paleta = Paleta48k;
                 break;
             case SPECTRUM128K:
                 buildScreenTables128k();
                 enabledAY = true;
                 connectedIF1 = settings.getInterface1Settings().isConnectedIF1();
+                Paleta = Paleta128k;
                 break;
             case SPECTRUMPLUS3:
                 buildScreenTablesPlus3();
                 enabledAY = true;
                 contendedIOPage[1] = false;
                 connectedIF1 = false;
+                Paleta = Paleta128k;
                 break;
+        }
+
+        // Inicialización de las tablas de Paper/Ink
+        /* Para cada valor de atributo, hay dos tablas, donde cada una
+         * ya tiene el color que le corresponde, para no tener que extraerlo
+         */
+        for (int idx = 0; idx < 256; idx++) {
+            int ink = (idx & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
+            int paper = ((idx >>> 3) & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
+
+            if (idx < 128) {
+                Ink[idx] = Paleta[ink];
+                Paper[idx] = Paleta[paper];
+            } else {
+                Ink[idx] = Paleta[paper];
+                Paper[idx] = Paleta[ink];
+            }
         }
 
         step = 0;
@@ -1755,8 +1775,28 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     }
 
     /* Sección gráfica */
-    //Vector con los valores correspondientes a lo colores anteriores
-    public static final int[] Paleta = {
+    // Vector con los valores correspondientes a lo colores anteriores
+    // https://www.worldofspectrum.org/forums/discussion/55858/new-colour-palette-for-16k-48k-machines-based-on-ula-yuv-voltages
+    public static final int[] Paleta48k = {
+        0x060800, /* negro */
+        0x0d13a7, /* azul */
+        0xbd0707, /* rojo */
+        0xc312af, /* magenta */
+        0x07ba0c, /* verde */
+        0x0dc6b4, /* cyan */
+        0xbcb914, /* amarillo */
+        0xc2c4bc, /* blanco */
+        0x060800, /* negro "brillante" */
+        0x161cb0, /* azul brillante */
+        0xce1818, /* rojo brillante	*/
+        0xdc2cc8, /* magenta brillante */
+        0x28dc2d, /* verde brillante */
+        0x36efde, /* cyan brillante */
+        0xeeeb46, /* amarillo brillante */
+        0xfdfff7  /* blanco brillante */
+    };
+
+    public static final int[] Paleta128k = {
         0x000000, /* negro */
         0x0000c0, /* azul */
         0xc00000, /* rojo */
@@ -1774,6 +1814,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         0xffff00, /* amarillo brillante */
         0xffffff  /* blanco brillante */
     };
+
+    public static int[] Paleta = Paleta48k;
     // Tablas de valores de Paper/Ink. Para cada valor general de atributo,
     // corresponde una entrada en la tabla que hace referencia al color
     // en la paleta. Para los valores superiores a 127, los valores de Paper/Ink
@@ -1818,26 +1860,6 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private int TOP_BORDER = 24;
     private int BOTTOM_BORDER = 24;
     private int SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
-
-    static {
-        // Inicialización de las tablas de Paper/Ink
-        /* Para cada valor de atributo, hay dos tablas, donde cada una
-         * ya tiene el color que le corresponde, para no tener que extraerlo
-         */
-
-        for (int idx = 0; idx < 256; idx++) {
-            int ink = (idx & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
-            int paper = ((idx >>> 3) & 0x07) | ((idx & 0x40) != 0 ? 0x08 : 0x00);
-
-            if (idx < 128) {
-                Ink[idx] = Paleta[ink];
-                Paper[idx] = Paleta[paper];
-            } else {
-                Ink[idx] = Paleta[paper];
-                Paper[idx] = Paleta[ink];
-            }
-        }
-    }
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
     private BufferedImage tvImage;     // imagen actualizada al final de cada frame
     private BufferedImage inProgressImage; // imagen del borde
