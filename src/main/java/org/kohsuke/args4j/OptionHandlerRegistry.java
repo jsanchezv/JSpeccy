@@ -1,5 +1,15 @@
 package org.kohsuke.args4j;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.ByteOptionHandler;
 import org.kohsuke.args4j.spi.CharOptionHandler;
@@ -19,17 +29,6 @@ import org.kohsuke.args4j.spi.ShortOptionHandler;
 import org.kohsuke.args4j.spi.StringOptionHandler;
 import org.kohsuke.args4j.spi.URIOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
-
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.kohsuke.args4j.Utilities.checkNonNull;
 

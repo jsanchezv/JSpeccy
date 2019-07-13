@@ -1,8 +1,7 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.OptionHandler;
-
 import java.util.Locale;
+import org.kohsuke.args4j.spi.OptionHandler;
 
 /**
  * Signals an error in the user input.

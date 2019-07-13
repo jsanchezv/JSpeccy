@@ -33,8 +33,26 @@ To build JSpeccy, run the following command:
 ### How to Use
 To use JSpeccy you need to have Java 11 installed. Run with:
 
+    ./JSpeccy.jar
+    
+or
+
     java -jar JSpeccy.jar
 
 A configuration file named JSpeccy.xml will be created on the user directory.
+
+On Unix/Linux platforms using X11, Java 8 has a bug redrawing the screen. Java 8 uses
+the XRender extension by default and this causes some problems. To resolve it, you can
+test two possible solutions. First, you can add the option:
+
+    java -Dsun.java2d.opengl=True -jar JSpeccy.jar
+
+that uses the OpenGL backend. This solution can be problematic if a good OpenGL driver
+is not present your system or X11 is using Mesa. In these cases you can use:
+
+    java -Dsun.java2d.xrender=false -jar JSpeccy.jar
+
+in Java 9 the Swing redrawing bug exist too, and you can need any of the previous
+solutions (sigh!).
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)

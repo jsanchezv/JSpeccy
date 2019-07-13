@@ -1,6 +1,6 @@
 package tv.porst.splib.gui.tree;
 
-import javax.swing.*;
+import javax.swing.Icon;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 /**

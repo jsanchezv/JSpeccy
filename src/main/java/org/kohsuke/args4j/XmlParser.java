@@ -1,13 +1,13 @@
 package org.kohsuke.args4j;
 
+import java.lang.reflect.AccessibleObject;
+import java.net.URL;
+
 import org.kohsuke.args4j.spi.ArgumentImpl;
 import org.kohsuke.args4j.spi.ConfigElement;
 import org.kohsuke.args4j.spi.OptionImpl;
 import org.kohsuke.args4j.spi.Setters;
 import org.xml.sax.InputSource;
-
-import java.lang.reflect.AccessibleObject;
-import java.net.URL;
 
 /**
  * Parses an XML-file specifying the 'annotations'.

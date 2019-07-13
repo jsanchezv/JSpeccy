@@ -1,12 +1,14 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.OptionHandler;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.*;
+import org.kohsuke.args4j.spi.OptionHandler;
+
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
 
 /**
  * Argument of the command line.

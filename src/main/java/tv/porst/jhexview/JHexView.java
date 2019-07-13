@@ -1,12 +1,12 @@
 package tv.porst.jhexview;
 
-import tv.porst.splib.convert.ConvertHelpers;
-import tv.porst.splib.gui.GuiHelpers;
-import tv.porst.splib.gui.caret.ICaretListener;
-import tv.porst.splib.gui.caret.JCaret;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.KeyboardFocusManager;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
@@ -24,6 +24,20 @@ import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashSet;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
+import javax.swing.KeyStroke;
+import javax.swing.Timer;
+
+import tv.porst.splib.convert.ConvertHelpers;
+import tv.porst.splib.gui.GuiHelpers;
+import tv.porst.splib.gui.caret.ICaretListener;
+import tv.porst.splib.gui.caret.JCaret;
 
 /**
  * The JHexView component is a Java component that can be used to display

@@ -1,10 +1,10 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.Localizable;
-
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
+import org.kohsuke.args4j.Localizable;
 
 /**
  * @author Kohsuke Kawaguchi

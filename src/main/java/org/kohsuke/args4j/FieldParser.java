@@ -1,10 +1,10 @@
 package org.kohsuke.args4j;
 
+import java.lang.reflect.Field;
+
 import org.kohsuke.args4j.spi.ConfigElement;
 import org.kohsuke.args4j.spi.OptionImpl;
 import org.kohsuke.args4j.spi.Setters;
-
-import java.lang.reflect.Field;
 
 /**
  * This metadata parser makes all field available to the CmdLineParser.

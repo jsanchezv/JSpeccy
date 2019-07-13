@@ -1,11 +1,13 @@
 package tv.porst.splib.gui.caret;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.Timer;
 
 /**
  * Caret class that can be used to draw carets in custom GUI components.

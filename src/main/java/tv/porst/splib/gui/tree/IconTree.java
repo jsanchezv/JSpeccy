@@ -1,9 +1,10 @@
 package tv.porst.splib.gui.tree;
 
-import javax.swing.*;
+import java.awt.Component;
+
+import javax.swing.JTree;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeModel;
-import java.awt.*;
 
 /**
  * Renderer used to display icons in tree nodes.

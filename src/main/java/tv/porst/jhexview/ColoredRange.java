@@ -1,6 +1,6 @@
 package tv.porst.jhexview;
 
-import java.awt.*;
+import java.awt.Color;
 
 public class ColoredRange implements Comparable<ColoredRange> {
 

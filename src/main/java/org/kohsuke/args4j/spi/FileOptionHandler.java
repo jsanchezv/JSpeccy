@@ -1,10 +1,10 @@
 package org.kohsuke.args4j.spi;
 
+import java.io.File;
+
+import org.kohsuke.args4j.OptionDef;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.OptionDef;
-
-import java.io.File;
 
 /**
  * {@link File} {@link OptionHandler}.

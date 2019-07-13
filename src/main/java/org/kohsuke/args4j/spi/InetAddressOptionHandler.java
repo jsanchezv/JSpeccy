@@ -1,11 +1,11 @@
 package org.kohsuke.args4j.spi;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 /**
  * {@link InetAddress} {@link OptionHandler}.

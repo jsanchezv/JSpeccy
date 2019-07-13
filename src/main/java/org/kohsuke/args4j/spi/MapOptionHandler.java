@@ -1,11 +1,9 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.OptionDef;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.kohsuke.args4j.*;
 
 /**
  * Parses options into a {@link Map}.
