@@ -1792,13 +1792,12 @@ public class Z80 {
 
             regPC = (regPC + 1) & 0xffff;
 
-            flagQ = pendingEI = false;
-
             // El prefijo 0xCB no cuenta para esta guerra.
             // En CBxx todas las xx producen un código válido
             // de instrucción, incluyendo CBCB.
             switch (prefixOpcode) {
                 case 0x00:
+                    flagQ = pendingEI = false;
                     decodeOpcode(opCode);
                     break;
                 case 0xDD:
@@ -2947,6 +2946,9 @@ public class Z80 {
                 break;
             }
             case 0xDD: {     /* Subconjunto de instrucciones */
+                opCode = MemIoImpl.fetchOpcode(regPC);
+                regPC = (regPC + 1) & 0xffff;
+                regR++;
                 regIX = decodeDDFD(opCode, regIX);
                 break;
             }
@@ -3052,6 +3054,9 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xED:       /*Subconjunto de instrucciones*/
+                opCode = MemIoImpl.fetchOpcode(regPC);
+                regPC = (regPC + 1) & 0xffff;
+                regR++;
                 decodeED(opCode);
                 break;
             case 0xEE:       /* XOR n */
@@ -3139,6 +3144,9 @@ public class Z80 {
                 regPC = (regPC + 2) & 0xffff;
                 break;
             case 0xFD:       /* Subconjunto de instrucciones */
+                opCode = MemIoImpl.fetchOpcode(regPC);
+                regPC = (regPC + 1) & 0xffff;
+                regR++;
                 regIY = decodeDDFD(opCode, regIY);
                 break;
             case 0xFE:       /* CP n */
