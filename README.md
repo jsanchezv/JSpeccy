@@ -50,3 +50,16 @@ in Java 9 the Swing redrawing bug exist too, and you can need any of the previou
 solutions (sigh!).
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)
+
+## Eclipse users
+Required JAXB plugin. If you don't have:
+
+* Download [standalone distribution|https://github.com/javaee/jaxb-v2] (bottom page) and unzip them.
+* Click on the *_Help | Install New Software ...*.
+* Select Eclipse URL and install JAXB packages:
+  Dali Java Persistence Tools - EclipseLink JAXB Support
+  Dali Java Persistence Tools - JAXB Support
+* And follow the instructions.
+* Create a user lib named `jaxb` pointing to `<home_jaxb>\lib` folder.
+* Build project.
+

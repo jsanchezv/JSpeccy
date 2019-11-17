@@ -1,6 +1,7 @@
 package org.kohsuke.args4j;
 
 import java.util.Locale;
+
 import org.kohsuke.args4j.spi.OptionHandler;
 
 /**

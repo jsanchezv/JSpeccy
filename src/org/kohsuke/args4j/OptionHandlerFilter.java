@@ -1,9 +1,9 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.OptionHandler;
-
 import java.io.Writer;
 import java.util.ResourceBundle;
+
+import org.kohsuke.args4j.spi.OptionHandler;
 
 /**
  * Selects {@link OptionHandler}.

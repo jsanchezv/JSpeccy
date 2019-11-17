@@ -1,9 +1,9 @@
 package org.kohsuke.args4j.spi;
 
+import java.io.File;
+
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
-
-import java.io.File;
 
 /**
  * Takes a classpath like option ("-cp a.jar;b.jar;c") and maps them to a collection of {@link File}.

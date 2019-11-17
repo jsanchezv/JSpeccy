@@ -1,10 +1,14 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.*;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.ResourceBundle;
+
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.OptionDef;
+import org.kohsuke.args4j.OptionHandlerRegistry;
+import org.kohsuke.args4j.ParserProperties;
 
 
 /**

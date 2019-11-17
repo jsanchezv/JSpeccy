@@ -1,5 +1,7 @@
 package org.kohsuke.args4j;
 
+import static org.kohsuke.args4j.Utilities.checkNonNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -16,13 +18,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
-import org.kohsuke.args4j.spi.Getter;
 
+import org.kohsuke.args4j.spi.Getter;
 import org.kohsuke.args4j.spi.OptionHandler;
 import org.kohsuke.args4j.spi.Parameters;
 import org.kohsuke.args4j.spi.Setter;
-
-import static org.kohsuke.args4j.Utilities.checkNonNull;
 
 /**
  * Command line argument owner.

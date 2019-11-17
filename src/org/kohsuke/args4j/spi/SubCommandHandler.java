@@ -1,13 +1,13 @@
 package org.kohsuke.args4j.spi;
 
+import java.util.AbstractList;
+import java.util.ResourceBundle;
+
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.OptionDef;
-
-import java.util.AbstractList;
-import java.util.ResourceBundle;
 
 /**
  * {@link OptionHandler} used with {@link Argument} for parsing typical "sub-command" pattern.

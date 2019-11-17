@@ -4,22 +4,30 @@
  */
 package machine;
 
-import configuration.JSpeccySettings;
-import configuration.SpectrumType;
-import gui.JSpeccyScreen;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
+
+import configuration.JSpeccySettings;
+import configuration.SpectrumType;
+import gui.JSpeccyScreen;
 import joystickinput.JoystickRaw;
 import machine.Keyboard.JoystickModel;
 import snapshots.SpectrumState;

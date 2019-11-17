@@ -1,9 +1,9 @@
 package org.kohsuke.args4j.spi;
 
 import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
-import org.kohsuke.args4j.CmdLineException;
 
 /**
  * Eagerly grabs all the arguments.

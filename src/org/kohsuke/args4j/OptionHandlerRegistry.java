@@ -1,5 +1,7 @@
 package org.kohsuke.args4j;
 
+import static org.kohsuke.args4j.Utilities.checkNonNull;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -10,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
+
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.ByteOptionHandler;
 import org.kohsuke.args4j.spi.CharOptionHandler;
@@ -29,8 +32,6 @@ import org.kohsuke.args4j.spi.ShortOptionHandler;
 import org.kohsuke.args4j.spi.StringOptionHandler;
 import org.kohsuke.args4j.spi.URIOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
-
-import static org.kohsuke.args4j.Utilities.checkNonNull;
 
 /**
  * Manages the registration of option handlers.

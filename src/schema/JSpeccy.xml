@@ -1,85 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
-    Document   : JSpeccy.xml
-    Created on : 30 de noviembre de 2016, 20:58
-    Author     : jsanchez
-    Description:
-        Purpose of the document follows.
--->
-
-<ns0:JSpeccySettings  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-                      xmlns:ns0='http://xml.netbeans.org/schema/JSpeccy'
-                      xsi:schemaLocation='http://xml.netbeans.org/schema/JSpeccy JSpeccy.xsd'>
-    <SpectrumSettings>
-        <AYEnabled48k>false</AYEnabled48k>
-        <mutedSound>false</mutedSound>
-        <loadingNoise>true</loadingNoise>
-        <ULAplus>false</ULAplus>
-        <defaultModel>1</defaultModel>
-        <framesInt>2</framesInt>
-        <zoomed>false</zoomed>
-        <zoom>2</zoom>
-        <multifaceEnabled>false</multifaceEnabled>
-        <mf128on48K>false</mf128on48K>
-        <hifiSound>false</hifiSound>
-        <hibernateMode>false</hibernateMode>
-        <lecEnabled>false</lecEnabled>
-        <emulate128kBug>false</emulate128kBug>
-        <zoomMethod>0</zoomMethod>
-        <filterMethod>0</filterMethod>
-        <scanLines>false</scanLines>
-        <borderSize>1</borderSize>
-    </SpectrumSettings>
-    <MemorySettings>
-        <RomsDirectory></RomsDirectory>
-        <Rom48k>spectrum.rom</Rom48k>
-        <Rom128k0>128-0.rom</Rom128k0>
-        <Rom128k1>128-1.rom</Rom128k1>
-        <RomPlus20>plus2-0.rom</RomPlus20>
-        <RomPlus21>plus2-1.rom</RomPlus21>
-        <RomPlus2a0>plus2a-0.rom</RomPlus2a0>
-        <RomPlus2a1>plus2a-1.rom</RomPlus2a1>
-        <RomPlus2a2>plus2a-2.rom</RomPlus2a2>
-        <RomPlus2a3>plus2a-3.rom</RomPlus2a3>
-        <RomPlus30>plus3-0.rom</RomPlus30>
-        <RomPlus31>plus3-1.rom</RomPlus31>
-        <RomPlus32>plus3-2.rom</RomPlus32>
-        <RomPlus33>plus3-3.rom</RomPlus33>
-        <RomMF1>mf1.rom</RomMF1>
-        <RomMF128>mf128.rom</RomMF128>
-        <RomMFPlus3>mfplus3.rom</RomMFPlus3>
-        <RomIF1>if1.rom</RomIF1>
-    </MemorySettings>
-    <TapeSettings>
-        <enableLoadTraps>true</enableLoadTraps>
-        <accelerateLoading>true</accelerateLoading>
-        <enableSaveTraps>true</enableSaveTraps>
-        <highSamplingFreq>false</highSamplingFreq>
-        <flashLoad>false</flashLoad>
-        <autoLoadTape>true</autoLoadTape>
-        <invertedEar>false</invertedEar>
-    </TapeSettings>
-    <KeyboardJoystickSettings>
-        <JoystickModel>0</JoystickModel>
-        <mapPCKeys>false</mapPCKeys>
-        <Issue2>false</Issue2>
-    </KeyboardJoystickSettings>
-    <AY8912Settings>
-        <soundMode>0</soundMode>
-    </AY8912Settings>
-    <RecentFilesSettings>
-        <lastSnapshotDir></lastSnapshotDir>
-        <lastTapeDir></lastTapeDir>
-    </RecentFilesSettings>
-    <Interface1Settings>
-        <connectedIF1>false</connectedIF1>
-        <microdriveUnits>8</microdriveUnits>
-        <cartridgeSize>180</cartridgeSize>
-    </Interface1Settings>
-    <EmulatorSettings>
-        <confirmActions>true</confirmActions>
-        <autosaveConfigOnExit>false</autosaveConfigOnExit>
-    </EmulatorSettings>
-
-</ns0:JSpeccySettings>
+<tns:JSpeccySettings xmlns:tns="http://xml.netbeans.org/schema/JSpeccy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xml.netbeans.org/schema/JSpeccy JSpeccy.xsd ">
+  <SpectrumSettings>
+    <AYEnabled48k>false</AYEnabled48k>
+    <mutedSound>false</mutedSound>
+    <loadingNoise>true</loadingNoise>
+    <ULAplus>false</ULAplus>
+    <defaultModel>1</defaultModel>
+    <framesInt>2</framesInt>
+    <zoomed>false</zoomed>
+    <zoom>2</zoom>
+    <multifaceEnabled>false</multifaceEnabled>
+    <mf128on48K>false</mf128on48K>
+    <hifiSound>false</hifiSound>
+    <hibernateMode>false</hibernateMode>
+    <lecEnabled>false</lecEnabled>
+    <emulate128kBug>false</emulate128kBug>
+    <zoomMethod>0</zoomMethod>
+    <filterMethod>0</filterMethod>
+    <scanLines>false</scanLines>
+    <borderSize>1</borderSize>
+  </SpectrumSettings>
+  <MemorySettings>
+    <RomsDirectory>RomsDirectory</RomsDirectory>
+    <Rom48k>spectrum.rom</Rom48k>
+    <Rom128k0>128-0.rom</Rom128k0>
+    <Rom128k1>128-1.rom</Rom128k1>
+    <RomPlus20>plus2-0.rom</RomPlus20>
+    <RomPlus21>plus2-1.rom</RomPlus21>
+    <RomPlus2a0>plus2a-0.rom</RomPlus2a0>
+    <RomPlus2a1>plus2a-1.rom</RomPlus2a1>
+    <RomPlus2a2>plus2a-2.rom</RomPlus2a2>
+    <RomPlus2a3>plus2a-3.rom</RomPlus2a3>
+    <RomPlus30>plus3-0.rom</RomPlus30>
+    <RomPlus31>plus3-1.rom</RomPlus31>
+    <RomPlus32>plus3-2.rom</RomPlus32>
+    <RomPlus33>plus3-3.rom</RomPlus33>
+    <RomMF1>mf1.rom</RomMF1>
+    <RomMF128>mf128.rom</RomMF128>
+    <RomMFPlus3>mfplus3.rom</RomMFPlus3>
+    <RomIF1>if1.rom</RomIF1>
+  </MemorySettings>
+  <TapeSettings>
+    <enableLoadTraps>true</enableLoadTraps>
+    <accelerateLoading>true</accelerateLoading>
+    <enableSaveTraps>true</enableSaveTraps>
+    <highSamplingFreq>false</highSamplingFreq>
+    <flashLoad>false</flashLoad>
+    <autoLoadTape>true</autoLoadTape>
+    <invertedEar>false</invertedEar>
+  </TapeSettings>
+  <KeyboardJoystickSettings>
+    <JoystickModel>0</JoystickModel>
+    <mapPCKeys>false</mapPCKeys>
+    <Issue2>false</Issue2>
+  </KeyboardJoystickSettings>
+  <AY8912Settings>
+    <soundMode>0</soundMode>
+  </AY8912Settings>
+  <RecentFilesSettings>
+    <lastSnapshotDir>lastSnapshotDir</lastSnapshotDir>
+    <lastTapeDir>lastTapeDir</lastTapeDir>
+  </RecentFilesSettings>
+  <Interface1Settings>
+    <connectedIF1>false</connectedIF1>
+    <microdriveUnits>8</microdriveUnits>
+    <cartridgeSize>180</cartridgeSize>
+  </Interface1Settings>
+  <EmulatorSettings>
+    <confirmActions>true</confirmActions>
+    <autosaveConfigOnExit>false</autosaveConfigOnExit>
+  </EmulatorSettings>
+</tns:JSpeccySettings>

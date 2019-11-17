@@ -1,8 +1,8 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.OptionHandler;
-
 import java.util.Comparator;
+
+import org.kohsuke.args4j.spi.OptionHandler;
 
 /**
  * Set of properties that controls {@link CmdLineParser} behaviours.

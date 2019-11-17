@@ -8,6 +8,7 @@ package org.kohsuke.args4j.spi;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;

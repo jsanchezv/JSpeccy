@@ -1,11 +1,11 @@
 package org.kohsuke.args4j.spi;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * {@link URL} {@link OptionHandler}.

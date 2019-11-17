@@ -1,10 +1,10 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.MethodSetter;
-import org.kohsuke.args4j.spi.Setters;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+
+import org.kohsuke.args4j.spi.MethodSetter;
+import org.kohsuke.args4j.spi.Setters;
 
 /**
  * Parser for analyzing Args4J annotations in the class hierarchy.

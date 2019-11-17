@@ -6,7 +6,6 @@
 
 package gui;
 
-import configuration.JSpeccySettings;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.RenderingHints;
@@ -27,6 +26,7 @@ import java.io.Writer;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -35,7 +35,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
@@ -46,11 +45,20 @@ import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import machine.Keyboard.JoystickModel;
-import machine.*;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import snapshots.*;
+
+import configuration.JSpeccySettings;
+import machine.Interface1DriveListener;
+import machine.Keyboard.JoystickModel;
+import machine.MachineTypes;
+import machine.Spectrum;
+import snapshots.SnapshotException;
+import snapshots.SnapshotFactory;
+import snapshots.SnapshotFile;
+import snapshots.SnapshotSZX;
+import snapshots.SpectrumState;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeStateListener;

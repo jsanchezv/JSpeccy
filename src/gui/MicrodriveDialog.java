@@ -18,12 +18,14 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.io.File;
 import java.util.ResourceBundle;
+
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
+
 import machine.Interface1;
 import machine.Interface1DriveListener;
 

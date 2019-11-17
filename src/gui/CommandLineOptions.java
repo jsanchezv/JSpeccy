@@ -4,13 +4,15 @@
  */
 package gui;
 
-import configuration.JSpeccySettings;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import machine.Keyboard.JoystickModel;
+
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
+
+import configuration.JSpeccySettings;
+import machine.Keyboard.JoystickModel;
 
 /**
  *

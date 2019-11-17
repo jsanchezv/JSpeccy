@@ -1,11 +1,11 @@
 package org.kohsuke.args4j.spi;
 
+import java.util.List;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.OptionDef;
-
-import java.util.List;
 
 /**
  * Partial {@link OptionHandler} implementation that takes a single value to the option,

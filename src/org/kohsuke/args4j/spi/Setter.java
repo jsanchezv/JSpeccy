@@ -1,10 +1,10 @@
 package org.kohsuke.args4j.spi;
 
+import java.lang.reflect.AnnotatedElement;
+
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.Option;
-
-import java.lang.reflect.AnnotatedElement;
 
 /**
  * Abstraction of the value setter.

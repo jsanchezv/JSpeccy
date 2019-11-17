@@ -1,10 +1,12 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.*;
-
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.IllegalAnnotationError;
 
 /**
  * {@link Setter} that sets to a {@link Method}.

@@ -5,11 +5,13 @@
  */
 package gui;
 
-import configuration.RecentFilesType;
 import java.io.File;
 import java.util.ArrayList;
+
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+
+import configuration.RecentFilesType;
 
 /**
  *

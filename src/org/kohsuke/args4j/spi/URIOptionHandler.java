@@ -1,11 +1,11 @@
 package org.kohsuke.args4j.spi;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
-
-import java.net.URI;
-import java.net.URISyntaxException;
 
 /**
  * {@link URI} {@link OptionHandler}.

@@ -1,13 +1,13 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.*;
-
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.kohsuke.args4j.IllegalAnnotationError;
 
 /**
  * {@link Setter} that sets multiple values to a collection {@link Field}.

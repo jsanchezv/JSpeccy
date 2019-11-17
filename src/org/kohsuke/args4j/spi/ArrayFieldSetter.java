@@ -1,13 +1,13 @@
 package org.kohsuke.args4j.spi;
 
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.IllegalAnnotationError;
-
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.IllegalAnnotationError;
 
 /**
  * {@link Setter} that allows multiple values to be stored into one array field.

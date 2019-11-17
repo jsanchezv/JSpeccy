@@ -1,7 +1,9 @@
 package org.kohsuke.args4j;
 
-import org.kohsuke.args4j.spi.OptionHandler;
-import org.kohsuke.args4j.spi.Setter;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.io.File;
 import java.lang.annotation.Retention;
@@ -9,10 +11,8 @@ import java.lang.annotation.Target;
 import java.lang.reflect.AccessibleObject;
 import java.util.ResourceBundle;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import org.kohsuke.args4j.spi.OptionHandler;
+import org.kohsuke.args4j.spi.Setter;
 
 /**
  * Marks a field/setter that receives a command line switch value.
