@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group 'org.example'
@@ -16,6 +17,10 @@ repositories {
 
 configurations {
     jaxb
+}
+
+application {
+    mainClassName = 'gui.JSpeccy'
 }
 
 jar {
@@ -50,6 +55,11 @@ task genJSpeccySettingsClasses {
 }
 
 compileJava {
+    // Also, for NetBeans editor needs to add "-J-Dfile.encoding=UTF-8"
+    // to parameter "netbeans_default_options" in "etc/nebeans.conf".
+    //
+    // Gradle / Netbeans - Howto set encoding to UTF-8 in Editor and Compiler
+    // https://stackoverflow.com/questions/59800221/gradle-netbeans-howto-set-encoding-to-utf-8-in-editor-and-compiler
     options.encoding = 'UTF-8'
     source genJSpeccySettingsClasses
 }

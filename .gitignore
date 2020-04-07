@@ -5,3 +5,4 @@
 nbproject/*
 !nbproject/project.properties
 !nbproject/project.xml
+/.nb-gradle/
