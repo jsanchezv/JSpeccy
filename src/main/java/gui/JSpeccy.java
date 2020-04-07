@@ -35,7 +35,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
-import static javax.swing.TransferHandler.COPY;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
@@ -80,10 +79,14 @@ public class JSpeccy extends javax.swing.JFrame {
     private CommandLineOptions clo;
 
     Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
-    Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
-    Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
-    Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
-    Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
+    Icon mdrOff = new ImageIcon(getClass().getResource(
+            "/icons/microdrive_off.png"));
+    Icon tapeStopped = new ImageIcon(getClass().getResource(
+            "/icons/Akai24x24.png"));
+    Icon tapePlaying = new ImageIcon(getClass().getResource(
+            "/icons/Akai24x24-playing.png"));
+    Icon tapeRecording = new ImageIcon(getClass().getResource(
+            "/icons/Akai24x24-recording.png"));
     
     private final TransferHandler handler = new TransferHandler() {
         @Override
@@ -1104,7 +1107,8 @@ public class JSpeccy extends javax.swing.JFrame {
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         keyboardHelper.setTitle(bundle.getString("JSpeccy.keyboardHelper.title")); // NOI18N
 
-        keyboardImage.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Keyboard48k.png"))); // NOI18N
+        keyboardImage.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/Keyboard48k.png"))); // NOI18N
         keyboardImage.setText(bundle.getString("JSpeccy.keyboardImage.text")); // NOI18N
         keyboardHelper.getContentPane().add(keyboardImage, java.awt.BorderLayout.PAGE_START);
 
@@ -1150,7 +1154,8 @@ public class JSpeccy extends javax.swing.JFrame {
 
         tapeBrowserToolbar.setRollover(true);
 
-        tapeBrowserButtonRec.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player-rec.png"))); // NOI18N
+        tapeBrowserButtonRec.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/32x32/player-rec.png"))); // NOI18N
         tapeBrowserButtonRec.setText(bundle.getString("JSpeccy.tapeBrowserButtonRec.text")); // NOI18N
         tapeBrowserButtonRec.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonRec.tooltip.text")); // NOI18N
         tapeBrowserButtonRec.setEnabled(false);
@@ -1167,7 +1172,8 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator11.setSeparatorSize(new java.awt.Dimension(25, 10));
         tapeBrowserToolbar.add(jSeparator11);
 
-        tapeBrowserButtonStop.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_stop.png"))); // NOI18N
+        tapeBrowserButtonStop.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/32x32/player_stop.png"))); // NOI18N
         tapeBrowserButtonStop.setText(bundle.getString("JSpeccy.tapeBrowserButtonStop.text")); // NOI18N
         tapeBrowserButtonStop.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonStop.tooltip.text")); // NOI18N
         tapeBrowserButtonStop.setEnabled(false);
@@ -1181,7 +1187,8 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         tapeBrowserToolbar.add(tapeBrowserButtonStop);
 
-        tapeBrowserButtonRew.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_rew.png"))); // NOI18N
+        tapeBrowserButtonRew.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/32x32/player_rew.png"))); // NOI18N
         tapeBrowserButtonRew.setText(bundle.getString("JSpeccy.tapeBrowserButtonRew.text")); // NOI18N
         tapeBrowserButtonRew.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonRew.tooltip.text")); // NOI18N
         tapeBrowserButtonRew.setEnabled(false);
@@ -1195,7 +1202,8 @@ public class JSpeccy extends javax.swing.JFrame {
         });
         tapeBrowserToolbar.add(tapeBrowserButtonRew);
 
-        tapeBrowserButtonPlay.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_play.png"))); // NOI18N
+        tapeBrowserButtonPlay.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/32x32/player_play.png"))); // NOI18N
         tapeBrowserButtonPlay.setText(bundle.getString("JSpeccy.tapeBrowserButtonPlay.text")); // NOI18N
         tapeBrowserButtonPlay.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonPlay.tooltip.text")); // NOI18N
         tapeBrowserButtonPlay.setEnabled(false);
@@ -1212,7 +1220,8 @@ public class JSpeccy extends javax.swing.JFrame {
         jSeparator12.setSeparatorSize(new java.awt.Dimension(25, 10));
         tapeBrowserToolbar.add(jSeparator12);
 
-        tapeBrowserButtonEject.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_eject.png"))); // NOI18N
+        tapeBrowserButtonEject.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+                "/icons/32x32/player_eject.png"))); // NOI18N
         tapeBrowserButtonEject.setText(bundle.getString("JSpeccy.tapeBrowserButtonEject.text")); // NOI18N
         tapeBrowserButtonEject.setToolTipText(bundle.getString("JSpeccy.tapeBrowserButtonEject.tooltip.text")); // NOI18N
         tapeBrowserButtonEject.setEnabled(false);
@@ -1349,7 +1358,8 @@ public class JSpeccy extends javax.swing.JFrame {
     statusPanel.add(filler3);
 
     mdrvLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-    mdrvLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/microdrive_on.png"))); // NOI18N
+    mdrvLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/microdrive_on.png"))); // NOI18N
     mdrvLabel.setText(bundle.getString("JSpeccy.mdrvLabel.text")); // NOI18N
     mdrvLabel.setEnabled(false);
     mdrvLabel.setMaximumSize(new java.awt.Dimension(26, 26));
@@ -1370,7 +1380,8 @@ public class JSpeccy extends javax.swing.JFrame {
     statusPanel.add(jSeparator10);
 
     tapeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-    tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Akai24x24.png"))); // NOI18N
+    tapeLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/Akai24x24.png"))); // NOI18N
     tapeLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
     tapeLabel.setEnabled(false);
     tapeLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -1403,7 +1414,8 @@ public class JSpeccy extends javax.swing.JFrame {
 
     toolbarMenu.setRollover(true);
 
-    openSnapshotButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/fileopen.png"))); // NOI18N
+    openSnapshotButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/fileopen.png"))); // NOI18N
     openSnapshotButton.setToolTipText(bundle.getString("JSpeccy.openSnapshotButton.toolTipText")); // NOI18N
     openSnapshotButton.setFocusable(false);
     openSnapshotButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -1415,11 +1427,13 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(openSnapshotButton);
 
-    pauseToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_pause.png"))); // NOI18N
+    pauseToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/player_pause.png"))); // NOI18N
     pauseToggleButton.setToolTipText(bundle.getString("JSpeccy.pauseToggleButton.toolTipText")); // NOI18N
     pauseToggleButton.setFocusable(false);
     pauseToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    pauseToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_play.png"))); // NOI18N
+    pauseToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/player_play.png"))); // NOI18N
     pauseToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
     pauseToggleButton.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1428,7 +1442,8 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(pauseToggleButton);
 
-    fastEmulationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_fwd.png"))); // NOI18N
+    fastEmulationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/player_fwd.png"))); // NOI18N
     fastEmulationToggleButton.setText(bundle.getString("JSpeccy.fastEmulationToggleButton.text")); // NOI18N
     fastEmulationToggleButton.setToolTipText(bundle.getString("JSpeccy.fastEmulationToggleButton.toolTipText")); // NOI18N
     fastEmulationToggleButton.setFocusable(false);
@@ -1441,11 +1456,13 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(fastEmulationToggleButton);
 
-    doubleSizeToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag+.png"))); // NOI18N
+    doubleSizeToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/viewmag+.png"))); // NOI18N
     doubleSizeToggleButton.setToolTipText(bundle.getString("JSpeccy.doubleSizeToggleButton.toolTipText")); // NOI18N
     doubleSizeToggleButton.setFocusable(false);
     doubleSizeToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    doubleSizeToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag-.png"))); // NOI18N
+    doubleSizeToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/viewmag-.png"))); // NOI18N
     doubleSizeToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
     doubleSizeToggleButton.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1454,11 +1471,13 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(doubleSizeToggleButton);
 
-    silenceSoundToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-on-16x16.png"))); // NOI18N
+    silenceSoundToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/sound-on-16x16.png"))); // NOI18N
     silenceSoundToggleButton.setToolTipText(bundle.getString("JSpeccy.silenceSoundToggleButton.toolTipText")); // NOI18N
     silenceSoundToggleButton.setFocusable(false);
     silenceSoundToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    silenceSoundToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-off-16x16.png"))); // NOI18N
+    silenceSoundToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/sound-off-16x16.png"))); // NOI18N
     silenceSoundToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
     silenceSoundToggleButton.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1467,7 +1486,8 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(silenceSoundToggleButton);
 
-    resetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/shutdown.png"))); // NOI18N
+    resetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/shutdown.png"))); // NOI18N
     resetSpectrumButton.setToolTipText(bundle.getString("JSpeccy.resetSpectrumButton.toolTipText")); // NOI18N
     resetSpectrumButton.setFocusable(false);
     resetSpectrumButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -1479,7 +1499,8 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     toolbarMenu.add(resetSpectrumButton);
 
-    hardResetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/exit.png"))); // NOI18N
+    hardResetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(
+            "/icons/exit.png"))); // NOI18N
     hardResetSpectrumButton.setToolTipText(bundle.getString("JSpeccy.hardResetSpectrumButton.toolTipText")); // NOI18N
     hardResetSpectrumButton.setFocusable(false);
     hardResetSpectrumButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -2332,7 +2353,8 @@ public class JSpeccy extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(getContentPane(),
             bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
             JOptionPane.INFORMATION_MESSAGE,
-            new javax.swing.ImageIcon(getClass().getResource("/icons/JSpeccy64x64.png")));
+            new javax.swing.ImageIcon(getClass().getResource(
+                    "/icons/JSpeccy64x64.png")));
         
         startEmulation();
     }//GEN-LAST:event_aboutHelpMenuActionPerformed

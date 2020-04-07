@@ -1,0 +1,68 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+// TODO: Fix build on Java11 (jaxb)
+// TODO: Compile JNI libJoystickHelper-xx.so and package to resources
+
+configurations {
+    jaxb
+}
+
+jar {
+    manifest {
+        attributes(
+                "Main-Class": 'gui.JSpeccy',
+                "Class-Path": configurations.compile
+                        .collect { it.getName() }
+                        .join(' ')
+        )
+    }
+}
+
+task genJSpeccySettingsClasses {
+    System.setProperty('javax.xml.accessExternalSchema', 'all')
+    def jaxbTargetDir = file("build/generated/sources/JSpeccySettings/")
+    doLast {
+        jaxbTargetDir.mkdirs()
+        ant.taskdef(
+                name: 'xjc',
+                classname: 'com.sun.tools.xjc.XJCTask',
+                classpath: configurations.jaxb.asPath
+        )
+        ant.jaxbTargetDir = jaxbTargetDir
+        ant.xjc(
+                destdir: '${jaxbTargetDir}',
+                package: 'configuration',
+                schema: 'xml-resources/jaxb/JSpeccySettingsType/JSpeccy.xsd',
+                language: 'WSDL'
+        )
+    }
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+    source genJSpeccySettingsClasses
+}
+
+sourceSets.main.java.srcDirs += file("build/generated/sources/JSpeccySettings")
+
+dependencies {
+    jaxb(
+            'com.sun.xml.bind:jaxb-core:2.3.0.1',
+            'com.sun.xml.bind:jaxb-xjc:2.3.2',
+            'com.sun.xml.bind:jaxb-impl:2.3.2'
+    )
+    testCompile(
+            'junit:junit:4.13'
+    )
+}
