@@ -1,6 +1,10 @@
+import org.gradle.internal.jvm.Jvm
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     id 'java'
     id 'application'
+    id 'c'
     id 'com.adarshr.test-logger' version '2.0.0'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '0.7'
 }
@@ -15,14 +19,28 @@ repositories {
     mavenCentral()
 }
 
-// TODO: Compile JNI libJoystickHelper-xx.so and package to resources
-
 configurations {
     jaxb
 }
 
 application {
     mainClassName = 'gui.JSpeccy'
+    applicationDefaultJvmArgs = ['-Djava.library.path=NATIVE_LIB_PLACEHOLDER']
+}
+
+distributions.main.contents {
+    from("native") {
+        into "native"
+        include "**/*.dll"
+        include "**/*.so"
+    }
+}
+
+startScripts.doLast {
+    unixScript.text = unixScript.text.replace(
+            'NATIVE_LIB_PLACEHOLDER', '\$APP_HOME/native/linux')
+    windowsScript.text = windowsScript.text.replace(
+            'NATIVE_LIB_PLACEHOLDER', '%APP_HOME%\\native/windows')
 }
 
 idea.project.settings.encodings {
@@ -60,6 +78,10 @@ compileJava {
     // Gradle / Netbeans - Howto set encoding to UTF-8 in Editor and Compiler
     // https://stackoverflow.com/questions/59800221/gradle-netbeans-howto-set-encoding-to-utf-8-in-editor-and-compiler
     options.encoding = 'UTF-8'
+    options.compilerArgs += [
+            // to generate joystickinput_JoystickRaw.h header
+            "-h", file("native/" + OperatingSystem.current().familyName)
+    ]
     source genJSpeccySettingsClasses
 }
 
@@ -83,3 +105,82 @@ jar.manifest.attributes(
                 .collect { it.getName() }
                 .join(' ')
 )
+
+def nativeLibraryPath = file("native/" + OperatingSystem.current().familyName)
+def joystickHelperSharedLibraryTasks = [
+        'joystickHelperX86SharedLibrary',
+        'joystickHelperX64SharedLibrary'
+]
+model {
+    platforms {
+        x86 {
+            architecture "x86"
+        }
+        x64 {
+            architecture "x64"
+        }
+    }
+    buildTypes {
+        release
+    }
+    components {
+        joystickHelper(NativeLibrarySpec) {
+            targetPlatform "x86"
+            targetPlatform "x64"
+            binaries.all {
+                if (targetPlatform.operatingSystem.linux) {
+                    cCompiler.args '-I', "${Jvm.current().javaHome}/include"
+                    cCompiler.args '-I', "${Jvm.current().javaHome}/include/linux"
+                    cCompiler.args '-D_FILE_OFFSET_BITS=64'
+                } else if (targetPlatform.operatingSystem.windows) {
+                    cCompiler.args "-I${Jvm.current().javaHome}/include"
+                    cCompiler.args "-I${Jvm.current().javaHome}/include/win32"
+                }
+            }
+            binaries.withType(StaticLibraryBinarySpec) {
+                buildable = false
+            }
+            binaries.withType(SharedLibraryBinarySpec) {
+                // TODO: Refactor library naming
+                def arch = ""
+                if (targetPlatform.architecture.name == "x86") {
+                    arch = "32"
+                } else if (targetPlatform.architecture.name == "x86-64") {
+                    arch = "64"
+                }
+                def os = ""
+                def ext = ""
+                def name = ""
+                if (targetPlatform.operatingSystem.linux) {
+                    os = "linux"
+                    ext = "so"
+                    name = "libJoystickHelper"
+                } else if (targetPlatform.operatingSystem.windows) {
+                    os = "windows"
+                    ext = "dll"
+                    name = "joystickHelper"
+                }
+                sharedLibraryFile = file("native/${os}/${name}-${arch}.${ext}")
+            }
+            sources.c.source {
+                srcDir nativeLibraryPath
+                include "*.c"
+                include "*.h"
+            }
+        }
+    }
+}
+
+test {
+    dependsOn += joystickHelperSharedLibraryTasks
+    systemProperty "java.library.path", nativeLibraryPath
+    testlogger {
+        // pick a theme - mocha, standard, plain, mocha-parallel,
+        // standard-parallel or plain-parallel
+        theme 'plain'
+    }
+}
+
+run {
+    systemProperty "java.library.path", nativeLibraryPath
+}

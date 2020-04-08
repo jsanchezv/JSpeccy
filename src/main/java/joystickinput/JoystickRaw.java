@@ -20,17 +20,22 @@ public class JoystickRaw implements Runnable {
 
     private static boolean helperLoaded;
     static {
+        String libName = System.getProperty("os.arch").contains("amd64")
+                ? "JoystickHelper-64"
+                : "JoystickHelper-32";
         try {
-            if (System.getProperty("os.arch").contains("amd64"))
-                System.loadLibrary("JoystickHelper-64");
-            else
-                System.loadLibrary("JoystickHelper-32");
+            System.loadLibrary(libName);
             helperLoaded = true;
         } catch (UnsatisfiedLinkError ex) {
             helperLoaded = false;
         }
+        System.out.println(libName + " lib load: " + helperLoaded);
     }
-    
+
+    public static boolean isHelperLoaded() {
+        return helperLoaded;
+    }
+
     private static final int EVENT_BUFFER = 64;
     private static final int STRUCT_EVENT_SIZE = 8;
     private static final int JOYSTICK_BUFFER_SIZE = EVENT_BUFFER * STRUCT_EVENT_SIZE;
@@ -40,13 +45,13 @@ public class JoystickRaw implements Runnable {
     private static final int VALUE_OFFSET = 4;
     private static final int TYPE_OFFSET = 6;
     private static final int NUMBER_OFFSET = 7;
-    
+
     private static final int JS_EVENT_BUTTON = 0x01;  /* button pressed/released */
     private static final int JS_EVENT_AXIS = 0x02;    /* joystick moved */
     private static final int JS_EVENT_INIT = 0x80;    /* initial state of device */
     private static final int JS_EVENT_INIT_BUTTON = JS_EVENT_BUTTON | JS_EVENT_INIT;
     private static final int JS_EVENT_INIT_AXIS = JS_EVENT_AXIS | JS_EVENT_INIT;
-    
+
     private static final int MAX_BUTTONS = 32;
     private static final int MAX_AXIS = 32;
     private final boolean buttonState[] = new boolean[MAX_BUTTONS];
@@ -56,21 +61,21 @@ public class JoystickRaw implements Runnable {
     private String joystickName;
 
     private boolean run;
-    
+
     private final ArrayList<JoystickRawListener> buttonListeners;
     private final ArrayList<JoystickRawListener> axisListeners;
-    
+
     private String deviceName;
     public JoystickRaw(int id) throws FileNotFoundException, IOException {
         deviceName = "/dev/input/js" + id;
         joystickId = id;
         buttonListeners = new ArrayList<>();
         axisListeners = new ArrayList<>();
-        
+
         for (int idx = 0; idx < buttonState.length; idx++) {
             buttonMasks[idx] = (1 << idx);
         }
-        
+
         if (helperLoaded) {
             numButtons = getNumButtonsHelper(id);
             numAxis = getNumAxisHelper(id);
@@ -117,7 +122,7 @@ public class JoystickRaw implements Runnable {
         if (numButtons > 32) {
             numButtons = 32;
         }
-        
+
         if (numAxis > 32) {
             numAxis = 32;
         }
@@ -160,7 +165,7 @@ public class JoystickRaw implements Runnable {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
     }
-    
+
     /**
      * Adds a new event listener to the list of event listeners.
      *
@@ -259,7 +264,7 @@ public class JoystickRaw implements Runnable {
             Logger.getLogger(JoystickRaw.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     public void start() {
         if (run)
             return;
