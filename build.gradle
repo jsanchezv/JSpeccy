@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '0.7'
 }
 
 group 'org.example'
@@ -21,6 +22,14 @@ configurations {
 
 application {
     mainClassName = 'gui.JSpeccy'
+}
+
+idea.project.settings.encodings {
+    encoding = 'UTF-8'
+    properties {
+        encoding = 'US-ASCII'
+        transparentNativeToAsciiConversion = true
+    }
 }
 
 jar {
