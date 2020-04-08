@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.adarshr.test-logger' version '2.0.0'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '0.7'
 }
 
@@ -8,12 +9,12 @@ group 'org.example'
 version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
 }
 
-// TODO: Fix build on Java11 (jaxb)
 // TODO: Compile JNI libJoystickHelper-xx.so and package to resources
 
 configurations {
@@ -29,17 +30,6 @@ idea.project.settings.encodings {
     properties {
         encoding = 'US-ASCII'
         transparentNativeToAsciiConversion = true
-    }
-}
-
-jar {
-    manifest {
-        attributes(
-                "Main-Class": 'gui.JSpeccy',
-                "Class-Path": configurations.compile
-                        .collect { it.getName() }
-                        .join(' ')
-        )
     }
 }
 
@@ -76,12 +66,20 @@ compileJava {
 sourceSets.main.java.srcDirs += file("build/generated/sources/JSpeccySettings")
 
 dependencies {
+    implementation "com.sun.xml.bind:jaxb-core:$jaxbCoreVer"
+    implementation "com.sun.xml.bind:jaxb-impl:$jaxbImplVer"
+    implementation "javax.xml.bind:jaxb-api:$jaxbApiVer"
     jaxb(
-            'com.sun.xml.bind:jaxb-core:2.3.0.1',
-            'com.sun.xml.bind:jaxb-xjc:2.3.2',
-            'com.sun.xml.bind:jaxb-impl:2.3.2'
+            "com.sun.xml.bind:jaxb-core:$jaxbCoreVer",
+            "com.sun.xml.bind:jaxb-xjc:$jaxbXjcVer",
+            "javax.xml.bind:jaxb-api:$jaxbApiVer",
     )
-    testCompile(
-            'junit:junit:4.13'
-    )
+    testImplementation "junit:junit:$junitVer"
 }
+
+jar.manifest.attributes(
+        "Main-Class": 'gui.JSpeccy',
+        "Class-Path": configurations.compile
+                .collect { it.getName() }
+                .join(' ')
+)
