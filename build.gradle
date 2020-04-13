@@ -25,7 +25,17 @@ configurations {
 
 application {
     mainClassName = 'gui.JSpeccy'
-    applicationDefaultJvmArgs = ['-DNATIVE_LIB_PLACEHOLDER']
+    applicationDefaultJvmArgs = [
+            // On Unix/Linux platforms using X11,
+            // use OpenGL backend to avoid a bug redrawing the screen
+            // (upper case True to verbose):
+            //'-Dsun.java2d.opengl=True',
+
+            // When doesn't exist a good OpenGL driver or X11 is using Mesa:
+            //'-Dsun.java2d.xrender=false',
+
+            '-DNATIVE_LIB_PLACEHOLDER'
+    ]
 }
 
 distributions.main.contents {

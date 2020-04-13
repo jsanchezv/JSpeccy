@@ -25,27 +25,58 @@
 * Complete command line support, to integrate JSpeccy with front-ends.
 
 ### How to Use
-You need to have installed Java 8. Run with:
+You need to have installed Java 8 or greater.
 
-**java -jar JSpeccy.jar**
+To build:
+```
+gradlew build
+```
+Distribution archives `*.tar` and `*.zip` will be placed in `build/distributions`. 
 
-A configuration file named JSpeccy.xml will be created on the user directory.
+To rebuild `joystickHelper` shared library on Linux:
+```
+gradlew buildJoystickHelperLib
+```
+Also, to build both `x32` and `x64` versions, probably,
+you'll need to install `g++-multilib` package.
+                    
+To build just install dir with included start-scripts and all dependencies:
+```
+gradlew installDist
+```
+
+Run with:
+```
+gradlew run
+```
+or with start-script:
+```
+build/install/JSpeccy/bin/JSpeccy
+```
+
+A configuration file named `JSpeccy.xml` will be created on the user directory.
 
 On Unix/Linux platforms using X11, Java 8 have a bug redrawing the screen. Java 8 use
 the XRender extension by default and this causes some problems. To resolve it, you can
-test two possible solutions. First, you can add the option:
-
-**java -Dsun.java2d.opengl=True -jar JSpeccy.jar**
-
+test two possible solutions. First, you can uncomment the option
+`-Dsun.java2d.opengl=True` in `build.gradle`:
+```
+application {
+    applicationDefaultJvmArgs = [
+            '-Dsun.java2d.opengl=True', ...
+    ]
+}
+```
 that uses the OpenGL backend. This solution can be problematic when don't exist a
-good OpenGL driver or X11 is using Mesa. With these case you can use:
-
-**java -Dsun.java2d.xrender=false -jar JSpeccy.jar**
-
-If you are using Java 9 you need to add another startup option:
-
-**java --add-modules jdk.xml.bind -jar JSpeccy.jar**
-
+good OpenGL driver or X11 is using Mesa. With these case you can uncomment the
+`-Dsun.java2d.xrender=false` in `build.gradle`:
+```
+application {
+    applicationDefaultJvmArgs = [
+            '-Dsun.java2d.xrender=false', ...
+    ]
+}
+```
 in Java 9 the Swing redrawing bug exist too, and you can need any of the previous
 solutions (sigh!).
 
