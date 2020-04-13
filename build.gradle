@@ -31,7 +31,6 @@ application {
 distributions.main.contents {
     from("native") {
         into "native"
-        include "**/*.dll"
         include "**/*.so"
     }
 }
@@ -40,9 +39,6 @@ startScripts.doLast {
     unixScript.text = unixScript.text.replace(
             'NATIVE_LIB_PLACEHOLDER',
             'java.library.path=\$APP_HOME/native/linux')
-    windowsScript.text = windowsScript.text.replace(
-            'NATIVE_LIB_PLACEHOLDER',
-            'java.library.path=%APP_HOME%\\native/windows')
 }
 
 idea.project.settings.encodings {
@@ -73,6 +69,8 @@ task genJSpeccySettingsClasses {
     }
 }
 
+def nativeLibraryPath = file("native/linux")
+
 compileJava {
     // Also, for NetBeans editor needs to add "-J-Dfile.encoding=UTF-8"
     // to parameter "netbeans_default_options" in "etc/nebeans.conf".
@@ -82,7 +80,7 @@ compileJava {
     options.encoding = 'UTF-8'
     options.compilerArgs += [
             // to generate joystickinput_JoystickRaw.h header
-            "-h", file("native/" + OperatingSystem.current().familyName)
+            "-h", nativeLibraryPath
     ]
     source genJSpeccySettingsClasses
 }
@@ -108,8 +106,6 @@ jar.manifest.attributes(
                 .join(' ')
 )
 
-def nativeLibraryPath = file("native/" + OperatingSystem.current().familyName)
-
 model {
     platforms {
         x86 {
@@ -134,9 +130,6 @@ model {
                     // you'll need to install `g++-multilib` package.
                     cCompiler.args '-isystem', "/usr/include/x86_64-linux-gnu"
                     cCompiler.args '-D_FILE_OFFSET_BITS=64'
-                } else if (targetPlatform.operatingSystem.windows) {
-                    cCompiler.args "-I${Jvm.current().javaHome}/include"
-                    cCompiler.args "-I${Jvm.current().javaHome}/include/win32"
                 }
             }
             binaries.withType(StaticLibraryBinarySpec) {
@@ -144,26 +137,14 @@ model {
             }
             binaries.withType(SharedLibraryBinarySpec) {
                 buildable = false
-                // TODO: Refactor library naming
                 def arch = ""
                 if (targetPlatform.architecture.name == "x86") {
                     arch = "32"
                 } else if (targetPlatform.architecture.name == "x86-64") {
                     arch = "64"
                 }
-                def os = ""
-                def ext = ""
-                def name = ""
-                if (targetPlatform.operatingSystem.linux) {
-                    os = "linux"
-                    ext = "so"
-                    name = "libJoystickHelper"
-                } else if (targetPlatform.operatingSystem.windows) {
-                    os = "windows"
-                    ext = "dll"
-                    name = "joystickHelper"
-                }
-                sharedLibraryFile = file("native/${os}/${name}-${arch}.${ext}")
+                sharedLibraryFile = file(
+                        "${nativeLibraryPath}/libJoystickHelper-${arch}.so")
             }
             sources.c.source {
                 srcDir nativeLibraryPath
@@ -189,9 +170,15 @@ run {
 
 task buildJoystickHelperLib {
     group = 'build'
-    dependsOn = [
-            compileJava,
-            'joystickHelperX86SharedLibrary',
-            'joystickHelperX64SharedLibrary'
-    ]
+    if (OperatingSystem.current().isLinux()) {
+        dependsOn = [
+                compileJava,
+                'joystickHelperX86SharedLibrary',
+                'joystickHelperX64SharedLibrary'
+        ]
+    } else {
+        doLast {
+            logger.error("Building joystickHelper library on Linux only")
+        }
+    }
 }
