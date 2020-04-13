@@ -130,6 +130,9 @@ model {
                 if (targetPlatform.operatingSystem.linux) {
                     cCompiler.args '-I', "${Jvm.current().javaHome}/include"
                     cCompiler.args '-I', "${Jvm.current().javaHome}/include/linux"
+                    // Also, for build both x32 and x64 versions
+                    // you'll need to install `g++-multilib` package.
+                    cCompiler.args '-isystem', "/usr/include/x86_64-linux-gnu"
                     cCompiler.args '-D_FILE_OFFSET_BITS=64'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cCompiler.args "-I${Jvm.current().javaHome}/include"
@@ -186,5 +189,9 @@ run {
 
 task buildJoystickHelperLib {
     group = 'build'
-    dependsOn 'joystickHelperX86SharedLibrary', 'joystickHelperX64SharedLibrary'
+    dependsOn = [
+            compileJava,
+            'joystickHelperX86SharedLibrary',
+            'joystickHelperX64SharedLibrary'
+    ]
 }
