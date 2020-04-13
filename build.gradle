@@ -25,7 +25,7 @@ configurations {
 
 application {
     mainClassName = 'gui.JSpeccy'
-    applicationDefaultJvmArgs = ['-Djava.library.path=NATIVE_LIB_PLACEHOLDER']
+    applicationDefaultJvmArgs = ['-DNATIVE_LIB_PLACEHOLDER']
 }
 
 distributions.main.contents {
@@ -38,9 +38,11 @@ distributions.main.contents {
 
 startScripts.doLast {
     unixScript.text = unixScript.text.replace(
-            'NATIVE_LIB_PLACEHOLDER', '\$APP_HOME/native/linux')
+            'NATIVE_LIB_PLACEHOLDER',
+            'java.library.path=\$APP_HOME/native/linux')
     windowsScript.text = windowsScript.text.replace(
-            'NATIVE_LIB_PLACEHOLDER', '%APP_HOME%\\native/windows')
+            'NATIVE_LIB_PLACEHOLDER',
+            'java.library.path=%APP_HOME%\\native/windows')
 }
 
 idea.project.settings.encodings {
@@ -107,10 +109,7 @@ jar.manifest.attributes(
 )
 
 def nativeLibraryPath = file("native/" + OperatingSystem.current().familyName)
-def joystickHelperSharedLibraryTasks = [
-        'joystickHelperX86SharedLibrary',
-        'joystickHelperX64SharedLibrary'
-]
+
 model {
     platforms {
         x86 {
@@ -141,6 +140,7 @@ model {
                 buildable = false
             }
             binaries.withType(SharedLibraryBinarySpec) {
+                buildable = false
                 // TODO: Refactor library naming
                 def arch = ""
                 if (targetPlatform.architecture.name == "x86") {
@@ -172,7 +172,6 @@ model {
 }
 
 test {
-    dependsOn += joystickHelperSharedLibraryTasks
     systemProperty "java.library.path", nativeLibraryPath
     testlogger {
         // pick a theme - mocha, standard, plain, mocha-parallel,
@@ -183,4 +182,9 @@ test {
 
 run {
     systemProperty "java.library.path", nativeLibraryPath
+}
+
+task buildJoystickHelperLib {
+    group = 'build'
+    dependsOn 'joystickHelperX86SharedLibrary', 'joystickHelperX64SharedLibrary'
 }
