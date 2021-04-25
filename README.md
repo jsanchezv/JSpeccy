@@ -23,6 +23,7 @@
 * Selectable emulation speed up to x10 (35 Mhz CPU)
 * Translations to English, Spanish & Italian
 * Complete command line support, to integrate JSpeccy with front-ends.
+* Support for Recreated ZX Spectrum keyboard.
 
 ### How to Use
 You need to have installed Java 8. Run with:
@@ -42,11 +43,13 @@ good OpenGL driver or X11 is using Mesa. With these case you can use:
 
 **java -Dsun.java2d.xrender=false -jar JSpeccy.jar**
 
-If you are using Java 9 you need to add another startup option:
+From Java 11 you need to download the [JAXB-RI](https://github.com/eclipse-ee4j/jaxb-ri/releases/tag/3.0.0-RI) implementation,
+uncompress where you wants and exec JSpeccy adding to command line:
 
-**java --add-modules jdk.xml.bind -jar JSpeccy.jar**
+**--module-path ../../jaxb-ri/mod --add-modules jakarta.activation,java.xml.bind,com.sun.xml.bind**
 
-in Java 9 the Swing redrawing bug exist too, and you can need any of the previous
-solutions (sigh!).
+pointing the module path option to your directory with JAXB-RI uncompressed.
+
+The XRender redraw bug exist in Java 16, so you need any described solution previously anyway.
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)
