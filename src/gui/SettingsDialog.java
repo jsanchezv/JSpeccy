@@ -118,6 +118,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         confirmActions.setSelected(settings.getEmulatorSettings().isConfirmActions());
         autosaveConfigOnExit.setSelected(settings.getEmulatorSettings().isAutosaveConfigOnExit());
         invertedEar.setSelected(settings.getTapeSettings().isInvertedEar());
+        recreatedZX.setSelected(settings.getKeyboardJoystickSettings().isRecreatedZX());
     }
 
     public boolean showDialog(Component parent, String title) {
@@ -205,6 +206,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         issue3 = new javax.swing.JRadioButton();
         mapPCKeyPanel = new javax.swing.JPanel();
         mapPCKeys = new javax.swing.JCheckBox();
+        recreatedZXPanel = new javax.swing.JPanel();
+        recreatedZX = new javax.swing.JCheckBox();
         joystickPanel = new javax.swing.JPanel();
         joystick = new javax.swing.JComboBox();
         multifacePanelTab = new javax.swing.JPanel();
@@ -541,6 +544,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         keyboardPanelTab.setLayout(new javax.swing.BoxLayout(keyboardPanelTab, javax.swing.BoxLayout.PAGE_AXIS));
 
         keyboard48kPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.keyboard48kPanel.title.text"))); // NOI18N
+        keyboard48kPanel.setMinimumSize(new java.awt.Dimension(317, 120));
         keyboard48kPanel.setLayout(new javax.swing.BoxLayout(keyboard48kPanel, javax.swing.BoxLayout.PAGE_AXIS));
 
         keyboardIssueInfoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -548,6 +552,9 @@ public class SettingsDialog extends javax.swing.JPanel {
         jPanel3.add(keyboardIssueInfoLabel);
 
         keyboard48kPanel.add(jPanel3);
+
+        jPanel2.setMinimumSize(new java.awt.Dimension(307, 25));
+        jPanel2.setPreferredSize(new java.awt.Dimension(307, 25));
 
         keyboardButtonGroup.add(issue2);
         issue2.setText(bundle.getString("SettingsDialog.issue2RadioButton.text")); // NOI18N
@@ -573,6 +580,8 @@ public class SettingsDialog extends javax.swing.JPanel {
         keyboardPanelTab.add(keyboard48kPanel);
 
         mapPCKeyPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.mapPCKeysPanel.TabTitle"))); // NOI18N
+        mapPCKeyPanel.setMinimumSize(new java.awt.Dimension(102, 50));
+        mapPCKeyPanel.setPreferredSize(new java.awt.Dimension(102, 50));
 
         mapPCKeys.setText(bundle.getString("SettingsDialog.mapPCKEysPanel.enabled.text")); // NOI18N
         mapPCKeys.addActionListener(new java.awt.event.ActionListener() {
@@ -584,7 +593,21 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboardPanelTab.add(mapPCKeyPanel);
 
+        recreatedZXPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.recreatedZXPanel.title.text"))); // NOI18N
+
+        recreatedZX.setText(bundle.getString("SettingsDialog.recreatedZX.enabled.text")); // NOI18N
+        recreatedZX.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                recreatedZXActionPerformed(evt);
+            }
+        });
+        recreatedZXPanel.add(recreatedZX);
+
+        keyboardPanelTab.add(recreatedZXPanel);
+
         joystickPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.joystickPanel.border.text"))); // NOI18N
+        joystickPanel.setMinimumSize(new java.awt.Dimension(177, 50));
+        joystickPanel.setPreferredSize(new java.awt.Dimension(177, 50));
 
         joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek", "Fuller" }));
         joystick.addActionListener(new java.awt.event.ActionListener() {
@@ -927,6 +950,10 @@ public class SettingsDialog extends javax.swing.JPanel {
         settings.getTapeSettings().setInvertedEar(invertedEar.isSelected());
     }//GEN-LAST:event_invertedEarActionPerformed
 
+    private void recreatedZXActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_recreatedZXActionPerformed
+        settings.getKeyboardJoystickSettings().setRecreatedZX(recreatedZX.isSelected());
+    }//GEN-LAST:event_recreatedZXActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel AY8912Panel;
@@ -1002,6 +1029,8 @@ public class SettingsDialog extends javax.swing.JPanel {
     private javax.swing.JPanel numDrivesPanel;
     private javax.swing.JSpinner numDrivesSpinner;
     private javax.swing.JLabel numSectorsLabel;
+    private javax.swing.JCheckBox recreatedZX;
+    private javax.swing.JPanel recreatedZXPanel;
     private javax.swing.ButtonGroup samplingButtonGroup;
     private javax.swing.JPanel samplingPanel;
     private javax.swing.JPanel savePanel;

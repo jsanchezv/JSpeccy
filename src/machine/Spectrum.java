@@ -349,6 +349,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         }
         
         keyboard.setMapPCKeys(settings.getKeyboardJoystickSettings().isMapPCKeys());
+        keyboard.setRZXEnabled(settings.getKeyboardJoystickSettings().isRecreatedZX());
 
         z80.setBreakpoint(0x0066, specSettings.isMultifaceEnabled());
         
@@ -1033,7 +1034,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
          * Pero hay clónicos que solo decodifican A5=0.
          */
         if (joystickModel == JoystickModel.KEMPSTON && ((port & 0x00E0) == 0 || (port & 0xFF) == 0xDF)) {
-//            System.out.println(String.format("InPort: %04X, PC: %04X, Frame: %d", port, z80.getRegPC(), clock.getFrames()));
+//            System.out.println(String.format("InPort: %04X, PC: %04X, Frame: %d: %d",
+//                    port, z80.getRegPC(), clock.getFrames(), clock.getTstates()));
 //            System.out.println("deadzone: " + sixaxis.getDeadZone() + "\tpoll: " + sixaxis.getPollInterval());
 //                long start = System.currentTimeMillis();
 //                joystick1.poll();
@@ -1095,7 +1097,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         
         // ULA Port
         if ((port & 0x0001) == 0) {
-//            System.out.println(String.format("InPort: %04X, Frame: %d", port, clock.getFrames()));
+//            if (!tape.isTapeRunning())
+//                System.out.println(String.format("InPort: %04X, PC: %d", port, z80.getRegPC()));
             earBit = tape.getEarBit();
             if (joystick1 == null || tape.isTapeRunning()) {
                 return keyboard.readKeyboardPort(port, false) & earBit;
@@ -1502,7 +1505,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     public boolean isActiveINT() {
         int tmp = clock.getTstates();
 
-        if (tmp >= spectrumModel.lengthINT)
+        if (tmp >= spectrumModel.tstatesFrame)
             tmp -= spectrumModel.tstatesFrame;
 
         return tmp >= 0 && tmp < spectrumModel.lengthINT;

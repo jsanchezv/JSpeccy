@@ -132,6 +132,7 @@
             </xsd:element>
             <xsd:element name="mapPCKeys" default="false" type="xsd:boolean"/>
             <xsd:element name="Issue2" type="xsd:boolean" default="false"/>
+            <xsd:element name="recreatedZX" type="xsd:boolean" default="false"/>
         </xsd:sequence>
     </xsd:complexType>
     <xsd:complexType name="AY8912Type">

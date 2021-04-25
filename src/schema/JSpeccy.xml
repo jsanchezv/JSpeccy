@@ -64,6 +64,7 @@
         <JoystickModel>0</JoystickModel>
         <mapPCKeys>false</mapPCKeys>
         <Issue2>false</Issue2>
+        <recreatedZX>false</recreatedZX>
     </KeyboardJoystickSettings>
     <AY8912Settings>
         <soundMode>0</soundMode>
