@@ -104,9 +104,9 @@ public class Clock {
 
             if (timeout <= 0) {
                 int res = timeout;
-                for (final ClockTimeoutListener listener : clockListeners) {
-                   listener.clockTimeout();
-                }
+                clockListeners.forEach((listener) -> {
+                    listener.clockTimeout();
+                });
                 
                 if (timeout > 0) {
 //                    System.out.println("Timeout: " + timeout + " res: " + res);
