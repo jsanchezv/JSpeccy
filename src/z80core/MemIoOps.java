@@ -40,7 +40,7 @@ public class MemIoOps {
     }
 
     public void setPorts(byte ports[]) {
-        z80Ram = ports;
+        z80Ports = ports;
     }
 
     public int fetchOpcode(int address) {
