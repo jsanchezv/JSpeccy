@@ -27,7 +27,9 @@
 
         <!-- Maven plug-in versions -->
         <jaxb2-maven-plugin.version>2.4</jaxb2-maven-plugin.version>
+        <launch4j-maven-plugin.version>2.1.1</launch4j-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-assembly-plugin.version>3.1.1</maven-assembly-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <spotbugs-maven-plugin.version>4.2.3</spotbugs-maven-plugin.version>
 
@@ -36,6 +38,8 @@
         <jaxb-api.version>2.3.1</jaxb-api.version>
         <jaxb-core.version>2.3.0.1</jaxb-core.version>
         <jaxb-impl.version>2.3.1</jaxb-impl.version>
+
+        <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
     </properties>
 
     <dependencies>
@@ -110,7 +114,7 @@
                 </executions>
                 <configuration>
                     <sources>
-                        <source>src/main/resources/schema/JSpeccy.xsd</source>
+                        <source>src/main/resources/schema/${spring-boot-maven-plugin.finalName}.xsd</source>
                     </sources>
                     <packageName>configuration</packageName>
                     <outputDirectory>${project.build.directory}/generated-sources/xjc/src/main/java</outputDirectory>
@@ -162,7 +166,7 @@
                         -Xdebug
                         -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888
                     </jvmArguments>
-                    <finalName>JSpeccy</finalName>
+                    <finalName>${spring-boot-maven-plugin.finalName}</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -174,4 +178,58 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <!-- this profile adds experimental support for building Windows executables -->
+            <id>launch4j</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <version>${launch4j-maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>l4j-clui</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <headerType>console</headerType>
+                                    <dontWrapJar>true</dontWrapJar>
+                                    <jar>${spring-boot-maven-plugin.finalName}.${project.packaging}</jar>
+                                    <outfile>${project.build.directory}/${spring-boot-maven-plugin.finalName}.exe</outfile>
+                                    <downloadUrl>https://github.com/doraemoncito/JSpeccy</downloadUrl>
+                                    <classPath>
+                                        <mainClass>org.springframework.boot.loader.JarLauncher</mainClass>
+                                        <addDependencies>true</addDependencies>
+                                        <preCp>anything</preCp>
+                                    </classPath>
+                                    <jre>
+                                        <bundledJre64Bit>false</bundledJre64Bit>
+                                        <bundledJreAsFallback>false</bundledJreAsFallback>
+                                        <minVersion>${java.version}</minVersion>
+                                        <jdkPreference>preferJre</jdkPreference>
+                                        <runtimeBits>64</runtimeBits>
+                                    </jre>
+                                    <versionInfo>
+                                        <fileVersion>1.0.0.0</fileVersion>
+                                        <txtFileVersion>${project.version}</txtFileVersion>
+                                        <fileDescription>${project.name}</fileDescription>
+                                        <copyright>JSpeccy</copyright>
+                                        <productVersion>1.0.0.0</productVersion>
+                                        <txtProductVersion>1.0.0.0</txtProductVersion>
+                                        <productName>${project.name}</productName>
+                                        <internalName>${spring-boot-maven-plugin.finalName}</internalName>
+                                        <originalFilename>${spring-boot-maven-plugin.finalName}.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
