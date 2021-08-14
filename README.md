@@ -1,4 +1,5 @@
 # JSpeccy
+
 ### A multiplatform ZX Spectrum emulator written in Java language.
 
 * Emulates ZX Spectrum models 16k, 48k, 128k, +2 and +2a
@@ -23,36 +24,30 @@
 * Selectable emulation speed up to x10 (35 Mhz CPU)
 * Translations to English, Spanish & Italian
 * Complete command line support, to integrate JSpeccy with front-ends.
+* Support for Recreated ZX Spectrum keyboard.
 
 ### Building the emulator
 
-To build JSpeccy, run the following command: 
+To build JSpeccy you need to have [Apache Maven](https://maven.apache.org) installed and run the following command:
 
-    mvn clean install
+    mvn clean package
 
 ### How to Use
-To use JSpeccy you need to have Java 11 installed. Run with:
 
-    ./JSpeccy.jar
-    
-or
+To run JSpeccy you need to have Java 8 onwards installed. Run with:
 
-    java -jar JSpeccy.jar
+    ./target/JSpeccy.jar
 
 A configuration file named JSpeccy.xml will be created on the user directory.
 
-On Unix/Linux platforms using X11, Java 8 has a bug redrawing the screen. Java 8 uses
-the XRender extension by default and this causes some problems. To resolve it, you can
-test two possible solutions. First, you can add the option:
+On Unix/Linux platforms using X11, Java 8 have a bug redrawing the screen. Java 8 uses the XRender extension by default and this causes some problems. To resolve it, you can test two possible solutions. First, you can add the option:
 
-    java -Dsun.java2d.opengl=True -jar JSpeccy.jar
+    java -Dsun.java2d.opengl=True -jar ./target/JSpeccy.jar
 
-that uses the OpenGL backend. This solution can be problematic if a good OpenGL driver
-is not present your system or X11 is using Mesa. In these cases you can use:
+that uses the OpenGL backend. This solution can be problematic when don't exist a good OpenGL driver or X11 is using Mesa. With these case you can use:
 
-    java -Dsun.java2d.xrender=false -jar JSpeccy.jar
+    java -Dsun.java2d.xrender=false -jar ./target/JSpeccy.jar
 
-in Java 9 the Swing redrawing bug exist too, and you can need any of the previous
-solutions (sigh!).
+Please note that the XRender redraw bug is still present in Java 16 so you need still need to the solution described above anyway.
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)

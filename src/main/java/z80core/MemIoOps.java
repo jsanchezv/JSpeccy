@@ -20,15 +20,15 @@ public class MemIoOps {
     }
 
     public MemIoOps(int ramSize, int portSize) {
-        if (ramSize < 0 || ramSize > 0x10000)
-            throw new IndexOutOfBoundsException("ramSize Out of Range [0x0000 - 0x10000");
+        if (ramSize < 0 || ramSize > 0xFFFF)
+            throw new IndexOutOfBoundsException("ramSize Out of Range [0x0000 - 0xFFFF");
 
         if (ramSize > 0) {
             z80Ram = new byte[ramSize];
         }
 
-        if (portSize < 0 || portSize > 0x10000)
-            throw new IndexOutOfBoundsException("portSize Out of Range [0x0000 - 0x10000");
+        if (portSize < 0 || portSize > 0xFFFF)
+            throw new IndexOutOfBoundsException("portSize Out of Range [0x0000 - 0xFFFF");
 
         if (portSize > 0) {
             z80Ports = new byte[portSize];
@@ -40,7 +40,7 @@ public class MemIoOps {
     }
 
     public void setPorts(byte ports[]) {
-        z80Ram = ports;
+        z80Ports = ports;
     }
 
     public int fetchOpcode(int address) {

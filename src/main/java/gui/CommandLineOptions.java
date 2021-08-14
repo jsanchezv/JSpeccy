@@ -64,6 +64,9 @@ public class CommandLineOptions {
     
     @Option(name = "--map-pc-keyboard", usage = "CommandLineOptions.mapPCkeyboard.text")
     private boolean mapPCkeys;
+    
+    @Option(name = "--recreated-zx", usage = "CommandLineOptions.recreatedZX.text")
+    private boolean recreatedZX;
 
     @Option(name = "-z", aliases = "--zoom", metaVar = "CommandLineOptions.metaVar.size.text",
             usage = "CommandLineOptions.zoom.text")
@@ -163,6 +166,7 @@ public class CommandLineOptions {
         settings.getKeyboardJoystickSettings().setIssue2(issue2);
         settings.getKeyboardJoystickSettings().setJoystickModel(joystick.ordinal());
         settings.getKeyboardJoystickSettings().setMapPCKeys(mapPCkeys);
+        settings.getKeyboardJoystickSettings().setRecreatedZX(recreatedZX);
 
         // Screen options
         if (zoom < 2 || zoom > 4)
