@@ -153,6 +153,7 @@
  */
 package z80core;
 
+import jdk.internal.vm.annotation.Contended;
 import machine.Clock;
 import snapshots.Z80State;
 
@@ -208,6 +209,7 @@ public class Z80 {
     private int regBx, regCx, regDx, regEx, regHx, regLx;
     // Registros de propósito específico
     // *PC -- Program Counter -- 16 bits*
+    @Contended
     private int regPC;
     // *IX -- Registro de índice -- 16 bits*
     private int regIX;

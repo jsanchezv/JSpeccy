@@ -18,12 +18,26 @@
 
     <properties>
         <java.version>11</java.version>
+
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Maven plug-in versions -->
+        <jaxb2-maven-plugin.version>2.4</jaxb2-maven-plugin.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <spotbugs-maven-plugin.version>4.2.3</spotbugs-maven-plugin.version>
+
+        <!-- Third party dependencies' versions -->
         <activation.version>1.1.1</activation.version>
+        <jaxb-api.version>2.3.1</jaxb-api.version>
+        <jaxb-core.version>2.3.0.1</jaxb-core.version>
+        <jaxb-impl.version>2.3.1</jaxb-impl.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>javax.activation</groupId>
@@ -33,17 +47,17 @@
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
+            <version>${jaxb-api.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
             <artifactId>jaxb-core</artifactId>
-            <version>2.3.0.1</version>
+            <version>${jaxb-core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
             <artifactId>jaxb-impl</artifactId>
-            <version>2.3.1</version>
+            <version>${jaxb-impl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -53,21 +67,32 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <!-- The following import is required to bring in the @Contended annotation into the default -->
+                    <!-- module so that we can use it to prevent false memory sharing                            -->
+                    <compilerArgs>
+                        <arg>--add-exports</arg>
+                        <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.22.1</version>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.1</version>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>jaxb2-maven-plugin</artifactId>
-                <version>2.4</version>
+                <version>${jaxb2-maven-plugin.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>javax.activation</groupId>
@@ -95,7 +120,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.1.12</version>
+                <version>${spotbugs-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>spotbugs</id>

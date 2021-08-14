@@ -5,6 +5,8 @@
 
 package z80core;
 
+import jdk.internal.vm.annotation.Contended;
+
 /**
  *
  * @author jsanchez
@@ -12,6 +14,8 @@ package z80core;
 public class MemIoOps {
     private byte z80Ram[] = null;
     private byte z80Ports[] = null;
+
+    @Contended
     private long tstates = 0;
 
     public MemIoOps() {
