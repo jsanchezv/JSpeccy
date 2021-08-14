@@ -28,7 +28,7 @@
 
 ### Building the emulator
 
-To build JSpeccy you need to have [Apache Maven](https://maven.apache.org) installed run the following command from the console to generate a package called `JSpeccy.jar` under the `target` directory:
+To build JSpeccy you need to have [Apache Maven](https://maven.apache.org) installed and run the following command from the console to generate a file called `JSpeccy.jar` under the `target` directory:
 
     mvn clean package
 
