@@ -2349,6 +2349,10 @@ public class JSpeccy extends javax.swing.JFrame {
         }
         else {
             saveSnapshotDlg.setCurrentDirectory(currentDirSaveSnapshot);
+            /*
+             * FIXME: the following type cast is throwing an exception when the save snapshot dialog box is opened,
+             * then closed, and the opened again.  We need to find another way of clearing the "save as" edit line.
+             */
             BasicFileChooserUI chooserUI = (BasicFileChooserUI) saveSnapshotDlg.getUI();
             chooserUI.setFileName("");
         }

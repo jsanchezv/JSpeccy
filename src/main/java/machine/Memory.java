@@ -6,6 +6,7 @@ package machine;
 
 import configuration.JSpeccySettings;
 import configuration.MemoryType;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import snapshots.MemoryState;
@@ -24,9 +25,8 @@ import java.util.Random;
  *
  * @author jsanchez
  */
+@Slf4j
 public final class Memory {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(Memory.class);
 
     private final int PAGE_SIZE = 0x2000;
     private final byte[][] Rom48k = new byte[2][PAGE_SIZE];
@@ -1091,7 +1091,7 @@ public final class Memory {
 
         if (inRom == null) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("RESOURCE_ROM_ERROR");
-            LOGGER.warn("{}: {}", msg, filename);
+            log.warn("{}: {}", msg, filename);
             return false;
         }
 
@@ -1104,25 +1104,25 @@ public final class Memory {
 
                 if (count != PAGE_SIZE) {
                     String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_SIZE_ERROR");
-                    LOGGER.error("{}: {}", msg, filename);
+                    log.error("{}: {}", msg, filename);
                 } else {
                     res = true;
                 }
             }
         } catch (IOException ex) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("RESOURCE_ROM_ERROR");
-            LOGGER.error("{}: {}", msg, filename, ex);
+            log.error("{}: {}", msg, filename, ex);
         } finally {
             try {
                 inRom.close();
             } catch (IOException ex) {
-                LOGGER.error("{}", filename, ex);
+                log.error("{}", filename, ex);
             }
         }
 
         if (res) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_RESOURCE_LOADED");
-            LOGGER.info("{}: {}", msg, filename);
+            log.info("{}: {}", msg, filename);
         }
 
         return res;
@@ -1137,7 +1137,7 @@ public final class Memory {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
                 String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("FILE_ROM_ERROR");
-                LOGGER.warn("{}: {}", msg, filename);
+                log.warn("{}: {}", msg, filename);
                 return false;
             }
 
@@ -1149,27 +1149,27 @@ public final class Memory {
 
                 if (count != PAGE_SIZE) {
                     String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_SIZE_ERROR");
-                    LOGGER.error("{}: {}", msg, filename);
+                    log.error("{}: {}", msg, filename);
                 } else {
                     res = true;
                 }
             }
         } catch (IOException ex) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("FILE_ROM_ERROR");
-            LOGGER.error("{}: {}", msg, filename);
+            log.error("{}: {}", msg, filename);
         } finally {
             try {
                 if (fIn != null) {
                     fIn.close();
                 }
             } catch (IOException ex) {
-                LOGGER.error("{}", filename, ex);
+                log.error("{}", filename, ex);
             }
         }
 
         if (res) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("ROM_FILE_LOADED");
-            LOGGER.info("{}: {}", msg, filename);
+            log.info("{}: {}", msg, filename);
         }
 
         return res;
@@ -1181,7 +1181,7 @@ public final class Memory {
             try {
                 fIn = new BufferedInputStream(new FileInputStream(filename));
             } catch (FileNotFoundException ex) {
-                LOGGER.error("{}", filename, ex);
+                log.error("{}", filename, ex);
                 return false;
             }
 
@@ -1209,13 +1209,13 @@ public final class Memory {
             }
 
         } catch (IOException ex) {
-            LOGGER.error("{}", filename, ex);
+            log.error("{}", filename, ex);
         } finally {
             try {
                 if (fIn != null)
                     fIn.close();
             } catch (IOException ex) {
-                LOGGER.error("{}", filename, ex);
+                log.error("{}", filename, ex);
             }
         }
 
