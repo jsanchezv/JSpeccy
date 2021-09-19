@@ -1,0 +1,12 @@
+${AnsiColor.RED}           _  _____
+${AnsiColor.RED}          | |/ ____|
+${AnsiColor.YELLOW}          | | (___  _ __   ___  ___ ___ _   _
+${AnsiColor.YELLOW}      _   | |\___ \| '_ \ / _ \/ __/ __| | | |
+${AnsiColor.GREEN}     | |__| |____) | |_) |  __/ (_| (__| |_| |
+${AnsiColor.GREEN}      \____/|_____/| .__/ \___|\___\___|\__, |
+${AnsiColor.CYAN}                   | |                   __/ |
+${AnsiColor.CYAN}                   |_|                  |___/
+${Ansi.DEFAULT}
+${Ansi.DEFAULT}  -- JSpeccy ZX Spectrum emulator --
+${Ansi.DEFAULT}  :: Spring Boot   :: ${spring-boot.formatted-version}
+${Ansi.DEFAULT}  :: JSpeccy       :: ${application.formatted-version}
