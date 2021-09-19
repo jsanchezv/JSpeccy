@@ -7,6 +7,7 @@
 package gui;
 
 import configuration.JSpeccySettings;
+import lombok.extern.slf4j.Slf4j;
 import machine.Interface1DriveListener;
 import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
@@ -53,6 +54,7 @@ import java.util.logging.Logger;
  *
  * @author  jsanchez
  */
+@Slf4j
 public class JSpeccy extends javax.swing.JFrame {
     private Spectrum spectrum;
     private Tape tape;
@@ -122,8 +124,8 @@ public class JSpeccy extends javax.swing.JFrame {
                     if (file.isDirectory())
                         return false;
 
-//                    System.out.println("File dropped: " + file.getAbsolutePath());
-//                    System.out.println("# selected files: " + list.size());
+                    log.debug("File dropped: {}", file.getAbsolutePath());
+                    log.debug("# selected files: {}", list.size());
                     if (snapshotExtension.accept(file)) {
                         recentFilesMgr.addRecentFile(file);
                         if (tape.isTapeRunning()) {
@@ -287,11 +289,11 @@ public class JSpeccy extends javax.swing.JFrame {
 
         readSettingsFile();
         if (args.length > 0) {
-//            System.out.println("#args: " + args.length);
+           log.debug("#args: {}", args.length);
             if (!readArguments(args)) {
                 System.exit(1);
             }
-//            System.out.println("# args remain: " + clo.getArguments().size());
+            log.debug("# args remain: {}", clo.getArguments().size());
             if (args.length > 1 || clo.getArguments().size() != 1) {
                 clo.copyArgumentsToSettings();
             }
@@ -429,7 +431,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if (deleteFile) {
             if (!file.delete()) {
-                System.out.println("Can't delete the bad JSpeccy.xml");
+                log.error("Unable to delete the corrupted JSpeccy.xml file");
             }
         }
 
@@ -479,16 +481,16 @@ public class JSpeccy extends javax.swing.JFrame {
             // objects composed of classes from the configuration package.
             settings = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
         } catch (JAXBException jexcpt) {
-            System.out.println("Something during unmarshalling go very bad!");
+            log.error("Something went very badly during unmarshalling!");
             readed = false;
         } catch (FileNotFoundException ioexcpt) {
-            System.out.println("Can't open the JSpeccy.xml configuration file");
+            log.warn("Can't open the JSpeccy.xml configuration file", ioexcpt);
         }
 
         if (readed)
             return;
 
-        System.out.println("Trying to create a new one JSpeccy.xml for you");
+        log.info("Trying to create a new JSpeccy.xml file for you");
 
         verifyConfigFile(true);
         try {
@@ -503,9 +505,9 @@ public class JSpeccy extends javax.swing.JFrame {
             // objects composed of classes from the configuration package.
             settings = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
         } catch (JAXBException jexcpt) {
-            System.out.println("Something go very very badly with unmarshalling!");
+            log.error("Something went very very badly with unmarshalling!", jexcpt);
         } catch (FileNotFoundException ioexcpt) {
-            System.out.println("Can't open the JSpeccy.xml configuration file anyway");
+            log.error("Can't open the JSpeccy.xml configuration file anyway", ioexcpt);
             System.exit(0);
         }
 
@@ -526,9 +528,9 @@ public class JSpeccy extends javax.swing.JFrame {
                 // objects composed of classes from the configuration package.
                 toSave = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
             } catch (JAXBException jexcpt) {
-                System.out.println("Something during unmarshalling go very bad!");
+                log.error("Something during unmarshalling go very bad!", jexcpt);
             } catch (FileNotFoundException ioexcpt) {
-                System.out.println("Can't open the JSpeccy.xml configuration file");
+                log.error("Can't open the JSpeccy.xml configuration file", ioexcpt);
             }
         }
 
@@ -3353,7 +3355,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         @Override
         public void stateChanged(final TapeState state) {
-//            System.out.println("JSpeccy::TapeChangedListener: state = " + state);
+            log.debug("JSpeccy::TapeChangedListener: state = {}", state);
             boolean canRec = false;
             switch (state) {
                 case INSERT:

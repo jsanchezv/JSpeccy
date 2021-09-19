@@ -8,6 +8,7 @@ import configuration.JSpeccySettings;
 import configuration.SpectrumType;
 import gui.JSpeccyScreen;
 import joystickinput.JoystickRaw;
+import lombok.extern.slf4j.Slf4j;
 import machine.Keyboard.JoystickModel;
 import snapshots.SpectrumState;
 import utilities.Tape;
@@ -30,13 +31,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.NotifyOps {
 
     private final Z80 z80;
@@ -102,7 +102,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 joystick2 = new JoystickRaw(1);
                 joystick2.start();
             } catch (IOException ex) {
-//            Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+//            log.error("", ex);
                 if (joystick1 == null && joystick2 == null)
                     System.out.println("No physical joystick found!");
             }
@@ -553,7 +553,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
                 Thread.sleep(30);
             } catch (InterruptedException ex) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("", ex);
             }
         };
         
@@ -575,7 +575,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 try {
                     wait(250);
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                    log.error("", ex);
                 }
 
                 if (paused) {
@@ -674,9 +674,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
          * chip and if high adress byte of vector table (register I) is set to this slow
          * (contended) memory, ZX is very unstable and ULA show in screen raining effect.
          * ZX will crash.
-         * 
+         *
          * http://www.worldofspectrum.org/forums/showthread.php?t=38284
-         * 
+         *
          * JSpeccy emulates a +2 with a corrected HAL10H8 chip.
          */
         if (specSettings.isEmulate128KBug() && spectrumModel.codeModel == MachineTypes.CodeModel.SPECTRUM128K) {
@@ -1626,16 +1626,16 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                     }
                 }
             } catch (FileNotFoundException excpt) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
+                log.error("", excpt);
             } catch (IOException ioExcpt) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+                log.error("", ioExcpt);
             } finally {
                 try {
                     if (fOut != null) {
                         fOut.close();
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                    log.error("", ex);
                 }
             }
             return;
@@ -1645,7 +1645,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             try {
                 ImageIO.write(tvImage, "png", filename);
             } catch (IOException ioExcpt) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+                log.error("", ioExcpt);
             }
         }
     }
@@ -1691,16 +1691,16 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 }
                 return true;
             } catch (FileNotFoundException excpt) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, excpt);
+                log.error("", excpt);
             } catch (IOException ioExcpt) {
-                Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ioExcpt);
+                log.error("", ioExcpt);
             } finally {
                 try {
                     if (fIn != null) {
                         fIn.close();
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(Spectrum.class.getName()).log(Level.SEVERE, null, ex);
+                    log.error("", ex);
                 }
             }
         }
