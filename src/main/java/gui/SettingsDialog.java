@@ -14,7 +14,7 @@ package gui;
 import configuration.JSpeccySettings;
 
 import javax.swing.*;
-import javax.xml.bind.JAXB;
+import jakarta.xml.bind.JAXB;
 import java.awt.*;
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;

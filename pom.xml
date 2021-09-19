@@ -26,7 +26,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Maven plug-in versions -->
-        <jaxb2-maven-plugin.version>2.4</jaxb2-maven-plugin.version>
+        <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
         <launch4j-maven-plugin.version>2.1.1</launch4j-maven-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.1.1</maven-assembly-plugin.version>
@@ -34,10 +34,10 @@
         <spotbugs-maven-plugin.version>4.2.3</spotbugs-maven-plugin.version>
 
         <!-- Third party dependencies' versions -->
-        <activation.version>1.1.1</activation.version>
-        <jaxb-api.version>2.3.1</jaxb-api.version>
-        <jaxb-core.version>2.3.0.1</jaxb-core.version>
-        <jaxb-impl.version>2.3.1</jaxb-impl.version>
+        <activation.version>2.0.1</activation.version>
+        <jakarta.xml.bind-api.version>3.0.1</jakarta.xml.bind-api.version>
+        <jaxb-core.version>3.0.2</jaxb-core.version>
+        <jaxb-impl.version>3.0.2</jaxb-impl.version>
         <lombok.version>1.18.20</lombok.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
@@ -45,14 +45,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>javax.activation</groupId>
-            <artifactId>activation</artifactId>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
             <version>${activation.version}</version>
         </dependency>
         <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>${jaxb-api.version}</version>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>${jakarta.xml.bind-api.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
@@ -63,6 +63,7 @@
             <groupId>com.sun.xml.bind</groupId>
             <artifactId>jaxb-impl</artifactId>
             <version>${jaxb-impl.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -101,13 +102,13 @@
                 <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
+                <groupId>com.evolvedbinary.maven.mojohaus</groupId>
+                <artifactId>jaxb-maven-plugin</artifactId>
                 <version>${jaxb2-maven-plugin.version}</version>
                 <dependencies>
                     <dependency>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
+                        <groupId>com.sun.activation</groupId>
+                        <artifactId>jakarta.activation</artifactId>
                         <version>${activation.version}</version>
                     </dependency>
                 </dependencies>
@@ -123,6 +124,9 @@
                     <sources>
                         <source>src/main/resources/schema/${spring-boot-maven-plugin.finalName}.xsd</source>
                     </sources>
+                    <packageName>jakarta.xml.bind.annotation</packageName>
+                    <catalog>catalog.xml</catalog>
+                    <target>3.0</target>
                     <packageName>configuration</packageName>
                     <outputDirectory>${project.build.directory}/generated-sources/xjc/src/main/java</outputDirectory>
                     <clearOutputDir>true</clearOutputDir>
