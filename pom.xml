@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.0</version>
         <relativePath/>
     </parent>
 
@@ -28,17 +28,14 @@
         <!-- Maven plug-in versions -->
         <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
         <launch4j-maven-plugin.version>2.1.1</launch4j-maven-plugin.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-assembly-plugin.version>3.1.1</maven-assembly-plugin.version>
-        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-        <spotbugs-maven-plugin.version>4.2.3</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.5.0.0</spotbugs-maven-plugin.version>
 
         <!-- Third party dependencies' versions -->
         <activation.version>2.0.1</activation.version>
         <jakarta.xml.bind-api.version>3.0.1</jakarta.xml.bind-api.version>
         <jaxb-core.version>3.0.2</jaxb-core.version>
         <jaxb-impl.version>3.0.2</jaxb-impl.version>
-        <lombok.version>1.18.20</lombok.version>
+        <owasp-dependency-check-maven.version>6.5.0</owasp-dependency-check-maven.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
     </properties>
@@ -47,12 +44,12 @@
         <dependency>
             <groupId>com.sun.activation</groupId>
             <artifactId>jakarta.activation</artifactId>
-            <version>${activation.version}</version>
+            <version>${activation.version}</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
-            <version>${jakarta.xml.bind-api.version}</version>
+            <version>${jakarta.xml.bind-api.version}</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
@@ -72,7 +69,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -81,7 +77,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <!-- The following import is required to bring in the @Contended annotation into the default -->
                     <!-- module so that we can use it to prevent false memory sharing                            -->
@@ -94,7 +89,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -188,8 +182,61 @@
                 </executions>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${owasp-dependency-check-maven.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <!-- This plugin's configuration is used to store Visual Studio code / Eclipse m2e settings only. -->
+                <!-- It has no influence on the Maven build itself. -->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>com.github.spotbugs</groupId>
+                                        <artifactId>spotbugs-maven-plugin</artifactId>
+                                        <versionRange>[4.5.0.0,)</versionRange>
+                                        <goals>
+                                            <goal>spotbugs</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore/>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
     <profiles>
+        <profile>
+            <id>owasp</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <!-- this profile adds experimental support for building Windows executables -->
             <id>launch4j</id>
@@ -211,7 +258,7 @@
                                     <dontWrapJar>true</dontWrapJar>
                                     <jar>${spring-boot-maven-plugin.finalName}.${project.packaging}</jar>
                                     <outfile>${project.build.directory}/${spring-boot-maven-plugin.finalName}.exe</outfile>
-                                    <downloadUrl>https://github.com/doraemoncito/JSpeccy</downloadUrl>
+                                    <downloadUrl>https://github.com/jsanchezv/JSpeccy</downloadUrl>
                                     <classPath>
                                         <mainClass>org.springframework.boot.loader.JarLauncher</mainClass>
                                         <addDependencies>true</addDependencies>
