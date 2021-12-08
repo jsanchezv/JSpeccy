@@ -3,6 +3,9 @@ package org.kohsuke.args4j;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.kohsuke.args4j.spi.ConfigElement;
 import org.xml.sax.Attributes;
@@ -10,7 +13,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 
 /**
@@ -22,10 +24,10 @@ import org.xml.sax.helpers.XMLReaderFactory;
 public class Config {
 
 	/** All @Options. */
-	public List<ConfigElement> options = new ArrayList<ConfigElement>();;
+	public List<ConfigElement> options = new ArrayList<>();
 
 	/** All @Arguments. */
-	public List<ConfigElement> arguments = new ArrayList<ConfigElement>();
+	public List<ConfigElement> arguments = new ArrayList<>();
 
 
 	/**
@@ -70,10 +72,13 @@ public class Config {
 	 * @return
 	 * @throws IOException
 	 * @throws SAXException
+         * @throws javax.xml.parsers.ParserConfigurationException
 	 */
-	public static Config parse(InputSource xml) throws IOException, SAXException {
+	public static Config parse(InputSource xml) throws IOException, SAXException, ParserConfigurationException {
 		Config rv = new Config();
-		XMLReader reader = XMLReaderFactory.createXMLReader();
+        SAXParserFactory factory = SAXParserFactory.newDefaultInstance();
+        SAXParser parser = factory.newSAXParser();
+        XMLReader reader = parser.getXMLReader();
 		ConfigHandler handler = rv.new ConfigHandler(rv);
 		reader.setContentHandler(handler);
 		reader.parse(xml);
