@@ -18,21 +18,21 @@ public enum MachineTypes {
     SPECTRUMPLUS3(5);
 
     static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS3 };
-    public CodeModel codeModel; // Código de modelo
-    private String longModelName;   // Nombre largo del modelo de Spectrum
-    private String shortModelName;   // Nombre corto del modelo de Spectrum
-    public int clockFreq;       // Clock frequency
-    public int tstatesFrame;    // t-states por cuadro de la imagen
-    public int tstatesLine;     // t-states por línea de imagen
-    public int upBorderWidth;   // Número de líneas del borde superior
-    public int scanLines;       // Número de líneas de imagen
-    public int firstScrByte;    // t-states hasta el primer byte de la pantalla
-    public int lastScrUpdate;   // t-states última actualización de la pantalla
-    public int outOffset;       //
-    public int outBorderOffset; //
-    public int lengthINT;       // Duración en t-states de la señal INT
-    private boolean hasAY8912;  // Tiene un AY-3-8912?
-    private boolean hasDisk;    // Tiene un controlador de disco y disquetera?
+    public final CodeModel codeModel; // Código de modelo
+    private final String longModelName;   // Nombre largo del modelo de Spectrum
+    private final String shortModelName;   // Nombre corto del modelo de Spectrum
+    public final int clockFreq;       // Clock frequency
+    public final int tstatesFrame;    // t-states por cuadro de la imagen
+    public final int tstatesLine;     // t-states por línea de imagen
+    public final int upBorderWidth;   // Número de líneas del borde superior
+    public final int scanLines;       // Número de líneas de imagen
+    public final int firstScrByte;    // t-states hasta el primer byte de la pantalla
+    public final int lastScrUpdate;   // t-states última actualización de la pantalla
+    public final int outOffset;       //
+    public final int outBorderOffset; //
+    public final int lengthINT;       // Duración en t-states de la señal INT
+    private final boolean hasAY8912;  // Tiene un AY-3-8912?
+    private final boolean hasDisk;    // Tiene un controlador de disco y disquetera?
 
     MachineTypes(int model) {
         switch (model) {
@@ -54,6 +54,7 @@ public enum MachineTypes {
                 this.codeModel = CodeModel.SPECTRUM48K;
                 break;
             case 1: // Spectrum 48K
+            default:
                 this.longModelName = "ZX Spectrum 48K";
                 this.shortModelName = "48k";
                 this.clockFreq = 3500000;
