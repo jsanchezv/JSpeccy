@@ -28,18 +28,17 @@ import java.util.zip.InflaterInputStream;
  * @author jsanchez
  */
 public class SnapshotSZX implements SnapshotFile {
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
+
     private SpectrumState spectrum;
     private Z80State z80;
     private MemoryState memory;
     private AY8912State ay8912;
-    
+
     private boolean tapeEmbedded, tapeLinked;
     private byte tapeData[];
     private int tapeBlock;
     private String tapeName, tapeExtension;
-    
+
     // SZX Definitions
     private static final int ZXST_HEADER = 0x5453585A; // ZXST
     private static final int ZXSTMID_16K = 0;
@@ -169,12 +168,12 @@ public class SnapshotSZX implements SnapshotFile {
     private static final int ZXSTOPDF_EMBEDDED = 1;
     private static final int ZXSTOPDF_COMPRESSED = 2;
     private static final int ZXSTOPDF_WRITEPROTECT = 4;
-    
+
     // LEC RAM Extension (v1.5 SZX Spec)
     private static final int ZXSTBID_LEC = 0x0043454C;      // LEC\0
     private static final int ZXSTBID_LECRAMPAGE = 0x5052434C;  // LCRP
     private static final int ZXSTLCRPF_COMPRESSED = 0x01;
-    
+
     // SpectraNET blocks (v1.5 SZX Spec)
     private static final int ZXSTBID_SPECTRANET = 0x54454E53; // SNET
     private static final int ZXSTSNETF_PAGED = 0x0001;
@@ -279,10 +278,10 @@ public class SnapshotSZX implements SnapshotFile {
 
         return (value3 | value2 | value1 | value0);
     }
-    
+
     @Override
     public SpectrumState load(File filename) throws SnapshotException {
-        
+
         byte dwMagic[] = new byte[4];
         byte dwSize[] = new byte[4];
         byte szxMajorVer, szxMinorVer;
@@ -292,15 +291,10 @@ public class SnapshotSZX implements SnapshotFile {
         byte chData[];
 
         spectrum = new SpectrumState();
-        
+
         spectrum.setJoystick(JoystickModel.NONE);
 
-        try {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
-            } catch (FileNotFoundException ex) {
-                throw new SnapshotException("OPEN_FILE_ERROR", ex);
-            }
+        try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
 
             readed = fIn.read(dwMagic);
             if (readed != dwMagic.length || dwMagicToInt(dwMagic) != ZXST_HEADER) {
@@ -383,7 +377,7 @@ public class SnapshotSZX implements SnapshotFile {
 
                         z80 = new Z80State();
                         spectrum.setZ80State(z80);
-                        
+
                         z80.setRegF(z80Regs[0]);
                         z80.setRegA(z80Regs[1]);
                         z80.setRegC(z80Regs[2]);
@@ -420,7 +414,7 @@ public class SnapshotSZX implements SnapshotFile {
                                 z80.setIM(IntMode.IM2);
                                 break;
                         }
-                        
+
                         spectrum.setTstates((int) (((z80Regs[32] & 0xff) << 24) | ((z80Regs[31] & 0xff) << 16)
                                 | ((z80Regs[30] & 0xff) << 8) | (z80Regs[29] & 0xff)));
 
@@ -441,7 +435,7 @@ public class SnapshotSZX implements SnapshotFile {
                         if (szxMajorVer == 1 && szxMinorVer > 3) {
                             z80.setMemPtr((z80Regs[35] & 0xff) | (z80Regs[36] << 8));
                         }
-                        
+
                         if (szxMajorVer == 1 && szxMinorVer > 4) {
                             z80.setFlagQ((z80Regs[34] & ZXSTZF_FSET) != 0);
                         }
@@ -455,7 +449,7 @@ public class SnapshotSZX implements SnapshotFile {
                         if (readed != szxLen) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         spectrum.setBorder(specRegs[0]);
                         spectrum.setPort7ffd(specRegs[1]);
                         spectrum.setPort1ffd(specRegs[2]);
@@ -469,7 +463,7 @@ public class SnapshotSZX implements SnapshotFile {
                         if (readed != szxLen) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         spectrum.setIssue2((keyb[0] & ZXSTKF_ISSUE2) != 0);
                         switch (keyb[4] & 0xff) {
                             case ZXSKJT_KEMPSTON:
@@ -495,22 +489,22 @@ public class SnapshotSZX implements SnapshotFile {
                         if (szxLen != 18) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         byte ayRegs[] = new byte[szxLen];
                         readed = fIn.read(ayRegs);
                         if (readed != szxLen) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         spectrum.setEnabledAY(true);
                         if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K
                                 && (ayRegs[0] & ZXSTAYF_128AY) == 0) {
                             spectrum.setEnabledAYon48k(false);
                         }
-                        
+
                         ay8912 = new AY8912State();
                         spectrum.setAY8912State(ay8912);
-                        
+
                         int regAY[] = new int[16];
                         ay8912.setAddressLatch(ayRegs[1]);
                         for (int idx = 0; idx < 16; idx++) {
@@ -523,7 +517,7 @@ public class SnapshotSZX implements SnapshotFile {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
                         }
-                        
+
                         byte ramPage[] = new byte[3];
                         readed = fIn.read(ramPage);
                         if (readed != ramPage.length) {
@@ -567,7 +561,7 @@ public class SnapshotSZX implements SnapshotFile {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
                         }
-                        
+
                         byte mf[] = new byte[2];
                         readed = fIn.read(mf);
                         if (readed != mf.length) {
@@ -614,7 +608,7 @@ public class SnapshotSZX implements SnapshotFile {
                             }
                             break;
                         }
-                        
+
                         // MF RAM compressed
                         bais = new ByteArrayInputStream(chData);
                         iis = new InflaterInputStream(bais);
@@ -639,7 +633,7 @@ public class SnapshotSZX implements SnapshotFile {
                         if (szxLen != 66) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         spectrum.setULAPlusEnabled(true);
                         byte ULAplusRegs[] = new byte[szxLen];
                         readed = fIn.read(ULAplusRegs);
@@ -657,7 +651,7 @@ public class SnapshotSZX implements SnapshotFile {
                         for (int reg = 0; reg < 64; reg++) {
                             palette[reg] = ULAplusRegs[2 + reg] & 0xff;
                         }
-                        
+
                         spectrum.setULAPlusPalette(palette);
                         break;
                     case ZXSTBID_ZXTAPE:
@@ -762,7 +756,7 @@ public class SnapshotSZX implements SnapshotFile {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
                         }
-                        
+
                         byte dwCartSize[] = new byte[4];
                         readed = fIn.read(dwCartSize);
                         if (readed != dwCartSize.length) {
@@ -828,7 +822,7 @@ public class SnapshotSZX implements SnapshotFile {
                             }
                             break;
                         }
-                        
+
                         if (memory == null) {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
@@ -863,7 +857,7 @@ public class SnapshotSZX implements SnapshotFile {
 //                        int mdrvFlags;
 //                        mdrvFlags = fIn.read() + fIn.read() * 256;
 //                        szxLen -= 2;
-//                        
+//
 //                        int driveNum = fIn.read();
 //                        szxLen--;
 //                        if (driveNum < 1 || driveNum > 8) {
@@ -871,7 +865,7 @@ public class SnapshotSZX implements SnapshotFile {
 //                                String.format("MDRV %d block error. Skipping",
 //                                driveNum));
 //                        }
-//                        
+//
 //                        int motor = fIn.read() & 0xff;
 //                        szxLen--;
 //                        if (motor == 1)
@@ -886,18 +880,18 @@ public class SnapshotSZX implements SnapshotFile {
                             }
                             break;
                         }
-                        
+
                         if (memory == null) {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
                         }
-                        
+
                         byte[] lecHeader = new byte[2];
                         readed = fIn.read(lecHeader);
                         if (readed != lecHeader.length) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         spectrum.setConnectedLec(true);
                         memory.setPortFD(lecHeader[0]);
                         break;
@@ -906,13 +900,13 @@ public class SnapshotSZX implements SnapshotFile {
                             memory = new MemoryState();
                             spectrum.setMemoryState(memory);
                         }
-                        
+
                         byte lecPage[] = new byte[3];
                         readed = fIn.read(lecPage);
                         if (readed != lecPage.length) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
-                        
+
                         szxLen -= 3;
                         if (szxLen > 0x8000) {
                             throw new SnapshotException("SZX_RAMP_SIZE_ERROR");
@@ -989,14 +983,6 @@ public class SnapshotSZX implements SnapshotFile {
         } catch (IOException ex) {
 //            ex.printStackTrace();
             throw new SnapshotException("FILE_READ_ERROR");
-        } finally {
-            try {
-                if (fIn != null) {
-                    fIn.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(SnapshotSZX.class.getName()).log(Level.SEVERE, null, ex);
-            }
         }
 
         return spectrum;
@@ -1008,13 +994,8 @@ public class SnapshotSZX implements SnapshotFile {
         z80 = spectrum.getZ80State();
         memory = spectrum.getMemoryState();
         ay8912 = spectrum.getAY8912State();
-        
-        try {
-            try {
-                fOut = new BufferedOutputStream(new FileOutputStream(filename));
-            } catch (FileNotFoundException ex) {
-                throw new SnapshotException("OPEN_FILE_ERROR", ex);
-            }
+
+        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename))) {
 
             // SZX Header
             String blockID = "ZXST";
@@ -1247,9 +1228,9 @@ public class SnapshotSZX implements SnapshotFile {
                 } else {
                     fOut.write(ZXSTPALETTE_DISABLED);
                 }
-                
+
                 fOut.write(spectrum.getPaletteGroup());
-                
+
                 int[] palette = spectrum.getULAPlusPalette();
                 for (int color = 0; color < 64; color++) {
                     fOut.write(palette[color]);
@@ -1348,10 +1329,10 @@ public class SnapshotSZX implements SnapshotFile {
             if (!tapeLinked && tapeEmbedded) {
                 blockID = "TAPE";
                 fOut.write(blockID.getBytes("US-ASCII"));
-                File tapeFile = new File(tapeName);
-                fIn = new BufferedInputStream(new FileInputStream(tapeFile));
-                tapeData = new byte[fIn.available()];
-                fIn.read(tapeData);
+                try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(tapeName))) {
+                    tapeData = new byte[fIn.available()];
+                    fIn.read(tapeData);
+                }
                 baos = new ByteArrayOutputStream();
                 dos = new DeflaterOutputStream(baos);
                 dos.write(tapeData, 0, tapeData.length);
@@ -1409,7 +1390,7 @@ public class SnapshotSZX implements SnapshotFile {
                 byte reserved[] = new byte[38]; // 35 reserved + wRomSize + chRomData[1]
                 fOut.write(reserved);
             }
-            
+
             // LEC RAM Extension Block
             if (spectrum.isConnectedLec() && spectrum.getSpectrumModel() == MachineTypes.SPECTRUM48K) {
                 blockID = "LEC\0";
@@ -1418,11 +1399,11 @@ public class SnapshotSZX implements SnapshotFile {
                 fOut.write(0x00);
                 fOut.write(0x00);
                 fOut.write(0x00); // LEC block size (2 bytes)
-                
+
                 fOut.write(memory.getPortFD()); // active page
-                
+
                 fOut.write(0x10); // 16 Ram pages
-                
+
                 // LEC RAM Pages (0 to 15)
                 blockID = "LCRP";
                 for (int page = 0; page < 16; page++) {
@@ -1449,16 +1430,8 @@ public class SnapshotSZX implements SnapshotFile {
             }
         } catch (IOException ex) {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
-        } finally {
-            try {
-                if (fOut != null) {
-                    fOut.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(SnapshotSZX.class.getName()).log(Level.SEVERE, null, ex);
-                return false;
-            }
         }
+
         return true;
     }
 }

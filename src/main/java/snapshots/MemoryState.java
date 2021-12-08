@@ -9,37 +9,37 @@ package snapshots;
  * @author jsanchez
  */
 public class MemoryState {
-    private byte ram[][] = new byte[8][];
+    private final byte ram[][] = new byte[8][];
     private byte IF2Rom[];
     private byte mfRam[];
-    private byte lecRam[][] = new byte[16][];
+    private final byte lecRam[][] = new byte[16][];
     private int portFD;
     private boolean IF1RomPaged, IF2RomPaged;
     private boolean multifacePaged, multifaceLocked, mf128on48k;
-    
+
     public MemoryState () {
     }
-    
+
     public byte[] getPageRam(int page) {
         return ram[page];
     }
-    
+
     public void setPageRam(int page, byte[] memory) {
         ram[page] = memory;
     }
-    
+
     public byte[] getIF2Rom() {
         return IF2Rom;
     }
-    
+
     public void setIF2Rom(byte[] memory) {
         IF2Rom = memory;
     }
-    
+
     public byte[] getMultifaceRam() {
         return mfRam;
     }
-    
+
     public void setMultifaceRam(byte[] memory) {
         mfRam = memory;
     }
@@ -113,7 +113,7 @@ public class MemoryState {
     public void setIF1RomPaged(boolean IF1RomPaged) {
         this.IF1RomPaged = IF1RomPaged;
     }
-    
+
     // método de conveniencia para los snapshots Z80
     public byte readByte(int page, int address) {
             return ram[page][address];
@@ -139,15 +139,15 @@ public class MemoryState {
     public boolean isLecPaged() {
         return (portFD & 0x80) != 0;
     }
-    
+
     public byte[] getLecPageRam(int page) {
         if (lecRam[page] == null) {
             return null;
         }
-        
+
         return lecRam[page];
     }
-    
+
     public void setLecPageRam(int page, byte[] ram) {
         lecRam[page] = ram;
     }

@@ -11,7 +11,6 @@ import z80core.Z80.IntMode;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -19,21 +18,15 @@ import java.io.IOException;
  * @author jsanchez
  */
 public class SnapshotSP implements SnapshotFile {
-    private BufferedInputStream fIn;
     private SpectrumState spectrum;
     private Z80State z80;
     private MemoryState memory;
-    
+
     @Override
     public SpectrumState load(File filename) throws SnapshotException {
         spectrum = new SpectrumState();
-        
-        try {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
-            } catch (FileNotFoundException ex) {
-                throw new SnapshotException("OPEN_FILE_ERROR", ex);
-            }
+
+        try (BufferedInputStream  fIn = new BufferedInputStream(new FileInputStream(filename))){
 
             int spLen = fIn.available();
             switch (spLen) {
@@ -106,7 +99,7 @@ public class SnapshotSP implements SnapshotFile {
 
             memory = new MemoryState();
             spectrum.setMemoryState(memory);
-            
+
             byte[] buffer = new byte[0x4000];
 
             // Cargamos la página de la pantalla 0x4000-0x7FFF (5)
@@ -151,15 +144,8 @@ public class SnapshotSP implements SnapshotFile {
             spectrum.setIssue2(false); // esto no se guarda en los SNA, algo hay que poner...
             spectrum.setJoystick(JoystickModel.NONE); // idem
             spectrum.setTstates(0);
-        } catch (IOException ex) {
-            throw new SnapshotException("FILE_READ_ERROR", ex);
-        } finally {
-            try {
-                if (fIn != null)
-                    fIn.close();
-            } catch (IOException ex) {
-                throw new SnapshotException("FILE_READ_ERROR", ex);
-            }
+        } catch (IOException ioExcpt) {
+            throw new SnapshotException("FILE_READ_ERROR", ioExcpt);
         }
 
         return spectrum;

@@ -25,10 +25,10 @@ public class SpectrumState {
     private int ULAPlusPalette[];
     // Palette group
     private int paletteGroup;
-    
+
     public SpectrumState () {
     }
-    
+
     /**
      * @return the spectrumModel
      */
@@ -252,7 +252,7 @@ public class SpectrumState {
     public void setNumMicrodrives(byte numMicrodrives) {
         if (numMicrodrives < 1 || numMicrodrives > 8)
             numMicrodrives = 8;
-        
+
         this.numMicrodrives = numMicrodrives;
     }
 
@@ -283,7 +283,7 @@ public class SpectrumState {
     public void setPortFE(int portFE) {
         this.portFE = portFE;
     }
-    
+
     /**
      * @return the border colour
      */

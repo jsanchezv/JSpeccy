@@ -12,7 +12,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,14 +23,13 @@ import java.util.logging.Logger;
  * @author jsanchez
  */
 public class SnapshotZ80 implements SnapshotFile {
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
+
     private SpectrumState spectrum;
     private Z80State z80;
     private MemoryState memory;
     private AY8912State ay8912;
-    
-    private int uncompressZ80(byte buffer[], int length) {
+
+    private int uncompressZ80(BufferedInputStream fIn, byte buffer[], int length) {
 //        System.out.println(String.format("Addr: %04X, len = %d", address, length));
         int address = 0;
         try {
@@ -115,13 +113,8 @@ public class SnapshotZ80 implements SnapshotFile {
     @Override
     public SpectrumState load(File filename) throws SnapshotException {
         spectrum = new SpectrumState();
-        
-        try {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
-            } catch (FileNotFoundException ex) {
-                throw new SnapshotException("OPEN_FILE_ERROR", ex);
-            }
+
+        try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
 
             if (fIn.available() < 30) {
                 throw new SnapshotException("FILE_SIZE_ERROR");
@@ -139,7 +132,7 @@ public class SnapshotZ80 implements SnapshotFile {
 
             z80 = new Z80State();
             spectrum.setZ80State(z80);
-            
+
             z80.setRegA(z80Header1[0]);
             z80.setRegF(z80Header1[1]);
             z80.setRegC(z80Header1[2]);
@@ -186,7 +179,7 @@ public class SnapshotZ80 implements SnapshotFile {
             }
 
             spectrum.setIssue2((z80Header1[29] & 0x04) != 0);
-            
+
             switch ((z80Header1[29] & 0xC0)) {
                 case 0: // Cursor/AGF/Protek Joystick
                     spectrum.setJoystick(JoystickModel.CURSOR);
@@ -206,7 +199,7 @@ public class SnapshotZ80 implements SnapshotFile {
 
             memory = new MemoryState();
             spectrum.setMemoryState(memory);
-            
+
             // Si regPC != 0, es un z80 v1.0
             if (z80.getRegPC() != 0) {
                 byte[] pageBuffer = new byte[0x4000];
@@ -247,11 +240,11 @@ public class SnapshotZ80 implements SnapshotFile {
                     if (count != 0x4000) {
                         throw new SnapshotException("FILE_READ_ERROR");
                     }
-                    
+
                     memory.setPageRam(0, pageBuffer);
                 } else {
                     byte buffer[] = new byte[0xC000];
-                    int len = uncompressZ80(buffer, buffer.length);
+                    int len = uncompressZ80(fIn, buffer, buffer.length);
                     if (len != 0xC000 || fIn.available() != 4) {
                         throw new SnapshotException("FILE_READ_ERROR");
                     }
@@ -405,18 +398,18 @@ public class SnapshotZ80 implements SnapshotFile {
                 }
 
                 spectrum.setPort7ffd(z80Header2[3]);
-                
+
                 spectrum.setEnabledAY(true);
                 if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUM48K) {
                     spectrum.setEnabledAYon48k((z80Header2[5] & 0x04) != 0);
                     spectrum.setEnabledAY(spectrum.isEnabledAYon48k());
                 }
-                
+
                 spectrum.setEnabledAYon48k((z80Header2[5] & 0x04) != 0);
-                
+
                 ay8912 = new AY8912State();
                 spectrum.setAY8912State(ay8912);
-                
+
                 ay8912.setAddressLatch(z80Header2[6]);
                 int regAY[] = new int[16];
                 for (int idx = 0; idx < 16; idx++) {
@@ -462,7 +455,7 @@ public class SnapshotZ80 implements SnapshotFile {
 
                         memory.setPageRam(ramPage, buffer);
                     } else {
-                        int len = uncompressZ80(buffer, 0x4000);
+                        int len = uncompressZ80(fIn, buffer, 0x4000);
                         if (len != 0x4000) {
                             throw new SnapshotException("FILE_READ_ERROR");
                         }
@@ -475,13 +468,6 @@ public class SnapshotZ80 implements SnapshotFile {
 
         } catch (IOException ex) {
             throw new SnapshotException("FILE_READ_ERROR", ex);
-        } finally {
-            try {
-                if (fIn != null)
-                    fIn.close();
-            } catch (IOException ex) {
-                throw new SnapshotException("FILE_READ_ERROR", ex);
-            }
         }
 
         return spectrum;
@@ -495,12 +481,7 @@ public class SnapshotZ80 implements SnapshotFile {
         memory = spectrum.getMemoryState();
         ay8912 = spectrum.getAY8912State();
 
-        try {
-            try {
-                fOut = new BufferedOutputStream(new FileOutputStream(filename));
-            } catch (FileNotFoundException ex) {
-                throw new SnapshotException("OPEN_FILE_ERROR", ex);
-            }
+        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename))) {
 
             byte z80HeaderV3[] = new byte[87];
             z80HeaderV3[0] = (byte) z80.getRegA();
@@ -539,7 +520,7 @@ public class SnapshotZ80 implements SnapshotFile {
             if (spectrum.isIssue2()) {
                 z80HeaderV3[29] |= 0x04;
             }
-            
+
             switch (spectrum.getJoystick()) {
                 case NONE:
                 case CURSOR:
@@ -657,13 +638,6 @@ public class SnapshotZ80 implements SnapshotFile {
 
         } catch (IOException ex) {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
-        } finally {
-            try {
-                if (fOut != null)
-                    fOut.close();
-            } catch (IOException ex) {
-                Logger.getLogger(SnapshotZ80.class.getName()).log(Level.SEVERE, null, ex);
-            }
         }
 
         return true;
