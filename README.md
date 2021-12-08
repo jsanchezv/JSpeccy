@@ -42,7 +42,7 @@ To scan the source code for potential programming issues run the following comma
 
 ### How to Use
 
-To run JSpeccy you need to have Java 8 onwards installed. Run with:
+To run JSpeccy you need to have Java 11 onwards installed. Run with:
 
     ./target/JSpeccy.jar
 
@@ -58,6 +58,6 @@ The OpenGL backend solution can be problematic when a good OpenGL driver is not 
 
     java -Dsun.java2d.xrender=false -jar ./target/JSpeccy.jar
 
-Please note that the XRender redraw bug is still present in Java 16, so you need still need to the solution described above.
+Please note that the XRender redraw bug is still present in Java 17, so you need still need to the solution described above.
 
 Web: [JSpeccy](http://jspeccy.speccy.org) (only in Spanish, I'm sorry)
