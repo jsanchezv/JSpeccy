@@ -15,10 +15,10 @@
  * es el "Lone Wolf 3", pero da la impresión de que la rutina de carga reiniciable
  * que usa es muy sensible y suele dar problemas en todos los emuladores que he
  * probado. Con un poco de paciencia, acaba por cargar. :)
- * 
+ *
  * 08/04/2012 Añadido el soporte de bloques CALL y RETURN en los TZX. Solo hay un
  * programa que lo necesita (que yo sepa), el Hollywood Poker que está en tzxvault.
- * 
+ *
  */
 package utilities;
 
@@ -192,9 +192,9 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     private void fireTapeStateChanged(final TapeState state) {
-        for (final TapeStateListener listener : stateListeners) {
+        stateListeners.forEach(listener -> {
             listener.stateChanged(state);
-        }
+        });
     }
 
     /**
@@ -237,9 +237,9 @@ public class Tape implements machine.ClockTimeoutListener {
     }
 
     private void fireTapeBlockChanged(final int block) {
-        for (final TapeBlockListener listener : blockListeners) {
+        blockListeners.forEach(listener -> {
             listener.blockChanged(block);
-        }
+        });
     }
 
     public void setSpectrumModel(MachineTypes model) {
@@ -1293,9 +1293,9 @@ public class Tape implements machine.ClockTimeoutListener {
 //                case GDB_PULSE_SYNC:
 //                    if (numPulses < npp) {
 //                        if (numPulses == 0) {
-//                            
+//
 //                        }
-//                        leaderLenght = 
+//                        leaderLenght =
 //                        leaderPulses =
 //                    }
 //                    if (leaderPulses-- > 0) {
@@ -1437,7 +1437,7 @@ public class Tape implements machine.ClockTimeoutListener {
 //                        statePlay = State.GDB_PULSE_SYNC;
 //                        ptrDataStream = ptrSymbol + (2 * npp + 1) * asp;
 //                        numPulses = 0;
-//                        leaderLenght = 
+//                        leaderLenght =
 //                        leaderPulses =
 //                    } else {
 //                        statePlay = State.GDB_DATA;

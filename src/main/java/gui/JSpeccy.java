@@ -23,7 +23,6 @@ import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeStateListener;
 
-import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
@@ -32,7 +31,10 @@ import jakarta.xml.bind.JAXB;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -49,6 +51,16 @@ import java.io.Writer;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  *
@@ -80,7 +92,7 @@ public class JSpeccy extends javax.swing.JFrame {
     Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
     Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
     Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
-    
+
     private final TransferHandler handler = new TransferHandler() {
         @Override
         public boolean canImport(TransferHandler.TransferSupport support) {
@@ -119,7 +131,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (list.size() != 1) {
                     return false;
                 }
-            
+
                 for (File file : list) {
                     if (file.isDirectory())
                         return false;
@@ -165,7 +177,7 @@ public class JSpeccy extends javax.swing.JFrame {
                             startEmulation();
                         }
                     }
-                   
+
                     if (tapeExtension.accept(file)) {
                         // when a IF2 ROM is loaded, is needed to extract this rom to allow
                         // autoLoadTape work correctly.
@@ -195,7 +207,7 @@ public class JSpeccy extends javax.swing.JFrame {
                                     bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                         }
                     }
-                    
+
                     if (romExtension.accept(file)) {
                         if (tape.isTapeRunning()) {
                             tape.stop();
@@ -216,11 +228,11 @@ public class JSpeccy extends javax.swing.JFrame {
                             JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_ROM_ERROR"),
                                     bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                         }
-                        
+
                         startEmulation();
                         break;
                     }
-                    
+
                     if (screenExtension.accept(file)) {
                         if (!spectrum.loadScreen(file)) {
                             ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
@@ -230,7 +242,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         spectrum.invalidateScreen(true);
                         break;
                     }
-                    
+
                     if (file.getName().toLowerCase().endsWith(".bin")) {
                         if (loadSaveMemoryDialog == null) {
                             loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
@@ -302,7 +314,7 @@ public class JSpeccy extends javax.swing.JFrame {
         initComponents();
         setTransferHandler(handler);
         initEmulator();
-        
+
         if (clo != null) {
             if (clo.isIf1() && clo.getIf1mdv() != null) {
                 spectrum.getInterface1().insertFile(0, clo.getIf1mdv());
@@ -395,7 +407,7 @@ public class JSpeccy extends javax.swing.JFrame {
             // if enough arguments are given.
 //            if( clo.getArguments().isEmpty() )
 //                throw new CmdLineException(parser,"No argument is given");
-            
+
             if (clo.isPrintUsage()) {
                 System.err.println(bundle.getString("JSpeccy.usage.sample.text"));
                 System.err.println("");
@@ -404,7 +416,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 return false;
             }
             return true;
-            
+
 //            clo.copyArgumentsToSettings();
 
         } catch( CmdLineException excpt ) {
@@ -455,7 +467,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (input != null) {
                     input.close();
                 }
-                
+
                 if (output != null) {
                     output.close();
                 }
@@ -536,7 +548,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         if (toSave == null)
             return;
-        
+
         toSave.getRecentFilesSettings().getRecentFile().clear();
         for (int idx = 0; idx < recentFilesMgr.size(); idx++) {
             toSave.getRecentFilesSettings().getRecentFile().add(recentFilesMgr.getAbsolutePath(idx));
@@ -592,17 +604,17 @@ public class JSpeccy extends javax.swing.JFrame {
     }
 
     private void initEmulator() {
-        
+
         spectrum = new Spectrum(settings);
 
         spectrum.selectHardwareModel(settings.getSpectrumSettings().getDefaultModel());
-        
+
         spectrum.setJoystick(settings.getKeyboardJoystickSettings().getJoystickModel());
-        
+
         spectrum.setBorderMode(settings.getSpectrumSettings().getBorderSize());
-        
+
         spectrum.loadConfigVars();
-        
+
         tape = new Tape(settings.getTapeSettings());
         spectrum.setTape(tape);
         jscr = new JSpeccyScreen();
@@ -618,14 +630,14 @@ public class JSpeccy extends javax.swing.JFrame {
                 tape.setSelectedBlock(lsm.getLeadSelectionIndex());
             }
         });
-        
+
         tape.addTapeChangedListener(new TapeChangedListener());
         tape.addTapeBlockListener((int block) -> {
             lsm.setSelectionInterval(block, block);
         });
-        
+
         spectrum.getInterface1().addInterface1DriveListener(new Interface1DriveListener() {
-            
+
             @Override
             public void driveSelected(int unit) {
                 if (unit == 0) {
@@ -659,7 +671,7 @@ public class JSpeccy extends javax.swing.JFrame {
             zoom = 2;
             settings.getSpectrumSettings().setZoom(zoom);
         }
-        
+
         if (settings.getSpectrumSettings().isZoomed()) {
             jscr.setZoom(zoom);
             doubleSizeOption.setSelected(true);
@@ -675,7 +687,7 @@ public class JSpeccy extends javax.swing.JFrame {
         recentFilesMgr = new RecentFilesMgr(settings.getRecentFilesSettings(), recentFilesMenu);
 
         settingsDialog = new SettingsDialog(settings);
-        
+
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         allSnapTapeExtension = new FileNameExtensionFilter(
                 bundle.getString("SNAPSHOT_TAPE_TYPE"),
@@ -694,7 +706,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 bundle.getString("SCR_TYPE"), "scr");
         romExtension  = new FileNameExtensionFilter(
                 bundle.getString("ROM_TYPE"), "rom");
-        
+
         if (settings.getSpectrumSettings().isHibernateMode()) {
             File autoload = new File(System.getProperty("user.home") + "/JSpeccy.szx");
             if (autoload.exists()) {
@@ -755,13 +767,13 @@ public class JSpeccy extends javax.swing.JFrame {
 
         new Thread(spectrum, "SpectrumThread").start();
     }
-    
+
     private void exitEmulator() {
         String msg;
         int dialogType;
-        
+
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-        
+
         stopEmulation();
         if (spectrum.getInterface1().hasDirtyCartridges()) {
             msg = bundle.getString("DIRTY_CARTRIDGES_WARNING");
@@ -770,7 +782,7 @@ public class JSpeccy extends javax.swing.JFrame {
             msg = bundle.getString("ARE_YOU_SURE_QUESTION");
             dialogType = JOptionPane.QUESTION_MESSAGE;
         }
-        
+
         if (settings.getEmulatorSettings().isConfirmActions()
                 || dialogType == JOptionPane.WARNING_MESSAGE) {
             int ret = JOptionPane.showConfirmDialog(getContentPane(), msg,
@@ -809,9 +821,9 @@ public class JSpeccy extends javax.swing.JFrame {
         dispose();
         System.exit(0);
     }
-    
+
     private void updateGuiSelections() {
-        
+
         if (spectrum.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUMPLUS3) {
             if (settings.getInterface1Settings().isConnectedIF1()) {
                 IF1MediaMenu.setEnabled(true);
@@ -824,7 +836,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 mdrvLabel.setEnabled(false);
                 mdrvLabel.setToolTipText(null);
             }
-            
+
             IF2MediaMenu.setEnabled(true);
             insertIF2RomMediaMenu.setEnabled(!spectrum.isIF2RomInserted());
             extractIF2RomMediaMenu.setEnabled(spectrum.isIF2RomInserted());
@@ -857,7 +869,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 IF2MediaMenu.setEnabled(false);
                 break;
         }
-        
+
         modelLabel.setToolTipText(spectrum.getSpectrumModel().getLongModelName());
         modelLabel.setText(spectrum.getSpectrumModel().getShortModelName());
 
@@ -880,7 +892,7 @@ public class JSpeccy extends javax.swing.JFrame {
             default:
                 noneJoystick.setSelected(true);
         }
-        
+
         if (settings.getSpectrumSettings().isULAplus()) {
             if (jscr.isPalFilter()) {
                 noneFilter.setSelected(true);
@@ -893,7 +905,7 @@ public class JSpeccy extends javax.swing.JFrame {
         } else {
             palTvFilter.setEnabled(true);
         }
-        
+
         switch(jscr.getBorderMode()) {
             case 0:
                 noBorder.setSelected(true);
@@ -908,7 +920,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 standardBorder.setSelected(true);
         }
     }
-    
+
     private void startEmulation() {
 
         if (pauseToggleButton.isSelected()) {
@@ -919,7 +931,7 @@ public class JSpeccy extends javax.swing.JFrame {
         updateGuiSelections();
         spectrum.startEmulation();
     }
-    
+
     private void stopEmulation() {
 
         if (spectrum.isPaused()) {
@@ -933,8 +945,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         updateGuiSelections();
     }
-    
-    
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -2210,13 +2221,13 @@ public class JSpeccy extends javax.swing.JFrame {
             doubleSizeOption.setSelected(doubleSizeToggleButton.isSelected());
 
         settings.getSpectrumSettings().setZoomed(doubleSizeOption.isSelected());
-        
+
         if (settings.getSpectrumSettings().isZoomed()) {
             jscr.setZoom(settings.getSpectrumSettings().getZoom());
         } else {
             jscr.setZoom(1);
         }
-        
+
         spectrum.invalidateScreen(true);
         pack();
     }//GEN-LAST:event_doubleSizeOptionActionPerformed
@@ -2329,7 +2340,7 @@ public class JSpeccy extends javax.swing.JFrame {
             bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
             JOptionPane.INFORMATION_MESSAGE,
             new javax.swing.ImageIcon(getClass().getResource("/icons/JSpeccy64x64.png")));
-        
+
         startEmulation();
     }//GEN-LAST:event_aboutHelpMenuActionPerformed
 
@@ -2453,11 +2464,11 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
 
         stopEmulation();
-        
+
         spectrum.selectHardwareModel(MachineTypes.SPECTRUM128K);
 
         spectrum.reset();
-        
+
         startEmulation();
     }//GEN-LAST:event_spec128kHardwareActionPerformed
 
@@ -2488,7 +2499,6 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.reset();
 
         startEmulation();
-        
     }//GEN-LAST:event_specPlus2HardwareActionPerformed
 
     private void specPlus2AHardwareActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_specPlus2AHardwareActionPerformed
@@ -2835,7 +2845,7 @@ public class JSpeccy extends javax.swing.JFrame {
             } else {
                 tape.eject();
                 currentFileTape = fdopen;
-                
+
                 if (!tape.insert(currentFileTape)) {
                     JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                         bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
@@ -2943,7 +2953,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         startEmulation();
     }//GEN-LAST:event_loadScreenShotActionPerformed
-    
+
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         exitEmulator();
     }//GEN-LAST:event_formWindowClosing
@@ -2952,7 +2962,7 @@ public class JSpeccy extends javax.swing.JFrame {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         if (microdriveDialog == null)
             microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
-        
+
         microdriveDialog.showDialog(this, bundle.getString("MICRODRIVES_DIALOG_TITLE"));
     }//GEN-LAST:event_microdrivesIF1MediaMenuActionPerformed
 
@@ -2992,7 +3002,7 @@ public class JSpeccy extends javax.swing.JFrame {
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         if (memoryBrowserDialog == null)
             memoryBrowserDialog = new MemoryBrowserDialog(spectrum.getMemory());
-        
+
         memoryBrowserDialog.showDialog(this, bundle.getString("MEMORY_BROWSER_DIALOG_TITLE"));
     }//GEN-LAST:event_memoryBrowserMachineMenuActionPerformed
 
@@ -3026,7 +3036,7 @@ public class JSpeccy extends javax.swing.JFrame {
         int address = snmAddress.getNumber().intValue() & 0xffff;
         spectrum.getMemory().writeByte(address, snmValue.getNumber().byteValue());
         pokeButton.setEnabled(false);
-        
+
         if (spectrum.getMemory().isScreenByte(address))
             spectrum.invalidateScreen(false);
     }//GEN-LAST:event_pokeButtonActionPerformed
@@ -3038,7 +3048,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void loadMemorySnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadMemorySnapshotActionPerformed
         if (memorySnapshot == null)
             return;
-        
+
         stopEmulation();
         spectrum.setSpectrumState(memorySnapshot);
         startEmulation();
@@ -3052,7 +3062,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void loadBinaryFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadBinaryFileActionPerformed
         if (loadSaveMemoryDialog == null)
             loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
-        
+
         stopEmulation();
         loadSaveMemoryDialog.showLoadDialog(this, null);
         // The display area may have been affected
@@ -3062,7 +3072,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void saveBinaryFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveBinaryFileActionPerformed
         if (loadSaveMemoryDialog == null)
             loadSaveMemoryDialog = new LoadSaveMemoryDialog(spectrum.getMemory());
-        
+
         stopEmulation();
         loadSaveMemoryDialog.showSaveDialog(this);
         startEmulation();
@@ -3116,7 +3126,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (jscr.getBorderMode() == 0) {
             return;
         }
-        
+
         stopEmulation();
         spectrum.setBorderMode(0);
         jscr.setBorderMode(0);
@@ -3129,7 +3139,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (jscr.getBorderMode() == 1) {
             return;
         }
-        
+
         stopEmulation();
         spectrum.setBorderMode(1);
         jscr.setBorderMode(1);
@@ -3142,7 +3152,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (jscr.getBorderMode() == 3) {
             return;
         }
-        
+
         stopEmulation();
         spectrum.setBorderMode(3);
         jscr.setBorderMode(3);
@@ -3155,7 +3165,7 @@ public class JSpeccy extends javax.swing.JFrame {
         if (jscr.getBorderMode() == 2) {
             return;
         }
-        
+
         stopEmulation();
         spectrum.setBorderMode(2);
         jscr.setBorderMode(2);
@@ -3181,11 +3191,11 @@ public class JSpeccy extends javax.swing.JFrame {
             ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
             if (microdriveDialog == null)
                 microdriveDialog = new MicrodriveDialog(spectrum.getInterface1());
-        
+
             microdriveDialog.showDialog(this, bundle.getString("MICRODRIVES_DIALOG_TITLE"));
         }
     }//GEN-LAST:event_mdrvLabelMouseClicked
-    
+
     /**
      * @param args the command line arguments
      */
@@ -3194,7 +3204,7 @@ public class JSpeccy extends javax.swing.JFrame {
             new JSpeccy(args).setVisible(true);
         });
     }
-    
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenu IF1MediaMenu;
     private javax.swing.JMenu IF2MediaMenu;
@@ -3350,7 +3360,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.ButtonGroup zoomMethodButtonGroup;
     private javax.swing.JMenu zoomMethodOptionMenu;
     // End of variables declaration//GEN-END:variables
-    
+
     private class TapeChangedListener implements TapeStateListener {
 
         @Override

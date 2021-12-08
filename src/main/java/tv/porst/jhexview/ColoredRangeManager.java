@@ -5,7 +5,7 @@ import java.util.Collections;
 
 public final class ColoredRangeManager {
 
-	private final ArrayList<ColoredRange> ranges = new ArrayList<ColoredRange>();
+	private final ArrayList<ColoredRange> ranges = new ArrayList<>();
 
 	public void addRange(final ColoredRange range) {
 		ranges.add(range);

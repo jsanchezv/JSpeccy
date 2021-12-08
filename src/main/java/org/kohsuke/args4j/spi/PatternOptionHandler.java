@@ -40,5 +40,5 @@ public class PatternOptionHandler extends OptionHandler<Pattern> {
 	public String getDefaultMetaVariable() {
             return Messages.DEFAULT_META_PATTERN_OPTION_HANDLER.format();
 	}
-	
+
 }

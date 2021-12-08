@@ -10,14 +10,20 @@
  */
 package gui;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Frame;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import machine.MachineTypes;
 import machine.Memory;
 import tv.porst.jhexview.IHexViewListener;
 import tv.porst.jhexview.JHexView;
 import tv.porst.jhexview.JHexView.DefinitionStatus;
 
-import javax.swing.*;
-import java.awt.*;
 
 /**
  *
@@ -80,7 +86,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                     });
             }
         }
-        
+
         memoryBrowserDialog.setTitle(title);
         memoryBrowserDialog.setVisible(true);
         return true;
@@ -254,13 +260,9 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         hexView.setData(memory.getMemoryDataProvider());
         hexView.setDefinitionStatus(DefinitionStatus.DEFINED);
         if (markPrintableCharacters.isSelected()) {
-            SwingUtilities.invokeLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            markPrintableCharacters();
-                        }
-                    });
+            SwingUtilities.invokeLater(() -> {
+                markPrintableCharacters();
+            });
         }
     }//GEN-LAST:event_memoryComboBoxActionPerformed
 
@@ -310,7 +312,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
 
     private void markPrintableCharacters() {
         hexView.uncolorizeAll(0);
-        
+
         int end, page;
         if (memoryComboBox.getSelectedIndex() == 0) {
             end = 0x10000;
@@ -319,7 +321,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             end = 0x4000;
             page = memoryComboBox.getSelectedIndex() - 1;
         }
-        
+
         int value;
         for (int address = 0, start = 0, length = 0; address < end; address++) {
             if (page > 7) {
@@ -327,7 +329,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             } else {
                 value = memory.readByte(page, address) & 0xff;
             }
-            
+
             if (value < ' ' || value > '~') {
                 if (length > 0) {
                     hexView.colorize(0, start, length, Color.YELLOW, Color.BLUE);
@@ -340,7 +342,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
             }
         }
     }
-    
+
     private class SelectionChangedListener implements IHexViewListener {
 
         @Override
@@ -363,7 +365,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
                     });
                 }
             }
-            
+
             if (length == 1) {
                 int address = (int) (start / 2) & 0xffff;
                 int value;

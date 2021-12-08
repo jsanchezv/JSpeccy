@@ -9,15 +9,14 @@ import java.lang.reflect.Method;
  * Starter class which uses reflection to instantiate the business
  * class, parse the command line parameters, sets the fields of the
  * business class and doing the help message handling.
- *  
+ *
  * @author Jan Materne
  */
 public class Starter {
-	
 	/**
 	 * The name of the JavaVM property which stores the class name of
 	 * the business class.
-	 * {@value} 
+	 * {@value}
 	 */
 	public static final String PARAMETER_NAME = "mainclass";
 
@@ -26,26 +25,26 @@ public class Starter {
 		CmdLineParser parser = null;
 		boolean classHasArgument = false;
 		boolean classHasOptions  = false;
-		
+
 		// Check the requirement: must specify the class to start
 		if (classname == null || "".equals(classname)) {
-			System.err.println("The system property '" 
+			System.err.println("The system property '"
 					+ PARAMETER_NAME
 					+ "' must contain the classname to start.");
 			System.exit(-1);
 		}
-		
+
 		try {
 			Class clazz = Class.forName(classname);
-			Object bean = clazz.newInstance();
+			Object bean = clazz.getDeclaredConstructor().newInstance((Object) args);
 			parser = new CmdLineParser(bean);
-			
+
 			// for help output
 			classHasArgument = hasAnnotation(clazz, Argument.class);
 			classHasOptions  = hasAnnotation(clazz, Option.class);
-			
+
 			parser.parseArgument(args);
-			
+
 			// try starting   run()
 			Method m;
 			boolean couldInvoke = false;
@@ -53,24 +52,17 @@ public class Starter {
 				m = clazz.getMethod("run", (Class[]) null);
 				m.invoke(bean, (Object[]) null);
 				couldInvoke = true;
-			} catch (SecurityException e) {
-			} catch (IllegalArgumentException e) {
-			} catch (NoSuchMethodException e) {
-			} catch (IllegalAccessException e) {
-			} catch (InvocationTargetException e) {
+			} catch (SecurityException | IllegalArgumentException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
 			}
 
 			// try starting   run(String[])
 			if (!couldInvoke) try {
-				m = clazz.getMethod("run", String[].class);		
+				m = clazz.getMethod("run", String[].class);
 				m.invoke(bean, new Object[]{args});
 				couldInvoke = true;
-			} catch (SecurityException e) {
+			} catch (SecurityException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
-			} catch (NoSuchMethodException e) {
-			} catch (IllegalAccessException e) {
-			} catch (InvocationTargetException e) {
 			}
 		} catch (ClassNotFoundException e) {
 			// wrong classpath setting
@@ -105,5 +97,5 @@ public class Starter {
 		}
 		return false;
 	}
-	
+
 }

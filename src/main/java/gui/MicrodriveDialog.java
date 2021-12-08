@@ -10,19 +10,23 @@
  */
 package gui;
 
+import java.awt.Component;
+import java.awt.Frame;
 import machine.Interface1;
 import machine.Interface1DriveListener;
 
-import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.AbstractTableModel;
-import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.io.File;
 import java.util.ResourceBundle;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.AbstractTableModel;
 
 /**
  *
@@ -52,9 +56,9 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                 microdrivesTable.setToolTipText(if1.getAbsolutePath(row));
             }
         });
-        
+
         if1.addInterface1DriveListener(new Interface1DriveListener() {
-            
+
             @Override
             public void driveSelected(final int drive) {
                 // Nothing to do
@@ -68,11 +72,11 @@ public class MicrodriveDialog extends javax.swing.JPanel {
             }
 
         });
-        
+
         microdrivesTable.getColumnModel().getColumn(0).setPreferredWidth(25);
         microdrivesTable.getColumnModel().getColumn(2).setPreferredWidth(25);
         microdrivesTable.getColumnModel().getColumn(3).setPreferredWidth(25);
-        
+
         ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         mdrExtension = new FileNameExtensionFilter(
                 bundle.getString("CARTRIDGE_MDRV_TYPE"), "mdr", "mdv");
@@ -230,7 +234,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private void openCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openCartridgeActionPerformed
 
         int row = microdrivesTable.getSelectedRow();
-        
+
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             currentDir = cartridgeDlg.getCurrentDirectory();
@@ -257,7 +261,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private void ejectCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ejectCartridgeActionPerformed
 
         int row = microdrivesTable.getSelectedRow();
-        
+
         if (if1.isModified(row)) {
             ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
             int ret = JOptionPane.showConfirmDialog(microdriveDialog.getContentPane(),
@@ -267,7 +271,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
                 return;
             }
         }
-        
+
         if1.eject(row);
         tableModel.fireTableRowsUpdated(row, row);
     }//GEN-LAST:event_ejectCartridgeActionPerformed
@@ -275,14 +279,14 @@ public class MicrodriveDialog extends javax.swing.JPanel {
     private void saveCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveCartridgeActionPerformed
 
         int row = microdrivesTable.getSelectedRow();
-        
+
         if1.save(row);
         tableModel.fireTableRowsUpdated(row, row);
     }//GEN-LAST:event_saveCartridgeActionPerformed
 
     private void saveAsCartridgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveAsCartridgeActionPerformed
         int row = microdrivesTable.getSelectedRow();
-        
+
         if (cartridgeDlg == null) {
             cartridgeDlg = new JFileChooser("/home/jsanchez/Spectrum");
             cartridgeDlg.addChoosableFileFilter(mdrExtension);

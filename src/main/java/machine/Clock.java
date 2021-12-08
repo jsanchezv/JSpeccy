@@ -63,7 +63,7 @@ public class Clock {
         if (!clockListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
         }
-        
+
         // When don't have listeners, disable any pending timeout
         if (clockListeners.isEmpty()) {
             timeout = 0;
@@ -107,7 +107,7 @@ public class Clock {
                 clockListeners.forEach((listener) -> {
                     listener.clockTimeout();
                 });
-                
+
                 if (timeout > 0) {
 //                    System.out.println("Timeout: " + timeout + " res: " + res);
                     timeout += res;
@@ -139,7 +139,7 @@ public class Clock {
         }
 
         timeout = ntstates > 10 ? ntstates : 10;
-    } 
+    }
 
     @Override
     public String toString() {

@@ -429,7 +429,7 @@ public final class AY8912 {
 
 //                System.out.println(String.format("< stepCounter = %f, percent = %f, volumeA = %f, lastA = %f",
 //                    stepCounter, percent, volumeA + lastA, lastA));
-                
+
                 stepCounter -= step;
                 bufA[pbuf] = (int) ((volumeA + lastA) / stepRate);
                 bufB[pbuf] = (int) ((volumeB + lastB) / stepRate);

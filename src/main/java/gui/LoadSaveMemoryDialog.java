@@ -10,13 +10,13 @@
  */
 package gui;
 
+import java.awt.Component;
 import machine.MachineTypes;
 import machine.Memory;
 
-import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
 import java.awt.Dialog.ModalityType;
+import java.awt.Frame;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -27,6 +27,11 @@ import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -83,7 +88,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
             if (!saveDialog) {
                 sizeSpinner.setModel(new javax.swing.SpinnerNumberModel(filename.length(), 0, filename.length(), 1));
             }
-            
+
             rangeCombobox.setSelectedIndex(0);
             rangeCombobox.setEnabled(memory.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K);
             loadSaveButton.setEnabled(true);
@@ -245,14 +250,14 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
             fileDlg.addChoosableFileFilter(binExtension);
             fileDlg.setFileFilter(binExtension);
         }
-        
+
         int status;
         if (saveDialog) {
             status = fileDlg.showSaveDialog(this);
         } else {
             status = fileDlg.showOpenDialog(this);
         }
-        
+
         if (status == JFileChooser.APPROVE_OPTION) {
             if (binExtension.accept(fileDlg.getSelectedFile())) {
                 filename = fileDlg.getSelectedFile();
@@ -260,14 +265,14 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
                 String saveName = fileDlg.getSelectedFile().getAbsolutePath() + ".bin";
                 filename = new File(saveName);
             }
-            
+
             fileChoosedLabel.setText(filename.getName());
             addressSpinner.setEnabled(true);
             sizeSpinner.setEnabled(true);
             if (!saveDialog) {
                 sizeSpinner.setModel(new javax.swing.SpinnerNumberModel(filename.length(), 0, filename.length(), 1));
             }
-            
+
             rangeCombobox.setSelectedIndex(0);
             rangeCombobox.setEnabled(memory.getSpectrumModel().codeModel != MachineTypes.CodeModel.SPECTRUM48K);
             loadSaveButton.setEnabled(true);
@@ -289,14 +294,14 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
 
         if (size == 0)
             return;
-        
+
         if (start + size > maxSize) {
             error = String.format(bundle.getString("SIZE_BINARY_ERROR"), maxSize);
             JOptionPane.showMessageDialog(this, error,
                     bundle.getString("SIZE_BINARY_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         if (saveDialog) {
             BufferedOutputStream fOut = null;
             try {
@@ -328,7 +333,6 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
                     Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            return;
         } else {
             BufferedInputStream fIn = null;
             try {

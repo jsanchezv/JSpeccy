@@ -12,13 +12,13 @@ public class CmdLineException extends Exception {
 	private static final long serialVersionUID = -8574071211991372980L;
 
     private CmdLineParser parser = null;
-    
-    /** 
+
+    /**
      * The optional localized message.
      * @see Throwable#getLocalizedMessage() 
      */
     private String localizedMessage = null;
-    
+
     /**
      * @deprecated
      *      Use {@link #CmdLineException(CmdLineParser, String)}
@@ -42,13 +42,13 @@ public class CmdLineException extends Exception {
     public CmdLineException(Throwable cause) {
         super(cause);
     }
-    
+
     public CmdLineException(CmdLineParser parser, Localizable message, String... args) {
         super(message.formatWithLocale(Locale.ENGLISH, (Object[])args));
         this.localizedMessage = message.format((Object[])args);
         this.parser = parser;
     }
-    
+
     /**
      * @deprecated
      *      Use {@link #CmdLineException(org.kohsuke.args4j.CmdLineParser, Localizable, java.lang.String...) }
@@ -76,13 +76,14 @@ public class CmdLineException extends Exception {
             return getMessage();
         }
     }
-    
+
     /**
      * Obtains the {@link CmdLineParser} that triggered an exception.
      *
      * <p>
      * Unless you have legacy {@link OptionHandler} that doesn't pass in this information
      * when it throws an exception, this method should always return a non-null value.
+     * @return
      */
     public CmdLineParser getParser() {
         return parser;

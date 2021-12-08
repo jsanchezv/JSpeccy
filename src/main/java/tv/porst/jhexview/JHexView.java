@@ -63,7 +63,7 @@ public final class JHexView extends JComponent {
      * List of listeners that are notified if something happens in the
      * hex panel component.
      */
-    private final ArrayList<IHexViewListener> m_listeners = new ArrayList<IHexViewListener>();
+    private final ArrayList<IHexViewListener> m_listeners = new ArrayList<>();
     /**
      * The data set that is displayed in the component.
      */
@@ -1268,9 +1268,9 @@ public final class JHexView extends JComponent {
             scrollToPosition(getSelectionStart());
         }
 
-        for (final IHexViewListener listener : m_listeners) {
+        m_listeners.forEach(listener -> {
             listener.selectionChanged(getSelectionStart(), 1);
-        }
+        });
     }
 
     /**
@@ -1315,9 +1315,9 @@ public final class JHexView extends JComponent {
     private void setSelectionStart(final long selectionStart) {
         m_selectionStart = selectionStart;
 
-        for (final IHexViewListener listener : m_listeners) {
+        m_listeners.forEach(listener -> {
             listener.selectionChanged(m_selectionStart, m_selectionLength);
-        }
+        });
     }
 
     private void updateHexViewWidth() {
@@ -2158,9 +2158,9 @@ public final class JHexView extends JComponent {
 
         m_selectionLength = selectionLength;
 
-        for (final IHexViewListener listener : m_listeners) {
+        m_listeners.forEach(listener -> {
             listener.selectionChanged(m_selectionStart, m_selectionLength);
-        }
+        });
 
         repaint();
     }
@@ -2456,10 +2456,9 @@ public final class JHexView extends JComponent {
                 } else {
 
                     // m_selectionLength = 0 must be notified in case the click position is invalid.
-
-                    for (final IHexViewListener listener : m_listeners) {
+                    m_listeners.forEach(listener -> {
                         listener.selectionChanged(m_selectionStart, m_selectionLength);
-                    }
+                    });
 
                     repaint();
                 }

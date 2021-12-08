@@ -24,7 +24,7 @@ import java.util.ResourceBundle;
  *      The {@code component} type of the field that this {@link OptionHandler} works with.
  *      When I say "component", I mean a field that can hold multiple values
  *      (such as {@link Collection} or array). This should refer to its component time.
- *      
+ *
  *      {@link Setter} implementations abstract away multi-value-ness by allowing {@link OptionHandler}
  *      to invoke its {@link Setter#addValue(Object)} multiple times.
  *
@@ -62,6 +62,7 @@ public abstract class OptionHandler<T> {
      * @return
      *      The number of arguments consumed. (For example, returns {@code 0}
      *      if this option doesn't take any parameters.)
+     * @throws org.kohsuke.args4j.CmdLineException
      */
     public abstract int parseArguments( Parameters params ) throws CmdLineException;
 
@@ -90,11 +91,12 @@ public abstract class OptionHandler<T> {
 
         return token;
     }
-    
+
     /**
      * Get string representing usage for this option, of the form "name metaval",
-     * e.g. "-foo VALUE" or "--foo VALUE"
+     * e.g."-foo VALUE" or "--foo VALUE"
      * @param rb ResourceBundle to get localized version of meta string
+     * @return 
      */
     public final String getNameAndMeta(ResourceBundle rb) {
         return getNameAndMeta(rb, ParserProperties.defaults());
@@ -102,10 +104,11 @@ public abstract class OptionHandler<T> {
 
     /**
      * Get string representing usage for this option, of the form "name metaval" or "name=metaval,
-     * e.g. "--foo VALUE" or "--foo=VALUE"
+     * e.g."--foo VALUE" or "--foo=VALUE"
      * @param rb ResourceBundle to get localized version of meta string
      * @param properties
      *      Affects the formatting behaviours.
+     * @return 
      */
     public final String getNameAndMeta(ResourceBundle rb, ParserProperties properties) {
     	String str = option.isArgument() ? "" : option.toString();
@@ -120,9 +123,10 @@ public abstract class OptionHandler<T> {
     }
 
     /**
-     * The opposite of the parse operation.
+     * The opposite of the parse operation.This method is used to print the usage screen.
      *
-     * This method is used to print the usage screen.
+     * @param v
+     * @return 
      */
     protected String print(T v) {
         return String.valueOf(v);
@@ -140,10 +144,10 @@ public abstract class OptionHandler<T> {
             if (defaultValues != null && !defaultValues.isEmpty()) {
                 StringBuilder buf = new StringBuilder();
                 if (defaultValues.size()>1) {
-                    for (T v : defaultValues) {
+                    defaultValues.forEach(v -> {
                         buf.append( buf.length()==0 ? '[' : ',' );
                         buf.append(print(v));
-                    }
+                    });
                     buf.append(']');
                 } else {
                     buf.append(print(defaultValues.get(0)));

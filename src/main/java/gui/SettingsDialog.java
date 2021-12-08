@@ -13,9 +13,9 @@ package gui;
 
 import configuration.JSpeccySettings;
 
-import javax.swing.*;
 import jakarta.xml.bind.JAXB;
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Frame;
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -23,6 +23,10 @@ import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -52,11 +56,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         enableLoadTraps.setSelected(settings.getTapeSettings().isEnableLoadTraps());
 
         acceleratedLoad.setSelected(settings.getTapeSettings().isAccelerateLoading());
-        
+
         flashLoad.setSelected(settings.getTapeSettings().isFlashLoad());
-        
+
         flashLoad.setEnabled(settings.getTapeSettings().isEnableLoadTraps());
-        
+
         autoLoadTape.setSelected(settings.getTapeSettings().isAutoLoadTape());
 
         ULAplus.setSelected(settings.getSpectrumSettings().isULAplus());
@@ -68,7 +72,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         speed.setValue(settings.getSpectrumSettings().getFramesInt());
 
         zoomCheckbox.setSelected(settings.getSpectrumSettings().isZoomed());
-        
+
         zoomSlider.setValue(settings.getSpectrumSettings().getZoom());
 
         if (settings.getKeyboardJoystickSettings().isIssue2()) {
@@ -77,7 +81,7 @@ public class SettingsDialog extends javax.swing.JPanel {
             issue3.setSelected(true);
 
         mapPCKeys.setSelected(settings.getKeyboardJoystickSettings().isMapPCKeys());
-        
+
         enableSaveTraps.setSelected(settings.getTapeSettings().isEnableSaveTraps());
 
         if (settings.getTapeSettings().isHighSamplingFreq()) {
@@ -106,7 +110,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         } else {
             multifaceOneRadioButton.setSelected(true);
         }
-        
+
         connectedIF1.setSelected(settings.getInterface1Settings().isConnectedIF1());
         numDrivesSpinner.setValue(settings.getInterface1Settings().getMicrodriveUnits());
         cartridgeSizeSpinner.setValue(settings.getInterface1Settings().getCartridgeSize());

@@ -1,7 +1,7 @@
 /*
  *	Audio.java
  *
- *  2009-2013 José Luis Sánchez zx81@ono.com
+ *  2009-2021 José Luis Sánchez jspeccy@gmail.com
  *
  *	This program is free software; you can redistribute it and/or
  *	modify it under the terms of the GNU General Public License
@@ -47,10 +47,10 @@ class Audio {
        settings = ayConf;
        line = null;
     }
-    
+
     synchronized void open(MachineTypes model, AY8912 ay8912, boolean hasAY, int freq) {
         samplingFrequency = freq;
-        
+
         soundMode = settings.getSoundMode();
         if (soundMode < 0 || soundMode > 3)
             soundMode = 0;
@@ -82,7 +82,7 @@ class Audio {
             step = (long)(((double)spectrumModel.tstatesFrame / (double)samplesPerFrame) * 100000.0);
             audiotstates = ptrBeeper = ptrBuf = 0;
             level = lastLevel = 0;
-            
+
             ay8912.setMaxAmplitude(soundMode == 0 ? 10900 : 16350);
             switch (soundMode) {
                 case 2: // Stereo ACB
@@ -94,7 +94,7 @@ class Audio {
                 default: // Stereo ABC or Mono
                     ay8912.setBufferChannels(ayBufA, ayBufB, ayBufC);
             }
-            
+
             if (enabledAY) {
                 ay8912.setAudioFreq(samplingFrequency);
                 ay8912.startPlay();
@@ -172,7 +172,7 @@ class Audio {
             level = 0;
         }
     }
-    
+
     synchronized public void flush() {
         level = lastLevel = ptrBeeper = 0;
         timeRem = 0;
@@ -189,7 +189,7 @@ class Audio {
 
         if (ptrBeeper == 0)
             return;
-                
+
 //        System.out.println(ptrBeeper + ", " + ay.getSampleCount());
 
         if (soundMode == 0) {
@@ -200,11 +200,11 @@ class Audio {
         }
 
         ptrBuf = 0;
-        
+
         if (enabledAY) {
             ay.endFrame();
         }
-        
+
         audiotstates = ptrBeeper = 0;
     }
 

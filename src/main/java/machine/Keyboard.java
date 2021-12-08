@@ -21,7 +21,7 @@ public class Keyboard implements KeyListener {
 
         NONE, KEMPSTON, SINCLAIR1, SINCLAIR2, CURSOR, FULLER
     };
-    
+
     private final int rowKey[] = new int[8];
     private int sjs1, sjs2;
     private boolean shiftPressed, mapPCKeys;
@@ -94,14 +94,14 @@ public class Keyboard implements KeyListener {
     public final JoystickModel getJoystickModel() {
         return joystick1 == null ? joystickModel : shadowJoystick;
     }
-    
+
     public final void setJoystickModel(JoystickModel model) {
         kempston = 0;
         sjs1 = sjs2 = fuller = 0xff;
 
         if (joystick1 != null) {
             shadowJoystick = model;
-            
+
             switch (shadowJoystick) {
                 case SINCLAIR1:
                     joystickModel = joystick2 == null ? JoystickModel.SINCLAIR2 : JoystickModel.NONE;
@@ -117,7 +117,7 @@ public class Keyboard implements KeyListener {
             shadowJoystick = JoystickModel.NONE;
         }
     }
-    
+
     public final void setJoystickModel(int model) {
         switch (model) {
             case 1:
@@ -272,10 +272,10 @@ public class Keyboard implements KeyListener {
             sjs1 &= KEY_PRESSED_BIT0; // Sinclair 2 Fire (0)
         }
     }
-    
+
     private void joystickToSJS2(int state) {
         sjs2 = 0xff;
-        
+
         if (state == 0)
             return;
 
@@ -295,14 +295,14 @@ public class Keyboard implements KeyListener {
             sjs2 &= KEY_PRESSED_BIT4; // Sinclair 1 Fire (5)
         }
     }
-    
+
     private void joystickToCursor() {
         sjs1 = sjs2 = 0xff;
 
         int state = joystick1.getButtonMask();
         if (state == 0)
             return;
-        
+
         if ((state & 0x80) != 0) {
             sjs2 &= KEY_PRESSED_BIT4; // Cursor Left (5)
         }
@@ -394,7 +394,7 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        
+
         if (rzxEnabled) {
             receiveRecreatedZXKeyEvents(evt);
             return;
@@ -418,7 +418,7 @@ public class Keyboard implements KeyListener {
         }
 
         int key = evt.getKeyCode();
-        
+
 //        System.out.println(String.format("Press keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
 
         /*
@@ -446,7 +446,7 @@ public class Keyboard implements KeyListener {
             if (evt.isAltDown() && !evt.isControlDown())
                 return;
         }
-        
+
         switch (key) {
             // Row B - Break/Space
             case KeyEvent.VK_SPACE:
@@ -737,7 +737,7 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        
+
         if (rzxEnabled) {
             return;
         }
@@ -761,9 +761,9 @@ public class Keyboard implements KeyListener {
                 }
             }
         }
-        
+
         int key = evt.getKeyCode();
-        
+
 //        System.out.println(String.format("Release keyCode = %d, modifiers = %d", key, evt.getModifiersEx()));
 
         /*
@@ -785,7 +785,7 @@ public class Keyboard implements KeyListener {
             if (evt.isAltDown() && !evt.isControlDown())
                 return;
         }
-        
+
         switch (key) {
             // Row Break/Space - B
             case KeyEvent.VK_SPACE:
@@ -2044,7 +2044,7 @@ public class Keyboard implements KeyListener {
                 break;
         }
     }
-    
+
     private void receiveRecreatedZXKeyEventsPSQ(KeyEvent evt) {
 
         System.out.println("Key Pressed: " + evt);

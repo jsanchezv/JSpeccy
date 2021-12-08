@@ -27,7 +27,7 @@ public class JCaret
 	/**
 	 * List of listeners that are notified when the caret status changes.
 	 */
-	private final List<ICaretListener> m_listeners = new ArrayList<ICaretListener>();
+	private final List<ICaretListener> m_listeners = new ArrayList<>();
 
 	/**
 	 * Timer that is used to make the caret blink.
@@ -116,10 +116,9 @@ public class JCaret
 	 */
 	private void notifyListeners()
 	{
-		for (final ICaretListener listener : m_listeners)
-		{
-			listener.caretStatusChanged(JCaret.this);
-		}
+            m_listeners.forEach(listener -> {
+                listener.caretStatusChanged(JCaret.this);
+            });
 	}
 
 	/**
