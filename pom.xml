@@ -115,15 +115,10 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <sources>
-                        <source>src/main/resources/schema/${spring-boot-maven-plugin.finalName}.xsd</source>
-                    </sources>
                     <packageName>jakarta.xml.bind.annotation</packageName>
                     <catalog>catalog.xml</catalog>
                     <target>3.0</target>
                     <packageName>configuration</packageName>
-                    <outputDirectory>${project.build.directory}/generated-sources/xjc/src/main/java</outputDirectory>
-                    <clearOutputDir>true</clearOutputDir>
                 </configuration>
             </plugin>
             <plugin>
@@ -142,25 +137,6 @@
                 <configuration>
                     <skip>false</skip>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>${build-helper-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.build.directory}/generated-sources/xjc/src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
