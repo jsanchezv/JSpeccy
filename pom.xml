@@ -38,6 +38,8 @@
         <owasp-dependency-check-maven.version>6.5.0</owasp-dependency-check-maven.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     </properties>
 
     <dependencies>
@@ -77,6 +79,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <!-- The following import is required to bring in the @Contended annotation into the default -->
                     <!-- module so that we can use it to prevent false memory sharing                            -->
@@ -84,11 +87,17 @@
                         <arg>--add-exports</arg>
                         <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
                     </compilerArgs>
+                    <!-- Set incremental compilation to false as a workaround the bug in the compiler plugin     -->
+                    <!-- that forces the module to always be built even the code hasn't changed                  -->
+                    <!-- https://issues.apache.org/jira/browse/MCOMPILER-209                                     -->
+                    <!-- https://issues.apache.org/jira/browse/MCOMPILER-205                                     -->
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -141,6 +150,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${project.parent.version}</version>
                 <configuration>
                     <executable>true</executable>
                     <jvmArguments>
@@ -149,17 +159,28 @@
                     </jvmArguments>
                     <finalName>${spring-boot-maven-plugin.finalName}</finalName>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <!-- The following import is required to bring in the @Contended annotation into the default -->
+                        <!-- module so that we can use it to prevent false memory sharing                            -->
+                        <compilerArgs>
+                            <arg>--add-exports</arg>
+                            <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
+                        </compilerArgs>
+                        <!-- Set incremental compilation to false as a workaround the bug in the compiler plugin     -->
+                        <!-- that forces the module to always be built even the code hasn't changed                  -->
+                        <!-- https://issues.apache.org/jira/browse/MCOMPILER-209                                     -->
+                        <!-- https://issues.apache.org/jira/browse/MCOMPILER-205                                     -->
+                        <useIncrementalCompilation>false</useIncrementalCompilation>
+                    </configuration>
+                </plugin>
                 <plugin>
                     <groupId>org.owasp</groupId>
                     <artifactId>dependency-check-maven</artifactId>
