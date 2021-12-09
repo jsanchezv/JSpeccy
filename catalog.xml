@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog" prefer="system">
-    <system systemId="file:/home/jsanchez/src/JSpeccy/src/schema/JSpeccy.xsd" uri="xml-resources/jaxb/JSpeccySettingsType/JSpeccy.xsd"/>
+    <system systemId="file:/home/jsanchez/src/JSpeccy/src/schema/JSpeccy.xsd" uri="src/main/xsd/JSpeccy.xsd"/>
 </catalog>
