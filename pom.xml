@@ -159,13 +159,6 @@
                     </jvmArguments>
                     <finalName>${spring-boot-maven-plugin.finalName}</finalName>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
         <pluginManagement>
