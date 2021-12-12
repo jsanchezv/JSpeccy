@@ -269,7 +269,7 @@ public final class AY8912 {
                 Alternate = (value & ALTERNATE) != 0;
                 Attack = (value & ATTACK) != 0;
                 amplitudeEnv = Attack ? 0 : 15;
-                Continue = true;         
+                Continue = true;
                 envelopeCounter = 0;
 //                if (envA || envB || envC)
 //                    System.out.println(String.format("envShape: %02x, amplitudeEnv: %d", value & 0x0f, amplitudeEnv));

@@ -5670,7 +5670,7 @@ public class Z80 {
             }
         }
     }
-    
+
     private void copyToRegister(int opCode, int value)
     {
         switch(opCode & 0x07)
