@@ -106,7 +106,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             } catch (IOException ex) {
 //            log.error("", ex);
                 if (joystick1 == null && joystick2 == null)
-                    System.out.println("No physical joystick found!");
+                    log.info("No physical joystick found!");
             }
         }
         keyboard = new Keyboard(settings.getKeyboardJoystickSettings(), joystick1, joystick2);

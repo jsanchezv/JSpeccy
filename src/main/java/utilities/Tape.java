@@ -41,19 +41,18 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class Tape implements machine.ClockTimeoutListener {
 
     private Z80 cpu;
-    private BufferedInputStream tapeFile;
     private ByteArrayOutputStream record;
     private DeflaterOutputStream dos;
     private ByteArrayInputStream bais;
@@ -606,7 +605,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 playCsw();
                 break;
             default:
-                System.out.println("Warning!, clockTimeout without tape playing");
+                log.warn("Warning!, clockTimeout without tape playing");
         }
     }
 
@@ -624,20 +623,16 @@ public class Tape implements machine.ClockTimeoutListener {
             return false;
         }
 
-        try {
-            tapeFile = new BufferedInputStream(new FileInputStream(fileName));
-        } catch (FileNotFoundException fex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, fex);
-            return false;
-        }
-
-        try {
+        try (BufferedInputStream tapeFile = new BufferedInputStream(new FileInputStream(fileName))) {
             tapeBuffer = new byte[tapeFile.available()];
             tapeFile.read(tapeBuffer);
             tapeFile.close();
             filename = fileName;
+        } catch (FileNotFoundException fex) {
+            log.error("File {} not found", fileName, fex);
+            return false;
         } catch (IOException ex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("IOexception: ", ex);
             return false;
         }
 
@@ -1043,7 +1038,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     offset += 10;
                     break;
                 default:
-                    System.out.println(String.format("Block ID: %02x", tapeBuffer[offset]));
+                    log.info(String.format("Block ID: %02x unknown", tapeBuffer[offset]));
                     return false; // Error en TZX
             }
 
@@ -1287,7 +1282,7 @@ public class Tape implements machine.ClockTimeoutListener {
                         clock.setTimeout(timeout);
 
                     } catch (IOException ex) {
-                        Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                        log.error("IOexception: ", ex);
                     }
                     break;
 //                case GDB_PULSE_SYNC:
@@ -1444,7 +1439,7 @@ public class Tape implements machine.ClockTimeoutListener {
 //                        ptrDataStream = ptrSymbol + (2 * npd + 1) * asd;
 //                    }
                     idxHeader++;
-                    System.out.println("Gen. Data Block not supported!. Skipping...");
+                    log.info("Gen. Data Block not supported!. Skipping...");
                     break;
                 case 0x20: // Pause (silence) or 'Stop the Tape' command
                     endBlockPause = readInt(tapeBuffer, tapePos + 1, 2)
@@ -1489,7 +1484,7 @@ public class Tape implements machine.ClockTimeoutListener {
                         nCalls = 0;
                         idxHeader += callSeq[nCalls++];
                     } else {
-                        System.out.println("The CALL blocks can't be nested!. Skipping!!!");
+                        log.info("The CALL blocks can't be nested!. Skipping!!!");
                         idxHeader++;
                     }
                     break;
@@ -1535,7 +1530,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     idxHeader++;
                     break;
                 default:
-                    System.out.println(String.format("Block ID: %02x", tapeBuffer[tapePos]));
+                    log.info(String.format("Block ID: %02x", tapeBuffer[tapePos]));
                     repeat = false;
                     idxHeader++;
             }
@@ -1671,7 +1666,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     clock.setTimeout(timeout);
 
                 } catch (IOException ex) {
-                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                    log.error("IOexception: ", ex);
                 }
                 break;
         }
@@ -1805,7 +1800,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
         int addr = cpu.getRegIX();   // Start Address
         int nBytes = cpu.getRegDE(); // Lenght
-        BufferedOutputStream fOut = null;
+
         record = new ByteArrayOutputStream();
 
         // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
@@ -1817,7 +1812,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     hdrTZX = tzxHeader.getBytes("US-ASCII");
                     idTZX = tzxCreator.getBytes("US-ASCII");
                 } catch (UnsupportedEncodingException ex) {
-                    Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                    log.error("Exception: ", ex);
                     return false;
                 }
 
@@ -1845,22 +1840,10 @@ public class Tape implements machine.ClockTimeoutListener {
         }
         record.write(parity);
 
-        try {
-            fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
+        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename, true))) {
             record.writeTo(fOut);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                record.close();
-                if (fOut != null) {
-                    fOut.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            log.error("IOexception: ", ex);
         }
 
         File tmp = filename;
@@ -1899,9 +1882,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
 //        System.out.println(String.format("Record size: %d", record.size()));
 
-        BufferedOutputStream fOut = null;
-        try {
-            fOut = new BufferedOutputStream(new FileOutputStream(filename, true));
+        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename, true))) {
             // Si el archivo es nuevo y es un TZX, necesita la preceptiva cabecera
             if (nOffsetBlocks == 0) {
                 fOut.write(tzxHeader.getBytes("US-ASCII"));
@@ -1952,18 +1933,8 @@ public class Tape implements machine.ClockTimeoutListener {
                 record.close();
                 record.writeTo(fOut);
             }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                if (fOut != null) {
-                    fOut.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            log.error("IOException: ", ex);
         }
 
         tapeRecording = false;
@@ -1999,7 +1970,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     dos.write(pulses);
                 }
             } catch (IOException ex) {
-                Logger.getLogger(Tape.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("IOException: ", ex);
             }
         } else { // DRB
             int pulses = len + (freqSample >>> 1);

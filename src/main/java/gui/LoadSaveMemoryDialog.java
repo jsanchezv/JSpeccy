@@ -25,24 +25,24 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class LoadSaveMemoryDialog extends javax.swing.JPanel {
 
     private JDialog loadSaveMemoryDialog;
     private JFileChooser fileDlg;
     FileNameExtensionFilter binExtension;
-    private Memory memory;
+    private final Memory memory;
     private File filename;
     private boolean saveDialog;
 
@@ -55,7 +55,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
     }
 
     public boolean showLoadDialog(Component parent, File file) {
-        Frame owner = null;
+        Frame owner;
         if (parent instanceof Frame) {
             owner = (Frame) parent;
         } else {
@@ -98,7 +98,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
     }
 
     public boolean showSaveDialog(Component parent) {
-        Frame owner = null;
+        Frame owner;
         if (parent instanceof Frame) {
             owner = (Frame) parent;
         } else {
@@ -303,9 +303,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         }
 
         if (saveDialog) {
-            BufferedOutputStream fOut = null;
-            try {
-                fOut = new BufferedOutputStream(new FileOutputStream(filename));
+            try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename))) {
 
                 if (rangeCombobox.getSelectedIndex() == 0) {
                     // Range 0x0000-0xFFFF
@@ -321,22 +319,11 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, bundle.getString("SAVE_BINARY_OK"),
                         bundle.getString("SAVE_BINARY_OK_TITLE"), JOptionPane.INFORMATION_MESSAGE);
 
-            } catch (FileNotFoundException excpt) {
-                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, excpt);
             } catch (IOException ioExcpt) {
-                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ioExcpt);
-            } finally {
-                try {
-                    if (fOut != null)
-                        fOut.close();
-                } catch (IOException ex) {
-                    Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                log.error("IOException: ", ioExcpt);
             }
         } else {
-            BufferedInputStream fIn = null;
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
+            try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
                 if (rangeCombobox.getSelectedIndex() == 0) {
                     // Range 0x0000-0xFFFF
                     for (int addr = start; addr < start + size; addr++) {
@@ -352,16 +339,9 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, bundle.getString("LOAD_BINARY_OK"),
                         bundle.getString("LOAD_BINARY_OK_TITLE"), JOptionPane.INFORMATION_MESSAGE);
             } catch (FileNotFoundException ex) {
-                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("File {} not found: ", filename, ex);
             } catch (IOException ex) {
-                Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
-            } finally {
-                try {
-                    if (fIn != null)
-                        fIn.close();
-                } catch (IOException ex) {
-                    Logger.getLogger(LoadSaveMemoryDialog.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                log.error("IOException: ", ex);
             }
         }
     }//GEN-LAST:event_loadSaveButtonActionPerformed

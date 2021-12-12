@@ -18,15 +18,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class Microdrive {
 
     private static final int RAW_SECTOR_SIZE = 792;  // empirically calculated (sigh!)
@@ -67,8 +67,6 @@ public class Microdrive {
     private boolean wrGapPending;
     private boolean mdrFile;
 
-    private BufferedInputStream fIn;
-    private BufferedOutputStream fOut;
     private File filename;
     private final Clock clock;
     private long startGap;
@@ -253,8 +251,7 @@ public class Microdrive {
 
         isCartridge = false;
 
-        try {
-            fIn = new BufferedInputStream(new FileInputStream(fileName));
+        try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(fileName))) {
 
             if (fileName.getName().toLowerCase().endsWith(".mdr")) {
                 mdrFile = true;
@@ -442,18 +439,12 @@ public class Microdrive {
                     }
                 }
             }
-        } catch (IOException ex) {
-            Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FileNotFoundException fnfExcpt) {
+            log.error("File {} not found: ", fileName, fnfExcpt);
             return false;
-        } finally {
-            try {
-                if (fIn != null) {
-                    fIn.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
-                return false;
-            }
+        } catch (IOException ex) {
+            log.error("IOException: ", ex);
+            return false;
         }
 
         cartridgePos = 0;
@@ -484,10 +475,7 @@ public class Microdrive {
     }
 
     public final String getAbsolutePath() {
-        if (filename == null)
-            return null;
-        else
-            return filename.getAbsolutePath();
+        return filename == null ? null : filename.getAbsolutePath();
     }
 
     public final boolean save() {
@@ -496,14 +484,8 @@ public class Microdrive {
             return true;
         }
 
-        try {
-            fOut = new BufferedOutputStream(new FileOutputStream(filename));
-        } catch (FileNotFoundException fex) {
-            Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, fex);
-            return false;
-        }
+        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename))) {
 
-        try {
             // MDVT Header
             fOut.write(mdvtID.getBytes("US-ASCII"));
             fOut.write(12);   // MDVT 1.0 header length (QWORD)
@@ -592,15 +574,8 @@ public class Microdrive {
             }
 
         } catch (IOException ex) {
-            Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("IOException: ", ex);
             return false;
-        } finally {
-            try {
-                if (fOut != null)
-                    fOut.close();
-            } catch (IOException ex) {
-                Logger.getLogger(Microdrive.class.getName()).log(Level.SEVERE, null, ex);
-            }
         }
 
         modified = false;
@@ -667,7 +642,7 @@ public class Microdrive {
         }
 
         if (idx != dataGaps.length) {
-            System.out.println("Error regenerating GAP info!");
+            log.warn("Error regenerating GAP info!");
             return null;
         }
 

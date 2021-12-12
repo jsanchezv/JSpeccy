@@ -17,9 +17,9 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class Audio {
     private int samplingFrequency;
     private SourceDataLine line;
@@ -64,7 +64,7 @@ class Audio {
                 infoDataLine = new DataLine.Info(SourceDataLine.class, fmt);
                 line = (SourceDataLine) AudioSystem.getLine(infoDataLine);
             } catch (LineUnavailableException excpt) {
-                Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, excpt);
+                log.info("Unavailable Line: ", excpt);
             }
 
             enabledAY = hasAY;
@@ -114,7 +114,7 @@ class Audio {
                 }
                 line.start();
             } catch (LineUnavailableException ex) {
-                Logger.getLogger(Audio.class.getName()).log(Level.SEVERE, null, ex);
+                log.info("Unavailable Line: ", ex);
             }
         }
     }

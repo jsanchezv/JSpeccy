@@ -7,8 +7,6 @@ package machine;
 import configuration.JSpeccySettings;
 import configuration.MemoryType;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import snapshots.MemoryState;
 import tv.porst.jhexview.IDataChangedListener;
 
@@ -113,7 +111,7 @@ public final class Memory {
 
         return state;
     }
-    
+
     public void setMemoryState(MemoryState state) {
 
         if (IF2RomPaged) {
@@ -164,7 +162,7 @@ public final class Memory {
             pageIF1Rom();
         }
     }
-    
+
     public byte readScreenByte(int address) {
         return Ram[screenPage][address];
     }
@@ -353,7 +351,7 @@ public final class Memory {
         model128k = true;
         bankM = 0;
     }
-    
+
     private void setMemoryMapPlus3() {
         if (spectrumModel == MachineTypes.SPECTRUMPLUS3) {
             readPages[0] = RomPlus3[0];
@@ -442,7 +440,7 @@ public final class Memory {
                 doPagingPlus3();
                 break;
         }
-        
+
         // Set the page locking state
         pagingLocked = (port7ffd & 0x20) != 0;
     }
@@ -623,7 +621,7 @@ public final class Memory {
             case 6: // Address 0xc000-0xdfff
                 return (addr < 0xDB00 && (highPage << 1) == screenPage);
         }
-        
+
         return false;
     }
 
@@ -646,13 +644,13 @@ public final class Memory {
 
         if (spectrumModel != model) {
             spectrumModel = model;
-            
+
             for (byte[] Ram1 : Ram) {
                 random.nextBytes(Ram1);
             }
             random.nextBytes(mfRAM);
         }
-        
+
         switch (spectrumModel) {
             case SPECTRUM16K:
                 setMemoryMap16k();
@@ -939,12 +937,12 @@ public final class Memory {
     public boolean isIF1RomPaged() {
         return IF1RomPaged;
     }
-    
+
     public void setConnectedLEC(boolean state) {
         if (state && lecRam != null) {
             return;
         }
-        
+
         if (state) {
             lecRam = new byte[64][];
                 for (int page = 0; page < 60; page++) {
@@ -959,7 +957,7 @@ public final class Memory {
             lecRam = null;
         }
     }
-    
+
     public boolean isConnectedLEC() {
         return lecRam != null;
     }
@@ -1059,7 +1057,7 @@ public final class Memory {
         if (!loadRomAsFile(romsDirectory + conf.getRomPlus2A3(), RomPlus2a, 6, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus2a-3.rom", RomPlus2a, 6, PAGE_SIZE * 2);
         }
-        
+
         if (!loadRomAsFile(romsDirectory + conf.getRomPlus30(), RomPlus3, 0, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/plus3-0.rom", RomPlus3, 0, PAGE_SIZE * 2);
         }
@@ -1086,16 +1084,15 @@ public final class Memory {
 
     private boolean loadRomAsResource(String filename, byte[][] rom, int page, int size) {
 
-        InputStream inRom = Spectrum.class.getResourceAsStream(filename);
         boolean res = false;
 
-        if (inRom == null) {
-            String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("RESOURCE_ROM_ERROR");
-            log.warn("{}: {}", msg, filename);
-            return false;
-        }
+        try (InputStream inRom = Spectrum.class.getResourceAsStream(filename)) {
+            if (inRom == null) {
+                String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("RESOURCE_ROM_ERROR");
+                log.warn("{}: {}", msg, filename);
+                return false;
+            }
 
-        try {
             for (int frag = 0; frag < size / PAGE_SIZE; frag++) {
                 int count = 0;
                 while (count != -1 && count < PAGE_SIZE) {
@@ -1112,12 +1109,6 @@ public final class Memory {
         } catch (IOException ex) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("RESOURCE_ROM_ERROR");
             log.error("{}: {}", msg, filename, ex);
-        } finally {
-            try {
-                inRom.close();
-            } catch (IOException ex) {
-                log.error("{}", filename, ex);
-            }
         }
 
         if (res) {
@@ -1129,17 +1120,9 @@ public final class Memory {
     }
 
     private boolean loadRomAsFile(String filename, byte[][] rom, int page, int size) {
-        BufferedInputStream fIn = null;
         boolean res = false;
 
-        try {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
-            } catch (FileNotFoundException ex) {
-                String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("FILE_ROM_ERROR");
-                log.warn("{}: {}", msg, filename);
-                return false;
-            }
+        try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
 
             for (int frag = 0; frag < size / PAGE_SIZE; frag++) {
                 int count = 0;
@@ -1154,17 +1137,13 @@ public final class Memory {
                     res = true;
                 }
             }
+        } catch (FileNotFoundException ex) {
+                String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("FILE_ROM_ERROR");
+                log.warn("{}: {}", msg, filename);
+                return false;
         } catch (IOException ex) {
             String msg = java.util.ResourceBundle.getBundle("machine/Bundle").getString("FILE_ROM_ERROR");
             log.error("{}: {}", msg, filename);
-        } finally {
-            try {
-                if (fIn != null) {
-                    fIn.close();
-                }
-            } catch (IOException ex) {
-                log.error("{}", filename, ex);
-            }
         }
 
         if (res) {
@@ -1176,14 +1155,8 @@ public final class Memory {
     }
 
     private boolean loadIF2Rom(File filename) {
-        BufferedInputStream fIn = null;
-        try {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
-            } catch (FileNotFoundException ex) {
-                log.error("{}", filename, ex);
-                return false;
-            }
+
+        try (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
 
             if (fIn.available() > 0x4000) {
                 return false;
@@ -1208,28 +1181,24 @@ public final class Memory {
                 }
             }
 
+        } catch (FileNotFoundException ex) {
+            log.error("{}", filename, ex);
+            return false;
         } catch (IOException ex) {
             log.error("{}", filename, ex);
-        } finally {
-            try {
-                if (fIn != null)
-                    fIn.close();
-            } catch (IOException ex) {
-                log.error("{}", filename, ex);
-            }
         }
 
         return true;
     }
-    
+
     private int pageModeBrowser = 0;  // RAM Page = 0-7, Lineal Mode >= 8
     public void setPageModeBrowser(int page) {
         pageModeBrowser = page;
     }
-    
+
     private MemoryDataProvider memoryDataProvider;
     public MemoryDataProvider getMemoryDataProvider() {
-        
+
         if (memoryDataProvider == null) {
             memoryDataProvider =  new MemoryDataProvider();
         }

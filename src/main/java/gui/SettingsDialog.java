@@ -17,24 +17,23 @@ import jakarta.xml.bind.JAXB;
 import java.awt.Component;
 import java.awt.Frame;
 import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class SettingsDialog extends javax.swing.JPanel {
 
-    private JSpeccySettings settings;
+    private final JSpeccySettings settings;
     private JDialog settingsDialog;
 
     /** Creates new form SettingsDialog */
@@ -817,22 +816,16 @@ public class SettingsDialog extends javax.swing.JPanel {
             }
         }
 
-        try {
-            BufferedOutputStream fOut =
-                new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
+        try ( BufferedOutputStream fOut =
+                new BufferedOutputStream(new FileOutputStream(System.getProperty("user.home") + "/JSpeccy.xml"))) {
             // create an element for marshalling
 //            JAXBElement<JSpeccySettingsType> confElement =
 //                (new ObjectFactory()).createJSpeccySettings(settings);
 
             // create a Marshaller and marshal to conf. file
             JAXB.marshal(settings, fOut);
-            try {
-                fOut.close();
-            } catch (IOException ex) {
-                Logger.getLogger(SettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(SettingsDialog.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            log.error("IOException: ", ex);
         }
     }//GEN-LAST:event_saveSettingsButtonActionPerformed
 
