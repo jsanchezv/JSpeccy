@@ -40,14 +40,12 @@ public class Interface1 {
     private byte numMicrodrives;
     private final Microdrive microdrive[];
     private boolean commsClk;
-    private final Clock clock;
     private final Interface1Type settings;
     private int lan;
 
     private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<>();
 
     public Interface1(Interface1Type if1settings) {
-        clock = Clock.getInstance();
         settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
@@ -351,11 +349,5 @@ public class Interface1 {
 
 //        return microdrive[drive].getPreambleRem();
         return -1;
-    }
-
-    public void setPreambleRem(int drive, int offset) {
-        if (drive <  0 || drive > 7)
-            return;
-//        microdrive[drive].setPreambleRem(offset);
     }
 }
