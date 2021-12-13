@@ -35,11 +35,13 @@
         <jakarta.xml.bind-api.version>3.0.1</jakarta.xml.bind-api.version>
         <jaxb-core.version>3.0.2</jaxb-core.version>
         <jaxb-impl.version>3.0.2</jaxb-impl.version>
-        <owasp-dependency-check-maven.version>6.5.0</owasp-dependency-check-maven.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
+        <maven-project-info-reports-plugin.version>3.1.2</maven-project-info-reports-plugin.version>
+        <maven-site-plugin.version>3.9.1</maven-site-plugin.version>
+        <dependency-check-maven.version>6.5.0</dependency-check-maven.version>
     </properties>
 
     <dependencies>
@@ -131,23 +133,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>spotbugs</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>spotbugs</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <skip>false</skip>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${project.parent.version}</version>
@@ -184,40 +169,22 @@
                 <plugin>
                     <groupId>org.owasp</groupId>
                     <artifactId>dependency-check-maven</artifactId>
-                    <version>${owasp-dependency-check-maven.version}</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>check</goal>
-                            </goals>
-                        </execution>
-                    </executions>
+                    <version>${dependency-check-maven.version}</version>
                 </plugin>
-                <!-- This plugin's configuration is used to store Visual Studio code / Eclipse m2e settings only. -->
-                <!-- It has no influence on the Maven build itself. -->
                 <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>com.github.spotbugs</groupId>
-                                        <artifactId>spotbugs-maven-plugin</artifactId>
-                                        <versionRange>[4.5.0.0,)</versionRange>
-                                        <goals>
-                                            <goal>spotbugs</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <ignore/>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-project-info-reports-plugin</artifactId>
+                    <version>${maven-project-info-reports-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>${maven-site-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -235,56 +202,58 @@
             </build>
         </profile>
         <profile>
-            <!-- this profile adds experimental support for building Windows executables -->
-            <id>launch4j</id>
+            <!-- Wrap the M2E pseudo plug-in in a profile to prevent superfluos build warnings due to a known -->
+            <!-- Eclipse issue https://bugs.eclipse.org/bugs/show_bug.cgi?id=367870                           -->
+            <id>eclipse</id>
+            <activation>
+                <property>
+                    <name>m2e.version</name>
+                </property>
+            </activation>
             <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                        <artifactId>launch4j-maven-plugin</artifactId>
-                        <version>${launch4j-maven-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>l4j-clui</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>launch4j</goal>
-                                </goals>
-                                <configuration>
-                                    <headerType>console</headerType>
-                                    <dontWrapJar>true</dontWrapJar>
-                                    <jar>${spring-boot-maven-plugin.finalName}.${project.packaging}</jar>
-                                    <outfile>${project.build.directory}/${spring-boot-maven-plugin.finalName}.exe</outfile>
-                                    <downloadUrl>https://github.com/jsanchezv/JSpeccy</downloadUrl>
-                                    <classPath>
-                                        <mainClass>org.springframework.boot.loader.JarLauncher</mainClass>
-                                        <addDependencies>true</addDependencies>
-                                        <preCp>anything</preCp>
-                                    </classPath>
-                                    <jre>
-                                        <bundledJre64Bit>false</bundledJre64Bit>
-                                        <bundledJreAsFallback>false</bundledJreAsFallback>
-                                        <minVersion>${java.version}</minVersion>
-                                        <jdkPreference>preferJre</jdkPreference>
-                                        <runtimeBits>64</runtimeBits>
-                                    </jre>
-                                    <versionInfo>
-                                        <fileVersion>1.0.0.0</fileVersion>
-                                        <txtFileVersion>${project.version}</txtFileVersion>
-                                        <fileDescription>${project.name}</fileDescription>
-                                        <copyright>JSpeccy</copyright>
-                                        <productVersion>1.0.0.0</productVersion>
-                                        <txtProductVersion>1.0.0.0</txtProductVersion>
-                                        <productName>${project.name}</productName>
-                                        <internalName>${spring-boot-maven-plugin.finalName}</internalName>
-                                        <originalFilename>${spring-boot-maven-plugin.finalName}.exe</originalFilename>
-                                    </versionInfo>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
+                <pluginManagement>
+                    <plugins>
+                        <!-- This plugin's configuration is used to store Visual Studio code / Eclipse m2e settings -->
+                        <!-- only.  It has no influence on the Maven build itself.                                  -->
+                        <plugin>
+                            <groupId>org.eclipse.m2e</groupId>
+                            <artifactId>lifecycle-mapping</artifactId>
+                            <version>1.0.0</version>
+                            <configuration>
+                                <lifecycleMappingMetadata>
+                                    <pluginExecutions>
+                                        <pluginExecution>
+                                            <pluginExecutionFilter>
+                                                <groupId>com.github.spotbugs</groupId>
+                                                <artifactId>spotbugs-maven-plugin</artifactId>
+                                                <versionRange>[4.5.0.0,)</versionRange>
+                                                <goals>
+                                                    <goal>spotbugs</goal>
+                                                </goals>
+                                            </pluginExecutionFilter>
+                                            <action>
+                                                <ignore/>
+                                            </action>
+                                        </pluginExecution>
+                                    </pluginExecutions>
+                                </lifecycleMappingMetadata>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
             </build>
         </profile>
     </profiles>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
