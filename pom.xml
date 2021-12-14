@@ -83,34 +83,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <!-- The following import is required to bring in the @Contended annotation into the default -->
-                    <!-- module so that we can use it to prevent false memory sharing                            -->
-                    <compilerArgs>
-                        <arg>--add-exports</arg>
-                        <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
-                    </compilerArgs>
-                    <!-- Set incremental compilation to false as a workaround the bug in the compiler plugin     -->
-                    <!-- that forces the module to always be built even the code hasn't changed                  -->
-                    <!-- https://issues.apache.org/jira/browse/MCOMPILER-209                                     -->
-                    <!-- https://issues.apache.org/jira/browse/MCOMPILER-205                                     -->
-                    <useIncrementalCompilation>false</useIncrementalCompilation>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-            </plugin>
-            <plugin>
                 <groupId>com.evolvedbinary.maven.mojohaus</groupId>
                 <artifactId>jaxb-maven-plugin</artifactId>
                 <version>${jaxb2-maven-plugin.version}</version>
@@ -135,6 +107,21 @@
                     <target>3.0</target>
                     <packageName>configuration</packageName>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -163,11 +150,6 @@
                             <arg>--add-exports</arg>
                             <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
                         </compilerArgs>
-                        <!-- Set incremental compilation to false as a workaround the bug in the compiler plugin     -->
-                        <!-- that forces the module to always be built even the code hasn't changed                  -->
-                        <!-- https://issues.apache.org/jira/browse/MCOMPILER-209                                     -->
-                        <!-- https://issues.apache.org/jira/browse/MCOMPILER-205                                     -->
-                        <useIncrementalCompilation>false</useIncrementalCompilation>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -194,17 +176,6 @@
         </pluginManagement>
     </build>
     <profiles>
-        <profile>
-            <id>owasp</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <!-- Wrap the M2E pseudo plug-in in a profile to prevent superfluos build warnings due to a known -->
             <!-- Eclipse issue https://bugs.eclipse.org/bugs/show_bug.cgi?id=367870                           -->
