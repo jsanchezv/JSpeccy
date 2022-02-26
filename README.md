@@ -41,7 +41,9 @@ To scan the source code for potential programming issues run the following comma
     mvn spotbugs:check
     mvn spotbugs:gui
 
-## How to Use
+Please note, that for convenience, this project also includes a Maven wrapper script, `mvnw`, which can be used to install and run a sandboxed version of Maven thus eliminating the requirement to have a shared version of Maven installed on your system.  The wrapper script can be invoked with the same parameters as Maven itself. e.g. `./mvnw clean package`
+
+## Running the emulator
 
 To run JSpeccy you need to have Java 11 onwards installed. Run with:
 
