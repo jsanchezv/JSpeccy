@@ -6,18 +6,18 @@
 
     <groupId>com.jsanchezv.jspeccy</groupId>
     <artifactId>jspeccy</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.8</version>
+        <version>3.0.3</version>
         <relativePath/>
     </parent>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -31,20 +31,30 @@
 
         <!-- Third party dependencies' versions -->
         <activation.version>2.0.1</activation.version>
-        <jakarta.xml.bind-api.version>3.0.1</jakarta.xml.bind-api.version>
-        <jaxb-core.version>3.0.2</jaxb-core.version>
-        <jaxb-impl.version>3.0.2</jaxb-impl.version>
-        <lombok.version>1.18.26</lombok.version>
+        <jakarta.xml.bind-api.version>4.0.0</jakarta.xml.bind-api.version>
+        <jaxb-core.version>4.0.1</jaxb-core.version>
+        <jaxb-impl.version>4.0.1</jaxb-impl.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-failsafe-plugin.version>3.0.0-M7</maven-failsafe-plugin.version>
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-failsafe-plugin.version>3.0.0-M9</maven-failsafe-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M9</maven-surefire-plugin.version>
         <maven-project-info-reports-plugin.version>3.4.1</maven-project-info-reports-plugin.version>
         <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
-        <dependency-check-maven.version>7.3.0</dependency-check-maven.version>
+        <dependency-check-maven.version>7.4.0</dependency-check-maven.version>
+        <native-maven-plugin.version>0.9.20</native-maven-plugin.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>com.sun.activation</groupId>
             <artifactId>jakarta.activation</artifactId>
@@ -66,25 +76,14 @@
             <version>${jaxb-impl.version}</version>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.33</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>${native-maven-plugin.version}</version>
+            </plugin>
             <plugin>
                 <groupId>com.evolvedbinary.maven.mojohaus</groupId>
                 <artifactId>jaxb-maven-plugin</artifactId>
@@ -143,11 +142,7 @@
                 <version>${project.parent.version}</version>
                 <configuration>
                     <executable>true</executable>
-                    <jvmArguments>
-                        -Xdebug
-                        -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888
-                    </jvmArguments>
-                    <finalName>${spring-boot-maven-plugin.finalName}</finalName>
+                    <jvmArguments>-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888</jvmArguments>
                 </configuration>
             </plugin>
         </plugins>
@@ -190,6 +185,27 @@
         </pluginManagement>
     </build>
     <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native-maven-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <!-- Wrap the M2E pseudo plug-in in a profile to prevent superfluos build warnings due to a known -->
             <!-- Eclipse issue https://bugs.eclipse.org/bugs/show_bug.cgi?id=367870                           -->
