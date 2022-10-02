@@ -1028,7 +1028,7 @@ public class SnapshotSZX implements SnapshotFile {
             fOut.write(0x00);
             fOut.write(0x00);
             fOut.write(0x00);  // CRTR length block
-            blockID = "JSpeccy v0.94";
+            blockID = "JSpeccy v0.95";
             byte[] szCreator = new byte[32];
             System.arraycopy(blockID.getBytes("US-ASCII"), 0, szCreator,
                     0, blockID.getBytes("US-ASCII").length);
