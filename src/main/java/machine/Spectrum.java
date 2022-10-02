@@ -928,12 +928,13 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 //            System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
 //                    clock.getTstates(), z80.getRegPC()));
 //        }
-//        System.out.println(String.format("InPort: %04X", port));
+//        if (z80.getRegPC() > 0x3fff)
+//            System.out.println(String.format("InPort: %04X\tPC: %04x", port, z80.getRegPC()));
         preIO(port);
         postIO(port);
 
 //        System.out.println(String.format("inPort -> t-state: %d\tPC: %04x",
-//                    z80.tEstados, z80.getRegPC()));
+//                    clock.getTstates(), z80.getRegPC()));
 
         // Interface I
         if (connectedIF1) {
