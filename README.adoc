@@ -44,10 +44,10 @@ The wrapper script can be invoked with the same parameters as Maven itself. e.g.
 
 == Running the emulator
 
-To run JSpeccy you need to have Java 11 onwards installed.
+To run JSpeccy you need to have Java 17 onwards installed.
 Run with:
 
-    ./target/JSpeccy.jar
+    ./target/jspeccy-1.0.1.jar
 
 A configuration file named JSpeccy.xml will be created on the user directory.
 
@@ -57,14 +57,14 @@ To resolve it, you can test two possible solutions:
 
 First, you can add the option that uses the OpenGL backend:
 
-    java -Dsun.java2d.opengl=True -jar ./target/JSpeccy.jar
+    java -Dsun.java2d.opengl=True -jar ./target/jspeccy-1.0.1.jar
 
 The OpenGL backend solution can be problematic when a good OpenGL driver is not available or X11 is using Mesa.
 In these cases you can use:
 
-    java -Dsun.java2d.xrender=false -jar ./target/JSpeccy.jar
+    java -Dsun.java2d.xrender=false -jar ./target/jspeccy-1.0.1.jar
 
-Please note that the XRender redraw bug is still present in Java 17, so you need still need to the solution described above.
+Please note that the XRender redraw bug is still present in Java 19, so you need still need to the solution described above.
 
 Web: http://jspeccy.speccy.org[JSpeccy] (only in Spanish, I'm sorry)
 
