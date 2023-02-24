@@ -1612,11 +1612,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 //    }
 
     public void saveImage(File filename) {
-        BufferedOutputStream fOut = null;
 
         if (filename.getName().toLowerCase().endsWith(".scr")) {
-            try {
-                fOut = new BufferedOutputStream(new FileOutputStream(filename));
+            try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename))) {
 
                 for (int addr = 0; addr < 6912; addr++) {
                     fOut.write(memory.readScreenByte(addr));
@@ -1630,17 +1628,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                     }
                 }
             } catch (FileNotFoundException excpt) {
-                log.error("", excpt);
+                log.error("Error in saveImage", excpt);
             } catch (IOException ioExcpt) {
-                log.error("", ioExcpt);
-            } finally {
-                try {
-                    if (fOut != null) {
-                        fOut.close();
-                    }
-                } catch (IOException ex) {
-                    log.error("", ex);
-                }
+                log.error("Error in saveImage", ioExcpt);
             }
             return;
         }
@@ -1655,11 +1645,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     }
 
     public boolean loadScreen(File filename) {
-        BufferedInputStream fIn = null;
 
         if (filename.getName().toLowerCase().endsWith(".scr")) {
-            try {
-                fIn = new BufferedInputStream(new FileInputStream(filename));
+            try  (BufferedInputStream fIn = new BufferedInputStream(new FileInputStream(filename))) {
 
                 // Needs to be a screen file (size == 6912) or a
                 // ULAplus screen file (size == 6912 + 64)
@@ -1695,17 +1683,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 }
                 return true;
             } catch (FileNotFoundException excpt) {
-                log.error("", excpt);
+                log.error("Error in loadScreen", excpt);
             } catch (IOException ioExcpt) {
-                log.error("", ioExcpt);
-            } finally {
-                try {
-                    if (fIn != null) {
-                        fIn.close();
-                    }
-                } catch (IOException ex) {
-                    log.error("", ex);
-                }
+                log.error("Error in loadScreen", ioExcpt);
             }
         }
         return false;
