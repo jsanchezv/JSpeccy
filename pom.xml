@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.4</version>
+        <version>2.7.8</version>
         <relativePath/>
     </parent>
 
@@ -27,20 +27,21 @@
 
         <!-- Maven plug-in versions -->
         <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
-        <spotbugs-maven-plugin.version>4.7.2.0</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.7.3.0</spotbugs-maven-plugin.version>
 
         <!-- Third party dependencies' versions -->
         <activation.version>2.0.1</activation.version>
         <jakarta.xml.bind-api.version>3.0.1</jakarta.xml.bind-api.version>
         <jaxb-core.version>3.0.2</jaxb-core.version>
         <jaxb-impl.version>3.0.2</jaxb-impl.version>
+        <lombok.version>1.18.26</lombok.version>
 
         <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M7</maven-failsafe-plugin.version>
-        <maven-project-info-reports-plugin.version>3.4.0</maven-project-info-reports-plugin.version>
+        <maven-project-info-reports-plugin.version>3.4.1</maven-project-info-reports-plugin.version>
         <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
-        <dependency-check-maven.version>7.1.0</dependency-check-maven.version>
+        <dependency-check-maven.version>7.3.0</dependency-check-maven.version>
     </properties>
 
     <dependencies>
@@ -74,6 +75,12 @@
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>1.33</version>
         </dependency>
     </dependencies>
     <build>
