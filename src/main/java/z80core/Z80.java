@@ -231,6 +231,7 @@ import machine.Clock;
 import snapshots.Z80State;
 
 import java.util.Arrays;
+import java.util.BitSet;
 
 @Slf4j
 public class Z80 {
@@ -390,7 +391,7 @@ public class Z80 {
 
     // Un true en una dirección indica que se debe notificar que se va a
     // ejecutar la instrucción que está en esa direción.
-    private final boolean breakpointAt[] = new boolean[65536];
+    private final BitSet breakpointAt = new BitSet(65536);
 
     // Constructor de la clase
     public Z80(MemIoOps memory, NotifyOps notify) {
@@ -398,7 +399,7 @@ public class Z80 {
         MemIoImpl = memory;
         NotifyImpl = notify;
         execDone = false;
-        Arrays.fill(breakpointAt, false);
+        breakpointAt.clear();
         reset();
     }
 
@@ -1828,15 +1829,15 @@ public class Z80 {
     }
 
     public final boolean isBreakpoint(int address) {
-        return breakpointAt[address & 0xffff];
+        return breakpointAt.get(address & 0xffff);
     }
 
     public final void setBreakpoint(int address, boolean state) {
-        breakpointAt[address & 0xffff] = state;
+        breakpointAt.set(address & 0xffff, state);
     }
 
     public void resetBreakpoints() {
-        Arrays.fill(breakpointAt, false);
+        breakpointAt.clear();
     }
 
     public boolean isExecDone() {
@@ -1858,7 +1859,7 @@ public class Z80 {
             int opCode = MemIoImpl.fetchOpcode(regPC);
             regR++;
 
-            if (prefixOpcode == 0 && breakpointAt[regPC]) {
+            if (prefixOpcode == 0 && breakpointAt.get(regPC)) {
                 opCode = NotifyImpl.breakpoint(regPC, opCode);
             }
 
@@ -4862,7 +4863,7 @@ public class Z80 {
 
 //                System.out.println("Error instrucción DD/FD" + Integer.toHexString(opCode));
 
-                if (breakpointAt[regPC]) {
+                if (breakpointAt.get(regPC)) {
                     opCode = NotifyImpl.breakpoint(regPC, opCode);
                 }
 
