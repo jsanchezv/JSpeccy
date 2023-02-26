@@ -227,7 +227,7 @@ package z80core;
 
 import jdk.internal.vm.annotation.Contended;
 import lombok.extern.slf4j.Slf4j;
-import machine.Clock;
+import machine.SpectrumClock;
 import snapshots.Z80State;
 
 import java.util.Arrays;
@@ -236,7 +236,7 @@ import java.util.BitSet;
 @Slf4j
 public class Z80 {
 
-    private final Clock clock;
+    private final SpectrumClock clock;
     private MemIoOps MemIoImpl;
     private NotifyOps NotifyImpl;
     // Se está ejecutando una instrucción DDxx, EDxx o FDxx 
@@ -395,7 +395,7 @@ public class Z80 {
 
     // Constructor de la clase
     public Z80(MemIoOps memory, NotifyOps notify) {
-        this.clock = Clock.getInstance();
+        this.clock = SpectrumClock.INSTANCE;
         MemIoImpl = memory;
         NotifyImpl = notify;
         execDone = false;

@@ -23,7 +23,7 @@
 package utilities;
 
 import configuration.TapeSettingsType;
-import machine.Clock;
+import machine.SpectrumClock;
 import machine.MachineTypes;
 import machine.Memory;
 import z80core.Z80;
@@ -68,7 +68,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private int bitTime;
     private byte byteTmp;
     private int cswPulses;
-    private final Clock clock;
+    private final SpectrumClock clock;
 
     public enum TapeState {
 
@@ -137,7 +137,7 @@ public class Tape implements machine.ClockTimeoutListener {
     public Tape(TapeSettingsType tapeSettings) {
         blockListeners = new ArrayList<>();
         stateListeners = new ArrayList<>();
-        clock = Clock.getInstance();
+        clock = SpectrumClock.INSTANCE;
         settings = tapeSettings;
         statePlay = State.STOP;
         tapePlaying = tapeRecording = false;

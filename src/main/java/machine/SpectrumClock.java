@@ -4,41 +4,51 @@
  */
 package machine;
 
+import lombok.Getter;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ConcurrentModificationException;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
+ * Singleton implementation of a ZX Spectrum clock
  *
  * @author jsanchez
  */
-public class Clock {
-    private static final Clock instance = new Clock();
-    private MachineTypes spectrumModel = MachineTypes.SPECTRUM48K;
-    private int tstates;
+@Slf4j
+@ToString(onlyExplicitlyIncluded = true, includeFieldNames = true)
+public enum SpectrumClock {
+
+    INSTANCE;
+
+    @Getter
+    @ToString.Include
     private long frames;
+
+    @Getter
+    @ToString.Include
+    private int tstates;
+
+    private MachineTypes spectrumModel;
     private int timeout;
     private final CopyOnWriteArrayList<ClockTimeoutListener> clockListeners;
 
-    // Clock class implements a Singleton pattern.
-    private Clock() {
+    SpectrumClock() {
+
+        this.spectrumModel = MachineTypes.SPECTRUM48K;
         this.clockListeners = new CopyOnWriteArrayList<>();
     }
 
-    public static Clock getInstance() {
-        return instance;
-    }
     /**
      * Adds a new event listener to the list of event listeners.
      *
      * @param listener The new event listener.
-     *
      * @throws NullPointerException Thrown if the listener argument is null.
      */
     public void addClockTimeoutListener(final ClockTimeoutListener listener) {
-
-        if (listener == null) {
-            throw new NullPointerException("Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Error: Listener can't be null");
 
         // Avoid duplicates
         if (!clockListeners.contains(listener)) {
@@ -50,15 +60,11 @@ public class Clock {
      * Remove a new event listener from the list of event listeners.
      *
      * @param listener The event listener to remove.
-     *
-     * @throws NullPointerException Thrown if the listener argument is null.
+     * @throws NullPointerException     Thrown if the listener argument is null.
      * @throws IllegalArgumentException Thrown if the listener wasn't registered.
      */
     public void removeClockTimeoutListener(final ClockTimeoutListener listener) {
-
-        if (listener == null) {
-            throw new NullPointerException("Internal Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         if (!clockListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
@@ -79,24 +85,14 @@ public class Clock {
     }
 
     /**
-     * @return the tstates
-     */
-    public int getTstates() {
-        return tstates;
-    }
-
-    /**
      * @param states the tstates to set
      */
-    public void setTstates(int states) {
-        if (states < 0 || states > spectrumModel.tstatesFrame)
-            tstates = 0;
-        else
-            tstates = states;
+    public void setTstates(final int states) {
+        tstates = (states < 0 || states > spectrumModel.tstatesFrame) ? 0 : states;
         frames = timeout = 0;
     }
 
-    public void addTstates(int states) {
+    public void addTstates(final int states) {
         tstates += states;
 
         if (timeout > 0) {
@@ -104,20 +100,14 @@ public class Clock {
 
             if (timeout <= 0) {
                 int res = timeout;
-                clockListeners.forEach((listener) -> {
-                    listener.clockTimeout();
-                });
+                clockListeners.forEach(ClockTimeoutListener::clockTimeout);
 
                 if (timeout > 0) {
-//                    System.out.println("Timeout: " + timeout + " res: " + res);
+                    log.trace("Timeout: {}, res: {}", timeout, res);
                     timeout += res;
                 }
             }
         }
-    }
-
-    public long getFrames() {
-        return frames;
     }
 
     public void endFrame() {
@@ -133,16 +123,12 @@ public class Clock {
         frames = timeout = tstates = 0;
     }
 
-    public void setTimeout(int ntstates) {
-        if (timeout > 0) {
+    public void setTimeout(final int ntstates) {
+        if (this.timeout > 0) {
             throw new ConcurrentModificationException("A timeout is in progress. Can't set another timeout!");
         }
 
-        timeout = ntstates > 10 ? ntstates : 10;
+        this.timeout = Math.max(ntstates, 10);
     }
 
-    @Override
-    public String toString() {
-        return String.format("Frame: %d, t-states: %d", frames, tstates);
-    }
 }
