@@ -7,7 +7,7 @@
  */
 package utilities;
 
-import machine.Clock;
+import machine.SpectrumClock;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -68,12 +68,12 @@ public class Microdrive {
     private boolean mdrFile;
 
     private File filename;
-    private final Clock clock;
+    private final SpectrumClock clock;
     private long startGap;
 
     public Microdrive() {
 
-        clock = Clock.getInstance();
+        clock = SpectrumClock.INSTANCE;
         isCartridge = mdrFile = false;
         writeProtected = true;
         cartridgePos = 0;

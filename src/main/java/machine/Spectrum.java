@@ -43,7 +43,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
     private final Z80 z80;
     private final Memory memory;
-    private final Clock clock;
+    private final SpectrumClock clock;
     private final boolean[] contendedRamPage = new boolean[4];
     private final boolean[] contendedIOPage = new boolean[4];
     private int portFE, earBit = 0xbf, port7ffd, port1ffd, issueMask;
@@ -79,7 +79,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
     public Spectrum(JSpeccySettings config) {
         super(0,0);
-        clock = Clock.getInstance();
+        clock = SpectrumClock.INSTANCE;
         settings = config;
         specSettings = settings.getSpectrumSettings();
         z80 = new Z80(this, this);
