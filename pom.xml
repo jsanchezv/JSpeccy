@@ -35,7 +35,7 @@
         <jaxb-core.version>4.0.1</jaxb-core.version>
         <jaxb-impl.version>4.0.1</jaxb-impl.version>
 
-        <spring-boot-maven-plugin.finalName>JSpeccy</spring-boot-maven-plugin.finalName>
+        <spring-boot-maven-plugin.finalName>jspeccy</spring-boot-maven-plugin.finalName>
         <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M9</maven-failsafe-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M9</maven-surefire-plugin.version>
@@ -49,6 +49,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -142,6 +147,7 @@
                 <version>${project.parent.version}</version>
                 <configuration>
                     <executable>true</executable>
+                    <finalName>${spring-boot-maven-plugin.finalName}</finalName>
                     <jvmArguments>-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888</jvmArguments>
                 </configuration>
             </plugin>

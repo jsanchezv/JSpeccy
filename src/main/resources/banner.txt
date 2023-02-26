@@ -1,3 +1,4 @@
+${Ansi.DEFAULT}
 ${AnsiColor.RED}           _  _____
 ${AnsiColor.RED}          | |/ ____|
 ${AnsiColor.YELLOW}          | | (___  _ __   ___  ___ ___ _   _
