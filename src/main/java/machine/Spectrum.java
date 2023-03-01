@@ -716,16 +716,16 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 borderDirty = false;
                 gcTvImage.drawImage(inProgressImage, 0, 0, null);
                 int zoom = jscr.getZoom();
-                int fbl = firstBorderPix / SCREEN_WIDTH;
+                int fbl = firstBorderPix / screenGeometry.width();
                 borderRect.x = 0;
                 borderRect.y = fbl * zoom;
-                borderRect.width = SCREEN_WIDTH * zoom;
-                borderRect.height = (lastBorderPix / SCREEN_WIDTH - fbl + zoom) * zoom;
+                borderRect.width = screenGeometry.width() * zoom;
+                borderRect.height = (lastBorderPix / screenGeometry.width() - fbl + zoom) * zoom;
                 if (screenDirty) {
                     screenDirty = false;
                     gcTvImage.drawImage(inProgressImage, 0, 0, null);
-                    screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
-                    screenRect.y = ((TOP_BORDER + firstScanLine) * zoom) - zoom;
+                    screenRect.x = ((screenGeometry.border().left() + leftCol * 8) * zoom) - zoom;
+                    screenRect.y = ((screenGeometry.border().top() + firstScanLine) * zoom) - zoom;
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
                     screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
@@ -744,8 +744,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             gcTvImage.drawImage(inProgressImage, 0, 0, null);
 
             int zoom = jscr.getZoom();
-            screenRect.x = ((LEFT_BORDER + leftCol * 8) * zoom) - zoom;
-            screenRect.y = ((TOP_BORDER + firstScanLine) * zoom) - zoom;
+            screenRect.x = ((screenGeometry.border().left() + leftCol * 8) * zoom) - zoom;
+            screenRect.y = ((screenGeometry.border().top() + firstScanLine) * zoom) - zoom;
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
             screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
@@ -771,7 +771,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 clock.endFrame();
             } while (tape.isTapePlaying() && System.currentTimeMillis() <= end);
 
-            if (LEFT_BORDER > 0) {
+            if (screenGeometry.border().left() > 0) {
                 updateBorder(lastBorderUpdate);
             }
 
@@ -1260,7 +1260,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             }
 
             if ((port & 0x0001) == 0) {
-                if ((portFE & 0x07) != (value & 0x07) && LEFT_BORDER > 0) {
+                if ((portFE & 0x07) != (value & 0x07) && screenGeometry.border().left() > 0) {
                     updateBorder(clock.getTstates());
                     borderUpdated = true;
 //                if (z80.tEstados > spectrumModel.lastBorderUpdate)
@@ -1342,7 +1342,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                         // Solo es necesario redibujar el borde si se modificó uno
                         // de los colores de paper de la paleta 0. (8-15)
                         // Pero hay que hacerlo *antes* de modificar la paleta.
-                        if (paletteGroup > 7 && paletteGroup < 16 && LEFT_BORDER > 0) {
+                        if (paletteGroup > 7 && paletteGroup < 16 && screenGeometry.border().left() > 0) {
                             borderUpdated = true;
                             updateBorder(clock.getTstates());
                         }
@@ -1846,12 +1846,10 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private int nextEvent = NO_EVENT;
 
     // Estos miembros solo cambian cuando cambia el tamaño del borde
-    private int LEFT_BORDER = 32;
-    private int RIGHT_BORDER = 32;
-    private int SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
-    private int TOP_BORDER = 24;
-    private int BOTTOM_BORDER = 24;
-    private int SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
+    private ScreenGeometry screenGeometry = ScreenGeometry.aScreenGeometry()
+            .withStandardBorder()
+            .build();
+
     private int flash = 0x7f; // 0x7f == ciclo off, 0xff == ciclo on
     private BufferedImage tvImage;     // imagen actualizada al final de cada frame
     private BufferedImage inProgressImage; // imagen del borde
@@ -1886,18 +1884,15 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private final Rectangle borderRect = new Rectangle();
 
     private void initGFX() {
-        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
-            BufferedImage.TYPE_INT_RGB);
+        tvImage = new BufferedImage(screenGeometry.width(), screenGeometry.height(), BufferedImage.TYPE_INT_RGB);
         gcTvImage = tvImage.createGraphics();
-        inProgressImage =
-            new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
-        dataInProgress =
-            ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
+        inProgressImage = new BufferedImage(screenGeometry.width(), screenGeometry.height(), BufferedImage.TYPE_INT_RGB);
+        dataInProgress = ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
 
         lastChgBorder = 0;
         Arrays.fill(dirtyByte, true);
         screenDirty = false;
-        borderChanged = LEFT_BORDER > 0;
+        borderChanged = screenGeometry.border().left() > 0;
 
         // Paletas para el soporte de ULAplus
         ULAPlusPalette = new int[4][16];
@@ -1929,8 +1924,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             scan = (address & 0x700) >>> 8;
 
             scanLineTable[address & 0x1fff] = (row * 2048 + scan * 256 + col * 8) >>> 8;
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER) * SCREEN_WIDTH
-                + col * 8 + LEFT_BORDER;
+            bufAddr[address & 0x1fff] = row * screenGeometry.width() * 8 + (scan + screenGeometry.border().top()) * screenGeometry.width()
+                + col * 8 + screenGeometry.border().left();
             scr2attr[address & 0x1fff] = 0x1800 + row * 32 + col;
         }
 
@@ -1950,62 +1945,35 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
         borderMode = mode;
 
-        switch(mode) {
-           case 0: // no border
-                LEFT_BORDER = RIGHT_BORDER = TOP_BORDER = BOTTOM_BORDER = 0;
-                break;
-            case 2: // Full standard border
-                LEFT_BORDER = 48;
-                RIGHT_BORDER = 48;
-                TOP_BORDER = 48;
-                BOTTOM_BORDER = 56;
-                break;
-            case 3: // Huge border
-                LEFT_BORDER = 64;
-                RIGHT_BORDER = 64;
-                TOP_BORDER = 56;
-                BOTTOM_BORDER = 56;
-                break;
-            default: // Standard border
-                LEFT_BORDER = 32;
-                RIGHT_BORDER = 32;
-                TOP_BORDER = 24;
-                BOTTOM_BORDER = 24;
-        }
+        screenGeometry = switch (mode) {
+            case 0 -> ScreenGeometry.aScreenGeometry().withNoBorder().build();         // no border
+            case 2 -> ScreenGeometry.aScreenGeometry().withFullBorder().build();       // Full standard border
+            case 3 -> ScreenGeometry.aScreenGeometry().withHugeBorder().build();       // Huge border
+            default -> ScreenGeometry.aScreenGeometry().withStandardBorder().build();  // Standard border
+        };
 
-        SCREEN_WIDTH = LEFT_BORDER + 256 + RIGHT_BORDER;
-        SCREEN_HEIGHT = TOP_BORDER + 192 + BOTTOM_BORDER;
-
-        tvImage = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT,
-            BufferedImage.TYPE_INT_RGB);
+        tvImage = new BufferedImage(screenGeometry.width(), screenGeometry.height(), BufferedImage.TYPE_INT_RGB);
         if (gcTvImage != null) {
             gcTvImage.dispose();
         }
         gcTvImage = tvImage.createGraphics();
 
-        inProgressImage =
-            new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
-        dataInProgress =
-            ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
+        inProgressImage = new BufferedImage(screenGeometry.width(), screenGeometry.height(), BufferedImage.TYPE_INT_RGB);
+        dataInProgress = ((DataBufferInt) inProgressImage.getRaster().getDataBuffer()).getBankData()[0];
 
         for (int address = 0x4000; address < 0x5800; address++) {
             int row = ((address & 0xe0) >>> 5) | ((address & 0x1800) >>> 8);
             int col = address & 0x1f;
             int scan = (address & 0x700) >>> 8;
 
-            bufAddr[address & 0x1fff] = row * SCREEN_WIDTH * 8 + (scan + TOP_BORDER) * SCREEN_WIDTH
-                + col * 8 + LEFT_BORDER;
+            bufAddr[address & 0x1fff] = row * screenGeometry.width() * 8 + (scan + screenGeometry.border().top()) * screenGeometry.width()
+                + col * 8 + screenGeometry.border().left();
         }
 
-        switch(spectrumModel.codeModel) {
-            case SPECTRUM128K:
-                buildScreenTables128k();
-                break;
-            case SPECTRUMPLUS3:
-                buildScreenTablesPlus3();
-                break;
-            default:
-                buildScreenTables48k();
+        switch (spectrumModel.codeModel) {
+            case SPECTRUM128K -> buildScreenTables128k();
+            case SPECTRUMPLUS3 -> buildScreenTablesPlus3();
+            default -> buildScreenTables48k();
         }
     }
 
@@ -2039,23 +2007,23 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (64 - TOP_BORDER - 1) || row > (256 + BOTTOM_BORDER - 1)) {
+        if (row < (64 - screenGeometry.border().top() - 1) || row > (256 + screenGeometry.border().bottom() - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (64 - TOP_BORDER - 1) && col < 200 + (24 - LEFT_BORDER / 2)) {
+        if (row == (64 - screenGeometry.border().top() - 1) && col < 200 + (24 - screenGeometry.border().left() / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (256 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
+        if (row == (256 + screenGeometry.border().bottom() - 1) && col > (127 + screenGeometry.border().right() / 2)) {
             return 0xf0cab0ba;
         }
 
         // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
-        if (col > (127 + RIGHT_BORDER / 2) && col < 200 + (24 - LEFT_BORDER / 2)) {
+        if (col > (127 + screenGeometry.border().right() / 2) && col < 200 + (24 - screenGeometry.border().left() / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -2067,14 +2035,14 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
-            col -= 200 + (24 - LEFT_BORDER / 2);
+            col -= 200 + (24 - screenGeometry.border().left() / 2);
         } else {
-            col += RIGHT_BORDER / 2 - (RIGHT_BORDER - LEFT_BORDER) / 2;
+            col += screenGeometry.border().right() / 2 - (screenGeometry.border().right() - screenGeometry.border().left()) / 2;
         }
 
-        row -= (64 - TOP_BORDER);
+        row -= (64 - screenGeometry.border().top());
 
-        return row * SCREEN_WIDTH + col * 2;
+        return row * screenGeometry.width() + col * 2;
     }
 
     private int tStatesToScrPix128k(int tstates) {
@@ -2084,23 +2052,23 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         int col = tstates % spectrumModel.tstatesLine;
 
         // Quitamos las líneas que no se ven por arriba y por abajo
-        if (row < (63 - TOP_BORDER - 1) || row > (255 + BOTTOM_BORDER - 1)) {
+        if (row < (63 - screenGeometry.border().top() - 1) || row > (255 + screenGeometry.border().bottom() - 1)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la primera línea
-        if (row == (63 - TOP_BORDER - 1) && col < 204 + (24 - LEFT_BORDER / 2)) {
+        if (row == (63 - screenGeometry.border().top() - 1) && col < 204 + (24 - screenGeometry.border().left() / 2)) {
             return 0xf0cab0ba;
         }
 
         // Caso especial de la última línea
-        if (row == (255 + BOTTOM_BORDER - 1) && col > (127 + RIGHT_BORDER / 2)) {
+        if (row == (255 + screenGeometry.border().bottom() - 1) && col > (127 + screenGeometry.border().right() / 2)) {
             return 0xf0cab0ba;
         }
 
         // Quitamos la parte del borde derecho que no se ve, la zona de H-Sync
         // y la parte izquierda del borde que tampoco se ve
-        if (col > (127 + RIGHT_BORDER / 2) && col < 204 + (24 - LEFT_BORDER / 2)) {
+        if (col > (127 + screenGeometry.border().right() / 2) && col < 204 + (24 - screenGeometry.border().left() / 2)) {
             return 0xf0cab0ba;
         }
 
@@ -2112,14 +2080,14 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         // 176 t-estados de línea es en medio de la zona de retrazo
         if (col > 176) {
             row++;
-            col -= 204 + (24 - LEFT_BORDER / 2);
+            col -= 204 + (24 - screenGeometry.border().left() / 2);
         } else {
-            col += RIGHT_BORDER / 2 - (RIGHT_BORDER - LEFT_BORDER) / 2;
+            col += screenGeometry.border().right() / 2 - (screenGeometry.border().right() - screenGeometry.border().left()) / 2;
         }
 
-        row -= (63 - TOP_BORDER);
+        row -= (63 - screenGeometry.border().top());
 
-        return row * SCREEN_WIDTH + col * 2;
+        return row * screenGeometry.width() + col * 2;
     }
 
     private void updateBorder(int tstates) {
@@ -2251,15 +2219,15 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     }
 
     public void invalidateScreen(boolean invalidateBorder) {
-        borderChanged = LEFT_BORDER > 0 && invalidateBorder;
+        borderChanged = screenGeometry.border().left() > 0 && invalidateBorder;
         Arrays.fill(dirtyByte, true);
     }
 
     private void buildScreenTables48k() {
         int col, scan;
 
-        firstBorderUpdate = ((64 - TOP_BORDER) * spectrumModel.tstatesLine) - LEFT_BORDER / 2;
-        lastBorderUpdate = (255 + BOTTOM_BORDER) * spectrumModel.tstatesLine + 128 + RIGHT_BORDER;
+        firstBorderUpdate = ((64 - screenGeometry.border().top()) * spectrumModel.tstatesLine) - screenGeometry.border().left() / 2;
+        lastBorderUpdate = (255 + screenGeometry.border().bottom()) * spectrumModel.tstatesLine + 128 + screenGeometry.border().right();
 
         Arrays.fill(states2scr, 0);
 
@@ -2307,8 +2275,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private void buildScreenTables128k() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - TOP_BORDER) * spectrumModel.tstatesLine) - RIGHT_BORDER / 2;
-        lastBorderUpdate = (254 + BOTTOM_BORDER) * spectrumModel.tstatesLine + 128 + RIGHT_BORDER;
+        firstBorderUpdate = ((63 - screenGeometry.border().top()) * spectrumModel.tstatesLine) - screenGeometry.border().right() / 2;
+        lastBorderUpdate = (254 + screenGeometry.border().bottom()) * spectrumModel.tstatesLine + 128 + screenGeometry.border().right();
 
         Arrays.fill(states2scr, 0);
 
@@ -2357,8 +2325,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private void buildScreenTablesPlus3() {
         int col, scan;
 
-        firstBorderUpdate = ((63 - TOP_BORDER) * spectrumModel.tstatesLine) - RIGHT_BORDER / 2;
-        lastBorderUpdate = (254 + BOTTOM_BORDER) * spectrumModel.tstatesLine  + 128 + RIGHT_BORDER;
+        firstBorderUpdate = ((63 - screenGeometry.border().top()) * spectrumModel.tstatesLine) - screenGeometry.border().right() / 2;
+        lastBorderUpdate = (254 + screenGeometry.border().bottom()) * spectrumModel.tstatesLine  + 128 + screenGeometry.border().right();
 
         Arrays.fill(states2scr, 0);
 
