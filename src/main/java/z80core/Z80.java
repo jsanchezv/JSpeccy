@@ -230,7 +230,6 @@ import lombok.extern.slf4j.Slf4j;
 import machine.SpectrumClock;
 import snapshots.Z80State;
 
-import java.util.Arrays;
 import java.util.BitSet;
 
 @Slf4j

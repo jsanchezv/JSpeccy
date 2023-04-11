@@ -144,7 +144,7 @@ public class SnapshotSP implements SnapshotFile {
             spectrum.setIssue2(false); // esto no se guarda en los SNA, algo hay que poner...
             spectrum.setJoystick(JoystickModel.NONE); // idem
             spectrum.setTstates(0);
-        } catch (IOException ioExcpt) {
+        } catch (final IOException ioExcpt) {
             throw new SnapshotException("FILE_READ_ERROR", ioExcpt);
         }
 

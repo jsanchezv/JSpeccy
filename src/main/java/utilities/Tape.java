@@ -628,10 +628,10 @@ public class Tape implements machine.ClockTimeoutListener {
             tapeFile.read(tapeBuffer);
             tapeFile.close();
             filename = fileName;
-        } catch (FileNotFoundException fex) {
+        } catch (final FileNotFoundException fex) {
             log.error("File {} not found", fileName, fex);
             return false;
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             log.error("IOexception: ", ex);
             return false;
         }
@@ -1665,7 +1665,7 @@ public class Tape implements machine.ClockTimeoutListener {
                     timeout *= cswStatesSample;
                     clock.setTimeout(timeout);
 
-                } catch (IOException ex) {
+                } catch (final IOException ex) {
                     log.error("IOexception: ", ex);
                 }
                 break;
@@ -1811,7 +1811,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 try {
                     hdrTZX = tzxHeader.getBytes("US-ASCII");
                     idTZX = tzxCreator.getBytes("US-ASCII");
-                } catch (UnsupportedEncodingException ex) {
+                } catch (final UnsupportedEncodingException ex) {
                     log.error("Exception: ", ex);
                     return false;
                 }
@@ -1842,7 +1842,7 @@ public class Tape implements machine.ClockTimeoutListener {
 
         try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename, true))) {
             record.writeTo(fOut);
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             log.error("IOexception: ", ex);
         }
 
@@ -1933,7 +1933,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 record.close();
                 record.writeTo(fOut);
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             log.error("IOException: ", ex);
         }
 
@@ -1969,7 +1969,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 } else {
                     dos.write(pulses);
                 }
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 log.error("IOException: ", ex);
             }
         } else { // DRB

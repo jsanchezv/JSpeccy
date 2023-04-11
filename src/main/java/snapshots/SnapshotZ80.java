@@ -51,7 +51,7 @@ public class SnapshotZ80 implements SnapshotFile {
                     }
                 }
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             Logger.getLogger(SnapshotZ80.class.getName()).log(Level.SEVERE, null, ex);
             return 0;
         }
@@ -466,7 +466,7 @@ public class SnapshotZ80 implements SnapshotFile {
 
             spectrum.setTstates(0);
 
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             throw new SnapshotException("FILE_READ_ERROR", ex);
         }
 
@@ -636,7 +636,7 @@ public class SnapshotZ80 implements SnapshotFile {
                 }
             }
 
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
         }
 

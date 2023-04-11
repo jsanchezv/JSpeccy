@@ -27,13 +27,14 @@
 
         <!-- Maven plug-in versions -->
         <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
-        <spotbugs-maven-plugin.version>4.7.3.0</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.7.3.4</spotbugs-maven-plugin.version>
 
         <!-- Third party dependencies' versions -->
         <activation.version>2.0.1</activation.version>
         <jakarta.xml.bind-api.version>4.0.0</jakarta.xml.bind-api.version>
         <jaxb-core.version>4.0.1</jaxb-core.version>
         <jaxb-impl.version>4.0.1</jaxb-impl.version>
+        <picocli-version>4.7.2</picocli-version>
 
         <spring-boot-maven-plugin.finalName>jspeccy</spring-boot-maven-plugin.finalName>
         <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
@@ -63,7 +64,7 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli-spring-boot-starter</artifactId>
-            <version>4.7.1</version>
+            <version>${picocli-version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.activation</groupId>
