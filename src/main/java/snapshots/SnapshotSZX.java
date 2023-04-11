@@ -977,7 +977,7 @@ public class SnapshotSZX implements SnapshotFile {
                         throw new SnapshotException("FILE_READ_ERROR");
                 }
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
 //            ex.printStackTrace();
             throw new SnapshotException("FILE_READ_ERROR");
         }
@@ -1425,7 +1425,7 @@ public class SnapshotSZX implements SnapshotFile {
                     }
                 }
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             throw new SnapshotException("FILE_WRITE_ERROR", ex);
         }
 

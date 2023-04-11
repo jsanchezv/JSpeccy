@@ -101,7 +101,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 joystick1.start();
                 joystick2 = new JoystickRaw(1);
                 joystick2.start();
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
 //            log.error("", ex);
                 if (joystick1 == null && joystick2 == null)
                     log.info("No physical joystick found!");
@@ -551,7 +551,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 memory.writeByte(LAST_K, (byte) 0x0D); // ENTER key
                 memory.writeByte(FLAGS, (byte)(memory.readByte(FLAGS) | 0x20));
                 Thread.sleep(30);
-            } catch (InterruptedException ex) {
+            } catch (final InterruptedException ex) {
                 log.error("", ex);
             }
         };
@@ -573,7 +573,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             if (paused || !enabledSound) {
                 try {
                     wait(250);
-                } catch (InterruptedException ex) {
+                } catch (final InterruptedException ex) {
                     log.error("", ex);
                 }
 
@@ -1625,7 +1625,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                         }
                     }
                 }
-            } catch (IOException ioException) {
+            } catch (final IOException ioException) {
                 log.error("Error in saveImage", ioException);
             }
             return;
@@ -1634,7 +1634,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         if (filename.getName().toLowerCase().endsWith(".png")) {
             try {
                 ImageIO.write(tvImage, "png", filename);
-            } catch (IOException ioExcpt) {
+            } catch (final IOException ioExcpt) {
                 log.error("", ioExcpt);
             }
         }
@@ -1678,9 +1678,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                     }
                 }
                 return true;
-            } catch (FileNotFoundException excpt) {
+            } catch (final FileNotFoundException excpt) {
                 log.error("Error in loadScreen", excpt);
-            } catch (IOException ioExcpt) {
+            } catch (final IOException ioExcpt) {
                 log.error("Error in loadScreen", ioExcpt);
             }
         }

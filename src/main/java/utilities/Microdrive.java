@@ -439,10 +439,10 @@ public class Microdrive {
                     }
                 }
             }
-        } catch (FileNotFoundException fnfExcpt) {
+        } catch (final FileNotFoundException fnfExcpt) {
             log.error("File {} not found: ", fileName, fnfExcpt);
             return false;
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             log.error("IOException: ", ex);
             return false;
         }
@@ -573,7 +573,7 @@ public class Microdrive {
                 baos.writeTo(fOut);
             }
 
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             log.error("IOException: ", ex);
             return false;
         }
