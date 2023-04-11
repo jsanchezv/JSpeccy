@@ -7,8 +7,6 @@ package machine;
 import configuration.JSpeccySettings;
 import configuration.SpectrumType;
 import gui.JSpeccyScreen;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import joystickinput.JoystickRaw;
 import lombok.extern.slf4j.Slf4j;
 import machine.Keyboard.JoystickModel;
@@ -19,6 +17,8 @@ import utilities.TapeStateListener;
 import z80core.Z80;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.BufferedInputStream;
@@ -31,8 +31,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -1627,10 +1625,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                         }
                     }
                 }
-            } catch (FileNotFoundException excpt) {
-                log.error("Error in saveImage", excpt);
-            } catch (IOException ioExcpt) {
-                log.error("Error in saveImage", ioExcpt);
+            } catch (IOException ioException) {
+                log.error("Error in saveImage", ioException);
             }
             return;
         }
@@ -1786,6 +1782,25 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         0x36efde, /* cyan brillante */
         0xeeeb46, /* amarillo brillante */
         0xfdfff7  /* blanco brillante */
+    };
+
+    public static final String[] ColourName48k = {
+            "black",
+            "blue",
+            "red",
+            "magenta",
+            "green",
+            "cyan",
+            "yellow",
+            "white",
+            "black",
+            "bright blue",
+            "bright red",
+            "bright magenta",
+            "bright green",
+            "bright cyan",
+            "bright yellow",
+            "bright white"
     };
 
     public static final int[] Paleta128k = {
@@ -1990,10 +2005,10 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
     /*
      * Cada línea completa de imagen dura 224 T-Estados, divididos en:
-     * 128 T-Estados en los que se dibujan los 256 pixeles de pantalla
-     * 24 T-Estados en los que se dibujan los 48 pixeles del borde derecho
+     * 128 T-Estados en los que se dibujan los 256 píxeles de pantalla
+     * 24 T-Estados en los que se dibujan los 48 píxeles del borde derecho
      * 48 T-Estados iniciales de H-Sync y blanking
-     * 24 T-Estados en los que se dibujan 48 pixeles del borde izquierdo
+     * 24 T-Estados en los que se dibujan 48 píxeles del borde izquierdo
      *
      * Cada pantalla consta de 312 líneas divididas en:
      * 16 líneas en las cuales el haz vuelve a la parte superior de la pantalla
@@ -2092,12 +2107,15 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
     private void updateBorder(int tstates) {
 
+        log.debug("In @1 updateBorder: lastChgBorder = {}, tstates = {}, portFE = {} ({})",
+                lastChgBorder, tstates, portFE & 0x07, ColourName48k[portFE & 0x07]);
+
         if (tstates < lastChgBorder || lastChgBorder > lastBorderUpdate) {
             return;
         }
 
-//        System.out.println(String.format("In @ updateBorder: lastChgBorder = %d, tstates = %d",
-//                lastChgBorder, tstates));
+        log.debug("In @2 updateBorder: lastChgBorder = {}, tstates = {}, portFE = {} ({})",
+                lastChgBorder, tstates, portFE & 0x07, ColourName48k[portFE & 0x07]);
 
         int nowColor;
         if (ULAPlusActive) {
@@ -2132,8 +2150,6 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         }
 
         lastChgBorder = tstates;
-//        System.out.println(String.format("Out @ updateBorder: lastChgBorder = %d, nBorderChanges = %d",
-//                lastChgBorder, nBorderChanges));
     }
 
     public void updateScreen(int tstates) {

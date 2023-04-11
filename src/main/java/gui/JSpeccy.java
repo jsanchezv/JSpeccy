@@ -7,13 +7,16 @@
 package gui;
 
 import configuration.JSpeccySettings;
+import jakarta.xml.bind.JAXB;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import jspeccy.JSpeccyCommand;
 import lombok.extern.slf4j.Slf4j;
 import machine.Interface1DriveListener;
 import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import machine.Spectrum;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 import snapshots.SnapshotException;
 import snapshots.SnapshotFactory;
 import snapshots.SnapshotFile;
@@ -23,44 +26,25 @@ import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeStateListener;
 
+import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
-import jakarta.xml.bind.JAXB;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.ListSelectionModel;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  *
@@ -85,7 +69,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private FileNameExtensionFilter allSnapTapeExtension, snapshotExtension, saveSnapshotExtension,
             tapeExtension, createTapeExtension, imageExtension, screenExtension, romExtension;
     private SpectrumState memorySnapshot;
-    private CommandLineOptions clo;
+    private JSpeccyCommand clo;
 
     Icon mdrOn = new ImageIcon(getClass().getResource("/icons/microdrive_on.png"));
     Icon mdrOff = new ImageIcon(getClass().getResource("/icons/microdrive_off.png"));
@@ -262,11 +246,9 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     };
 
-    /** Creates new form JSpeccy
-     * @param args */
-    public JSpeccy(final String args[]) {
+    public JSpeccy(final JSpeccyCommand command) {
 //        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-//         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+//         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
 //         */
 //        try {
 //            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -275,14 +257,8 @@ public class JSpeccy extends javax.swing.JFrame {
 //                    break;
 //                }
 //            }
-//        } catch (ClassNotFoundException ex) {
-//            java.util.logging.Logger.getLogger(JSpeccy.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-//        } catch (InstantiationException ex) {
-//            java.util.logging.Logger.getLogger(JSpeccy.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-//        } catch (IllegalAccessException ex) {
-//            java.util.logging.Logger.getLogger(JSpeccy.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-//        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-//            java.util.logging.Logger.getLogger(JSpeccy.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+//        } catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException ex) {
+//            log.error("An error was encountered whilst attempting so set the Nimbus look and feel", ex);
 //        }
 
         if (UIManager.getLookAndFeel().getName().equals("Metal")) {
@@ -291,148 +267,89 @@ public class JSpeccy extends javax.swing.JFrame {
                 UIManager.put("swing.boldMetal", Boolean.FALSE);
                 // re-install the Metal Look and Feel
                 UIManager.setLookAndFeel(new MetalLookAndFeel());
-                // Update the ComponentUIs for all Components. This
-                // needs to be invoked for all windows.
+                // Update the ComponentUIs for all Components. This needs to be invoked for all windows.
                 SwingUtilities.updateComponentTreeUI(this);
             } catch (UnsupportedLookAndFeelException ex) {
-                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("An error was encountered whilst attempting so set the Metal look and feel", ex);
             }
         }
 
         readSettingsFile();
-        if (args.length > 0) {
-           log.debug("#args: {}", args.length);
-            if (!readArguments(args)) {
-                System.exit(1);
-            }
-            log.debug("# args remain: {}", clo.getArguments().size());
-            if (args.length > 1 || clo.getArguments().size() != 1) {
-                clo.copyArgumentsToSettings();
-            }
-        }
+        command.copyArgumentsToSettings(settings);
 
         initComponents();
         setTransferHandler(handler);
         initEmulator();
 
-        if (clo != null) {
-            if (clo.isIf1() && clo.getIf1mdv() != null) {
-                spectrum.getInterface1().insertFile(0, clo.getIf1mdv());
+        if (command.isIf1().isPresent() && command.getIf1mdv() != null) {
+            spectrum.getInterface1().insertFile(0, command.getIf1mdv());
+        }
+
+        if (command.getProgramFile() != null) {
+            File file = new File(command.getProgramFile());
+            if (snapshotExtension.accept(file)) {
+                recentFilesMgr.addRecentFile(file);
+                try {
+                    SnapshotFile snap = SnapshotFactory.getSnapshot(file);
+                    SpectrumState snapState = snap.load(file);
+                    if (snap instanceof SnapshotSZX snapSZX) {
+                        if (snapSZX.isTapeEmbedded()) {
+                            tape.eject();
+                            tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
+                                    snapSZX.getTapeData(), snapSZX.getTapeBlock());
+                        }
+
+                        if (snapSZX.isTapeLinked()) {
+                            File tapeLink = new File(snapSZX.getTapeName());
+
+                            if (tapeLink.exists()) {
+                                tape.eject();
+                                tape.insert(tapeLink);
+                                tape.setSelectedBlock(snapSZX.getTapeBlock());
+                            }
+                        }
+                    }
+
+                    spectrum.setSpectrumState(snapState);
+                } catch (SnapshotException exception) {
+                    JOptionPane.showMessageDialog(getContentPane(),
+                            ResourceBundle.getBundle("gui/Bundle").getString(exception.getMessage()),
+                            ResourceBundle.getBundle("gui/Bundle").getString(
+                                    "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                }
             }
 
-            if (clo.getArguments().size() == 1) {
-                File file = new File(clo.getArguments().get(0));
-                if (snapshotExtension.accept(file)) {
+            if (tapeExtension.accept(file)) {
+                if (tape.insert(file)) {
                     recentFilesMgr.addRecentFile(file);
-                    try {
-                        SnapshotFile snap = SnapshotFactory.getSnapshot(file);
-                        SpectrumState snapState = snap.load(file);
-                        if (snap instanceof SnapshotSZX) {
-                            SnapshotSZX snapSZX = (SnapshotSZX) snap;
-                            if (snapSZX.isTapeEmbedded()) {
-                                tape.eject();
-                                tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
-                                        snapSZX.getTapeData(), snapSZX.getTapeBlock());
-                            }
-
-                            if (snapSZX.isTapeLinked()) {
-                                File tapeLink = new File(snapSZX.getTapeName());
-
-                                if (tapeLink.exists()) {
-                                    tape.eject();
-                                    tape.insert(tapeLink);
-                                    tape.setSelectedBlock(snapSZX.getTapeBlock());
-                                }
-                            }
-                        }
-
-                        spectrum.setSpectrumState(snapState);
-                    } catch (SnapshotException excpt) {
-                        JOptionPane.showMessageDialog(getContentPane(),
-                                ResourceBundle.getBundle("gui/Bundle").getString(excpt.getMessage()),
-                                ResourceBundle.getBundle("gui/Bundle").getString(
-                                        "SNAPSHOT_LOAD_ERROR"), JOptionPane.ERROR_MESSAGE);
+                    if (settings.getTapeSettings().isAutoLoadTape()) {
+                        spectrum.autoLoadTape();
                     }
+                } else {
+                    ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                    JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_TAPE_ERROR"),
+                            bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
+                }
+            }
+
+            if (romExtension.accept(file)) {
+                if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
+                    spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
                 }
 
-                if (tapeExtension.accept(file)) {
-                    if (tape.insert(file)) {
-                        recentFilesMgr.addRecentFile(file);
-                        if (settings.getTapeSettings().isAutoLoadTape()) {
-                            spectrum.autoLoadTape();
-                        }
-                    } else {
-                        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-                        JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_TAPE_ERROR"),
-                                bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-
-                if (romExtension.accept(file)) {
-                    if (spectrum.getSpectrumModel().codeModel == MachineTypes.CodeModel.SPECTRUMPLUS3) {
-                        spectrum.selectHardwareModel(MachineTypes.SPECTRUM48K);
-                    }
-
-                    if (spectrum.insertIF2Rom(file)) {
-                        insertIF2RomMediaMenu.setEnabled(false);
-                        extractIF2RomMediaMenu.setEnabled(true);
-                        spectrum.reset();
-                    } else {
-                        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-                        JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_ROM_ERROR"),
-                                bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
-                    }
+                if (spectrum.insertIF2Rom(file)) {
+                    insertIF2RomMediaMenu.setEnabled(false);
+                    extractIF2RomMediaMenu.setEnabled(true);
+                    spectrum.reset();
+                } else {
+                    ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
+                    JOptionPane.showMessageDialog(getContentPane(), bundle.getString("LOAD_ROM_ERROR"),
+                            bundle.getString("LOAD_ROM_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
 
         startEmulation();
-    }
-
-    private boolean readArguments(String args[]) {
-        clo = new CommandLineOptions(settings);
-        CmdLineParser parser = new CmdLineParser(clo);
-        ResourceBundle bundle = ResourceBundle.getBundle("gui/Bundle"); // NOI18N
-        Writer out = new BufferedWriter(new OutputStreamWriter(System.err));
-
-        // if you have a wider console, you could increase the value;
-        // here 80 is also the default
-//        parser.setUsageWidth(80);
-
-        try {
-            // parse the arguments.
-            parser.parseArgument(args);
-
-            // after parsing arguments, you should check
-            // if enough arguments are given.
-//            if( clo.getArguments().isEmpty() )
-//                throw new CmdLineException(parser,"No argument is given");
-
-            if (clo.isPrintUsage()) {
-                System.err.println(bundle.getString("JSpeccy.usage.sample.text"));
-                System.err.println("");
-                System.err.println(bundle.getString("JSpeccy.usage.header.text"));
-                parser.printUsage(out, bundle);
-                return false;
-            }
-            return true;
-
-//            clo.copyArgumentsToSettings();
-
-        } catch( CmdLineException excpt ) {
-            // if there's a problem in the command line,
-            // you'll get this exception. this will report
-            // an error message.
-            System.err.println(excpt.getMessage());
-            System.err.println(bundle.getString("JSpeccy.usage.sample.text"));
-            System.err.println("");
-            // print the list of available options
-            System.err.println(bundle.getString("JSpeccy.usage.header.text"));
-            parser.printUsage(out, bundle);
-            System.err.println();
-
-            return false;
-        }
     }
 
     private void verifyConfigFile(boolean deleteFile) {
@@ -441,10 +358,8 @@ public class JSpeccy extends javax.swing.JFrame {
             return;
         }
 
-        if (deleteFile) {
-            if (!file.delete()) {
-                log.error("Unable to delete the corrupted JSpeccy.xml file");
-            }
+        if (deleteFile && (!file.delete())) {
+            log.error("Unable to delete the corrupted JSpeccy.xml file");
         }
 
         // Si el archivo de configuración no existe, lo crea de nuevo en el
@@ -561,7 +476,8 @@ public class JSpeccy extends javax.swing.JFrame {
             toSave.getRecentFilesSettings().setLastTapeDir(currentFileTape.getParent());
 
         if (clo == null) {
-            int filterM = 0, zoomM = 0;
+            int filterM = 0;
+            int zoomM = 0;
 
             if (palTvFilter.isSelected()) {
                 filterM = 1;
@@ -582,9 +498,7 @@ public class JSpeccy extends javax.swing.JFrame {
             toSave.getSpectrumSettings().setZoomMethod(zoomM);
             toSave.getSpectrumSettings().setFilterMethod(filterM);
             toSave.getSpectrumSettings().setScanLines(scanlinesFilter.isSelected());
-
             toSave.getSpectrumSettings().setBorderSize(jscr.getBorderMode());
-
             toSave.getSpectrumSettings().setZoomed(jscr.isZoomed());
         }
 
@@ -632,9 +546,7 @@ public class JSpeccy extends javax.swing.JFrame {
         });
 
         tape.addTapeChangedListener(new TapeChangedListener());
-        tape.addTapeBlockListener((int block) -> {
-            lsm.setSelectionInterval(block, block);
-        });
+        tape.addTapeBlockListener((int block) -> lsm.setSelectionInterval(block, block));
 
         spectrum.getInterface1().addInterface1DriveListener(new Interface1DriveListener() {
 
@@ -731,36 +643,38 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         }
 
-        switch(settings.getSpectrumSettings().getZoomMethod()) {
-            case 1: // Bilineal
+        switch (settings.getSpectrumSettings().getZoomMethod()) {
+            case 1 -> { // Bilineal
                 jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 bilinearZoom.setSelected(true);
-                break;
-            case 2: // Bicubic
+            }
+            case 2 -> { // Bicubic
                 jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_BICUBIC);
                 bicubicZoom.setSelected(true);
-                break;
-            default:
+            }
+            default -> {
                 jscr.setInterpolationMethod(RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                 standardZoom.setSelected(true);
+            }
         }
 
         jscr.setScanlinesFilter(settings.getSpectrumSettings().isScanLines());
         scanlinesFilter.setSelected(settings.getSpectrumSettings().isScanLines());
 
-        switch(settings.getSpectrumSettings().getFilterMethod()) {
-            case 1: // PAL TV
+        switch (settings.getSpectrumSettings().getFilterMethod()) {
+            case 1 -> { // PAL TV
                 jscr.setPalFilter(true);
                 palTvFilter.setSelected(true);
-                break;
-            case 2: // RGB
+            }
+            case 2 -> { // RGB
                 jscr.setRgbFilter(true);
                 rgbFilter.setSelected(true);
                 scanlinesFilter.setEnabled(false);
-                break;
-            default:
+            }
+            default -> {
                 jscr.setAnyFilter(settings.getSpectrumSettings().isScanLines());
                 noneFilter.setSelected(true);
+            }
         }
 
         updateGuiSelections();
@@ -848,49 +762,30 @@ public class JSpeccy extends javax.swing.JFrame {
         }
 
         switch (spectrum.getSpectrumModel()) {
-            case SPECTRUM16K:
-                spec16kHardware.setSelected(true);
-                break;
-            case SPECTRUM48K:
-                spec48kHardware.setSelected(true);
-                break;
-            case SPECTRUM128K:
-                spec128kHardware.setSelected(true);
-                break;
-            case SPECTRUMPLUS2:
-                specPlus2Hardware.setSelected(true);
-                break;
-            case SPECTRUMPLUS2A:
+            case SPECTRUM16K -> spec16kHardware.setSelected(true);
+            case SPECTRUM48K -> spec48kHardware.setSelected(true);
+            case SPECTRUM128K -> spec128kHardware.setSelected(true);
+            case SPECTRUMPLUS2 -> specPlus2Hardware.setSelected(true);
+            case SPECTRUMPLUS2A -> {
                 specPlus2AHardware.setSelected(true);
                 IF2MediaMenu.setEnabled(false);
-                break;
-            case SPECTRUMPLUS3:
+            }
+            case SPECTRUMPLUS3 -> {
                 specPlus3Hardware.setSelected(true);
                 IF2MediaMenu.setEnabled(false);
-                break;
+            }
         }
 
         modelLabel.setToolTipText(spectrum.getSpectrumModel().getLongModelName());
         modelLabel.setText(spectrum.getSpectrumModel().getShortModelName());
 
         switch (spectrum.getJoystick()) {
-            case KEMPSTON:
-                kempstonJoystick.setSelected(true);
-                break;
-            case SINCLAIR1:
-                sinclair1Joystick.setSelected(true);
-                break;
-            case SINCLAIR2:
-                sinclair2Joystick.setSelected(true);
-                break;
-            case CURSOR:
-                cursorJoystick.setSelected(true);
-                break;
-            case FULLER:
-                fullerJoystick.setSelected(true);
-                break;
-            default:
-                noneJoystick.setSelected(true);
+            case KEMPSTON -> kempstonJoystick.setSelected(true);
+            case SINCLAIR1 -> sinclair1Joystick.setSelected(true);
+            case SINCLAIR2 -> sinclair2Joystick.setSelected(true);
+            case CURSOR -> cursorJoystick.setSelected(true);
+            case FULLER -> fullerJoystick.setSelected(true);
+            default -> noneJoystick.setSelected(true);
         }
 
         if (settings.getSpectrumSettings().isULAplus()) {
@@ -906,18 +801,11 @@ public class JSpeccy extends javax.swing.JFrame {
             palTvFilter.setEnabled(true);
         }
 
-        switch(jscr.getBorderMode()) {
-            case 0:
-                noBorder.setSelected(true);
-                break;
-            case 2:
-                fullBorder.setSelected(true);
-                break;
-            case 3:
-                hugeBorder.setSelected(true);
-                break;
-            default:
-                standardBorder.setSelected(true);
+        switch (jscr.getBorderMode()) {
+            case 0 -> noBorder.setSelected(true);
+            case 2 -> fullBorder.setSelected(true);
+            case 3 -> hugeBorder.setSelected(true);
+            default -> standardBorder.setSelected(true);
         }
     }
 
@@ -1116,11 +1004,7 @@ public class JSpeccy extends javax.swing.JFrame {
         keyboardHelper.getContentPane().add(keyboardImage, java.awt.BorderLayout.PAGE_START);
 
         closeKeyboardHelper.setText(bundle.getString("JSpeccy.closeKeyboardHelper.text")); // NOI18N
-        closeKeyboardHelper.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeKeyboardHelperActionPerformed(evt);
-            }
-        });
+        closeKeyboardHelper.addActionListener(this::closeKeyboardHelperActionPerformed);
         keyboardHelper.getContentPane().add(closeKeyboardHelper, java.awt.BorderLayout.PAGE_END);
 
         tapeBrowserDialog.setTitle(bundle.getString("JSpeccy.tapeBrowserDialog.title")); // NOI18N
@@ -1164,11 +1048,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonRec.setFocusable(false);
         tapeBrowserButtonRec.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         tapeBrowserButtonRec.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        tapeBrowserButtonRec.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                recordStartTapeMediaMenuActionPerformed(evt);
-            }
-        });
+        tapeBrowserButtonRec.addActionListener(this::recordStartTapeMediaMenuActionPerformed);
         tapeBrowserToolbar.add(tapeBrowserButtonRec);
 
         jSeparator11.setSeparatorSize(new java.awt.Dimension(25, 10));
@@ -1181,11 +1061,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonStop.setFocusable(false);
         tapeBrowserButtonStop.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         tapeBrowserButtonStop.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        tapeBrowserButtonStop.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tapeBrowserButtonStopActionPerformed(evt);
-            }
-        });
+        tapeBrowserButtonStop.addActionListener(this::tapeBrowserButtonStopActionPerformed);
         tapeBrowserToolbar.add(tapeBrowserButtonStop);
 
         tapeBrowserButtonRew.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_rew.png"))); // NOI18N
@@ -1195,11 +1071,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonRew.setFocusable(false);
         tapeBrowserButtonRew.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         tapeBrowserButtonRew.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        tapeBrowserButtonRew.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                rewindTapeMediaMenuActionPerformed(evt);
-            }
-        });
+        tapeBrowserButtonRew.addActionListener(this::rewindTapeMediaMenuActionPerformed);
         tapeBrowserToolbar.add(tapeBrowserButtonRew);
 
         tapeBrowserButtonPlay.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/32x32/player_play.png"))); // NOI18N
@@ -1209,11 +1081,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonPlay.setFocusable(false);
         tapeBrowserButtonPlay.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         tapeBrowserButtonPlay.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        tapeBrowserButtonPlay.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tapeBrowserButtonPlayActionPerformed(evt);
-            }
-        });
+        tapeBrowserButtonPlay.addActionListener(this::tapeBrowserButtonPlayActionPerformed);
         tapeBrowserToolbar.add(tapeBrowserButtonPlay);
 
         jSeparator12.setSeparatorSize(new java.awt.Dimension(25, 10));
@@ -1226,11 +1094,7 @@ public class JSpeccy extends javax.swing.JFrame {
         tapeBrowserButtonEject.setFocusable(false);
         tapeBrowserButtonEject.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         tapeBrowserButtonEject.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        tapeBrowserButtonEject.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tapeBrowserButtonEjectActionPerformed(evt);
-            }
-        });
+        tapeBrowserButtonEject.addActionListener(this::tapeBrowserButtonEjectActionPerformed);
         tapeBrowserToolbar.add(tapeBrowserButtonEject);
 
         jPanel2.add(tapeBrowserToolbar);
@@ -1657,29 +1521,17 @@ public class JSpeccy extends javax.swing.JFrame {
     zoomMethodButtonGroup.add(standardZoom);
     standardZoom.setSelected(true);
     standardZoom.setText(bundle.getString("JSpeccy.standardZoom.text")); // NOI18N
-    standardZoom.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            standardZoomActionPerformed(evt);
-        }
-    });
+    standardZoom.addActionListener(this::standardZoomActionPerformed);
     zoomMethodOptionMenu.add(standardZoom);
 
     zoomMethodButtonGroup.add(bilinearZoom);
     bilinearZoom.setText(bundle.getString("JSpeccy.bilinearZoom.text")); // NOI18N
-    bilinearZoom.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            bilinearZoomActionPerformed(evt);
-        }
-    });
+    bilinearZoom.addActionListener(this::bilinearZoomActionPerformed);
     zoomMethodOptionMenu.add(bilinearZoom);
 
     zoomMethodButtonGroup.add(bicubicZoom);
     bicubicZoom.setText(bundle.getString("JSpeccy.bicubicZoom.text")); // NOI18N
-    bicubicZoom.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            bicubicZoomActionPerformed(evt);
-        }
-    });
+    bicubicZoom.addActionListener(this::bicubicZoomActionPerformed);
     zoomMethodOptionMenu.add(bicubicZoom);
 
     optionsMenu.add(zoomMethodOptionMenu);
@@ -1688,39 +1540,23 @@ public class JSpeccy extends javax.swing.JFrame {
 
     borderSizeButtonGroup.add(noBorder);
     noBorder.setText(bundle.getString("JSpeccy.noBorder.text")); // NOI18N
-    noBorder.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            noBorderActionPerformed(evt);
-        }
-    });
+    noBorder.addActionListener(this::noBorderActionPerformed);
     borderSizeOptionMenu.add(noBorder);
 
     borderSizeButtonGroup.add(standardBorder);
     standardBorder.setSelected(true);
     standardBorder.setText(bundle.getString("JSpeccy.standardBorder.text")); // NOI18N
-    standardBorder.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            standardBorderActionPerformed(evt);
-        }
-    });
+    standardBorder.addActionListener(this::standardBorderActionPerformed);
     borderSizeOptionMenu.add(standardBorder);
 
     borderSizeButtonGroup.add(fullBorder);
     fullBorder.setText(bundle.getString("JSpeccy.fullBorder.text")); // NOI18N
-    fullBorder.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            fullBorderActionPerformed(evt);
-        }
-    });
+    fullBorder.addActionListener(this::fullBorderActionPerformed);
     borderSizeOptionMenu.add(fullBorder);
 
     borderSizeButtonGroup.add(hugeBorder);
     hugeBorder.setText(bundle.getString("JSpeccy.hugeBorder.text")); // NOI18N
-    hugeBorder.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            hugeBorderActionPerformed(evt);
-        }
-    });
+    hugeBorder.addActionListener(this::hugeBorderActionPerformed);
     borderSizeOptionMenu.add(hugeBorder);
 
     optionsMenu.add(borderSizeOptionMenu);
@@ -1730,38 +1566,22 @@ public class JSpeccy extends javax.swing.JFrame {
     filtersButtonGroup.add(noneFilter);
     noneFilter.setSelected(true);
     noneFilter.setText(bundle.getString("JSpeccy.noneFilter.text")); // NOI18N
-    noneFilter.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            noneFilterActionPerformed(evt);
-        }
-    });
+    noneFilter.addActionListener(this::noneFilterActionPerformed);
     filtersOptionMenu.add(noneFilter);
 
     filtersButtonGroup.add(palTvFilter);
     palTvFilter.setText(bundle.getString("JSpeccy.palTvFilter.text")); // NOI18N
-    palTvFilter.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            palTvFilterActionPerformed(evt);
-        }
-    });
+    palTvFilter.addActionListener(this::palTvFilterActionPerformed);
     filtersOptionMenu.add(palTvFilter);
 
     filtersButtonGroup.add(rgbFilter);
     rgbFilter.setText(bundle.getString("JSpeccy.rgbFilter.text")); // NOI18N
-    rgbFilter.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            rgbFilterActionPerformed(evt);
-        }
-    });
+    rgbFilter.addActionListener(this::rgbFilterActionPerformed);
     filtersOptionMenu.add(rgbFilter);
     filtersOptionMenu.add(jSeparator20);
 
     scanlinesFilter.setText(bundle.getString("JSpeccy.scanlinesFilter.text")); // NOI18N
-    scanlinesFilter.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            scanlinesFilterActionPerformed(evt);
-        }
-    });
+    scanlinesFilter.addActionListener(this::scanlinesFilterActionPerformed);
     filtersOptionMenu.add(scanlinesFilter);
 
     optionsMenu.add(filtersOptionMenu);
@@ -1772,56 +1592,32 @@ public class JSpeccy extends javax.swing.JFrame {
     joystickButtonGroup.add(noneJoystick);
     noneJoystick.setSelected(true);
     noneJoystick.setText(bundle.getString("JSpeccy.noneJoystick.text")); // NOI18N
-    noneJoystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            noneJoystickActionPerformed(evt);
-        }
-    });
+    noneJoystick.addActionListener(this::noneJoystickActionPerformed);
     joystickOptionMenu.add(noneJoystick);
 
     joystickButtonGroup.add(kempstonJoystick);
     kempstonJoystick.setText(bundle.getString("JSpeccy.kempstonJoystick.text")); // NOI18N
-    kempstonJoystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            kempstonJoystickActionPerformed(evt);
-        }
-    });
+    kempstonJoystick.addActionListener(this::kempstonJoystickActionPerformed);
     joystickOptionMenu.add(kempstonJoystick);
 
     joystickButtonGroup.add(sinclair1Joystick);
     sinclair1Joystick.setText(bundle.getString("JSpeccy.sinclair1Joystick.text")); // NOI18N
-    sinclair1Joystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            sinclair1JoystickActionPerformed(evt);
-        }
-    });
+    sinclair1Joystick.addActionListener(this::sinclair1JoystickActionPerformed);
     joystickOptionMenu.add(sinclair1Joystick);
 
     joystickButtonGroup.add(sinclair2Joystick);
     sinclair2Joystick.setText(bundle.getString("JSpeccy.sinclair2Joystick.text")); // NOI18N
-    sinclair2Joystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            sinclair2JoystickActionPerformed(evt);
-        }
-    });
+    sinclair2Joystick.addActionListener(this::sinclair2JoystickActionPerformed);
     joystickOptionMenu.add(sinclair2Joystick);
 
     joystickButtonGroup.add(cursorJoystick);
     cursorJoystick.setText(bundle.getString("JSpeccy.cursorJoystick.text")); // NOI18N
-    cursorJoystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            cursorJoystickActionPerformed(evt);
-        }
-    });
+    cursorJoystick.addActionListener(this::cursorJoystickActionPerformed);
     joystickOptionMenu.add(cursorJoystick);
 
     joystickButtonGroup.add(fullerJoystick);
     fullerJoystick.setText(bundle.getString("JSpeccy.fullerJoystick.text")); // NOI18N
-    fullerJoystick.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            fullerJoystickActionPerformed(evt);
-        }
-    });
+    fullerJoystick.addActionListener(this::fullerJoystickActionPerformed);
     joystickOptionMenu.add(fullerJoystick);
 
     optionsMenu.add(joystickOptionMenu);
@@ -1829,83 +1625,47 @@ public class JSpeccy extends javax.swing.JFrame {
 
     settingsOptionsMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
     settingsOptionsMenu.setText(bundle.getString("JSpeccy.settings.text")); // NOI18N
-    settingsOptionsMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            settingsOptionsMenuActionPerformed(evt);
-        }
-    });
+    settingsOptionsMenu.addActionListener(this::settingsOptionsMenuActionPerformed);
     optionsMenu.add(settingsOptionsMenu);
 
     jMenuBar1.add(optionsMenu);
 
     machineMenu.setText(bundle.getString("JSpeccy.machineMenu.text")); // NOI18N
-    machineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            silenceSoundToggleButtonActionPerformed(evt);
-        }
-    });
+    machineMenu.addActionListener(this::silenceSoundToggleButtonActionPerformed);
 
     pauseMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_PAUSE, 0));
     pauseMachineMenu.setText(bundle.getString("JSpeccy.pauseMachineMenu.text")); // NOI18N
-    pauseMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            pauseMachineMenuActionPerformed(evt);
-        }
-    });
+    pauseMachineMenu.addActionListener(this::pauseMachineMenuActionPerformed);
     machineMenu.add(pauseMachineMenu);
 
     silenceMachineMenu.setText(bundle.getString("JSpeccy.silenceMachineMenu.text")); // NOI18N
-    silenceMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            silenceSoundToggleButtonActionPerformed(evt);
-        }
-    });
+    silenceMachineMenu.addActionListener(this::silenceSoundToggleButtonActionPerformed);
     machineMenu.add(silenceMachineMenu);
     machineMenu.add(jSeparator17);
 
     resetMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
     resetMachineMenu.setText(bundle.getString("JSpeccy.resetMachineMenu.text")); // NOI18N
-    resetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            resetMachineMenuActionPerformed(evt);
-        }
-    });
+    resetMachineMenu.addActionListener(this::resetMachineMenuActionPerformed);
     machineMenu.add(resetMachineMenu);
 
     hardResetMachineMenu.setText(bundle.getString("JSpeccy.hardResetMachineMenu.text")); // NOI18N
-    hardResetMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            hardResetSpectrumButtonActionPerformed(evt);
-        }
-    });
+    hardResetMachineMenu.addActionListener(this::hardResetSpectrumButtonActionPerformed);
     machineMenu.add(hardResetMachineMenu);
 
     nmiMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, java.awt.event.InputEvent.CTRL_MASK));
     nmiMachineMenu.setText(bundle.getString("JSpeccy.nmiMachineMenu.text")); // NOI18N
-    nmiMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            nmiMachineMenuActionPerformed(evt);
-        }
-    });
+    nmiMachineMenu.addActionListener(this::nmiMachineMenuActionPerformed);
     machineMenu.add(nmiMachineMenu);
     machineMenu.add(jSeparator3);
 
     pokeMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.ALT_MASK));
     pokeMachineMenu.setText(bundle.getString("JSpeccy.pokeMachineMenu.text")); // NOI18N
-    pokeMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            pokeMachineMenuActionPerformed(evt);
-        }
-    });
+    pokeMachineMenu.addActionListener(this::pokeMachineMenuActionPerformed);
     machineMenu.add(pokeMachineMenu);
 
     memoryBrowserMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.ALT_MASK));
     memoryBrowserMachineMenu.setText(bundle.getString("JSpeccy.memoryBrowserMachineMenu.text")); // NOI18N
-    memoryBrowserMachineMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            memoryBrowserMachineMenuActionPerformed(evt);
-        }
-    });
+    memoryBrowserMachineMenu.addActionListener(this::memoryBrowserMachineMenuActionPerformed);
     machineMenu.add(memoryBrowserMachineMenu);
     machineMenu.add(jSeparator14);
 
@@ -1913,57 +1673,33 @@ public class JSpeccy extends javax.swing.JFrame {
 
     hardwareButtonGroup.add(spec16kHardware);
     spec16kHardware.setText(bundle.getString("JSpeccy.spec16kHardware.text")); // NOI18N
-    spec16kHardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            spec16kHardwareActionPerformed(evt);
-        }
-    });
+    spec16kHardware.addActionListener(this::spec16kHardwareActionPerformed);
     hardwareMachineMenu.add(spec16kHardware);
 
     hardwareButtonGroup.add(spec48kHardware);
     spec48kHardware.setSelected(true);
     spec48kHardware.setText(bundle.getString("JSpeccy.spec48kHardware.text")); // NOI18N
-    spec48kHardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            spec48kHardwareActionPerformed(evt);
-        }
-    });
+    spec48kHardware.addActionListener(this::spec48kHardwareActionPerformed);
     hardwareMachineMenu.add(spec48kHardware);
 
     hardwareButtonGroup.add(spec128kHardware);
     spec128kHardware.setText(bundle.getString("JSpeccy.spec128kHardware.text")); // NOI18N
-    spec128kHardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            spec128kHardwareActionPerformed(evt);
-        }
-    });
+    spec128kHardware.addActionListener(this::spec128kHardwareActionPerformed);
     hardwareMachineMenu.add(spec128kHardware);
 
     hardwareButtonGroup.add(specPlus2Hardware);
     specPlus2Hardware.setText(bundle.getString("JSpeccy.specPlus2Hardware.text")); // NOI18N
-    specPlus2Hardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            specPlus2HardwareActionPerformed(evt);
-        }
-    });
+    specPlus2Hardware.addActionListener(this::specPlus2HardwareActionPerformed);
     hardwareMachineMenu.add(specPlus2Hardware);
 
     hardwareButtonGroup.add(specPlus2AHardware);
     specPlus2AHardware.setText(bundle.getString("JSpeccy.specPlus2AHardware.text")); // NOI18N
-    specPlus2AHardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            specPlus2AHardwareActionPerformed(evt);
-        }
-    });
+    specPlus2AHardware.addActionListener(this::specPlus2AHardwareActionPerformed);
     hardwareMachineMenu.add(specPlus2AHardware);
 
     hardwareButtonGroup.add(specPlus3Hardware);
     specPlus3Hardware.setText(bundle.getString("JSpeccy.specPlus3Hardware.text")); // NOI18N
-    specPlus3Hardware.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            specPlus3HardwareActionPerformed(evt);
-        }
-    });
+    specPlus3Hardware.addActionListener(this::specPlus3HardwareActionPerformed);
     hardwareMachineMenu.add(specPlus3Hardware);
 
     machineMenu.add(hardwareMachineMenu);
@@ -1976,97 +1712,57 @@ public class JSpeccy extends javax.swing.JFrame {
 
     openTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, 0));
     openTapeMediaMenu.setText(bundle.getString("JSpeccy.openTapeMediaMenu.text")); // NOI18N
-    openTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            openTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    openTapeMediaMenu.addActionListener(this::openTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(openTapeMediaMenu);
 
     playTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F8, 0));
     playTapeMediaMenu.setText(bundle.getString("JSpeccy.playTapeMediaMenu.text")); // NOI18N
     playTapeMediaMenu.setEnabled(false);
-    playTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            playTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    playTapeMediaMenu.addActionListener(this::playTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(playTapeMediaMenu);
 
     browserTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, java.awt.event.InputEvent.ALT_MASK));
     browserTapeMediaMenu.setText(bundle.getString("JSpeccy.browserTapeMediaMenu.text")); // NOI18N
-    browserTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            browserTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    browserTapeMediaMenu.addActionListener(this::browserTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(browserTapeMediaMenu);
 
     rewindTapeMediaMenu.setText(bundle.getString("JSpeccy.rewindTapeMediaMenu.text")); // NOI18N
     rewindTapeMediaMenu.setEnabled(false);
-    rewindTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            rewindTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    rewindTapeMediaMenu.addActionListener(this::rewindTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(rewindTapeMediaMenu);
 
     ejectTapeMediaMenu.setText(bundle.getString("JSpeccy.ejectTapeMediaMenu.text")); // NOI18N
     ejectTapeMediaMenu.setEnabled(false);
-    ejectTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            tapeBrowserButtonEjectActionPerformed(evt);
-        }
-    });
+    ejectTapeMediaMenu.addActionListener(this::tapeBrowserButtonEjectActionPerformed);
     tapeMediaMenu.add(ejectTapeMediaMenu);
     tapeMediaMenu.add(jSeparator5);
 
     createTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
     createTapeMediaMenu.setText(bundle.getString("JSpeccy.createTapeMediaMenu.text")); // NOI18N
-    createTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            createTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    createTapeMediaMenu.addActionListener(this::createTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(createTapeMediaMenu);
 
     clearTapeMediaMenu.setText(bundle.getString("JSpeccy.clearTapeMediaMenu.text")); // NOI18N
     clearTapeMediaMenu.setEnabled(false);
-    clearTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            clearTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    clearTapeMediaMenu.addActionListener(this::clearTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(clearTapeMediaMenu);
     tapeMediaMenu.add(jSeparator6);
 
     recordStartTapeMediaMenu.setText(bundle.getString("JSpeccy.recordStartTapeMediaMenu.text")); // NOI18N
     recordStartTapeMediaMenu.setEnabled(false);
-    recordStartTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recordStartTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    recordStartTapeMediaMenu.addActionListener(this::recordStartTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(recordStartTapeMediaMenu);
 
     recordStopTapeMediaMenu.setText(bundle.getString("JSpeccy.recordStopTapeMediaMenu.text")); // NOI18N
     recordStopTapeMediaMenu.setEnabled(false);
-    recordStopTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recordStopTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    recordStopTapeMediaMenu.addActionListener(this::recordStopTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(recordStopTapeMediaMenu);
     tapeMediaMenu.add(jSeparator13);
 
     reloadTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, java.awt.event.InputEvent.CTRL_MASK));
     reloadTapeMediaMenu.setText(bundle.getString("JSpeccy.reloadTapeMediaMenu.text")); // NOI18N
     reloadTapeMediaMenu.setEnabled(false);
-    reloadTapeMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            reloadTapeMediaMenuActionPerformed(evt);
-        }
-    });
+    reloadTapeMediaMenu.addActionListener(this::reloadTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(reloadTapeMediaMenu);
 
     mediaMenu.add(tapeMediaMenu);
@@ -2076,11 +1772,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     microdrivesIF1MediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, java.awt.event.InputEvent.ALT_MASK));
     microdrivesIF1MediaMenu.setText(bundle.getString("JSpeccy.microdrivesIF1MediaMenu.text")); // NOI18N
-    microdrivesIF1MediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            microdrivesIF1MediaMenuActionPerformed(evt);
-        }
-    });
+    microdrivesIF1MediaMenu.addActionListener(this::microdrivesIF1MediaMenuActionPerformed);
     IF1MediaMenu.add(microdrivesIF1MediaMenu);
 
     mediaMenu.add(IF1MediaMenu);
@@ -2089,20 +1781,12 @@ public class JSpeccy extends javax.swing.JFrame {
     IF2MediaMenu.setText(bundle.getString("JSpeccy.IF2MediaMenu.text")); // NOI18N
 
     insertIF2RomMediaMenu.setText(bundle.getString("JSpeccy.insertIF2RomMediaMenu.text")); // NOI18N
-    insertIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            insertIF2RomMediaMenuActionPerformed(evt);
-        }
-    });
+    insertIF2RomMediaMenu.addActionListener(this::insertIF2RomMediaMenuActionPerformed);
     IF2MediaMenu.add(insertIF2RomMediaMenu);
 
     extractIF2RomMediaMenu.setText(bundle.getString("JSpeccy.extractIF2RomMediaMenu.text")); // NOI18N
     extractIF2RomMediaMenu.setEnabled(false);
-    extractIF2RomMediaMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            extractIF2RomMediaMenuActionPerformed(evt);
-        }
-    });
+    extractIF2RomMediaMenu.addActionListener(this::extractIF2RomMediaMenuActionPerformed);
     IF2MediaMenu.add(extractIF2RomMediaMenu);
 
     mediaMenu.add(IF2MediaMenu);
@@ -2113,19 +1797,11 @@ public class JSpeccy extends javax.swing.JFrame {
 
     imageHelpMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0));
     imageHelpMenu.setText(bundle.getString("JSpeccy.imageHelpMenu.text")); // NOI18N
-    imageHelpMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            imageHelpMenuActionPerformed(evt);
-        }
-    });
+    imageHelpMenu.addActionListener(this::imageHelpMenuActionPerformed);
     helpMenu.add(imageHelpMenu);
 
     aboutHelpMenu.setText(bundle.getString("JSpeccy.aboutHelpMenu.text")); // NOI18N
-    aboutHelpMenu.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            aboutHelpMenuActionPerformed(evt);
-        }
-    });
+    aboutHelpMenu.addActionListener(this::aboutHelpMenuActionPerformed);
     helpMenu.add(aboutHelpMenu);
 
     jMenuBar1.add(helpMenu);
@@ -2162,8 +1838,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 try {
                     SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
                     SpectrumState snapState = snap.load(currentFileSnapshot);
-                    if (snap instanceof SnapshotSZX) {
-                        SnapshotSZX snapSZX = (SnapshotSZX) snap;
+                    if (snap instanceof SnapshotSZX snapSZX) {
                         if (snapSZX.isTapeEmbedded()) {
                             tape.eject();
                             tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -2382,8 +2057,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
             try {
                 SnapshotFile snap = SnapshotFactory.getSnapshot(saveSnapshotDlg.getSelectedFile());
-                if (snap instanceof SnapshotSZX && tape.getTapeFilename() != null) {
-                    SnapshotSZX snapSZX = (SnapshotSZX) snap;
+                if (snap instanceof SnapshotSZX snapSZX && tape.getTapeFilename() != null) {
                     tapeFilenameLabel.setText(tape.getTapeFilename().getName());
                     ignoreRadioButton.setSelected(true);
                     saveSzxTape.pack();
@@ -3196,14 +2870,6 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_mdrvLabelMouseClicked
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(final String args[]) {
-        java.awt.EventQueue.invokeLater(() -> {
-            new JSpeccy(args).setVisible(true);
-        });
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenu IF1MediaMenu;
