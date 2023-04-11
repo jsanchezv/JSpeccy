@@ -66,7 +66,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"-m", "--model"},
             //paramLabel = "CommandLineOptions.metaVar.model.text",
             descriptionKey = "CommandLineOptions.model.text",
-            defaultValue = "sp48k",
+            //defaultValue = "sp48k",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     private Optional<Model> model;
 
@@ -117,7 +117,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"-j", "--joystick"},
             //paramLabel = "CommandLineOptions.metaVar.model.text",
             descriptionKey = "CommandLineOptions.joystick.text",
-            defaultValue = "none",
+            //defaultValue = "none",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     private Optional<JoystickModel> joystick;
 
@@ -131,7 +131,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"-z", "--zoom"},
             //paramLabel = "CommandLineOptions.metaVar.size.text",
             descriptionKey = "CommandLineOptions.zoom.text",
-            defaultValue = "1",
+            //defaultValue = "1",
             showDefaultValue = CommandLine.Help.Visibility.NEVER)
     private Optional<Integer> zoom;
 
@@ -158,7 +158,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"--sound-mode"},
             //paramLabel = "CommandLineOptions.metaVar.mode.text",
             descriptionKey = "CommandLineOptions.soundMode.text",
-            defaultValue = "mono",
+            //defaultValue = "mono",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     private Optional<SoundMode> soundMode;
 
@@ -172,7 +172,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"--zoom-filter"},
             //paramLabel = "CommandLineOptions.metaVar.filter.text",
             descriptionKey = "CommandLineOptions.zoomFilter.text",
-            defaultValue = "standard",
+            //defaultValue = "standard",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     private Optional<ZoomFilter> zoomFilter;
 
@@ -187,7 +187,7 @@ public class JSpeccyCommand implements Runnable {
             names = {"--border-size"},
             //paramLabel = "CommandLineOptions.metaVar.size.text",
             descriptionKey = "CommandLineOptions.borderSize.text",
-            defaultValue = "standard",
+            //defaultValue = "standard",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
     private Optional<BorderSize> borderSize;
 
