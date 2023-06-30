@@ -44,12 +44,16 @@ import jakarta.xml.bind.JAXB;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
+import jspeccy.BundlePropertyResolver;
 import jspeccy.JSpeccyCommand;
 import lombok.extern.slf4j.Slf4j;
 import machine.Interface1DriveListener;
 import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import machine.Spectrum;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 import snapshots.SnapshotException;
 import snapshots.SnapshotFactory;
 import snapshots.SnapshotFile;
@@ -64,13 +68,14 @@ import utilities.TapeStateListener;
  * @author  jsanchez
  */
 @Slf4j
+@Component
 public class JSpeccy extends javax.swing.JFrame {
     private Spectrum spectrum;
     private Tape tape;
     private JSpeccyScreen jscr;
     private File currentFileSnapshot, currentDirSaveSnapshot,
                  currentFileTape, currentDirLoadImage, currentDirSaveImage, currentDirRom;
-    private JFileChooser openSnapshotDlg, saveSnapshotDlg, openTapeDlg;
+    private JFileChooser openSnapshotDlg, openTapeDlg;
     private JFileChooser loadImageDlg, saveImageDlg, IF2RomDlg;
     private RecentFilesMgr recentFilesMgr;
     private ListSelectionModel lsm;
@@ -89,6 +94,12 @@ public class JSpeccy extends javax.swing.JFrame {
     Icon tapeStopped = new ImageIcon(getClass().getResource("/icons/Akai24x24.png"));
     Icon tapePlaying = new ImageIcon(getClass().getResource("/icons/Akai24x24-playing.png"));
     Icon tapeRecording = new ImageIcon(getClass().getResource("/icons/Akai24x24-recording.png"));
+
+    @Autowired
+    private Environment environment;
+
+    @Autowired
+    BundlePropertyResolver bundlePropertyResolver;
 
     private final TransferHandler handler = new TransferHandler() {
         @Override
@@ -259,7 +270,9 @@ public class JSpeccy extends javax.swing.JFrame {
         }
     };
 
-    public JSpeccy(final JSpeccyCommand command) {
+
+    public void run(final JSpeccyCommand command) {
+
 //        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
 //         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
 //         */
@@ -2024,10 +2037,10 @@ public class JSpeccy extends javax.swing.JFrame {
 
         stopEmulation();
 
-        JOptionPane.showMessageDialog(getContentPane(),
-            bundle.getString("ABOUT_MESSAGE"), bundle.getString("ABOUT_TITLE"),
-            JOptionPane.INFORMATION_MESSAGE,
-            new javax.swing.ImageIcon(getClass().getResource("/icons/JSpeccy64x64.png")));
+        String aboutMessage = bundlePropertyResolver.resolvePlaceholders(bundle.getString("ABOUT_MESSAGE"), environment);
+        String aboutTitle = bundle.getString("ABOUT_TITLE");
+        ImageIcon icon = new ImageIcon(getClass().getResource("/icons/JSpeccy64x64.png"));
+        JOptionPane.showMessageDialog(getContentPane(), aboutMessage, aboutTitle, JOptionPane.INFORMATION_MESSAGE, icon);
 
         startEmulation();
     }//GEN-LAST:event_aboutHelpMenuActionPerformed
@@ -2040,23 +2053,20 @@ public class JSpeccy extends javax.swing.JFrame {
         keyboardHelper.setVisible(false);
     }//GEN-LAST:event_closeKeyboardHelperActionPerformed
 
+    /**
+     * Prompt the user for a file name to save a snapshot.
+     * <p>
+     * NOTE: we need to recreate the file chooser every time the user wishes to save a snapshot as there is no reliable
+     * way, that works across operating systems, of clearing the file name from the dialog box before the dialog can be
+     * used again for a second time.
+     *
+     * @param evt AWT action event
+     */
     private void saveSnapshotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveSnapshotActionPerformed
-
-        if( saveSnapshotDlg == null ) {
-            saveSnapshotDlg = new JFileChooser("/home/jsanchez/Spectrum");
-            saveSnapshotDlg.addChoosableFileFilter(snapshotExtension);
-            saveSnapshotDlg.setFileFilter(saveSnapshotExtension);
-            currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
-        }
-        else {
-            saveSnapshotDlg.setCurrentDirectory(currentDirSaveSnapshot);
-            /*
-             * FIXME: the following type cast is throwing an exception when the save snapshot dialog box is opened,
-             * then closed, and the opened again.  We need to find another way of clearing the "save as" edit line.
-             */
-            BasicFileChooserUI chooserUI = (BasicFileChooserUI) saveSnapshotDlg.getUI();
-            chooserUI.setFileName("");
-        }
+        JFileChooser saveSnapshotDlg = new JFileChooser(currentDirSaveSnapshot);
+        saveSnapshotDlg.addChoosableFileFilter(snapshotExtension);
+        saveSnapshotDlg.setFileFilter(saveSnapshotExtension);
+        currentDirSaveSnapshot = saveSnapshotDlg.getCurrentDirectory();
 
         stopEmulation();
 

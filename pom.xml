@@ -4,9 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <name>JSpeccy</name>
+    <description>A multiplatform ZX Spectrum emulator written in Java</description>
     <groupId>com.jsanchezv.jspeccy</groupId>
     <artifactId>jspeccy</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <parent>
@@ -17,7 +19,9 @@
     </parent>
 
     <properties>
+        <!-- toolchain versions -->
         <java.version>17</java.version>
+        <maven.version>3.8.5</maven.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -25,25 +29,25 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Maven plug-in versions -->
-        <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
-        <spotbugs-maven-plugin.version>4.7.3.5</spotbugs-maven-plugin.version>
-
-        <!-- Third party dependencies' versions -->
+        <!-- NOTE: use `mvn versions:display-dependency-updates` to scan for dependency updates -->
         <activation.version>2.0.1</activation.version>
-        <jakarta.xml.bind-api.version>4.0.0</jakarta.xml.bind-api.version>
-        <jaxb-core.version>4.0.1</jaxb-core.version>
-        <jaxb-impl.version>4.0.1</jaxb-impl.version>
+        <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
+        <jaxb-core.version>4.0.4</jaxb-core.version>
+        <jaxb-impl.version>4.0.4</jaxb-impl.version>
         <picocli-version>4.7.5</picocli-version>
 
-        <spring-boot-maven-plugin.finalName>jspeccy</spring-boot-maven-plugin.finalName>
+        <!-- NOTE: use `mvn versions:versions:display-plugin-updates` to scan for dependency updates -->
+        <dependency-check-maven.version>9.0.0</dependency-check-maven.version>
+        <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
-        <maven-failsafe-plugin.version>3.1.2</maven-failsafe-plugin.version>
-        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
-        <maven-project-info-reports-plugin.version>3.4.5</maven-project-info-reports-plugin.version>
-        <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
-        <dependency-check-maven.version>8.3.1</dependency-check-maven.version>
-        <native-maven-plugin.version>0.9.23</native-maven-plugin.version>
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
+        <maven-failsafe-plugin.version>3.2.2</maven-failsafe-plugin.version>
+        <maven-project-info-reports-plugin.version>3.5.0</maven-project-info-reports-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-site-plugin.version>4.0.0-M11</maven-site-plugin.version>
+        <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
+        <native-maven-plugin.version>0.9.28</native-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.8.1.0</spotbugs-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -89,6 +93,7 @@
         </dependency>
     </dependencies>
     <build>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
@@ -153,26 +158,85 @@
                 <version>${project.parent.version}</version>
                 <configuration>
                     <executable>true</executable>
-                    <finalName>${spring-boot-maven-plugin.finalName}</finalName>
                     <jvmArguments>-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8888</jvmArguments>
                 </configuration>
+                <executions>
+                    <execution>
+                        <!-- generate build information, e.g. build timestamp, in META-INF/build-info.properties -->
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                        <configuration>
+                            <additionalProperties>
+                                <encoding.source>UTF-8</encoding.source>
+                                <encoding.reporting>UTF-8</encoding.reporting>
+                                <java.source>${maven.compiler.source}</java.source>
+                                <java.target>${maven.compiler.target}</java.target>
+                            </additionalProperties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <configuration>
+                    <!-- Required by the language translation bundles -->
+                    <propertiesEncoding>ISO-8859-1</propertiesEncoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!--Usage example - https://www.mojohaus.org/extra-enforcer-rules/banDuplicateClasses.html-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven-enforcer-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-ban-duplicate-classes</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <banDuplicateClasses>
+                                    <findAllDuplicates>true</findAllDuplicates>
+                                </banDuplicateClasses>
+                            </rules>
+                            <fail>true</fail>
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <banTransitiveDependencies/>
+                            </rules>
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>${maven.version}</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
-                <!--plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven-compiler-plugin.version}</version>
-                    <configuration-->
-                        <!-- The following import is required to bring in the @Contended annotation into the default -->
-                        <!-- module so that we can use it to prevent false memory sharing                            -->
-                        <!--compilerArgs>
-                            <arg>add-exports</arg>
-                            <arg>java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
-                        </compilerArgs>
-                    </configuration>
-                </plugin -->
                 <plugin>
                     <groupId>org.owasp</groupId>
                     <artifactId>dependency-check-maven</artifactId>

@@ -15,6 +15,7 @@ import gui.JSpeccy;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import machine.Keyboard.JoystickModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine;
 
@@ -38,11 +39,20 @@ import java.util.Optional;
 @Data
 public class JSpeccyCommand implements Runnable {
 
+    private JSpeccy jSpeccy;
+
+    @Autowired
+    public JSpeccyCommand(final JSpeccy jSpeccy) {
+
+        this.jSpeccy = jSpeccy;
+    }
+
     @Override
     public void run() {
 
         // Run the emulator
-        new JSpeccy(this).setVisible(true);
+        jSpeccy.run(this);
+        jSpeccy.setVisible(true);
     }
 
     // Optional program file to load at startup time.
