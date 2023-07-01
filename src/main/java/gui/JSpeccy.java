@@ -1398,7 +1398,7 @@ public class JSpeccy extends javax.swing.JFrame {
     fileMenu.add(saveSnapshot);
     fileMenu.add(jSeparator4);
 
-    loadMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, java.awt.event.InputEvent.ALT_MASK));
+    loadMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, java.awt.event.InputEvent.ALT_DOWN_MASK));
     loadMemorySnapshot.setText(bundle.getString("JSpeccy.loadMemorySnapshot.text")); // NOI18N
     loadMemorySnapshot.setEnabled(false);
     loadMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
@@ -1408,7 +1408,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     fileMenu.add(loadMemorySnapshot);
 
-    saveMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.ALT_MASK));
+    saveMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.ALT_DOWN_MASK));
     saveMemorySnapshot.setText(bundle.getString("JSpeccy.saveMemorySnapshot.text")); // NOI18N
     saveMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1454,7 +1454,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     recentFilesMenu.setText(bundle.getString("JSpeccy.recentFilesMenu.text")); // NOI18N
 
-    recentFileMenu0.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_1, java.awt.event.InputEvent.ALT_MASK));
+    recentFileMenu0.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_1, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu0.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu0.setEnabled(false);
     recentFileMenu0.addActionListener(new java.awt.event.ActionListener() {
@@ -1464,7 +1464,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     recentFilesMenu.add(recentFileMenu0);
 
-    recentFileMenu1.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_2, java.awt.event.InputEvent.ALT_MASK));
+    recentFileMenu1.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_2, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu1.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu1.setEnabled(false);
     recentFileMenu1.addActionListener(new java.awt.event.ActionListener() {
@@ -1474,7 +1474,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     recentFilesMenu.add(recentFileMenu1);
 
-    recentFileMenu2.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_3, java.awt.event.InputEvent.ALT_MASK));
+    recentFileMenu2.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_3, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu2.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu2.setEnabled(false);
     recentFileMenu2.addActionListener(new java.awt.event.ActionListener() {
@@ -1484,7 +1484,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     recentFilesMenu.add(recentFileMenu2);
 
-    recentFileMenu3.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_4, java.awt.event.InputEvent.ALT_MASK));
+    recentFileMenu3.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_4, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu3.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu3.setEnabled(false);
     recentFileMenu3.addActionListener(new java.awt.event.ActionListener() {
@@ -1494,7 +1494,7 @@ public class JSpeccy extends javax.swing.JFrame {
     });
     recentFilesMenu.add(recentFileMenu3);
 
-    recentFileMenu4.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_5, java.awt.event.InputEvent.ALT_MASK));
+    recentFileMenu4.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_5, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu4.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu4.setEnabled(false);
     recentFileMenu4.addActionListener(new java.awt.event.ActionListener() {
@@ -1507,7 +1507,7 @@ public class JSpeccy extends javax.swing.JFrame {
     fileMenu.add(recentFilesMenu);
     fileMenu.add(jSeparator7);
 
-    thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_MASK));
+    thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_DOWN_MASK));
     thisIsTheEndMyFriend.setText(bundle.getString("JSpeccy.thisIsTheEndMyFriend.text")); // NOI18N
     thisIsTheEndMyFriend.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1520,7 +1520,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     optionsMenu.setText(bundle.getString("JSpeccy.optionsMenu.text")); // NOI18N
 
-    doubleSizeOption.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.ALT_MASK));
+    doubleSizeOption.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.ALT_DOWN_MASK));
     doubleSizeOption.setText(bundle.getString("JSpeccy.doubleSizeOption.text")); // NOI18N
     doubleSizeOption.addActionListener(new java.awt.event.ActionListener() {
         public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1665,18 +1665,18 @@ public class JSpeccy extends javax.swing.JFrame {
     hardResetMachineMenu.addActionListener(this::hardResetSpectrumButtonActionPerformed);
     machineMenu.add(hardResetMachineMenu);
 
-    nmiMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, java.awt.event.InputEvent.CTRL_MASK));
+    nmiMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, java.awt.event.InputEvent.CTRL_DOWN_MASK));
     nmiMachineMenu.setText(bundle.getString("JSpeccy.nmiMachineMenu.text")); // NOI18N
     nmiMachineMenu.addActionListener(this::nmiMachineMenuActionPerformed);
     machineMenu.add(nmiMachineMenu);
     machineMenu.add(jSeparator3);
 
-    pokeMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.ALT_MASK));
+    pokeMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.ALT_DOWN_MASK));
     pokeMachineMenu.setText(bundle.getString("JSpeccy.pokeMachineMenu.text")); // NOI18N
     pokeMachineMenu.addActionListener(this::pokeMachineMenuActionPerformed);
     machineMenu.add(pokeMachineMenu);
 
-    memoryBrowserMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.ALT_MASK));
+    memoryBrowserMachineMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.ALT_DOWN_MASK));
     memoryBrowserMachineMenu.setText(bundle.getString("JSpeccy.memoryBrowserMachineMenu.text")); // NOI18N
     memoryBrowserMachineMenu.addActionListener(this::memoryBrowserMachineMenuActionPerformed);
     machineMenu.add(memoryBrowserMachineMenu);
@@ -1734,7 +1734,7 @@ public class JSpeccy extends javax.swing.JFrame {
     playTapeMediaMenu.addActionListener(this::playTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(playTapeMediaMenu);
 
-    browserTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, java.awt.event.InputEvent.ALT_MASK));
+    browserTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, java.awt.event.InputEvent.ALT_DOWN_MASK));
     browserTapeMediaMenu.setText(bundle.getString("JSpeccy.browserTapeMediaMenu.text")); // NOI18N
     browserTapeMediaMenu.addActionListener(this::browserTapeMediaMenuActionPerformed);
     tapeMediaMenu.add(browserTapeMediaMenu);
@@ -1772,7 +1772,7 @@ public class JSpeccy extends javax.swing.JFrame {
     tapeMediaMenu.add(recordStopTapeMediaMenu);
     tapeMediaMenu.add(jSeparator13);
 
-    reloadTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, java.awt.event.InputEvent.CTRL_MASK));
+    reloadTapeMediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, java.awt.event.InputEvent.CTRL_DOWN_MASK));
     reloadTapeMediaMenu.setText(bundle.getString("JSpeccy.reloadTapeMediaMenu.text")); // NOI18N
     reloadTapeMediaMenu.setEnabled(false);
     reloadTapeMediaMenu.addActionListener(this::reloadTapeMediaMenuActionPerformed);
@@ -1783,7 +1783,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     IF1MediaMenu.setText(bundle.getString("JSpeccy.IF1MediaMenu.text")); // NOI18N
 
-    microdrivesIF1MediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, java.awt.event.InputEvent.ALT_MASK));
+    microdrivesIF1MediaMenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, java.awt.event.InputEvent.ALT_DOWN_MASK));
     microdrivesIF1MediaMenu.setText(bundle.getString("JSpeccy.microdrivesIF1MediaMenu.text")); // NOI18N
     microdrivesIF1MediaMenu.addActionListener(this::microdrivesIF1MediaMenuActionPerformed);
     IF1MediaMenu.add(microdrivesIF1MediaMenu);
