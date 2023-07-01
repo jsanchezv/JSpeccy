@@ -6,6 +6,39 @@
 
 package gui;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicFileChooserUI;
+import javax.swing.plaf.metal.MetalLookAndFeel;
+
 import configuration.JSpeccySettings;
 import jakarta.xml.bind.JAXB;
 import jakarta.xml.bind.JAXBContext;
@@ -25,26 +58,6 @@ import snapshots.SpectrumState;
 import utilities.Tape;
 import utilities.Tape.TapeState;
 import utilities.TapeStateListener;
-
-import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.plaf.basic.BasicFileChooserUI;
-import javax.swing.plaf.metal.MetalLookAndFeel;
-import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
