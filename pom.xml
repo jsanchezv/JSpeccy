@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.1</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
 
@@ -34,7 +34,7 @@
         <jakarta.xml.bind-api.version>4.0.0</jakarta.xml.bind-api.version>
         <jaxb-core.version>4.0.1</jaxb-core.version>
         <jaxb-impl.version>4.0.1</jaxb-impl.version>
-        <picocli-version>4.7.4</picocli-version>
+        <picocli-version>4.7.5</picocli-version>
 
         <spring-boot-maven-plugin.finalName>jspeccy</spring-boot-maven-plugin.finalName>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
