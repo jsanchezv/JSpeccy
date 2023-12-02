@@ -84,7 +84,8 @@ public class SnapshotSNA implements SnapshotFile {
             z80.setIFF1(intEnabled);
             z80.setIFF2(intEnabled);
 
-            z80.setRegR(snaHeader[20]);
+            // Substract 2 to R, that will be added by RETN
+            z80.setRegR((snaHeader[20] - 2) & 0xff);
             z80.setRegF(snaHeader[21]);
             z80.setRegA(snaHeader[22]);
             z80.setRegSP((snaHeader[23] & 0xff) | (snaHeader[24] << 8));
