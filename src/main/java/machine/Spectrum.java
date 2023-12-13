@@ -64,7 +64,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private Tape tape;
     private volatile boolean paused;
     private volatile boolean acceleratedLoading;
-    private volatile boolean enabledSound;
+    private volatile boolean isSoundEnabled;
     private boolean resetPending, autoLoadTape;
     private JLabel speedLabel;
 
@@ -93,7 +93,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         ay8912 = new AY8912();
         audio = new Audio(settings.getAY8912Settings());
         muted = specSettings.isMutedSound();
-        enabledSound = false;
+        isSoundEnabled = false;
         paused = true;
         borderMode = 1;
         if1 = new Interface1(settings.getInterface1Settings());
@@ -402,7 +402,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         jscr.repaint();
         paused = false;
         enableSound();
-        if (!enabledSound) {
+        if (!isSoundEnabled) {
             taskFrame = new SpectrumTimer(this);
             timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
         }
@@ -415,7 +415,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
         paused = true;
 
-        if (enabledSound) {
+        if (isSoundEnabled) {
             disableSound();
         } else {
             taskFrame.cancel();
@@ -573,7 +573,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     @Override
     public synchronized void run() {
         while (true) {
-            if (paused || !enabledSound) {
+            if (paused || !isSoundEnabled) {
                 try {
                     wait(250);
                 } catch (final InterruptedException ex) {
@@ -594,7 +594,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
             generateFrame();
             drawFrame();
-            if (enabledSound) {
+            if (isSoundEnabled) {
                 audio.sendAudioFrame();
             }
         }
@@ -635,7 +635,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
             z80.execute(spectrumModel.tstatesFrame);
 
-            if (enabledSound) {
+            if (isSoundEnabled) {
                 if (enabledAY) {
                     ay8912.updateAY(spectrumModel.tstatesFrame);
                 }
@@ -685,8 +685,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             int regI = z80.getRegI();
             if ((regI >= 0x40 && regI <= 0x7f)
                     || (spectrumModel == MachineTypes.SPECTRUM128K && regI > 0xbf && contendedRamPage[3])) {
-                System.out.println(String.format(
-                        "Incompatible program with 128k. Register I = 0x%02X. Reset!", regI));
+                log.error(String.format("Incompatible program with 128k. Register I = 0x%02X. Reset!", regI));
                 z80.reset();
             }
         }
@@ -790,9 +789,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             speed = clock.getFrames() - startFrame;
             if (speed != prevSpeed) {
                 prevSpeed = speed;
-                SwingUtilities.invokeLater(() -> {
-                    speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10)));
-                });
+                SwingUtilities.invokeLater(() -> speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10))));
             }
 
         } while (tape.isTapePlaying());
@@ -1090,8 +1087,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                             kmouseY = (kmouseY - yaxis / 6553) & 0xff;
                         }
                         return kmouseY;
+                    default:
+                        return keyboard.readKempstonPort();
                 }
-                return keyboard.readKempstonPort();
             }
 
             // Before exit, reset the additional fire button bits from K-Mouse
@@ -1271,7 +1269,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
                 if (!tape.isTapePlaying()) {
                     int spkMic = sp_volt[value >> 3 & 3];
-                    if (enabledSound && spkMic != speaker) {
+                    if (isSoundEnabled && spkMic != speaker) {
                         audio.updateAudio(clock.getTstates(), speaker);
                         speaker = spkMic;
                     }
@@ -1300,7 +1298,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 if ((port & 0x4000) != 0) {
                     ay8912.setAddressLatch(value);
                 } else {
-                    if (enabledSound && ay8912.getAddressLatch() < 14) {
+                    if (isSoundEnabled && ay8912.getAddressLatch() < 14) {
                         ay8912.updateAY(clock.getTstates());
                     }
                     ay8912.writeRegister(value);
@@ -1316,7 +1314,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 }
 
                 if ((port & 0xff) == 0x5f) {
-                    if (enabledSound && ay8912.getAddressLatch() < 14) {
+                    if (isSoundEnabled && ay8912.getAddressLatch() < 14) {
                         ay8912.updateAY(clock.getTstates());
                     }
                     ay8912.writeRegister(value);
@@ -1709,34 +1707,29 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     }
 
     private void enableSound() {
-        if (paused || muted || enabledSound || framesByInt > 1) {
+        if (paused || muted || isSoundEnabled || framesByInt > 1) {
             return;
         }
 
-        audio.open(spectrumModel, ay8912, enabledAY,
-                settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
+        audio.open(spectrumModel, ay8912, enabledAY, settings.getSpectrumSettings().isHifiSound() ? 48000 : 32000);
 
-        if (!paused) {
-            if (taskFrame != null) {
-                taskFrame.cancel();
-                taskFrame = null;
-            }
+        if (!paused && (taskFrame != null)) {
+            taskFrame.cancel();
+            taskFrame = null;
         }
 
-        enabledSound = true;
+        isSoundEnabled = true;
     }
 
     private void disableSound() {
-        if (!enabledSound) {
-            return;
-        }
-
-        enabledSound = false;
-        audio.endFrame();
-        audio.close();
-        if (!paused) {
-            taskFrame = new SpectrumTimer(this);
-            timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
+        if (isSoundEnabled) {
+            isSoundEnabled = false;
+            audio.endFrame();
+            audio.close();
+            if (!paused) {
+                taskFrame = new SpectrumTimer(this);
+                timerFrame.scheduleAtFixedRate(taskFrame, 10, 20);
+            }
         }
     }
 
@@ -2483,17 +2476,20 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private class TapeChangedListener implements TapeStateListener, ClockTimeoutListener {
 
         boolean listenerInstalled = false;
+
         @Override
         public void stateChanged(final TapeState state) {
-//            System.out.println("Spectrum::TapeChangedListener: state = " + state + "");
+
+            log.trace("Tape state changed to " + state);
 
             switch (state) {
                 case PLAY:
                     if (!paused) {
                         if (settings.getTapeSettings().isAccelerateLoading()) {
                             acceleratedLoading = true;
-                        } else {
-                            if (specSettings.isLoadingNoise() && enabledSound) {
+                        }
+                        else {
+                            if (specSettings.isLoadingNoise() && isSoundEnabled) {
                                 listenerInstalled = true;
                                 clock.addClockTimeoutListener(this);
                             }
@@ -2506,21 +2502,23 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                         listenerInstalled = false;
                     }
                     break;
+                default:
+                    // do nothing
             }
         }
 
         @Override
         public void clockTimeout() {
 
-            if (!enabledSound)
-                return;
-
-            int spkMic = (tape.getEarBit() == 0xbf) ? -8000 : 8000;
-
-            if (spkMic != speaker) {
-                audio.updateAudio(clock.getTstates(), speaker);
-                speaker = spkMic;
+            if (isSoundEnabled) {
+                int spkMic = (tape.getEarBit() == 0xbf) ? -8000 : 8000;
+                if (spkMic != speaker) {
+                    audio.updateAudio(clock.getTstates(), speaker);
+                    speaker = spkMic;
+                }
             }
         }
+
     }
+
 }
