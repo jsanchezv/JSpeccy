@@ -172,11 +172,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         informationPanel.add(filler5);
 
         markPrintableCharacters.setText(bundle.getString("MemoryBrowserDialog.markPrintableCharacters.txt")); // NOI18N
-        markPrintableCharacters.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                markPrintableCharactersActionPerformed(evt);
-            }
-        });
+        markPrintableCharacters.addActionListener(this::markPrintableCharactersActionPerformed);
         informationPanel.add(markPrintableCharacters);
 
         add(informationPanel);
@@ -193,11 +189,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         gotoAddress.setMaximumSize(new java.awt.Dimension(100, 24));
         gotoAddress.setMinimumSize(new java.awt.Dimension(70, 24));
         gotoAddress.setPreferredSize(new java.awt.Dimension(70, 24));
-        gotoAddress.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                gotoAddressStateChanged(evt);
-            }
-        });
+        gotoAddress.addChangeListener(this::gotoAddressStateChanged);
         optionsPanel.add(gotoAddress);
         optionsPanel.add(filler1);
 
@@ -209,11 +201,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         memoryComboBox.setMaximumSize(new java.awt.Dimension(150, 24));
         memoryComboBox.setMinimumSize(new java.awt.Dimension(50, 24));
         memoryComboBox.setPreferredSize(new java.awt.Dimension(60, 24));
-        memoryComboBox.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                memoryComboBoxActionPerformed(evt);
-            }
-        });
+        memoryComboBox.addActionListener(this::memoryComboBoxActionPerformed);
         optionsPanel.add(memoryComboBox);
         optionsPanel.add(filler3);
 
@@ -224,11 +212,7 @@ public class MemoryBrowserDialog extends javax.swing.JPanel {
         closePanel.add(filler6);
 
         closeButton.setText(bundle.getString("MemoryBrowser.closeButton.text")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
-            }
-        });
+        closeButton.addActionListener(this::closeButtonActionPerformed);
         closePanel.add(closeButton);
         closePanel.add(filler7);
 

@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -155,8 +156,7 @@ public class JSpeccy extends javax.swing.JFrame {
                         try {
                             SnapshotFile snap = SnapshotFactory.getSnapshot(file);
                             SpectrumState snapState = snap.load(file);
-                            if (snap instanceof SnapshotSZX) {
-                                SnapshotSZX snapSZX = (SnapshotSZX)snap;
+                            if (snap instanceof SnapshotSZX snapSZX) {
                                 if (snapSZX.isTapeEmbedded()) {
                                     tape.eject();
                                     tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -399,10 +399,8 @@ public class JSpeccy extends javax.swing.JFrame {
             byte[] fileConf = new byte[input.available()];
             input.read(fileConf);
             output.write(fileConf, 0, fileConf.length);
-        } catch (FileNotFoundException notFoundExcpt) {
-            Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, notFoundExcpt);
-        } catch (IOException ioExcpt) {
-            Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ioExcpt);
+        } catch (IOException ioException) {
+            log.error("Unable to find configuration file", ioException);
         } finally {
             try {
                 if (input != null) {
@@ -412,8 +410,8 @@ public class JSpeccy extends javax.swing.JFrame {
                 if (output != null) {
                     output.close();
                 }
-            } catch (IOException ex) {
-                Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ioException) {
+                log.error("Unable to close configuration file", ioException);
             }
         }
     }
@@ -421,7 +419,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void readSettingsFile() {
         verifyConfigFile(false);
 
-        boolean readed = true;
+        boolean wasRead = true;
         try {
             // create a JAXBContext capable of handling classes generated into
             // the configuration package
@@ -435,12 +433,12 @@ public class JSpeccy extends javax.swing.JFrame {
             settings = (JSpeccySettings) unmsh.unmarshal(new FileInputStream(System.getProperty("user.home") + "/JSpeccy.xml"));
         } catch (JAXBException jexcpt) {
             log.error("Something went very badly during unmarshalling!");
-            readed = false;
+            wasRead = false;
         } catch (FileNotFoundException ioexcpt) {
             log.warn("Can't open the JSpeccy.xml configuration file", ioexcpt);
         }
 
-        if (readed)
+        if (wasRead)
             return;
 
         log.info("Trying to create a new JSpeccy.xml file for you");
@@ -929,7 +927,7 @@ public class JSpeccy extends javax.swing.JFrame {
         silenceSoundToggleButton = new javax.swing.JToggleButton();
         resetSpectrumButton = new javax.swing.JButton();
         hardResetSpectrumButton = new javax.swing.JButton();
-        jMenuBar1 = new javax.swing.JMenuBar();
+        mainMenuBar = new javax.swing.JMenuBar();
         fileMenu = new javax.swing.JMenu();
         openSnapshot = new javax.swing.JMenuItem();
         saveSnapshot = new javax.swing.JMenuItem();
@@ -1167,11 +1165,7 @@ public class JSpeccy extends javax.swing.JFrame {
         jPanel3.add(filler4);
 
         saveSzxCloseButton.setText(bundle.getString("JSpeccy.saveSzxCloseButton.text")); // NOI18N
-        saveSzxCloseButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveSzxCloseButtonActionPerformed(evt);
-            }
-        });
+        saveSzxCloseButton.addActionListener(this::saveSzxCloseButtonActionPerformed);
         jPanel3.add(saveSzxCloseButton);
         jPanel3.add(filler5);
 
@@ -1184,11 +1178,7 @@ public class JSpeccy extends javax.swing.JFrame {
         addrValuePanel.add(pokeAddress);
 
         addressSpinner.setModel(new javax.swing.SpinnerNumberModel(23296, 16384, 65535, 1));
-        addressSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                addressSpinnerStateChanged(evt);
-            }
-        });
+        addressSpinner.addChangeListener(this::addressSpinnerStateChanged);
         addrValuePanel.add(addressSpinner);
         addrValuePanel.add(filler1);
 
@@ -1196,31 +1186,19 @@ public class JSpeccy extends javax.swing.JFrame {
         addrValuePanel.add(pokeValue);
 
         valueSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
-        valueSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                valueSpinnerStateChanged(evt);
-            }
-        });
+        valueSpinner.addChangeListener(this::valueSpinnerStateChanged);
         addrValuePanel.add(valueSpinner);
         addrValuePanel.add(filler2);
 
         pokeButton.setText(bundle.getString("JSpeccy.pokeButton.text")); // NOI18N
         pokeButton.setEnabled(false);
-        pokeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                pokeButtonActionPerformed(evt);
-            }
-        });
+        pokeButton.addActionListener(this::pokeButtonActionPerformed);
         addrValuePanel.add(pokeButton);
 
         pokeDialog.getContentPane().add(addrValuePanel);
 
         closePokeDialogButton.setText(bundle.getString("JSpeccy.closePokeDialogButton.text")); // NOI18N
-        closePokeDialogButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closePokeDialogButtonActionPerformed(evt);
-            }
-        });
+        closePokeDialogButton.addActionListener(this::closePokeDialogButtonActionPerformed);
         closePokeDialogPanel.add(closePokeDialogButton);
 
         pokeDialog.getContentPane().add(closePokeDialogPanel);
@@ -1305,11 +1283,7 @@ public class JSpeccy extends javax.swing.JFrame {
     openSnapshotButton.setFocusable(false);
     openSnapshotButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     openSnapshotButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    openSnapshotButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            openSnapshotActionPerformed(evt);
-        }
-    });
+    openSnapshotButton.addActionListener(this::openSnapshotActionPerformed);
     toolbarMenu.add(openSnapshotButton);
 
     pauseToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_pause.png"))); // NOI18N
@@ -1318,11 +1292,7 @@ public class JSpeccy extends javax.swing.JFrame {
     pauseToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     pauseToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_play.png"))); // NOI18N
     pauseToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    pauseToggleButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            pauseMachineMenuActionPerformed(evt);
-        }
-    });
+    pauseToggleButton.addActionListener(this::pauseMachineMenuActionPerformed);
     toolbarMenu.add(pauseToggleButton);
 
     fastEmulationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/player_fwd.png"))); // NOI18N
@@ -1331,11 +1301,7 @@ public class JSpeccy extends javax.swing.JFrame {
     fastEmulationToggleButton.setFocusable(false);
     fastEmulationToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     fastEmulationToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    fastEmulationToggleButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            fastEmulationToggleButtonActionPerformed(evt);
-        }
-    });
+    fastEmulationToggleButton.addActionListener(this::fastEmulationToggleButtonActionPerformed);
     toolbarMenu.add(fastEmulationToggleButton);
 
     doubleSizeToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag+.png"))); // NOI18N
@@ -1344,11 +1310,7 @@ public class JSpeccy extends javax.swing.JFrame {
     doubleSizeToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     doubleSizeToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/viewmag-.png"))); // NOI18N
     doubleSizeToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    doubleSizeToggleButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            doubleSizeOptionActionPerformed(evt);
-        }
-    });
+    doubleSizeToggleButton.addActionListener(this::doubleSizeOptionActionPerformed);
     toolbarMenu.add(doubleSizeToggleButton);
 
     silenceSoundToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-on-16x16.png"))); // NOI18N
@@ -1357,11 +1319,7 @@ public class JSpeccy extends javax.swing.JFrame {
     silenceSoundToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     silenceSoundToggleButton.setSelectedIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/sound-off-16x16.png"))); // NOI18N
     silenceSoundToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    silenceSoundToggleButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            silenceSoundToggleButtonActionPerformed(evt);
-        }
-    });
+    silenceSoundToggleButton.addActionListener(this::silenceSoundToggleButtonActionPerformed);
     toolbarMenu.add(silenceSoundToggleButton);
 
     resetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/shutdown.png"))); // NOI18N
@@ -1369,11 +1327,7 @@ public class JSpeccy extends javax.swing.JFrame {
     resetSpectrumButton.setFocusable(false);
     resetSpectrumButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     resetSpectrumButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    resetSpectrumButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            resetMachineMenuActionPerformed(evt);
-        }
-    });
+    resetSpectrumButton.addActionListener(this::resetMachineMenuActionPerformed);
     toolbarMenu.add(resetSpectrumButton);
 
     hardResetSpectrumButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/exit.png"))); // NOI18N
@@ -1381,11 +1335,7 @@ public class JSpeccy extends javax.swing.JFrame {
     hardResetSpectrumButton.setFocusable(false);
     hardResetSpectrumButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     hardResetSpectrumButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    hardResetSpectrumButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            hardResetSpectrumButtonActionPerformed(evt);
-        }
-    });
+    hardResetSpectrumButton.addActionListener(this::hardResetSpectrumButtonActionPerformed);
     toolbarMenu.add(hardResetSpectrumButton);
 
     getContentPane().add(toolbarMenu, java.awt.BorderLayout.PAGE_START);
@@ -1394,74 +1344,42 @@ public class JSpeccy extends javax.swing.JFrame {
 
     openSnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0));
     openSnapshot.setText(bundle.getString("JSpeccy.openSnapshot.text")); // NOI18N
-    openSnapshot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            openSnapshotActionPerformed(evt);
-        }
-    });
+    openSnapshot.addActionListener(this::openSnapshotActionPerformed);
     fileMenu.add(openSnapshot);
 
     saveSnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
     saveSnapshot.setText(bundle.getString("JSpeccy.saveSnapshot.text")); // NOI18N
-    saveSnapshot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            saveSnapshotActionPerformed(evt);
-        }
-    });
+    saveSnapshot.addActionListener(this::saveSnapshotActionPerformed);
     fileMenu.add(saveSnapshot);
     fileMenu.add(jSeparator4);
 
     loadMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, java.awt.event.InputEvent.ALT_DOWN_MASK));
     loadMemorySnapshot.setText(bundle.getString("JSpeccy.loadMemorySnapshot.text")); // NOI18N
     loadMemorySnapshot.setEnabled(false);
-    loadMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            loadMemorySnapshotActionPerformed(evt);
-        }
-    });
+    loadMemorySnapshot.addActionListener(this::loadMemorySnapshotActionPerformed);
     fileMenu.add(loadMemorySnapshot);
 
     saveMemorySnapshot.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.ALT_DOWN_MASK));
     saveMemorySnapshot.setText(bundle.getString("JSpeccy.saveMemorySnapshot.text")); // NOI18N
-    saveMemorySnapshot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            saveMemorySnapshotActionPerformed(evt);
-        }
-    });
+    saveMemorySnapshot.addActionListener(this::saveMemorySnapshotActionPerformed);
     fileMenu.add(saveMemorySnapshot);
     fileMenu.add(jSeparator15);
 
     loadBinaryFile.setText(bundle.getString("JSpeccy.loadBinaryFile.text")); // NOI18N
-    loadBinaryFile.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            loadBinaryFileActionPerformed(evt);
-        }
-    });
+    loadBinaryFile.addActionListener(this::loadBinaryFileActionPerformed);
     fileMenu.add(loadBinaryFile);
 
     saveBinaryFile.setText(bundle.getString("JSpeccy.saveBinaryFile.text")); // NOI18N
-    saveBinaryFile.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            saveBinaryFileActionPerformed(evt);
-        }
-    });
+    saveBinaryFile.addActionListener(this::saveBinaryFileActionPerformed);
     fileMenu.add(saveBinaryFile);
     fileMenu.add(jSeparator16);
 
     loadScreenShot.setText(bundle.getString("JSpeccy.loadScreenShot.text")); // NOI18N
-    loadScreenShot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            loadScreenShotActionPerformed(evt);
-        }
-    });
+    loadScreenShot.addActionListener(this::loadScreenShotActionPerformed);
     fileMenu.add(loadScreenShot);
 
     saveScreenShot.setText(bundle.getString("JSpeccy.saveScreenShot.text")); // NOI18N
-    saveScreenShot.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            saveScreenShotActionPerformed(evt);
-        }
-    });
+    saveScreenShot.addActionListener(this::saveScreenShotActionPerformed);
     fileMenu.add(saveScreenShot);
     fileMenu.add(jSeparator1);
 
@@ -1470,51 +1388,31 @@ public class JSpeccy extends javax.swing.JFrame {
     recentFileMenu0.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_1, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu0.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu0.setEnabled(false);
-    recentFileMenu0.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recentFileMenu0ActionPerformed(evt);
-        }
-    });
+    recentFileMenu0.addActionListener(this::recentFileMenu0ActionPerformed);
     recentFilesMenu.add(recentFileMenu0);
 
     recentFileMenu1.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_2, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu1.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu1.setEnabled(false);
-    recentFileMenu1.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recentFileMenu1ActionPerformed(evt);
-        }
-    });
+    recentFileMenu1.addActionListener(this::recentFileMenu1ActionPerformed);
     recentFilesMenu.add(recentFileMenu1);
 
     recentFileMenu2.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_3, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu2.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu2.setEnabled(false);
-    recentFileMenu2.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recentFileMenu2ActionPerformed(evt);
-        }
-    });
+    recentFileMenu2.addActionListener(this::recentFileMenu2ActionPerformed);
     recentFilesMenu.add(recentFileMenu2);
 
     recentFileMenu3.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_4, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu3.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu3.setEnabled(false);
-    recentFileMenu3.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recentFileMenu3ActionPerformed(evt);
-        }
-    });
+    recentFileMenu3.addActionListener(this::recentFileMenu3ActionPerformed);
     recentFilesMenu.add(recentFileMenu3);
 
     recentFileMenu4.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_5, java.awt.event.InputEvent.ALT_DOWN_MASK));
     recentFileMenu4.setText(bundle.getString("JSpeccy.recentFileMenu0.text")); // NOI18N
     recentFileMenu4.setEnabled(false);
-    recentFileMenu4.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            recentFileMenu4ActionPerformed(evt);
-        }
-    });
+    recentFileMenu4.addActionListener(this::recentFileMenu4ActionPerformed);
     recentFilesMenu.add(recentFileMenu4);
 
     fileMenu.add(recentFilesMenu);
@@ -1522,24 +1420,16 @@ public class JSpeccy extends javax.swing.JFrame {
 
     thisIsTheEndMyFriend.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_DOWN_MASK));
     thisIsTheEndMyFriend.setText(bundle.getString("JSpeccy.thisIsTheEndMyFriend.text")); // NOI18N
-    thisIsTheEndMyFriend.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            thisIsTheEndMyFriendActionPerformed(evt);
-        }
-    });
+    thisIsTheEndMyFriend.addActionListener(this::thisIsTheEndMyFriendActionPerformed);
     fileMenu.add(thisIsTheEndMyFriend);
 
-    jMenuBar1.add(fileMenu);
+    mainMenuBar.add(fileMenu);
 
     optionsMenu.setText(bundle.getString("JSpeccy.optionsMenu.text")); // NOI18N
 
     doubleSizeOption.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.ALT_DOWN_MASK));
     doubleSizeOption.setText(bundle.getString("JSpeccy.doubleSizeOption.text")); // NOI18N
-    doubleSizeOption.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            doubleSizeOptionActionPerformed(evt);
-        }
-    });
+    doubleSizeOption.addActionListener(this::doubleSizeOptionActionPerformed);
     optionsMenu.add(doubleSizeOption);
 
     zoomMethodOptionMenu.setText(bundle.getString("JSpeccy.zoomMethodOptionMenu.text")); // NOI18N
@@ -1654,7 +1544,7 @@ public class JSpeccy extends javax.swing.JFrame {
     settingsOptionsMenu.addActionListener(this::settingsOptionsMenuActionPerformed);
     optionsMenu.add(settingsOptionsMenu);
 
-    jMenuBar1.add(optionsMenu);
+    mainMenuBar.add(optionsMenu);
 
     machineMenu.setText(bundle.getString("JSpeccy.machineMenu.text")); // NOI18N
     machineMenu.addActionListener(this::silenceSoundToggleButtonActionPerformed);
@@ -1730,7 +1620,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     machineMenu.add(hardwareMachineMenu);
 
-    jMenuBar1.add(machineMenu);
+    mainMenuBar.add(machineMenu);
 
     mediaMenu.setText(bundle.getString("JSpeccy.mediaMenu.text")); // NOI18N
 
@@ -1817,7 +1707,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
     mediaMenu.add(IF2MediaMenu);
 
-    jMenuBar1.add(mediaMenu);
+    mainMenuBar.add(mediaMenu);
 
     helpMenu.setText(bundle.getString("JSpeccy.helpMenu.text")); // NOI18N
 
@@ -1830,9 +1720,9 @@ public class JSpeccy extends javax.swing.JFrame {
     aboutHelpMenu.addActionListener(this::aboutHelpMenuActionPerformed);
     helpMenu.add(aboutHelpMenu);
 
-    jMenuBar1.add(helpMenu);
+    mainMenuBar.add(helpMenu);
 
-    setJMenuBar(jMenuBar1);
+    setJMenuBar(mainMenuBar);
 
     pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -2039,7 +1929,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         String aboutMessage = bundlePropertyResolver.resolvePlaceholders(bundle.getString("ABOUT_MESSAGE"), environment);
         String aboutTitle = bundle.getString("ABOUT_TITLE");
-        ImageIcon icon = new ImageIcon(getClass().getResource("/icons/JSpeccy64x64.png"));
+        ImageIcon icon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/icons/JSpeccy64x64.png")));
         JOptionPane.showMessageDialog(getContentPane(), aboutMessage, aboutTitle, JOptionPane.INFORMATION_MESSAGE, icon);
 
         startEmulation();
@@ -2260,7 +2150,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void saveScreenShotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveScreenShotActionPerformed
 
         if( saveImageDlg == null ) {
-            saveImageDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            saveImageDlg = new JFileChooser(System.getProperty("user.home"));
             saveImageDlg.addChoosableFileFilter(imageExtension);
             saveImageDlg.setFileFilter(imageExtension);
             currentDirSaveImage = saveImageDlg.getCurrentDirectory();
@@ -2290,7 +2180,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private void createTapeMediaMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createTapeMediaMenuActionPerformed
 
         if (openTapeDlg == null) {
-            openTapeDlg = new JFileChooser("/home/jsanchez/Spectrum");
+            openTapeDlg = new JFileChooser(System.getProperty("user.home"));
             openTapeDlg.addChoosableFileFilter(createTapeExtension);
             openTapeDlg.addChoosableFileFilter(tapeExtension);
         } else {
@@ -2431,11 +2321,9 @@ public class JSpeccy extends javax.swing.JFrame {
                     tape.eject();
                 }
 
-                if (tmp.createNewFile()) {
-                    if (!tape.insert(tmp)) {
-                        JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
+                if (tmp.createNewFile() && (!tape.insert(tmp))) {
+                    JOptionPane.showMessageDialog(this, bundle.getString("LOAD_TAPE_ERROR"),
                             bundle.getString("LOAD_TAPE_ERROR_TITLE"), JOptionPane.ERROR_MESSAGE);
-                    }
                 }
             } catch (IOException ex) {
                 Logger.getLogger(JSpeccy.class.getName()).log(Level.SEVERE, null, ex);
@@ -2511,8 +2399,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 try {
                     SnapshotFile snap = SnapshotFactory.getSnapshot(currentFileSnapshot);
                     SpectrumState snapState = snap.load(currentFileSnapshot);
-                    if (snap instanceof SnapshotSZX) {
-                        SnapshotSZX snapSZX = (SnapshotSZX) snap;
+                    if (snap instanceof SnapshotSZX snapSZX) {
                         if (snapSZX.isTapeEmbedded()) {
                             tape.eject();
                             tape.insertEmbeddedTape(snapSZX.getTapeName(), snapSZX.getTapeExtension(),
@@ -2936,7 +2823,6 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JRadioButton ignoreRadioButton;
     private javax.swing.JMenuItem imageHelpMenu;
     private javax.swing.JMenuItem insertIF2RomMediaMenu;
-    private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
@@ -2971,6 +2857,7 @@ public class JSpeccy extends javax.swing.JFrame {
     private javax.swing.JMenuItem loadMemorySnapshot;
     private javax.swing.JMenuItem loadScreenShot;
     private javax.swing.JMenu machineMenu;
+    private javax.swing.JMenuBar mainMenuBar;
     private javax.swing.JLabel mdrvLabel;
     private javax.swing.JMenu mediaMenu;
     private javax.swing.JMenuItem memoryBrowserMachineMenu;

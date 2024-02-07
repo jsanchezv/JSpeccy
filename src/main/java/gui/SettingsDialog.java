@@ -247,19 +247,11 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         saveSettingsButton.setText(bundle.getString("SettingsDialog.saveSettingsButton.text")); // NOI18N
-        saveSettingsButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveSettingsButtonActionPerformed(evt);
-            }
-        });
+        saveSettingsButton.addActionListener(this::saveSettingsButtonActionPerformed);
         buttonPanel.add(saveSettingsButton);
 
         closeButton.setText(bundle.getString("CLOSE")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
-            }
-        });
+        closeButton.addActionListener(this::closeButtonActionPerformed);
         buttonPanel.add(closeButton);
 
         add(buttonPanel, java.awt.BorderLayout.PAGE_END);
@@ -271,11 +263,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         defaultModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.defaultModePanel.border.text"))); // NOI18N
 
         spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 16k", "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A", "Spectrum +3" }));
-        spectrumModel.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                spectrumModelActionPerformed(evt);
-            }
-        });
+        spectrumModel.addActionListener(this::spectrumModelActionPerformed);
         defaultModelPanel.add(spectrumModel);
 
         hardwarePanelTab.add(defaultModelPanel);
@@ -285,11 +273,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         ULAplus.setText(bundle.getString("SettingsDialog.hardwarePanel.ULAplus.text")); // NOI18N
         ULAplus.setPreferredSize(new java.awt.Dimension(440, 24));
-        ULAplus.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ULAplusActionPerformed(evt);
-            }
-        });
+        ULAplus.addActionListener(this::ULAplusActionPerformed);
         videoPanel.add(ULAplus);
 
         zoomPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
@@ -298,11 +282,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         zoomPanel.setLayout(new java.awt.GridLayout(1, 3));
 
         zoomCheckbox.setText(bundle.getString("SettingsDialog.hardwarePanel.zoomCheckbox.text")); // NOI18N
-        zoomCheckbox.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                zoomCheckboxActionPerformed(evt);
-            }
-        });
+        zoomCheckbox.addActionListener(this::zoomCheckboxActionPerformed);
         zoomPanel.add(zoomCheckbox);
 
         zoomLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -316,11 +296,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         zoomSlider.setPaintTicks(true);
         zoomSlider.setSnapToTicks(true);
         zoomSlider.setValue(2);
-        zoomSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                zoomSliderStateChanged(evt);
-            }
-        });
+        zoomSlider.addChangeListener(this::zoomSliderStateChanged);
         zoomPanel.add(zoomSlider);
 
         videoPanel.add(zoomPanel);
@@ -336,11 +312,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         speed.setPaintTicks(true);
         speed.setSnapToTicks(true);
         speed.setPreferredSize(new java.awt.Dimension(300, 43));
-        speed.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                speedStateChanged(evt);
-            }
-        });
+        speed.addChangeListener(this::speedStateChanged);
         highSpeedPanel.add(speed);
 
         hardwarePanelTab.add(highSpeedPanel);
@@ -349,11 +321,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         autoSaveOnExit.setText(bundle.getString("SettingsDialog.autoSaveOnExit.text")); // NOI18N
         autoSaveOnExit.setToolTipText(bundle.getString("SettingsDialog.autoSaveOnExit.tooltip.text")); // NOI18N
-        autoSaveOnExit.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                autoSaveOnExitActionPerformed(evt);
-            }
-        });
+        autoSaveOnExit.addActionListener(this::autoSaveOnExitActionPerformed);
         autoSavePanel.add(autoSaveOnExit);
 
         hardwarePanelTab.add(autoSavePanel);
@@ -366,27 +334,15 @@ public class SettingsDialog extends javax.swing.JPanel {
         audioPanel.setLayout(new java.awt.GridLayout(3, 0));
 
         soundMuted.setText(bundle.getString("SettingsDialog.soundPanel.soundMuted.text")); // NOI18N
-        soundMuted.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                soundMutedActionPerformed(evt);
-            }
-        });
+        soundMuted.addActionListener(this::soundMutedActionPerformed);
         audioPanel.add(soundMuted);
 
         loadingNoise.setText(bundle.getString("SettingsDialog.soundPanel.loadingNoise.text")); // NOI18N
-        loadingNoise.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                loadingNoiseActionPerformed(evt);
-            }
-        });
+        loadingNoise.addActionListener(this::loadingNoiseActionPerformed);
         audioPanel.add(loadingNoise);
 
         hifiSound.setText(bundle.getString("SettingsDialog.audioPanel.hifiSound.text")); // NOI18N
-        hifiSound.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                hifiSoundActionPerformed(evt);
-            }
-        });
+        hifiSound.addActionListener(this::hifiSoundActionPerformed);
         audioPanel.add(hifiSound);
 
         soundPanelTab.add(audioPanel);
@@ -397,11 +353,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         AYEnabled48k.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.AYEnabled48kPanel.border.text"))); // NOI18N
 
         enabledAY48k.setText(bundle.getString("SettingsDialog.soundPanel.enabledAY48k.text")); // NOI18N
-        enabledAY48k.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                enabledAY48kActionPerformed(evt);
-            }
-        });
+        enabledAY48k.addActionListener(this::enabledAY48kActionPerformed);
         AYEnabled48k.add(enabledAY48k);
 
         AY8912Panel.add(AYEnabled48k);
@@ -412,38 +364,22 @@ public class SettingsDialog extends javax.swing.JPanel {
         AYStereoModeButtonGroup.add(AYMonoMode);
         AYMonoMode.setSelected(true);
         AYMonoMode.setText(bundle.getString("SettingsDialog.AYMonoMode.RadioButton.text")); // NOI18N
-        AYMonoMode.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                AYMonoModeActionPerformed(evt);
-            }
-        });
+        AYMonoMode.addActionListener(this::AYMonoModeActionPerformed);
         AYStereoMode.add(AYMonoMode);
 
         AYStereoModeButtonGroup.add(AYABCMode);
         AYABCMode.setText(bundle.getString("SettingsDialog.AYABCMode.RadioButton.text")); // NOI18N
-        AYABCMode.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                AYABCModeActionPerformed(evt);
-            }
-        });
+        AYABCMode.addActionListener(this::AYABCModeActionPerformed);
         AYStereoMode.add(AYABCMode);
 
         AYStereoModeButtonGroup.add(AYACBMode);
         AYACBMode.setText(bundle.getString("SettingsDialog.AYACBMode.RadioButton.text")); // NOI18N
-        AYACBMode.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                AYACBModeActionPerformed(evt);
-            }
-        });
+        AYACBMode.addActionListener(this::AYACBModeActionPerformed);
         AYStereoMode.add(AYACBMode);
 
         AYStereoModeButtonGroup.add(AYBACMode);
         AYBACMode.setText(bundle.getString("SettingsDialog.AYBACMode.RadioButton.text")); // NOI18N
-        AYBACMode.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                AYBACModeActionPerformed(evt);
-            }
-        });
+        AYBACMode.addActionListener(this::AYBACModeActionPerformed);
         AYStereoMode.add(AYBACMode);
 
         AY8912Panel.add(AYStereoMode);
@@ -458,43 +394,23 @@ public class SettingsDialog extends javax.swing.JPanel {
         loadPanel.setLayout(new java.awt.GridLayout(5, 1));
 
         enableLoadTraps.setText(bundle.getString("SettingsDialog.tapePanel.enableLoadTraps.text")); // NOI18N
-        enableLoadTraps.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                enableLoadTrapsActionPerformed(evt);
-            }
-        });
+        enableLoadTraps.addActionListener(this::enableLoadTrapsActionPerformed);
         loadPanel.add(enableLoadTraps);
 
         flashLoad.setText(bundle.getString("SettingsDialog.tapePanel.flashload.text")); // NOI18N
-        flashLoad.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                flashLoadActionPerformed(evt);
-            }
-        });
+        flashLoad.addActionListener(this::flashLoadActionPerformed);
         loadPanel.add(flashLoad);
 
         acceleratedLoad.setText(bundle.getString("SettingsDialog.tapePanel.acceleratedLoad.text")); // NOI18N
-        acceleratedLoad.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                acceleratedLoadActionPerformed(evt);
-            }
-        });
+        acceleratedLoad.addActionListener(this::acceleratedLoadActionPerformed);
         loadPanel.add(acceleratedLoad);
 
         autoLoadTape.setText(bundle.getString("SettingsDialog.tapePanel.autoLoadTape.text")); // NOI18N
-        autoLoadTape.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                autoLoadTapeActionPerformed(evt);
-            }
-        });
+        autoLoadTape.addActionListener(this::autoLoadTapeActionPerformed);
         loadPanel.add(autoLoadTape);
 
         invertedEar.setText(bundle.getString("SettingsDialog.tapePanel.invertedEar.text")); // NOI18N
-        invertedEar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                invertedEarActionPerformed(evt);
-            }
-        });
+        invertedEar.addActionListener(this::invertedEarActionPerformed);
         loadPanel.add(invertedEar);
 
         tapePanelTab.add(loadPanel);
@@ -504,11 +420,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         enableSaveTraps.setSelected(true);
         enableSaveTraps.setText(bundle.getString("SettingsDialog.savePanel.enableSaveTraps.text")); // NOI18N
-        enableSaveTraps.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                enableSaveTrapsActionPerformed(evt);
-            }
-        });
+        enableSaveTraps.addActionListener(this::enableSaveTrapsActionPerformed);
         savePanel.add(enableSaveTraps);
 
         samplingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.highSamplingFreq.border.text"))); // NOI18N
@@ -518,21 +430,13 @@ public class SettingsDialog extends javax.swing.JPanel {
         lowSampling.setSelected(true);
         lowSampling.setText("DRB (44.1 kHz)");
         lowSampling.setToolTipText("Direct Recording Block");
-        lowSampling.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                lowSamplingActionPerformed(evt);
-            }
-        });
+        lowSampling.addActionListener(this::lowSamplingActionPerformed);
         samplingPanel.add(lowSampling);
 
         samplingButtonGroup.add(highSampling);
         highSampling.setText("CSW Z-RLE (48 kHz)");
         highSampling.setToolTipText("<html>Compressed Square Wave<br>Run Lenght Encoding</html>");
-        highSampling.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                highSamplingActionPerformed(evt);
-            }
-        });
+        highSampling.addActionListener(this::highSamplingActionPerformed);
         samplingPanel.add(highSampling);
 
         savePanel.add(samplingPanel);
@@ -558,21 +462,13 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         keyboardButtonGroup.add(issue2);
         issue2.setText(bundle.getString("SettingsDialog.issue2RadioButton.text")); // NOI18N
-        issue2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                issue2ActionPerformed(evt);
-            }
-        });
+        issue2.addActionListener(this::issue2ActionPerformed);
         jPanel2.add(issue2);
 
         keyboardButtonGroup.add(issue3);
         issue3.setSelected(true);
         issue3.setText(bundle.getString("SettingsDialog.issue3RadioButton.text")); // NOI18N
-        issue3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                issue2ActionPerformed(evt);
-            }
-        });
+        issue3.addActionListener(this::issue2ActionPerformed);
         jPanel2.add(issue3);
 
         keyboard48kPanel.add(jPanel2);
@@ -584,11 +480,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         mapPCKeyPanel.setPreferredSize(new java.awt.Dimension(102, 50));
 
         mapPCKeys.setText(bundle.getString("SettingsDialog.mapPCKEysPanel.enabled.text")); // NOI18N
-        mapPCKeys.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                mapPCKeysActionPerformed(evt);
-            }
-        });
+        mapPCKeys.addActionListener(this::mapPCKeysActionPerformed);
         mapPCKeyPanel.add(mapPCKeys);
 
         keyboardPanelTab.add(mapPCKeyPanel);
@@ -596,11 +488,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         recreatedZXPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.recreatedZXPanel.title.text"))); // NOI18N
 
         recreatedZX.setText(bundle.getString("SettingsDialog.recreatedZX.enabled.text")); // NOI18N
-        recreatedZX.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                recreatedZXActionPerformed(evt);
-            }
-        });
+        recreatedZX.addActionListener(this::recreatedZXActionPerformed);
         recreatedZXPanel.add(recreatedZX);
 
         keyboardPanelTab.add(recreatedZXPanel);
@@ -610,11 +498,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         joystickPanel.setPreferredSize(new java.awt.Dimension(177, 50));
 
         joystick.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None", "Kempston", "Sinclair 1", "Sinclair 2", "Cursor/AGF/Protek", "Fuller" }));
-        joystick.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                joystickActionPerformed(evt);
-            }
-        });
+        joystick.addActionListener(this::joystickActionPerformed);
         joystickPanel.add(joystick);
 
         keyboardPanelTab.add(joystickPanel);
@@ -625,11 +509,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         multifacePanelTab.setLayout(new javax.swing.BoxLayout(multifacePanelTab, javax.swing.BoxLayout.PAGE_AXIS));
 
         multifaceEnabled.setText(bundle.getString("SettingsDialog.multifacePanel.enabled.text")); // NOI18N
-        multifaceEnabled.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                multifaceEnabledActionPerformed(evt);
-            }
-        });
+        multifaceEnabled.addActionListener(this::multifaceEnabledActionPerformed);
         multifacePanel.add(multifaceEnabled);
 
         multifacePanelTab.add(multifacePanel);
@@ -647,20 +527,12 @@ public class SettingsDialog extends javax.swing.JPanel {
         multifaceModelButtonGroup.add(multifaceOneRadioButton);
         multifaceOneRadioButton.setSelected(true);
         multifaceOneRadioButton.setText(bundle.getString("SettingsDialog.multifaceOne.RadioButton.text")); // NOI18N
-        multifaceOneRadioButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                multifaceOneRadioButtonActionPerformed(evt);
-            }
-        });
+        multifaceOneRadioButton.addActionListener(this::multifaceOneRadioButtonActionPerformed);
         jPanel1.add(multifaceOneRadioButton);
 
         multifaceModelButtonGroup.add(multiface128RadioButton);
         multiface128RadioButton.setText(bundle.getString("SettingsDialog.multiface128.RadioButton.text")); // NOI18N
-        multiface128RadioButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                multifaceOneRadioButtonActionPerformed(evt);
-            }
-        });
+        multiface128RadioButton.addActionListener(this::multifaceOneRadioButtonActionPerformed);
         jPanel1.add(multiface128RadioButton);
 
         multifaceModelPanel.add(jPanel1);
@@ -679,11 +551,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         connectedIF1Panel.add(connectedIF1InfoLabel);
 
         connectedIF1.setText(bundle.getString("SettingsDialog.connectedIF1Panel.enabled.text")); // NOI18N
-        connectedIF1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                connectedIF1ActionPerformed(evt);
-            }
-        });
+        connectedIF1.addActionListener(this::connectedIF1ActionPerformed);
         jPanel4.add(connectedIF1);
 
         connectedIF1Panel.add(jPanel4);
@@ -698,11 +566,7 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         numDrivesSpinner.setModel(new javax.swing.SpinnerNumberModel(Byte.valueOf((byte)8), Byte.valueOf((byte)1), Byte.valueOf((byte)8), Byte.valueOf((byte)1)));
         numDrivesSpinner.setPreferredSize(new java.awt.Dimension(40, 20));
-        numDrivesSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                numDrivesSpinnerStateChanged(evt);
-            }
-        });
+        numDrivesSpinner.addChangeListener(this::numDrivesSpinnerStateChanged);
         numDrivesPanel.add(numDrivesSpinner);
 
         mdrPanel.add(numDrivesPanel);
@@ -716,11 +580,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         numBlocksPanel.add(numSectorsLabel);
 
         cartridgeSizeSpinner.setModel(new javax.swing.SpinnerNumberModel(180, 10, 253, 1));
-        cartridgeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                cartridgeSizeSpinnerStateChanged(evt);
-            }
-        });
+        cartridgeSizeSpinner.addChangeListener(this::cartridgeSizeSpinnerStateChanged);
         numBlocksPanel.add(cartridgeSizeSpinner);
 
         mdrPanel.add(numBlocksPanel);
@@ -745,11 +605,7 @@ public class SettingsDialog extends javax.swing.JPanel {
         lecEnabledPanel.setMaximumSize(new java.awt.Dimension(32767, 160));
 
         lecEnabled.setText(bundle.getString("SettingsDialog.lecPanelTab.lecEnabledLabel.text")); // NOI18N
-        lecEnabled.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                lecEnabledActionPerformed(evt);
-            }
-        });
+        lecEnabled.addActionListener(this::lecEnabledActionPerformed);
         lecEnabledPanel.add(lecEnabled);
 
         lecPanelTab.add(lecEnabledPanel);
@@ -760,19 +616,11 @@ public class SettingsDialog extends javax.swing.JPanel {
         emulatorPanelTab.setLayout(new java.awt.GridLayout(9, 0));
 
         confirmActions.setText(bundle.getString("SettingsDialog.confirmActions.text")); // NOI18N
-        confirmActions.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                confirmActionsActionPerformed(evt);
-            }
-        });
+        confirmActions.addActionListener(this::confirmActionsActionPerformed);
         emulatorPanelTab.add(confirmActions);
 
         autosaveConfigOnExit.setText(bundle.getString("SettingsDialog.autosaveConfigOnExit.text")); // NOI18N
-        autosaveConfigOnExit.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                autosaveConfigOnExitActionPerformed(evt);
-            }
-        });
+        autosaveConfigOnExit.addActionListener(this::autosaveConfigOnExitActionPerformed);
         emulatorPanelTab.add(autosaveConfigOnExit);
 
         jTabbedPane1.addTab(bundle.getString("SettingsDialog.emulatorPanel.title.text"), emulatorPanelTab); // NOI18N

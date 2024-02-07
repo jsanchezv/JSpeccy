@@ -153,11 +153,7 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         fileChoosedLabel.setText(bundle.getString("LoadSaveMemoryDialog.fileChoosedLabel.text")); // NOI18N
 
         browseButton.setText(bundle.getString("LoadSaveMemoryDialog.browseButton.text")); // NOI18N
-        browseButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                browseButtonActionPerformed(evt);
-            }
-        });
+        browseButton.addActionListener(this::browseButtonActionPerformed);
 
         addressLabel.setText(bundle.getString("LoadSaveMemoryDialog.addressLabel.text")); // NOI18N
 
@@ -173,20 +169,12 @@ public class LoadSaveMemoryDialog extends javax.swing.JPanel {
         rangeCombobox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "0x0000-0xFFFF", "RAM 0", "RAM 1", "RAM 2", "RAM 3", "RAM 4", "RAM 5", "RAM 6", "RAM 7" }));
 
         closeButton.setText(bundle.getString("LoadSaveMemoryDialog.closeButton.text")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
-            }
-        });
+        closeButton.addActionListener(this::closeButtonActionPerformed);
 
         archiveLabel.setText(bundle.getString("LoadSaveMemoryDialog.archiveLabel.text")); // NOI18N
 
         loadSaveButton.setText(bundle.getString("LoadSaveMemoryDialog.loadButton.text")); // NOI18N
-        loadSaveButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                loadSaveButtonActionPerformed(evt);
-            }
-        });
+        loadSaveButton.addActionListener(this::loadSaveButtonActionPerformed);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);

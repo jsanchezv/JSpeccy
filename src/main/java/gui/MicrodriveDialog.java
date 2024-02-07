@@ -138,43 +138,23 @@ public class MicrodriveDialog extends javax.swing.JPanel {
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("gui/Bundle"); // NOI18N
         newCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.newCartridge.text")); // NOI18N
-        newCartridge.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                newCartridgeActionPerformed(evt);
-            }
-        });
+        newCartridge.addActionListener(this::newCartridgeActionPerformed);
         popupMenu.add(newCartridge);
 
         openCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.openCartridge.text")); // NOI18N
-        openCartridge.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                openCartridgeActionPerformed(evt);
-            }
-        });
+        openCartridge.addActionListener(this::openCartridgeActionPerformed);
         popupMenu.add(openCartridge);
 
         ejectCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.ejectCartridge.text")); // NOI18N
-        ejectCartridge.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ejectCartridgeActionPerformed(evt);
-            }
-        });
+        ejectCartridge.addActionListener(this::ejectCartridgeActionPerformed);
         popupMenu.add(ejectCartridge);
 
         saveCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveCartridge.text")); // NOI18N
-        saveCartridge.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveCartridgeActionPerformed(evt);
-            }
-        });
+        saveCartridge.addActionListener(this::saveCartridgeActionPerformed);
         popupMenu.add(saveCartridge);
 
         saveAsCartridge.setText(bundle.getString("MicrodriveDialog.popupMenu.saveAsCartridge.text")); // NOI18N
-        saveAsCartridge.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                saveAsCartridgeActionPerformed(evt);
-            }
-        });
+        saveAsCartridge.addActionListener(this::saveAsCartridgeActionPerformed);
         popupMenu.add(saveAsCartridge);
 
         setPreferredSize(new java.awt.Dimension(500, 210));
@@ -205,11 +185,7 @@ public class MicrodriveDialog extends javax.swing.JPanel {
         jPanel2.add(filler1);
 
         closeButton.setText(bundle.getString("MicrodriveDialog.closeButton.text")); // NOI18N
-        closeButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                closeButtonActionPerformed(evt);
-            }
-        });
+        closeButton.addActionListener(this::closeButtonActionPerformed);
         jPanel2.add(closeButton);
         jPanel2.add(filler2);
 
