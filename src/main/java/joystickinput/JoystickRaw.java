@@ -4,6 +4,8 @@
  */
 package joystickinput;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,8 +14,6 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  *
