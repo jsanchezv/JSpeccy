@@ -111,7 +111,7 @@ public class Tape implements machine.ClockTimeoutListener {
     private final int ONE_LENGHT = 1710;
     private final int HEADER_PULSES = 8063;
     private final int DATA_PULSES = 3223;
-    private final int END_BLOCK_PAUSE = 3500000;
+    private final int END_BLOCK_PAUSE = 3_500_000;
     // Variables para los tiempos de los ficheros TZX
     private int leaderLenght;
     private int leaderPulses;
@@ -512,7 +512,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 msg = "";
                 break;
             case 0x2B: // Set Signal Level
-                len = tapeBuffer[offset + 2] & 0xff;
+                len = tapeBuffer[offset + 4] & 0xff;
                 msg = String.format(bundle.getString("SIGNAL_TO_LEVEL"), len);
                 break;
             case 0x30: // Text Description
@@ -796,7 +796,7 @@ public class Tape implements machine.ClockTimeoutListener {
                 tapePos += 2;
 //                System.out.println("blockLen = " + blockLen);
                 leaderPulses = tapeBuffer[tapePos] >= 0 ? HEADER_PULSES : DATA_PULSES;
-                earBit = EAR_OFF;
+                earBit = EAR_ON;
                 statePlay = State.LEADER;
                 clock.setTimeout(LEADER_LENGHT);
                 break;
