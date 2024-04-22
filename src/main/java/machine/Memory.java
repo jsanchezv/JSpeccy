@@ -4,12 +4,6 @@
  */
 package machine;
 
-import configuration.JSpeccySettings;
-import configuration.MemoryType;
-import lombok.extern.slf4j.Slf4j;
-import snapshots.MemoryState;
-import tv.porst.jhexview.IDataChangedListener;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,7 +11,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Random;
+
+import configuration.JSpeccySettings;
+import configuration.MemoryType;
+import lombok.extern.slf4j.Slf4j;
+import snapshots.MemoryState;
+import tv.porst.jhexview.IDataChangedListener;
 
 /**
  *
@@ -231,9 +232,7 @@ public final class Memory {
     }
 
     public void loadPageLec(int page, byte[] ram) {
-        if (lecRam == null) {
-            throw new NullPointerException("No reserved LEC ram pages!");
-        }
+        Objects.requireNonNull(lecRam, "No reserved LEC ram pages!");
 
         page <<= 2;
         System.arraycopy(ram, 0, lecRam[page], 0, lecRam[0].length);
@@ -243,9 +242,7 @@ public final class Memory {
     }
 
     public byte[] savePageLec(int page) {
-        if (lecRam == null) {
-            throw new NullPointerException("No reserved LEC ram pages!");
-        }
+        Objects.requireNonNull(lecRam, "No reserved LEC ram pages!");
 
         byte[] ram = new byte[0x8000];
 

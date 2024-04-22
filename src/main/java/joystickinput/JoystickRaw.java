@@ -9,13 +9,17 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author jsanchez
  */
+@Slf4j
 public class JoystickRaw implements Runnable {
 
     private static boolean helperLoaded;
@@ -75,8 +79,8 @@ public class JoystickRaw implements Runnable {
             numButtons = getNumButtonsHelper(id);
             numAxis = getNumAxisHelper(id);
             joystickName = toStringHelper(id);
-            System.out.println(String.format("From JNI: buttons %d, axis %d", numButtons, numAxis));
-            System.out.println(String.format("From JNI: joystick name: %s", joystickName));
+            log.info("From JNI: buttons {}, axis {}", numButtons, numAxis);
+            log.info("From JNI: joystick name: {}", joystickName);
         }
 
         if (!helperLoaded || numButtons == -1) {
@@ -132,9 +136,7 @@ public class JoystickRaw implements Runnable {
      */
     public void addButtonListener(final JoystickRawListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         // Avoid duplicates
         if (!buttonListeners.contains(listener)) {
@@ -152,9 +154,7 @@ public class JoystickRaw implements Runnable {
      */
     public void removeButtonListener(final JoystickRawListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Internal Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         if (!buttonListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
@@ -170,9 +170,7 @@ public class JoystickRaw implements Runnable {
      */
     public void addAxisListener(final JoystickRawListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         // Avoid duplicates
         if (!axisListeners.contains(listener)) {
@@ -190,9 +188,7 @@ public class JoystickRaw implements Runnable {
      */
     public void removeAxisListener(final JoystickRawListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Internal Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         if (!axisListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
@@ -250,7 +246,7 @@ public class JoystickRaw implements Runnable {
                             }
                             break;
                         default:
-                            System.out.println("Unknown event received!");
+                            log.warn("Unknown event received!");
                     }
                 }
 

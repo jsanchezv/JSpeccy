@@ -4,11 +4,12 @@
  */
 package machine;
 
-import configuration.Interface1Type;
-import utilities.Microdrive;
-
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Objects;
+
+import configuration.Interface1Type;
+import utilities.Microdrive;
 
 /**
  *
@@ -68,9 +69,7 @@ public class Interface1 {
      */
     public void addInterface1DriveListener(final Interface1DriveListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         // Avoid duplicates
         if (!driveListeners.contains(listener)) {
@@ -88,9 +87,7 @@ public class Interface1 {
      */
     public void removeInterface1DriveListener(final Interface1DriveListener listener) {
 
-        if (listener == null) {
-            throw new NullPointerException("Internal Error: Listener can't be null");
-        }
+        Objects.requireNonNull(listener, "Internal Error: Listener can't be null");
 
         if (!driveListeners.remove(listener)) {
             throw new IllegalArgumentException("Internal Error: Listener was not listening on object");
