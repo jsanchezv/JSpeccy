@@ -14,13 +14,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.5</version>
         <relativePath/>
     </parent>
 
     <properties>
         <!-- toolchain versions -->
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <maven.version>3.8.5</maven.version>
 
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -30,24 +30,24 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- NOTE: use `mvn versions:display-dependency-updates` to scan for dependency updates -->
-        <activation.version>2.0.1</activation.version>
-        <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
-        <jaxb-core.version>4.0.4</jaxb-core.version>
-        <jaxb-impl.version>4.0.4</jaxb-impl.version>
+        <activation.version>2.1.3</activation.version>
+        <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
+        <jaxb-core.version>4.0.5</jaxb-core.version>
+        <jaxb-impl.version>4.0.5</jaxb-impl.version>
         <picocli-version>4.7.5</picocli-version>
 
         <!-- NOTE: use `mvn versions:versions:display-plugin-updates` to scan for dependency updates -->
-        <dependency-check-maven.version>9.0.9</dependency-check-maven.version>
-        <jaxb2-maven-plugin.version>3.0.0</jaxb2-maven-plugin.version>
-        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
+        <dependency-check-maven.version>9.1.0</dependency-check-maven.version>
+        <jaxb2-maven-plugin.version>3.2.0</jaxb2-maven-plugin.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
         <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
         <maven-project-info-reports-plugin.version>3.5.0</maven-project-info-reports-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <maven-site-plugin.version>4.0.0-M11</maven-site-plugin.version>
-        <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
-        <native-maven-plugin.version>0.10.0</native-maven-plugin.version>
-        <spotbugs-maven-plugin.version>4.8.3.0</spotbugs-maven-plugin.version>
+        <maven-site-plugin.version>4.0.0-M13</maven-site-plugin.version>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <native-maven-plugin.version>0.10.1</native-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.8.4.0</spotbugs-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -71,8 +71,8 @@
             <version>${picocli-version}</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.activation</groupId>
-            <artifactId>jakarta.activation</artifactId>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
             <version>${activation.version}</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
         <dependency>
@@ -101,13 +101,13 @@
                 <version>${native-maven-plugin.version}</version>
             </plugin>
             <plugin>
-                <groupId>com.evolvedbinary.maven.mojohaus</groupId>
-                <artifactId>jaxb-maven-plugin</artifactId>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
                 <version>${jaxb2-maven-plugin.version}</version>
                 <dependencies>
                     <dependency>
-                        <groupId>com.sun.activation</groupId>
-                        <artifactId>jakarta.activation</artifactId>
+                        <groupId>jakarta.activation</groupId>
+                        <artifactId>jakarta.activation-api</artifactId>
                         <version>${activation.version}</version>
                     </dependency>
                 </dependencies>
@@ -307,7 +307,7 @@
                                             <pluginExecutionFilter>
                                                 <groupId>com.github.spotbugs</groupId>
                                                 <artifactId>spotbugs-maven-plugin</artifactId>
-                                                <versionRange>[4.8.0.0,)</versionRange>
+                                                <versionRange>[4.8.4.0,)</versionRange>
                                                 <goals>
                                                     <goal>spotbugs</goal>
                                                 </goals>
