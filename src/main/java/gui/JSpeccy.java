@@ -375,6 +375,7 @@ public class JSpeccy extends javax.swing.JFrame {
             }
         }
 
+        spectrum.selectHardwareModel(settings.getSpectrumSettings().getDefaultModel());
         startEmulation();
     }
 
@@ -798,6 +799,7 @@ public class JSpeccy extends javax.swing.JFrame {
                 specPlus3Hardware.setSelected(true);
                 IF2MediaMenu.setEnabled(false);
             }
+            case SPECTRUM128KES -> spec128kHardware.setSelected(true);
         }
 
         modelLabel.setToolTipText(spectrum.getSpectrumModel().getLongModelName());
@@ -2265,6 +2267,12 @@ public class JSpeccy extends javax.swing.JFrame {
                 modelLabel.setToolTipText(MachineTypes.SPECTRUMPLUS3.getLongModelName());
                 modelLabel.setText(MachineTypes.SPECTRUMPLUS3.getShortModelName());
                 spectrum.selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
+                break;
+            case 6:
+                spec128kHardware.setSelected(true);
+                modelLabel.setToolTipText(MachineTypes.SPECTRUM128KES.getLongModelName());
+                modelLabel.setText(MachineTypes.SPECTRUM128KES.getShortModelName());
+                spectrum.selectHardwareModel(MachineTypes.SPECTRUM128KES);
                 break;
             default:
                 spec48kHardware.setSelected(true);
