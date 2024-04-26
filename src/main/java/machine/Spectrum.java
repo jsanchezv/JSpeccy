@@ -256,26 +256,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         }
     }
 
-    public void selectHardwareModel(int model) {
-        switch (model) {
-            case 0:
-                selectHardwareModel(MachineTypes.SPECTRUM16K);
-                break;
-            case 2:
-                selectHardwareModel(MachineTypes.SPECTRUM128K);
-                break;
-            case 3:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2);
-                break;
-            case 4:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS2A);
-                break;
-            case 5:
-                selectHardwareModel(MachineTypes.SPECTRUMPLUS3);
-                break;
-            default:
-                selectHardwareModel(MachineTypes.SPECTRUM48K);
-        }
+    public void selectHardwareModel(int modelOrdinal)
+    {
+        selectHardwareModel(MachineTypes.values()[modelOrdinal]);
     }
 
     public void selectHardwareModel(MachineTypes hardwareModel) {
