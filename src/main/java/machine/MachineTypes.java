@@ -15,7 +15,8 @@ public enum MachineTypes {
     SPECTRUM128K(2),
     SPECTRUMPLUS2(3),
     SPECTRUMPLUS2A(4),
-    SPECTRUMPLUS3(5);
+    SPECTRUMPLUS3(5),
+    SPECTRUM128KES(6);
 
     static public enum CodeModel { SPECTRUM48K, SPECTRUM128K, SPECTRUMPLUS3 };
     public final CodeModel codeModel; // Código de modelo
@@ -138,6 +139,23 @@ public enum MachineTypes {
                 this.hasAY8912 = true;
                 this.hasDisk = true;
                 this.codeModel = CodeModel.SPECTRUMPLUS3;
+                break;
+            case 6: // Spectrum 128K
+                this.longModelName = "Inves ZX Spectrum 128K (español)";
+                this.shortModelName = "128ES";
+                this.clockFreq = 3546900;
+                this.tstatesFrame = 70908;
+                this.tstatesLine = 228;
+                this.upBorderWidth = 63;
+                this.scanLines = 311;
+                this.lengthINT = 36;
+                this.firstScrByte = 14362;
+                this.lastScrUpdate = 58040;
+                this.outOffset = 1;
+                this.outBorderOffset = 2;
+                this.hasAY8912 = true;
+                this.hasDisk = false;
+                this.codeModel = CodeModel.SPECTRUM128K;
                 break;
         }
     }
