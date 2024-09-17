@@ -10,8 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -252,7 +250,7 @@ public class JoystickRaw implements Runnable {
 
             }
         } catch (IOException ex) {
-            Logger.getLogger(JoystickRaw.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error reading joystick device", ex);
         }
     }
     

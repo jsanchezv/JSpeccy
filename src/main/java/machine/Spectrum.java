@@ -1103,8 +1103,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
         // ULA Port
         if ((port & 0x0001) == 0) {
-//            if (!tape.isTapeRunning())
-//                System.out.println(String.format("InPort: %04X, PC: %d", port, z80.getRegPC()));
+        //    if (tape.isTapeRunning())
+        //        log.info(String.format("InPort: %04X, PC: %04x", port, z80.getRegPC()));
             earBit = tape.getEarBit();
             if (joystick1 == null || tape.isTapeRunning()) {
                 return keyboard.readKeyboardPort(port, false) & earBit;
