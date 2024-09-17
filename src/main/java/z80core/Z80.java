@@ -234,6 +234,15 @@
  *          https://spectrumcomputing.co.uk/forums/viewtopic.php?f=23&t=10555
  *          Patrik Rak, from the ZXDS Hall-of-Fame, ha publicado la versión 1.2a de los
  *          z80tests para comprobar  las instrucciones a través del test z80memptr.tap
+ * 
+ *          24/04/2024 Se corrige el comportamiento de los códigos 0xDD, 0xED y 0xFD
+ *          cuando vienen tras un 0xED. En todos los casos, cuando tras un 0xED viene un
+ *          código no válido, este se trata como un NOP, incluso en el caso de los
+ *          propios prefijos. Los cargadores de Digital Integration (ATF, Bobsleigh,
+ *          Tomahawk, TT-Racer) hacen uso de una secuencia EDDD en sus cargadores y,
+ *          si eso no se maneja bien, fallan estrepitosamente.
+ *          Gracias a Víctor aka Eremus, from the ESPectrum Hall of Fame, por
+ *          investigar y descubrir este bug que llevaba años agazapado.
  */
 package z80core;
 
@@ -1865,50 +1874,34 @@ public class Z80 {
 
         while (clock.getTstates() < statesLimit) {
 
-            int opCode = MemIoImpl.fetchOpcode(regPC);
-            regR++;
+            if (prefixOpcode == 0) {
+                int opCode = MemIoImpl.fetchOpcode(regPC);
+                regR++;
 
-            if (prefixOpcode == 0 && breakpointAt.get(regPC)) {
-                opCode = NotifyImpl.breakpoint(regPC, opCode);
+                if (breakpointAt.get(regPC)) {
+                    opCode = NotifyImpl.breakpoint(regPC, opCode);
+                }
+
+                if (!halted) {
+                    regPC = (regPC + 1) & 0xffff;
+                    flagQ = pendingEI = false;
+                    decodeOpcode(opCode);
+                }
+            } else {
+                int opCode = prefixOpcode;
+                prefixOpcode = 0;
+                decodeOpcode(opCode);
             }
 
-            if (!halted) {
-                regPC = (regPC + 1) & 0xffff;
+            if (prefixOpcode != 0x00)
+                continue;
 
-                // El prefijo 0xCB no cuenta para esta guerra.
-                // En CBxx todas las xx producen un código válido
-                // de instrucción, incluyendo CBCB.
-                switch (prefixOpcode) {
-                    case 0x00:
-                        flagQ = pendingEI = false;
-                        decodeOpcode(opCode);
-                        break;
-                    case 0xDD:
-                        prefixOpcode = 0;
-                        regIX = decodeDDFD(opCode, regIX);
-                        break;
-                    case 0xED:
-                        prefixOpcode = 0;
-                        decodeED(opCode);
-                        break;
-                    case 0xFD:
-                        prefixOpcode = 0;
-                        regIY = decodeDDFD(opCode, regIY);
-                        break;
-                    default:
-                        log.error(String.format("ERROR!: prefixOpcode = %02x, opCode = %02x", prefixOpcode, opCode));
-                }
+            lastFlagQ = flagQ;
 
-                if (prefixOpcode != 0x00) {
-                    continue;
-                }
-
-                lastFlagQ = flagQ;
-
-                if (execDone) {
-                    NotifyImpl.execDone();
-                }
+            if (execDone) {
+                NotifyImpl.execDone();
             }
+
             // Primero se comprueba NMI
             // Si se activa NMI no se comprueba INT porque la siguiente
             // instrucción debe ser la de 0x0066.
@@ -4823,6 +4816,7 @@ public class Z80 {
                 break;
             }
             case 0xDD: {
+//                log.info("opcode 0xDD after a {} opcode", opCode);
                 prefixOpcode = 0xDD;
                 break;
             }
@@ -4851,7 +4845,10 @@ public class Z80 {
                 break;
             }
             case 0xED: {
-                prefixOpcode = 0xED;
+                opCode = MemIoImpl.fetchOpcode(regPC);
+                regPC = (regPC + 1) & 0xffff;
+                regR++;
+                decodeED(opCode);
                 break;
             }
             case 0xF9: {     /* LD SP,IX */
@@ -4861,6 +4858,7 @@ public class Z80 {
             }
             case 0xFD: {
                 prefixOpcode = 0xFD;
+//                log.info("opcode 0xFD after a {} opcode", opCode);
                 break;
             }
             default: {
@@ -5362,7 +5360,10 @@ public class Z80 {
         }
     }
 
-    //Subconjunto de instrucciones 0xED
+    // Subconjunto de instrucciones 0xED
+    // Detrás de 0xED tiene que venir un código válido de instrucción
+    // si no es así, se trata como un NOP, incluso con los prefijos
+    // 0xDD, 0xED y 0xFD.
     private void decodeED(int opCode) {
         switch (opCode) {
             case 0x40: {     /* IN B,(C) */
@@ -5749,19 +5750,6 @@ public class Z80 {
                     MemIoImpl.addressOnBus(getRegBC(), 5);
                     adjustINxROUTxRFlags();
                 }
-                break;
-            }
-            case 0xDD:
-                prefixOpcode = 0xDD;
-                break;
-            case 0xED:
-                prefixOpcode = 0xED;
-                break;
-            case 0xFD:
-                prefixOpcode = 0xFD;
-                break;
-            default: {
-                // log.info("Error instrucción ED {}", Integer.toHexString(opCode));
                 break;
             }
         }
