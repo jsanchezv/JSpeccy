@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.3</version>
+        <version>3.3.5</version>
         <relativePath/>
     </parent>
 
@@ -37,17 +37,17 @@
         <picocli-version>4.7.6</picocli-version>
 
         <!-- NOTE: use `mvn versions:versions:display-plugin-updates` to scan for dependency updates -->
-        <dependency-check-maven.version>9.2.0</dependency-check-maven.version>
+        <dependency-check-maven.version>11.0.0</dependency-check-maven.version>
         <jaxb2-maven-plugin.version>3.2.0</jaxb2-maven-plugin.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
-        <maven-failsafe-plugin.version>3.4.0</maven-failsafe-plugin.version>
-        <maven-project-info-reports-plugin.version>3.7.0</maven-project-info-reports-plugin.version>
+        <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
+        <maven-project-info-reports-plugin.version>3.8.0</maven-project-info-reports-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-site-plugin.version>4.0.0-M16</maven-site-plugin.version>
-        <maven-surefire-plugin.version>3.4.0</maven-surefire-plugin.version>
-        <native-maven-plugin.version>0.10.2</native-maven-plugin.version>
-        <spotbugs-maven-plugin.version>4.8.6.2</spotbugs-maven-plugin.version>
+        <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
+        <native-maven-plugin.version>0.10.3</native-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.8.6.5</spotbugs-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -295,7 +295,7 @@
                                             <pluginExecutionFilter>
                                                 <groupId>com.github.spotbugs</groupId>
                                                 <artifactId>spotbugs-maven-plugin</artifactId>
-                                                <versionRange>[4.8.5.0,)</versionRange>
+                                                <versionRange>[4.8.6.0,)</versionRange>
                                                 <goals>
                                                     <goal>spotbugs</goal>
                                                 </goals>
