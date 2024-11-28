@@ -1,0 +1,42 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+
+name: Release
+
+on:
+  release:
+    types: [created]
+
+  # Allow the workflow to be run manually from the actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # Sets the permission of the GITHUB_TOKEN to allow copying assets to the release page
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ github.workspace }} # location for the settings.xml file
+          cache: maven
+      - name: Build with Maven
+        run: mvn --batch-mode clean package --file pom.xml
+#      - name: Publish package
+#        run: mvn --batch-mode deploy -Dgithub.repository=${{ github.repository }}
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload the artifacts
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ github.workspace }}/target/jspeccy.jar

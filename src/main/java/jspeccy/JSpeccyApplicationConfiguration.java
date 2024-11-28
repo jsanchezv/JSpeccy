@@ -18,7 +18,6 @@ public class JSpeccyApplicationConfiguration {
     }
 
     @Bean
-    @Autowired
     public JSpeccy jSpeccy() {
 
         return new JSpeccy();
