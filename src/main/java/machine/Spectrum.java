@@ -2373,8 +2373,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         Arrays.fill(delayTstates, (byte) 0x00);
 
         for (int idx = 14361; idx < 58036; idx += spectrumModel.tstatesLine) {
+            int frame = 0;
             for (int ndx = 0; ndx < 128; ndx += 8) {
-                int frame = idx + ndx;
+                frame = idx + ndx;
                 delayTstates[frame++] = 1;
                 delayTstates[frame++] = 0;
                 delayTstates[frame++] = 7;
@@ -2384,6 +2385,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 delayTstates[frame++] = 3;
                 delayTstates[frame++] = 2;
             }
+            // Para la contención, las líneas tienen 129 t-states, sigh!
+            delayTstates[frame] = 1;
         }
     }
 
