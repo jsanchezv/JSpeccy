@@ -31,6 +31,7 @@ public final class Memory {
     private final byte[][] Rom48k = new byte[2][PAGE_SIZE];
     private final byte[][] IF2Rom = new byte[2][PAGE_SIZE];
     private final byte[][] Rom128k = new byte[4][PAGE_SIZE];
+    private final byte[][] Rom128kES = new byte[4][PAGE_SIZE];
     private final byte[][] RomPlus2 = new byte[4][PAGE_SIZE];
     private final byte[][] RomPlus2a = new byte[8][PAGE_SIZE];
     private final byte[][] RomPlus3 = new byte[8][PAGE_SIZE];
@@ -324,6 +325,31 @@ public final class Memory {
         bankM = 0;
     }
 
+    private void setMemoryMap128kES() {
+        if (IF2RomPaged) {
+            readPages[0] = IF2Rom[0];
+            readPages[1] = IF2Rom[1];
+        } else {
+            readPages[0] = Rom128kES[0];
+            readPages[1] = Rom128kES[1];
+        }
+        writePages[0] = writePages[1] = fakeROM;
+
+        readPages[2] = writePages[2] = Ram[10]; // Página 5
+        readPages[3] = writePages[3] = Ram[11];
+
+        readPages[4] = writePages[4] = Ram[4];  // Página 2
+        readPages[5] = writePages[5] = Ram[5];
+
+        readPages[6] = writePages[6] = Ram[0];  // Página 0
+        readPages[7] = writePages[7] = Ram[1];
+
+        screenPage = 10;
+        highPage = 0;
+        model128k = true;
+        bankM = 0;
+    }
+
     private void setMemoryMapPlus2() {
         if (IF2RomPaged) {
             readPages[0] = IF2Rom[0];
@@ -421,6 +447,15 @@ public final class Memory {
                 } else {
                     readPages[0] = Rom128k[2];
                     readPages[1] = Rom128k[3];
+                }
+                break;
+            case SPECTRUM128KES:
+                if ((port7ffd & 0x10) == 0) {
+                    readPages[0] = Rom128kES[0];
+                    readPages[1] = Rom128kES[1];
+                } else {
+                    readPages[0] = Rom128kES[2];
+                    readPages[1] = Rom128kES[3];
                 }
                 break;
             case SPECTRUMPLUS2:
@@ -658,6 +693,9 @@ public final class Memory {
             case SPECTRUM128K:
                 setMemoryMap128k();
                 break;
+            case SPECTRUM128KES:
+                setMemoryMap128kES();
+                break;
             case SPECTRUMPLUS2:
                 setMemoryMapPlus2();
                 break;
@@ -807,6 +845,14 @@ public final class Memory {
                     setPort7ffd(bankM);
                 }
                 break;
+            case SPECTRUM128KES:
+                if (pagingLocked) {
+                    readPages[0] = Rom128kES[2];
+                    readPages[1] = Rom128kES[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
             case SPECTRUMPLUS2:
                 if (pagingLocked) {
                     readPages[0] = RomPlus2[2];
@@ -916,6 +962,14 @@ public final class Memory {
                 if (pagingLocked) {
                     readPages[0] = Rom128k[2];
                     readPages[1] = Rom128k[3];
+                } else {
+                    setPort7ffd(bankM);
+                }
+                break;
+            case SPECTRUM128KES:
+                if (pagingLocked) {
+                    readPages[0] = Rom128kES[2];
+                    readPages[1] = Rom128kES[3];
                 } else {
                     setPort7ffd(bankM);
                 }
@@ -1033,6 +1087,13 @@ public final class Memory {
         }
         if (!loadRomAsFile(romsDirectory + conf.getRom128K1(), Rom128k, 2, PAGE_SIZE * 2)) {
             loadRomAsResource("/roms/128-1.rom", Rom128k, 2, PAGE_SIZE * 2);
+        }
+
+        if (!loadRomAsFile(romsDirectory + conf.getRom128KES0(), Rom128kES, 0, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/128-0_es.rom", Rom128kES, 0, PAGE_SIZE * 2);
+        }
+        if (!loadRomAsFile(romsDirectory + conf.getRom128KES1(), Rom128kES, 2, PAGE_SIZE * 2)) {
+            loadRomAsResource("/roms/128-1_es.rom", Rom128kES, 2, PAGE_SIZE * 2);
         }
 
         if (!loadRomAsFile(romsDirectory + conf.getRomPlus20(), RomPlus2, 0, PAGE_SIZE * 2)) {
