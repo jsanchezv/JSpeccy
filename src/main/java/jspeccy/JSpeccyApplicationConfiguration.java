@@ -1,7 +1,6 @@
 package jspeccy;
 
 import gui.JSpeccy;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -18,7 +17,6 @@ public class JSpeccyApplicationConfiguration {
     }
 
     @Bean
-    @Autowired
     public JSpeccy jSpeccy() {
 
         return new JSpeccy();
