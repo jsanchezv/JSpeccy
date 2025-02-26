@@ -63,7 +63,7 @@ The wrapper script can be invoked with the same parameters as Maven itself. e.g.
 
 == Running the emulator
 
-To run JSpeccy, you need to have Java 17, or a later version, installed.
+To run JSpeccy, you need to have Java 21, or a later version, installed.
 Run with:
 
 [source,bash]
@@ -92,7 +92,7 @@ In these cases you can use:
 java -Dsun.java2d.xrender=false -jar ./target/jspeccy.jar
 --
 
-Please note that the XRender redraw bug is still present in Java 19, so you need still need to the solution described above.
+Please note that the XRender redraw bug is still present in Java 21, so you need still need to the solution described above.
 
 Web: http://jspeccy.speccy.org[JSpeccy] (only in Spanish, I'm sorry)
 
