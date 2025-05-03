@@ -15,6 +15,7 @@ import gui.JSpeccy;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import machine.Keyboard.JoystickModel;
+import machine.MachineTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine;
@@ -63,22 +64,13 @@ public class JSpeccyCommand implements Runnable {
     )
     private String programFile;
 
-    enum Model {
-        SP16K,
-        SP48K,
-        SP128K,
-        PLUS2,
-        PLUS2A,
-        PLUS3
-    }
-
     @CommandLine.Option(
             names = {"-m", "--model"},
             //paramLabel = "CommandLineOptions.metaVar.model.text",
             descriptionKey = "CommandLineOptions.model.text",
             //defaultValue = "sp48k",
             showDefaultValue = CommandLine.Help.Visibility.ALWAYS)
-    private Optional<Model> model;
+    private Optional<MachineTypes> model;
 
     @CommandLine.Option(names = {"-u", "--ulaplus"}, descriptionKey = "CommandLineOptions.ulaplus.text")
     private Optional<Boolean> ulaplus;
@@ -236,16 +228,18 @@ public class JSpeccyCommand implements Runnable {
     public void copyArgumentsToSettings(JSpeccySettings speccySettings) {
         // hardware options
         SpectrumType settings = speccySettings.getSpectrumSettings();
-        model.map(Model::ordinal).ifPresent(settings::setDefaultModel);
+        model.map(MachineTypes::ordinal).ifPresent(settings::setDefaultModel);
         ulaplus.ifPresent(settings::setULAplus);
-        if ((settings.getDefaultModel() != Model.PLUS2A.ordinal()) && (settings.getDefaultModel() != Model.PLUS3.ordinal())) {
+        if ((settings.getDefaultModel() != MachineTypes.SPECTRUMPLUS2A.ordinal())
+         && (settings.getDefaultModel() != MachineTypes.SPECTRUMPLUS3.ordinal()))
+        {
             Interface1Type interface1Settings = speccySettings.getInterface1Settings();
             isIf1().ifPresent(interface1Settings::setConnectedIF1);
         }
         multifaceGroup.multiface.ifPresent(settings::setMultifaceEnabled);
         multifaceGroup.mf128on48k.ifPresent(settings::setMf128On48K);
 
-        lec.filter(l -> settings.getDefaultModel() == Model.SP48K.ordinal()).ifPresent(settings::setLecEnabled);
+        lec.filter(l -> settings.getDefaultModel() == MachineTypes.SPECTRUM48K.ordinal()).ifPresent(settings::setLecEnabled);
         bug128k.ifPresent(settings::setEmulate128KBug);
 
         // Keyboard options
