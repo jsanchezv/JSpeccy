@@ -40,6 +40,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicFileChooserUI;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
+
 import configuration.JSpeccySettings;
 import jakarta.xml.bind.JAXB;
 import jakarta.xml.bind.JAXBContext;
@@ -52,9 +56,6 @@ import machine.Interface1DriveListener;
 import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import machine.Spectrum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 import snapshots.SnapshotException;
 import snapshots.SnapshotFactory;
 import snapshots.SnapshotFile;
@@ -559,8 +560,12 @@ public class JSpeccy extends javax.swing.JFrame {
         spectrum.setScreenComponent(jscr);
         jscr.setTvImage(spectrum.getTvImage());
         jscr.setBorderMode(settings.getSpectrumSettings().getBorderSize());
-        spectrum.setSpeedLabel(speedLabel);
-        tapeCatalog.setModel(tape.getTapeTableModel());
+        spectrum.onSpeedChange(speed -> {
+            SwingUtilities.invokeLater(() -> {
+                speedLabel.setText(String.format("%5d%%", speed));
+            });
+        });
+        tapeCatalog.setModel(new TapeTableModel(tape));
         tapeCatalog.getColumnModel().getColumn(0).setMaxWidth(150);
         lsm = tapeCatalog.getSelectionModel();
         lsm.addListSelectionListener((ListSelectionEvent event) -> {
