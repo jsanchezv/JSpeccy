@@ -8,7 +8,10 @@ package gui;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+
+import machine.Screen;
 import machine.Spectrum;
 
 import java.awt.image.BufferedImage;
@@ -18,7 +21,7 @@ import java.awt.image.DataBufferInt;
  *
  * @author  jsanchez
  */
-public class JSpeccyScreen extends javax.swing.JComponent {
+public class JSpeccyScreen extends javax.swing.JComponent implements Screen {
 
     private BufferedImage tvImage;
     private BufferedImage tvImageFiltered;
@@ -194,6 +197,14 @@ public class JSpeccyScreen extends javax.swing.JComponent {
     }
 
     @Override
+	public void repaintScreen(Rectangle area) {
+    	if(area == null)
+    		repaint();
+    	else
+    		repaint(area);
+	}
+
+	@Override
     public void paintComponent(Graphics gc) {
         //super.paintComponent(gc);
         Graphics2D gc2 = (Graphics2D) gc;

@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,14 +19,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
 
 import configuration.JSpeccySettings;
 import configuration.SpectrumType;
-import gui.JSpeccyScreen;
 import joystickinput.JoystickRaw;
 import lombok.extern.slf4j.Slf4j;
 import machine.Keyboard.JoystickModel;
@@ -40,7 +39,7 @@ import z80core.Z80;
  * @author jsanchez
  */
 @Slf4j
-public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.NotifyOps {
+public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.NotifyOps, Closeable {
 
     private final Z80 z80;
     private final Memory memory;
@@ -57,7 +56,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     public int firstBorderUpdate, lastBorderUpdate, borderMode;
     private final Timer timerFrame;
     private SpectrumTimer taskFrame;
-    private JSpeccyScreen jscr;
+    private Screen jscr;
     private final Keyboard keyboard;
     private final Audio audio;
     private final AY8912 ay8912;
@@ -66,7 +65,6 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private volatile boolean acceleratedLoading;
     private volatile boolean isSoundEnabled;
     private boolean resetPending, autoLoadTape;
-    private JLabel speedLabel;
 
     private JoystickModel joystickModel;
     private JoystickRaw joystick1, joystick2;
@@ -77,6 +75,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     private boolean issue2, saveTrap, loadTrap, flashload;
     private boolean connectedIF1;
     private final Interface1 if1;
+	private Consumer<Long> onSpeedChange;
+	private Thread runThread;
 
     public Spectrum(JSpeccySettings config) {
         super(0,0);
@@ -399,7 +399,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         invalidateScreen(true);
         lastChgBorder = firstBorderUpdate;
         drawFrame();
-        jscr.repaint();
+        jscr.repaintScreen(null);
         paused = false;
         enableSound();
         if (!isSoundEnabled) {
@@ -428,6 +428,18 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         resetPending = true;
         z80.setPinReset();
         tape.stop();
+    }
+    
+    @Override
+    public void close() {
+    	if(runThread != null) {
+    		try {
+    			runThread.interrupt();
+    		}
+    		finally {
+    			runThread = null;
+    		}
+    	}
     }
 
     private void doReset() {
@@ -506,12 +518,11 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         tape.addTapeChangedListener(new TapeChangedListener());
     }
 
-    public void setSpeedLabel(JLabel speed) {
-        speedLabel = speed;
-
+    public void onSpeedChange(Consumer<Long> onSpeedChange) {
+    	this.onSpeedChange = onSpeedChange;
     }
 
-    public void setScreenComponent(JSpeccyScreen jScr) {
+    public void setScreenComponent(Screen jScr) {
         this.jscr = jScr;
     }
 
@@ -572,7 +583,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
      */
     @Override
     public synchronized void run() {
-        while (true) {
+    	runThread = Thread.currentThread();
+        while (runThread != null) {
             if (paused || !isSoundEnabled) {
                 try {
                     wait(250);
@@ -658,9 +670,8 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                 speedometer = now;
                 if (speed != prevSpeed) {
                     prevSpeed = speed;
-                    SwingUtilities.invokeLater(() -> {
-                        speedLabel.setText(String.format("%5d%%", speed));
-                    });
+                    if(onSpeedChange != null)
+                    	onSpeedChange.accept(speed);
 //                    System.out.println(String.format("Time: %d Speed: %d%%", now, speed));
                 }
             }
@@ -729,10 +740,10 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
                     screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
                     screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //                    System.out.println("borderDirty + screenDirty @ rect " + borderRect.union(screenRect));
-                    jscr.repaint(borderRect.union(screenRect));
+                    jscr.repaintScreen(borderRect.union(screenRect));
                 } else {
 //                    System.out.println("borderDirty @ rect " + borderRect);
-                    jscr.repaint(borderRect);
+                    jscr.repaintScreen(borderRect);
                 }
                 return;
             }
@@ -749,7 +760,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             screenRect.width = ((rightCol - leftCol + 1) * 8 * zoom) + zoom * 2;
             screenRect.height = ((lastScanLine - firstScanLine + 1) * zoom) + zoom * 2;
 //            System.out.println("screenDirty @ rect " + screenRect);
-            jscr.repaint(screenRect);
+            jscr.repaintScreen(screenRect);
         }
     }
 
@@ -778,7 +789,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             step = 0;
             updateScreen(spectrumModel.lastScrUpdate);
             gcTvImage.drawImage(inProgressImage, 0, 0, null);
-            jscr.repaint();
+            jscr.repaintScreen(null);
 
             lastScanLine = rightCol = lastBorderPix = 0;
             firstBorderPix = dataInProgress.length;
@@ -789,7 +800,9 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
             speed = clock.getFrames() - startFrame;
             if (speed != prevSpeed) {
                 prevSpeed = speed;
-                SwingUtilities.invokeLater(() -> speedLabel.setText(String.format("%5d%%", Math.abs(speed * 10))));
+                if(onSpeedChange != null) {
+                	onSpeedChange.accept(speed);
+                }
             }
 
         } while (tape.isTapePlaying());
@@ -2119,6 +2132,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         } else {
             nowColor = Paleta[portFE & 0x07];
         }
+        jscr.borderUpdated(nowColor);
 
         tstates += spectrumModel.outBorderOffset;
         tstates &= 0x00fffffc;
