@@ -36,6 +36,8 @@
         <Rom48k>spectrum.rom</Rom48k>
         <Rom128k0>128-0.rom</Rom128k0>
         <Rom128k1>128-1.rom</Rom128k1>
+        <Rom128kES0>128-0_es.rom</Rom128kES0>
+        <Rom128kES1>128-1_es.rom</Rom128kES1>
         <RomPlus20>plus2-0.rom</RomPlus20>
         <RomPlus21>plus2-1.rom</RomPlus21>
         <RomPlus2a0>plus2a-0.rom</RomPlus2a0>
