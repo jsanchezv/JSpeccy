@@ -80,10 +80,10 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
 
     public Spectrum(JSpeccySettings config) {
         super(0,0);
-        clock = SpectrumClock.INSTANCE;
+        clock = new SpectrumClock();
         settings = config;
         specSettings = settings.getSpectrumSettings();
-        z80 = new Z80(this, this);
+        z80 = new Z80(this, this, clock);
         memory = new Memory(settings);
         initGFX();
         speedometer = 0;
@@ -96,7 +96,7 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
         isSoundEnabled = false;
         paused = true;
         borderMode = 1;
-        if1 = new Interface1(settings.getInterface1Settings());
+        if1 = new Interface1(settings.getInterface1Settings(), clock);
 
         if (System.getProperty("os.name").contains("Linux")) {
             try {
@@ -1961,6 +1961,10 @@ public class Spectrum extends z80core.MemIoOps implements Runnable, z80core.Noti
     public BufferedImage getTvImage() {
         return tvImage;
     }
+
+	public SpectrumClock getClock() {
+		return clock;
+	}
 
     public void setBorderMode(int mode) {
         if (borderMode == mode) {

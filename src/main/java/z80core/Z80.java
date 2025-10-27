@@ -412,8 +412,8 @@ public class Z80 {
     private final BitSet breakpointAt = new BitSet(65536);
 
     // Constructor de la clase
-    public Z80(MemIoOps memory, NotifyOps notify) {
-        this.clock = SpectrumClock.INSTANCE;
+    public Z80(MemIoOps memory, NotifyOps notify, SpectrumClock clock) {
+        this.clock = clock;
         MemIoImpl = memory;
         NotifyImpl = notify;
         execDone = false;

@@ -56,6 +56,7 @@ import machine.Interface1DriveListener;
 import machine.Keyboard.JoystickModel;
 import machine.MachineTypes;
 import machine.Spectrum;
+import machine.SpectrumClock;
 import snapshots.SnapshotException;
 import snapshots.SnapshotFactory;
 import snapshots.SnapshotFile;
@@ -554,7 +555,7 @@ public class JSpeccy extends javax.swing.JFrame {
 
         spectrum.loadConfigVars();
 
-        tape = new Tape(settings.getTapeSettings());
+        tape = new Tape(settings.getTapeSettings(), spectrum.getClock());
         spectrum.setTape(tape);
         jscr = new JSpeccyScreen();
         spectrum.setScreenComponent(jscr);

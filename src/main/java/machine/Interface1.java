@@ -46,7 +46,7 @@ public class Interface1 {
 
     private final ArrayList<Interface1DriveListener> driveListeners = new ArrayList<>();
 
-    public Interface1(Interface1Type if1settings) {
+    public Interface1(Interface1Type if1settings, SpectrumClock clock) {
         settings = if1settings;
         mdrFlipFlop = 0;
         mdrSelected = 0;
@@ -54,7 +54,7 @@ public class Interface1 {
 
         microdrive = new Microdrive[8];
         for (int mdr = 0; mdr < 8; mdr++)
-            microdrive[mdr] = new Microdrive();
+            microdrive[mdr] = new Microdrive(clock);
 
         commsClk = false;
         lan = 0;

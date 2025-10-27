@@ -71,9 +71,9 @@ public class Microdrive {
     private final SpectrumClock clock;
     private long startGap;
 
-    public Microdrive() {
+    public Microdrive(SpectrumClock clock) {
 
-        clock = SpectrumClock.INSTANCE;
+        this.clock = clock;
         isCartridge = mdrFile = false;
         writeProtected = true;
         cartridgePos = 0;

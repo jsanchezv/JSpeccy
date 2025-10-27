@@ -136,10 +136,10 @@ public class Tape implements machine.ClockTimeoutListener {
     private static final String tzxCreator = "TZX created with JSpeccy v0.95";
     private boolean manualMode = false;
 
-    public Tape(TapeSettingsType tapeSettings) {
+    public Tape(TapeSettingsType tapeSettings, SpectrumClock clock) {
         blockListeners = new ArrayList<>();
         stateListeners = new ArrayList<>();
-        clock = SpectrumClock.INSTANCE;
+        this.clock = clock;
         settings = tapeSettings;
         statePlay = State.STOP;
         tapePlaying = tapeRecording = false;

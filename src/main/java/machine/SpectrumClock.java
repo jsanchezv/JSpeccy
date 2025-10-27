@@ -19,9 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @Slf4j
 @ToString(onlyExplicitlyIncluded = true, includeFieldNames = true)
-public enum SpectrumClock {
-
-    INSTANCE;
+public class SpectrumClock {
 
     @Getter
     @ToString.Include
