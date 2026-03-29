@@ -19,12 +19,15 @@ import java.awt.Frame;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
+import machine.MachineTypes;
 
 /**
  *
@@ -262,7 +265,17 @@ public class SettingsDialog extends javax.swing.JPanel {
 
         defaultModelPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("SettingsDialog.defaultModePanel.border.text"))); // NOI18N
 
-        spectrumModel.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 16k", "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A", "Spectrum +3" }));
+        // Spectrum model names
+        final MachineTypes[] MACHINE_TYPES = MachineTypes.values();
+        final List<String> SPECTRUM_MODELS = new ArrayList<>( MACHINE_TYPES.length );
+
+        for(MachineTypes mt: MACHINE_TYPES) {
+            SPECTRUM_MODELS.add( mt.getLongModelName() );
+        }
+
+        spectrumModel.setModel(
+                //new javax.swing.DefaultComboBoxModel(new String[] { "Spectrum 16k", "Spectrum 48k", "Spectrum 128k", "Spectrum +2", "Spectrum +2A", "Spectrum +3", "Spectrum 128K (español)" }));
+                new javax.swing.DefaultComboBoxModel(SPECTRUM_MODELS.toArray()));
         spectrumModel.addActionListener(this::spectrumModelActionPerformed);
         defaultModelPanel.add(spectrumModel);
 
